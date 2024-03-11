@@ -71,8 +71,6 @@ def _(event: "KeyPressEvent") -> None:
 
     from lightlike.app.client import get_client
 
-    # job_scheduler.shutdown()  # type: ignore
-    # utils._log().debug("Shutdown APScheduler.")
     get_client().close()
     utils._log().debug("Closed Bigquery client HTTPS connection.")
     utils._log().debug("Exiting gracefully.")

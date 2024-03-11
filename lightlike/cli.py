@@ -27,7 +27,6 @@ from typing import TYPE_CHECKING, NoReturn, Sequence
 
 import fasteners  # type: ignore[import-untyped, import-not-found]
 import rich_click as click
-from rich import print as rprint
 from rich.traceback import install
 from rich_click.cli import patch
 
@@ -77,8 +76,6 @@ def build_cli() -> "AliasedRichGroup":
         if ctx.invoked_subcommand is None:
             os.chdir(Path().home())
             ctx.invoke(repl)
-            # job_scheduler.shutdown()  # type: ignore
-            # utils._log().debug("Shutdown APScheduler.")
             get_client().close()
             utils._log().debug("Closed Bigquery client HTTPS connection.")
             utils._log().debug("Exiting gracefully.")
@@ -140,18 +137,15 @@ def lightlike(lock: fasteners.InterProcessLock = LOCK) -> None:
 def _check_lock(lock: fasteners.InterProcessLock) -> None | NoReturn:
     with fasteners.try_lock(lock) as locked:
         if not locked:
-            from rich.rule import Rule
-
-            rprint(
-                Rule(
+            with _console.get_console() as console:
+                console.rule(
                     title=f"FAILED TO ACQUIRE LOCK {lock.path}",
                     style="bold red",
                     align="left",
                 )
-            )
-            rprint(
-                "CLI is already running in another interpreter on this machine. "
-                "Please close it before attempting to run again.\n",
-            )
+                console.print(
+                    "CLI is already running in another interpreter on this machine. "
+                    "Please close it before attempting to run again.\n",
+                )
             exit(2)
     return None

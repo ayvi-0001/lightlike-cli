@@ -48,7 +48,7 @@ def compare_version(__version__: str, __repo__: str, __latest_release__: str) ->
 
     if local_version < latest_version:
         get_console().log(
-            f"[b][green]New Release available[/b][/green]: {latest_release[1:]}."
+            f"[b][green]New Release available[/b][/green]: {latest_release[1:]}. "
             "Install update by running command below: "
         )
         get_console().log(

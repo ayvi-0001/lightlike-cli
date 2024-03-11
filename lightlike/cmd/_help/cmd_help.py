@@ -890,7 +890,7 @@ app_settings_timezone_syntax = Syntax(
 
 app_settings_week_start = _reformat_help_text(
     f"""
-Update week start for `--current-week` flags.
+Update week start for {flag.current_week} flags.
 """
 )
 

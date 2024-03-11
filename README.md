@@ -6,7 +6,9 @@ A time-tracking REPL, using [Google BigQuery](https://cloud.google.com/bigquery?
 
 ![timer-run](docs/assets/gifs/timer-run.gif)
 
-To see a brief overview of features, skip to the [Features](#features) section below.
+For an overview of features, See the [Features](#features) section below.
+
+For steps on installation & setup, See the [Installation & Setup](#installation--setup) section below.
 
 For a full list of commands, see the [Command Guide](https://github.com/ayvi-0001/lightlike-cli/blob/main/docs/command_guide.md).
 
@@ -17,8 +19,8 @@ For a full list of commands, see the [Command Guide](https://github.com/ayvi-000
 - **Aliased commands & Auto Completion.**
   
   The primary goal of this tool is to make logging hours as fast as possible.
-  All commands are aliased - if no other command begins with the same characters,
-  then you can simple type the first character to use that command. All flags also have a short option.
+  All commands are aliased - as long as it is unique, you can type the shortest prefix down to a single character to call that command.
+  All flags also have a short option.
 
   ![feature-aliased-commands](docs/assets/gifs/feature-aliased-commands.gif)
 
@@ -38,18 +40,20 @@ For a full list of commands, see the [Command Guide](https://github.com/ayvi-000
 
 - **BigQuery Shell.**
 
-  Write queries directly to BigQuery.\
-  <span style="color:grey">***Note**: This is a very minimal feature shell, as it's not main focus of this tool*.</span>
+  Write queries directly to BigQuery <span style="color:grey">(***Note**: This is a very minimal feature shell, as it's not main focus of this tool*)</span>.
 
   ![feature-bq-shell](docs/assets/gifs/feature-bq-shell.gif)
 
 - **Backup/restore snapshots.**
 
-  Create and restore table snapshots right from the cli using the `bq snapshot` command.
+  Create and restore table snapshots right from the cli using the `bq snapshot` command group.
 
 - **Built-in commands.**
 
   Autocompletion for `cd`, `ls`, and `tree`.
+  
+  Press `meta`+`shift`+`1` to enable a system prompt, or type the command and press `escape`+`enter`.\
+  You can also press `[ctrl+]{F3}` to switch the global completer from autocompleting commands to paths.
   
   ![feature-builtin](docs/assets/gifs/feature-builtin.gif)
 
@@ -62,7 +66,7 @@ For a full list of commands, see the [Command Guide](https://github.com/ayvi-000
 >
 > If the selected option is the latter - to avoid keeping a plain-text file on the local machine - the service account key is encrypted using a user-provided password.
 >
-> There is no option to save data locally. Support for SQLite is planned.
+> There is no option to save data locally. Support for SQLite is planned long-term.
 >
 > This package is not currently hosted on PyPI. It may be uploaded in the future.
 
@@ -70,7 +74,7 @@ For a full list of commands, see the [Command Guide](https://github.com/ayvi-000
 
 > [!NOTE]  
 > These examples are creating a directory in the user's home path called `lightlike_cli`.
-> Change the target directories if you want to create it somewhere else.
+> Update the target directories as needed.
 >
 > They're also installing the package in a virtual environment, this is optional but recommended.
 
@@ -91,24 +95,24 @@ pip install "lightlike @ git+https://github.com/ayvi-0001/lightlike-cli@main"
 ### Windows
 
 ```sh
-mkdir %USERPROFILE%/lightlike_cli
-cd %USERPROFILE%/lightlike_cli
+mkdir %USERPROFILE%\lightlike_cli
+cd %USERPROFILE%\lightlike_cli
 
 virtualenv env
-env/Scripts/activate
+env\Scripts\activate
 
 pip install "lightlike @ git+https://github.com/ayvi-0001/lightlike-cli@main"
 ```
 
-As long as you are in the virutal environment, you should now be able to start the REPL by typing the command below.
+As long as you are in the virutal environment, you should now be able to start the REPL by typing the command below:
 
 ```sh
 lightlike
 ```
 
-***Optional***: Create symbolic link on `$PATH`\
+***Optional***: Create a symbolic link on `$PATH`\
 This step will only work if you're on Linux, or using Git Bash/Cygwin on Windows.\
-The `mklink` command in Command Prompt will not work to create a symbolic link to a `.exe`.
+The `mklink` command in Command Prompt will not work to create a symbolic link to an executable.
 
 ### Linux
 
@@ -121,7 +125,7 @@ sudo ln -s ~/lightlike_cli/env/bin/lightlike
 
 ```sh
 cd ~/Appdata/Local/Programs/Python/Python311/Scripts
-ln -s ~/Desktop/lightlike_cli/env/Scripts/lightlike.exe
+ln -s ~/lightlike_cli/env/Scripts/lightlike.exe
 ```
 
 After running the commands above, you should be able to start the CLI using the command `$ lightlike` from anywhere, without needing to activate the virtualenv first.
@@ -137,8 +141,8 @@ It's recommended to keep frequent backups of your time entries (primarily why th
 
 Please open an issue if you do encounter any.
 
-As a reminder, if something happens resulting in a loss of data, without having created a recent snapshot -
-As long as the table has not been dropped you can query a table's historical data from any point in time within the fail-safe period of the last 7 days by using the `FOR SYSTEM_TIME AS OF` clause.
+As a reminder, if something happens resulting in a loss of data without having created a recent snapshot,\
+As long as the table hasn't been dropped, you can query it's historical data from any point in time within the fail-safe period of the last 7 days by using the `FOR SYSTEM_TIME AS OF` clause.
 
 E.g.
 
