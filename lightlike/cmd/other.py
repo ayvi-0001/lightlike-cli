@@ -54,13 +54,9 @@ def cd_(path: Path) -> None:
         try:
             os.chdir(path.resolve())
         except FileNotFoundError as e:
-            get_console().print(
-                f"[b][red]FileNotFoundError:[/b][/red] {Path(str(e)).as_posix()}"
-            )
+            rprint(f"[b][red]FileNotFoundError:[/b][/red] {Path(str(e)).as_posix()}")
         except NotADirectoryError as e:
-            get_console().print(
-                f"[b][red]NotADirectoryError:[/b][/red] {Path(str(e)).as_posix()}"
-            )
+            rprint(f"[b][red]NotADirectoryError:[/b][/red] {Path(str(e)).as_posix()}")
 
 
 @click.command(
@@ -202,13 +198,9 @@ def tree_(path: Path, all_: True) -> None:
             rprint(Padding(tree, (1, 0, 1, 0)))
 
     except FileNotFoundError as e:
-        get_console().print(
-            f"[b][red]FileNotFoundError:[/b][/red] {Path(str(e)).as_posix()}"
-        )
+        rprint(f"[b][red]FileNotFoundError:[/b][/red] {Path(str(e)).as_posix()}")
     except NotADirectoryError as e:
-        get_console().print(
-            f"[b][red]NotADirectoryError:[/b][/red] {Path(str(e)).as_posix()}"
-        )
+        rprint(f"[b][red]NotADirectoryError:[/b][/red] {Path(str(e)).as_posix()}")
 
 
 @click.command(cls=_RichCommand, name="calc", hidden=True)

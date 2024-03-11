@@ -9,9 +9,13 @@
 - [`app`](#app)
 - [`bq`](#bq)
 
+---
+
 ## `general`
 
 ![general](/docs/assets/svg/help.svg )
+
+---
 
 ## `timer`
 
@@ -28,10 +32,6 @@
 ### `timer:edit:entry`
 
 ![timer_edit_entry](/docs/assets/svg/timer_edit_entry.svg )
-
-### `timer:edit`
-
-![timer_edit](/docs/assets/svg/timer_edit.svg )
 
 ### `timer:get`
 
@@ -81,7 +81,7 @@
 
 ![timer_update](/docs/assets/svg/timer_update.svg )
 
-## `project`
+---
 
 - [`general`](#general)
 - [`timer`](#timer)
@@ -89,6 +89,10 @@
 - [`report`](#report)
 - [`app`](#app)
 - [`bq`](#bq)
+
+---
+
+## `project`
 
 ![project](/docs/assets/svg/project.svg )
 
@@ -118,13 +122,13 @@
 
 ### `project:update:name`
 
-![project_update_ACTIVE_PROJECT_name](/docs/assets/svg/project_update_ACTIVE_PROJECT_name.svg )
+![project_update_name](/docs/assets/svg/project_update_name.svg )
 
 ### `project:update:description`
 
-![project_update_ACTIVE_PROJECT_description](/docs/assets/svg/project_update_ACTIVE_PROJECT_description.svg )
+![project_update_description](/docs/assets/svg/project_update_description.svg )
 
-## `report`
+---
 
 - [`general`](#general)
 - [`timer`](#timer)
@@ -132,6 +136,10 @@
 - [`report`](#report)
 - [`app`](#app)
 - [`bq`](#bq)
+
+---
+
+## `report`
 
 ![report](/docs/assets/svg/report.svg )
 
@@ -147,7 +155,7 @@
 
 ![report_table](/docs/assets/svg/report_table.svg )
 
-## `app`
+---
 
 - [`general`](#general)
 - [`timer`](#timer)
@@ -155,6 +163,10 @@
 - [`report`](#report)
 - [`app`](#app)
 - [`bq`](#bq)
+
+---
+
+## `app`
 
 ![app](/docs/assets/svg/app.svg )
 
@@ -186,19 +198,23 @@
 
 ![app_settings](/docs/assets/svg/app_settings.svg )
 
+### `app:settings:show`
+
+![app_settings_show.svg](/docs/assets/svg/app_settings_show.svg )
+
 ### `app:settings:update:general:editor`
 
 ![app_settings_update_general_editor](/docs/assets/svg/app_settings_update_general_editor.svg )
 
-### `app:settings:update:general:is:billable`
+### `app:settings:update:general:is_billable`
 
 ![app_settings_update_general_is_billable](/docs/assets/svg/app_settings_update_general_is_billable.svg )
 
-### `app:settings:update:general:note:history`
+### `app:settings:update:general:note_history`
 
 ![app_settings_update_general_note_history](/docs/assets/svg/app_settings_update_general_note_history.svg )
 
-### `app:settings:update:general:stay:logged:in`
+### `app:settings:update:general:stay_logged_in`
 
 ![app_settings_update_general_stay_logged_in](/docs/assets/svg/app_settings_update_general_stay_logged_in.svg )
 
@@ -206,7 +222,7 @@
 
 ![app_settings_update_general_timezone](/docs/assets/svg/app_settings_update_general_timezone.svg )
 
-### `app:settings:update:general:week:start`
+### `app:settings:update:general:week_start`
 
 ![app_settings_update_general_week_start](/docs/assets/svg/app_settings_update_general_week_start.svg )
 
@@ -242,7 +258,7 @@
 
 ![app_test](/docs/assets/svg/app_test_date-parse.svg )
 
-## `bq`
+---
 
 - [`general`](#general)
 - [`timer`](#timer)
@@ -250,6 +266,10 @@
 - [`report`](#report)
 - [`app`](#app)
 - [`bq`](#bq)
+
+---
+
+## `bq`
 
 ![bq](/docs/assets/svg/bq.svg )
 
