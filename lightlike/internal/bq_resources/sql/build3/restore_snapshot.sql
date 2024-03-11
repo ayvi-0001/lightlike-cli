@@ -1,0 +1,16 @@
+CREATE OR REPLACE PROCEDURE
+  ${DATASET.NAME}.${__name__}(IN snapshot_table_name STRING)
+BEGIN
+
+EXECUTE IMMEDIATE
+  FORMAT(
+    """
+CREATE OR REPLACE TABLE
+  ${DATASET.NAME}.${TABLES.TIMESHEET}
+CLONE
+  ${DATASET.NAME}.%s
+    """,
+  snapshot_table_name
+);
+
+END;

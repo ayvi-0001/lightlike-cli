@@ -1,0 +1,100 @@
+<svg class="rich-terminal" viewBox="0 0 1641 367.2" xmlns="http://www.w3.org/2000/svg">
+    <style>
+
+    @font-face {
+        font-family: "Source Code Pro";
+        src: local("Source Code Pro"),
+                url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@0,200..900;1,200..900'),
+        font-style: normal;
+        font-weight: 400;
+    }
+    
+
+    .terminal-1275259436-matrix {
+        font-family: Source Code Pro, monospace;
+        font-size: 20px;
+        line-height: 24.4px;
+        font-variant-east-asian: full-width;
+    }
+
+    .terminal-1275259436-title {
+        font-size: 18px;
+        font-weight: bold;
+        font-family: Source Code Pro;
+    }
+
+    .terminal-1275259436-r1 { fill: #c5c8c6 }
+.terminal-1275259436-r2 { fill: #f0f0ff;font-weight: bold }
+.terminal-1275259436-r3 { fill: #3465a4;font-weight: bold }
+.terminal-1275259436-r4 { fill: #68a0b3;font-weight: bold }
+.terminal-1275259436-r5 { fill: #f0f0ff }
+.terminal-1275259436-r6 { fill: #f08375;font-weight: bold }
+.terminal-1275259436-r7 { fill: #e1e1db;font-weight: bold }
+.terminal-1275259436-r8 { fill: #575753 }
+.terminal-1275259436-r9 { fill: #f8f8f2 }
+.terminal-1275259436-r10 { fill: #66d9ef }
+.terminal-1275259436-r11 { fill: #cc555a }
+.terminal-1275259436-r12 { fill: #68a0b3 }
+.terminal-1275259436-r13 { fill: #98a84b;font-weight: bold }
+    </style>
+
+    <defs>
+    <clipPath id="terminal-1275259436-clip-terminal">
+    <rect x="0" y="0" width="1621.6" height="316.2" />
+    </clipPath>
+    <clipPath id="terminal-1275259436-line-0">
+    <rect x="0" y="1.5" width="1622.6" height="24.65"/>
+            </clipPath>
+<clipPath id="terminal-1275259436-line-1">
+    <rect x="0" y="25.9" width="1622.6" height="24.65"/>
+            </clipPath>
+<clipPath id="terminal-1275259436-line-2">
+    <rect x="0" y="50.3" width="1622.6" height="24.65"/>
+            </clipPath>
+<clipPath id="terminal-1275259436-line-3">
+    <rect x="0" y="74.7" width="1622.6" height="24.65"/>
+            </clipPath>
+<clipPath id="terminal-1275259436-line-4">
+    <rect x="0" y="99.1" width="1622.6" height="24.65"/>
+            </clipPath>
+<clipPath id="terminal-1275259436-line-5">
+    <rect x="0" y="123.5" width="1622.6" height="24.65"/>
+            </clipPath>
+<clipPath id="terminal-1275259436-line-6">
+    <rect x="0" y="147.9" width="1622.6" height="24.65"/>
+            </clipPath>
+<clipPath id="terminal-1275259436-line-7">
+    <rect x="0" y="172.3" width="1622.6" height="24.65"/>
+            </clipPath>
+<clipPath id="terminal-1275259436-line-8">
+    <rect x="0" y="196.7" width="1622.6" height="24.65"/>
+            </clipPath>
+<clipPath id="terminal-1275259436-line-9">
+    <rect x="0" y="221.1" width="1622.6" height="24.65"/>
+            </clipPath>
+<clipPath id="terminal-1275259436-line-10">
+    <rect x="0" y="245.5" width="1622.6" height="24.65"/>
+            </clipPath>
+<clipPath id="terminal-1275259436-line-11">
+    <rect x="0" y="269.9" width="1622.6" height="24.65"/>
+            </clipPath>
+    </defs>
+    
+    <rect fill="#131310" x="12.2" y="147.9" width="24.4" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="36.6" y="147.9" width="24.4" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="61" y="147.9" width="24.4" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="85.4" y="147.9" width="36.6" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="122" y="147.9" width="12.2" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="134.2" y="147.9" width="97.6" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="231.8" y="147.9" width="12.2" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="244" y="147.9" width="73.2" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="317.2" y="147.9" width="12.2" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="329.4" y="147.9" width="61" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="390.4" y="147.9" width="12.2" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="402.6" y="147.9" width="97.6" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="500.2" y="147.9" width="12.2" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="512.4" y="147.9" width="48.8" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="561.2" y="147.9" width="1049.2" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="12.2" y="172.3" width="24.4" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="36.6" y="172.3" width="24.4" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="61" y="172.3" width="1549.4" height="24.65" shape-rendering="crispEdges"/>
+    <g class="terminal-1275259436-matrix">
+    <text class="terminal-1275259436-r1" x="1622.6" y="20" textLength="12.2" clip-path="url(#terminal-1275259436-line-0)">
+</text><text class="terminal-1275259436-r2" x="12.2" y="44.4" textLength="73.2" clip-path="url(#terminal-1275259436-line-1)">Usage:</text><text class="terminal-1275259436-r3" x="97.6" y="44.4" textLength="414.8" clip-path="url(#terminal-1275259436-line-1)">app&#160;settings&#160;update&#160;query&#160;save_txt</text><text class="terminal-1275259436-r1" x="524.6" y="44.4" textLength="12.2" clip-path="url(#terminal-1275259436-line-1)">[</text><text class="terminal-1275259436-r4" x="536.8" y="44.4" textLength="85.4" clip-path="url(#terminal-1275259436-line-1)">OPTIONS</text><text class="terminal-1275259436-r1" x="622.2" y="44.4" textLength="24.4" clip-path="url(#terminal-1275259436-line-1)">]&#160;</text><text class="terminal-1275259436-r4" x="646.6" y="44.4" textLength="61" clip-path="url(#terminal-1275259436-line-1)">VALUE</text><text class="terminal-1275259436-r1" x="1622.6" y="44.4" textLength="12.2" clip-path="url(#terminal-1275259436-line-1)">
+</text><text class="terminal-1275259436-r1" x="1622.6" y="68.8" textLength="12.2" clip-path="url(#terminal-1275259436-line-2)">
+</text><text class="terminal-1275259436-r1" x="1622.6" y="93.2" textLength="12.2" clip-path="url(#terminal-1275259436-line-3)">
+</text><text class="terminal-1275259436-r5" x="12.2" y="117.6" textLength="268.4" clip-path="url(#terminal-1275259436-line-4)">Queries&#160;using&#160;command&#160;</text><text class="terminal-1275259436-r3" x="280.6" y="117.6" textLength="24.4" clip-path="url(#terminal-1275259436-line-4)">bq</text><text class="terminal-1275259436-r5" x="305" y="117.6" textLength="12.2" clip-path="url(#terminal-1275259436-line-4)">:</text><text class="terminal-1275259436-r3" x="317.2" y="117.6" textLength="61" clip-path="url(#terminal-1275259436-line-4)">query</text><text class="terminal-1275259436-r5" x="378.2" y="117.6" textLength="439.2" clip-path="url(#terminal-1275259436-line-4)">&#160;will&#160;save&#160;the&#160;rendered&#160;result&#160;to&#160;a&#160;</text><text class="terminal-1275259436-r6" x="817.4" y="117.6" textLength="48.8" clip-path="url(#terminal-1275259436-line-4)">.txt</text><text class="terminal-1275259436-r5" x="866.2" y="117.6" textLength="329.4" clip-path="url(#terminal-1275259436-line-4)">&#160;file&#160;in&#160;the&#160;app&#160;directory.</text><text class="terminal-1275259436-r1" x="1622.6" y="117.6" textLength="12.2" clip-path="url(#terminal-1275259436-line-4)">
+</text><text class="terminal-1275259436-r1" x="1622.6" y="142" textLength="12.2" clip-path="url(#terminal-1275259436-line-5)">
+</text><text class="terminal-1275259436-r8" x="36.6" y="166.4" textLength="24.4" clip-path="url(#terminal-1275259436-line-6)">1&#160;</text><text class="terminal-1275259436-r9" x="61" y="166.4" textLength="24.4" clip-path="url(#terminal-1275259436-line-6)">$&#160;</text><text class="terminal-1275259436-r9" x="85.4" y="166.4" textLength="36.6" clip-path="url(#terminal-1275259436-line-6)">app</text><text class="terminal-1275259436-r9" x="134.2" y="166.4" textLength="97.6" clip-path="url(#terminal-1275259436-line-6)">settings</text><text class="terminal-1275259436-r9" x="244" y="166.4" textLength="73.2" clip-path="url(#terminal-1275259436-line-6)">update</text><text class="terminal-1275259436-r9" x="329.4" y="166.4" textLength="61" clip-path="url(#terminal-1275259436-line-6)">query</text><text class="terminal-1275259436-r9" x="402.6" y="166.4" textLength="97.6" clip-path="url(#terminal-1275259436-line-6)">save_txt</text><text class="terminal-1275259436-r10" x="512.4" y="166.4" textLength="48.8" clip-path="url(#terminal-1275259436-line-6)">true</text><text class="terminal-1275259436-r1" x="1622.6" y="166.4" textLength="12.2" clip-path="url(#terminal-1275259436-line-6)">
+</text><text class="terminal-1275259436-r8" x="36.6" y="190.8" textLength="24.4" clip-path="url(#terminal-1275259436-line-7)">2&#160;</text><text class="terminal-1275259436-r1" x="1622.6" y="190.8" textLength="12.2" clip-path="url(#terminal-1275259436-line-7)">
+</text><text class="terminal-1275259436-r1" x="1622.6" y="215.2" textLength="12.2" clip-path="url(#terminal-1275259436-line-8)">
+</text><text class="terminal-1275259436-r5" x="0" y="239.6" textLength="24.4" clip-path="url(#terminal-1275259436-line-9)">╭─</text><text class="terminal-1275259436-r2" x="36.6" y="239.6" textLength="85.4" clip-path="url(#terminal-1275259436-line-9)">Options</text><text class="terminal-1275259436-r5" x="134.2" y="239.6" textLength="1464" clip-path="url(#terminal-1275259436-line-9)">────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</text><text class="terminal-1275259436-r5" x="1598.2" y="239.6" textLength="24.4" clip-path="url(#terminal-1275259436-line-9)">─╮</text><text class="terminal-1275259436-r1" x="1622.6" y="239.6" textLength="12.2" clip-path="url(#terminal-1275259436-line-9)">
+</text><text class="terminal-1275259436-r5" x="0" y="264" textLength="12.2" clip-path="url(#terminal-1275259436-line-10)">│</text><text class="terminal-1275259436-r11" x="24.4" y="264" textLength="12.2" clip-path="url(#terminal-1275259436-line-10)">*</text><text class="terminal-1275259436-r4" x="61" y="264" textLength="73.2" clip-path="url(#terminal-1275259436-line-10)">VALUE&#160;</text><text class="terminal-1275259436-r12" x="207.4" y="264" textLength="85.4" clip-path="url(#terminal-1275259436-line-10)">BOOLEAN</text><text class="terminal-1275259436-r11" x="317.2" y="264" textLength="122" clip-path="url(#terminal-1275259436-line-10)">[required]</text><text class="terminal-1275259436-r5" x="1610.4" y="264" textLength="12.2" clip-path="url(#terminal-1275259436-line-10)">│</text><text class="terminal-1275259436-r1" x="1622.6" y="264" textLength="12.2" clip-path="url(#terminal-1275259436-line-10)">
+</text><text class="terminal-1275259436-r5" x="0" y="288.4" textLength="12.2" clip-path="url(#terminal-1275259436-line-11)">│</text><text class="terminal-1275259436-r4" x="61" y="288.4" textLength="12.2" clip-path="url(#terminal-1275259436-line-11)">-</text><text class="terminal-1275259436-r4" x="73.2" y="288.4" textLength="61" clip-path="url(#terminal-1275259436-line-11)">-help</text><text class="terminal-1275259436-r13" x="158.6" y="288.4" textLength="24.4" clip-path="url(#terminal-1275259436-line-11)">-h</text><text class="terminal-1275259436-r12" x="207.4" y="288.4" textLength="85.4" clip-path="url(#terminal-1275259436-line-11)">FLAG&#160;&#160;&#160;</text><text class="terminal-1275259436-r5" x="317.2" y="288.4" textLength="329.4" clip-path="url(#terminal-1275259436-line-11)">Show&#160;this&#160;message&#160;and&#160;exit.</text><text class="terminal-1275259436-r5" x="1610.4" y="288.4" textLength="12.2" clip-path="url(#terminal-1275259436-line-11)">│</text><text class="terminal-1275259436-r1" x="1622.6" y="288.4" textLength="12.2" clip-path="url(#terminal-1275259436-line-11)">
+</text><text class="terminal-1275259436-r5" x="0" y="312.8" textLength="1622.6" clip-path="url(#terminal-1275259436-line-12)">╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text><text class="terminal-1275259436-r1" x="1622.6" y="312.8" textLength="12.2" clip-path="url(#terminal-1275259436-line-12)">
+</text>
+    </g>
+</svg>
