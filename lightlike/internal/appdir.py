@@ -62,10 +62,10 @@ def validate(__version__: str, /) -> None | NoReturn:
     elif CONFIG.exists():
         console.log("[log.main]Checking for updates")
         with suppress(Exception):
-            from lightlike.__about__ import __latest_release__
+            from lightlike.__about__ import __repo__, __latest_release__
             from lightlike.internal.update import compare_version
 
-            compare_version(__version__, __latest_release__)
+            compare_version(__version__, __repo__, __latest_release__)
 
         from lightlike.internal.update import _update_config, update_cli
 

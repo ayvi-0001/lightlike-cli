@@ -32,7 +32,7 @@ def get_version(__latest_release__) -> str:
     return version
 
 
-def compare_version(__version__: str, __latest_release__: str) -> str:
+def compare_version(__version__: str, __repo__: str, __latest_release__: str) -> str:
     pkg_expr: Final[Pattern[str]] = re.compile(r"v(\d).(\d)+.(\d)+", re.I)
 
     latest_release = get_version(__latest_release__)
@@ -43,13 +43,16 @@ def compare_version(__version__: str, __latest_release__: str) -> str:
     local_major, local_minor, local_patch = vLocal.group(1, 2, 3)  # type: ignore[union-attr]
     latest_major, latest_minor, latest_patch = vLatest.group(1, 2, 3)  # type: ignore[union-attr]
 
-    latest_version = (int(local_major), int(local_minor), int(local_patch))
-    current_version = (int(latest_major), int(latest_minor), int(latest_patch))
+    local_version = int(local_major), int(local_minor), int(local_patch)
+    latest_version = int(latest_major), int(latest_minor), int(latest_patch)
 
-    if current_version < latest_version:
+    if local_version < latest_version:
         get_console().log(
-            f"[b][i][u]New Release available: {latest_release}. "
-            f"Download @ {__latest_release__}"
+            f"[b][green]New Release available[/b][/green]: {latest_release[1:]}."
+            "Install update by running command below: "
+        )
+        get_console().log(
+            f'[code]$ pip install -U[/code] "lightlike @ git+{__repo__}@main"'
         )
 
     return latest_release

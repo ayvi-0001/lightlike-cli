@@ -1,7 +1,5 @@
 import typing as t
 
-from click.shell_completion import CompletionItem
-from prompt_toolkit.application import get_app
 from prompt_toolkit.completion import (
     Completion,
     ThreadedCompleter,
@@ -15,7 +13,6 @@ from lightlike.app.client import get_client
 from lightlike.internal.utils import _alter_str, _match_str, _prerun_autocomplete
 
 if t.TYPE_CHECKING:
-    import rich_click as click
     from google.cloud.bigquery import Client
     from prompt_toolkit.completion import CompleteEvent
     from rich.console import Console
@@ -35,34 +32,6 @@ def completer(schema: str, table: str) -> ThreadedCompleter:
     ]
 
     return ThreadedCompleter(merge_completers(completers, deduplicate=True))
-
-
-def where(
-    ctx: "click.Context", param: "click.Parameter", incomplete: str
-) -> list[CompletionItem]:
-    completer = completer("lightlike_cli_dev", "timesheet")
-    app = get_app()
-    completions = [
-        CompletionItem(value=c.text, help=c.display_meta)  # type: ignore[arg-type]
-        for c in completer.get_completions(app.current_buffer.document, None)  # type: ignore[arg-type]
-    ]
-
-    word_before_cursor = _alter_str(
-        app.current_buffer.document.get_word_before_cursor(WORD=True),
-        strip_parenthesis=True,
-        strip_quotes=True,
-    )
-
-    if "where" in app.current_buffer.document.text:
-        if _match_str(
-            word_before_cursor,
-            incomplete,
-            strip_parenthesis=True,
-            strip_quotes=True,
-        ):
-            return completions or []
-
-    return []
 
 
 class WhereClauseCompleter(WordCompleter):
