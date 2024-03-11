@@ -8,7 +8,7 @@ A time-tracking REPL, using [Google BigQuery](https://cloud.google.com/bigquery?
 
 To see a brief overview of features, skip to the [Features](#features) section below.
 
-For a full list of commands, see the [Command Guide](https://github.com/ayvi-0001/lightlike_cli_dev/blob/dev/docs/command_guide.md).
+For a full list of commands, see the [Command Guide](https://github.com/ayvi-0001/lightlike-cli/blob/main/docs/command_guide.md).
 
 ---
 
@@ -67,6 +67,7 @@ For a full list of commands, see the [Command Guide](https://github.com/ayvi-000
 > This package is not currently hosted on PyPI. It may be uploaded in the future.
 
 ---
+
 > [!NOTE]  
 > These examples are creating a directory in the user's home path called `lightlike_cli`.
 > Change the target directories if you want to create it somewhere else.
