@@ -1,0 +1,11 @@
+CREATE OR REPLACE PROCEDURE
+  ${DATASET.NAME}.${__name__}(IN set_clause STRING, IN _id STRING)
+BEGIN
+
+EXECUTE IMMEDIATE
+  FORMAT(
+    'UPDATE ${DATASET.NAME}.${TABLES.TIMESHEET} %s WHERE id = "%s";',
+    set_clause, _id
+  );
+
+END;

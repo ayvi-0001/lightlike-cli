@@ -1,0 +1,53 @@
+cursor-shape = "BLOCK"
+
+[style]
+"" = "fg:#f0f0ff"
+user = "fg:#00fa05"
+at = "fg:#9146ff"
+host = "fg:#00fa05"
+timer = "fg:#000000 bg:#f0f0ff"
+cursor = "fg:#f0f0ff"
+prompt = "fg:#f0f0ff"
+entries = "fg:#000000 bg:#f0f0ff"
+system = "fg:#555753"
+path = "fg:#00b8fc"
+project_parenthesis = "fg:#20c5cf"
+git_parenthesis = "fg:#ffff00"
+project = "fg:#f08375"
+selected = "reverse"
+cursor-column = "bg:#dddddd"
+cursor-line = "underline"
+color-column = "bg:#ccaacc"
+
+"pygments.keyword" = "#6b90f7"
+"pygments.name.builtin" = "#6b90f7"
+"pygments.punctuation" = "#ba7dac"
+"pygments.operator" = "#90c0d6"
+"pygments.comment.single" = "#f0404e"
+"pygments.comment.multiline" = "#f0404e"
+"pygments.literal.string.symbol" = "#239551"
+"pygments.literal.string.single" = "#239551"
+"pygments.literal.number" = "#d32211"
+"pygments.generic" = ""
+"pygments.text" = ""
+"pygments.whitespace" = ""
+"pygments.escape" = ""
+"pygments.error" = ""
+"pygments.other" = ""
+
+"completion-menu" = "bg:#0e0e10 fg:#f0f0ff"
+"completion-menu.completion" = "bg:#0e0e10 fg:#f0f0ff"
+# (Note: for the current completion, we use 'reverse' on top of fg/bg colors.
+# This is to have proper rendering with NO_COLOR=1).
+"completion-menu.completion.current" = "bold bg:#f0f0ff fg:#9146ff reverse"
+"completion-menu.meta.completion" = "bg:#f0f0ff fg:#000000"
+"completion-menu.meta.completion.current" = "bold bg:#f0f0ff fg:#9146ff"
+"completion-menu.multi-column-meta" = "bg:#f0f0ff fg:#000000"
+
+"scrollbar.background" = "bg:#f0f0ff"
+"scrollbar.button" = "bg:#0e0e10"
+"scrollbar.arrow" = "noinherit bold"
+
+"control-character" = 'bold ansired'
+"bottom-toolbar" = "reverse"
+"validation-toolbar" = "bg:#550000 #ffffff"
