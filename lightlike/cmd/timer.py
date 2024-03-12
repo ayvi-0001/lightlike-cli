@@ -66,7 +66,7 @@ def timer(debug: bool) -> None: ...
     required=True,
     expose_value=True,
     default="no-project",
-    metavar="ACTIVE PROJECT",
+    metavar="ACTIVE_PROJECT",
     callback=validate.active_project,
     help="Project to log entry under.",
     shell_complete=shell_complete.projects.from_option,
@@ -104,7 +104,6 @@ def timer(debug: bool) -> None: ...
 @_pass.appdata
 @_pass.id_list
 @_pass.ctx_group(parents=1)
-@utils._nl_start()
 def run(
     ctx_group: Sequence[click.Context],
     id_list: "EntryIdList",
@@ -210,7 +209,7 @@ def list_date(
     )
 
     if not table.row_count:
-        console.print("[d]No entries found on %s.\n" % date_local.date())
+        console.print("[d]No entries found on %s." % date_local.date())
         return
 
     render.new_console_print(table)
@@ -299,7 +298,7 @@ def list_range(
     )
 
     if not table.row_count:
-        console.print("[d]No entries found between %s.\n" % str_range)
+        console.print("[d]No entries found between %s." % str_range)
         return
 
     render.new_console_print(table)
@@ -327,7 +326,6 @@ def list_range(
 @_pass.console
 @_pass.id_list
 @click.pass_context
-@utils._nl_start()
 def delete(
     ctx: click.Context,
     id_list: "EntryIdList",
@@ -1135,7 +1133,7 @@ def edit_group() -> None:
     is_eager=True,
     expose_value=True,
     show_default=True,
-    metavar="ACTIVE PROJECT",
+    metavar="ACTIVE_PROJECT",
     help="Prompts for project if not provided.",
     shell_complete=shell_complete.projects.from_option,
 )
@@ -1274,7 +1272,6 @@ def add(
 @click.option("-j", "--json", "json_", is_flag=True, help="Get row as json.")
 @_pass.routine
 @_pass.id_list
-@utils._nl_start(after=True, before=True)
 def get(
     id_list: "EntryIdList",
     routine: "CliQueryRoutines",
@@ -1306,7 +1303,6 @@ def get(
 @_pass.routine
 @_pass.console
 @_pass.active_time_entry
-@utils._nl_start()
 def stop(cache: "TomlCache", console: "Console", routine: "CliQueryRoutines") -> None:
     """Stop the active time entry."""
     routine.end_time_entry(cache.id)
@@ -1341,9 +1337,7 @@ def end(ctx: click.Context) -> None:
 @_pass.cache
 def show(cache: "TomlCache", json_: bool) -> None:
     if json_:
-        utils._nl()
         print_json(data=cache._entries, default=str, indent=4)
-        utils._nl()
     else:
         render.new_console_print(cache)
 
@@ -1361,7 +1355,6 @@ def show(cache: "TomlCache", json_: bool) -> None:
 @_pass.console
 @_pass.active_time_entry
 @_pass.ctx_group(parents=1)
-@utils._nl_start()
 def pause(
     ctx_group: Sequence[click.Context],
     cache: "TomlCache",
@@ -1403,7 +1396,6 @@ def pause(
 @_pass.console
 @_pass.id_list
 @click.pass_context
-@utils._nl_start()
 def resume(
     ctx: click.Context,
     id_list: "EntryIdList",
@@ -1453,7 +1445,6 @@ def resume(
 )
 @_pass.console
 @_pass.active_time_entry
-@utils._nl_start()
 def switch(
     cache: "TomlCache",
     console: "Console",
@@ -1497,7 +1488,7 @@ def switch(
     is_eager=True,
     expose_value=True,
     show_default=True,
-    metavar="ACTIVE PROJECT",
+    metavar="ACTIVE_PROJECT",
     help="Project to log entry under.",
     shell_complete=shell_complete.projects.from_option,
 )
@@ -1534,7 +1525,6 @@ def switch(
 @_pass.console
 @_pass.appdata
 @click.pass_context
-@utils._nl_start()
 def update(
     ctx: click.Context,
     appdata: "EntryAppData",
@@ -1638,7 +1628,7 @@ def notes() -> None:
     nargs=1,
     type=click.STRING,
     required=True,
-    metavar="ACTIVE PROJECT",
+    metavar="ACTIVE_PROJECT",
     callback=validate.active_project,
     shell_complete=shell_complete.projects.from_argument,
 )
@@ -1649,7 +1639,6 @@ def notes() -> None:
 @_pass.console
 @_pass.appdata
 @click.pass_context
-@utils._nl_start()
 def update_notes(
     ctx: click.Context,
     appdata: "EntryAppData",

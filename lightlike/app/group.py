@@ -37,6 +37,7 @@ click.rich_click.OPTIONS_PANEL_TITLE = "[b][not dim][#f0f0ff]Options"
 click.rich_click.OPTION_ENVVAR_FIRST = True
 click.rich_click.STYLE_OPTIONS_PANEL_BORDER = "#f0f0ff"
 click.rich_click.STYLE_OPTIONS_TABLE_BOX = "SIMPLE"
+click.rich_click.STYLE_COMMANDS_TABLE_LEADING = 1
 click.rich_click.STYLE_OPTIONS_TABLE_LEADING = 1
 click.rich_click.STYLE_OPTION_HELP = "#f0f0ff"
 click.rich_click.STYLE_OPTIONS_TABLE_BOX = " "
@@ -73,11 +74,7 @@ class _RichCommand(click.RichCommand):
     def __init__(self, *args: P.args, **kwargs: P.kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-    def format_help(
-        self,
-        ctx: click.Context,
-        formatter: click.HelpFormatter,
-    ) -> None:
+    def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         _rich_format_help(self, ctx, formatter)
 
 
@@ -109,11 +106,7 @@ class AliasedRichGroup(click.RichGroup):
         _, cmd, args = super().resolve_command(ctx, args)
         return cmd.name if cmd else None, cmd, args
 
-    def format_help(
-        self,
-        ctx: click.Context,
-        formatter: click.HelpFormatter,
-    ) -> None:
+    def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         _rich_format_help(self, ctx, formatter)
 
 
@@ -154,7 +147,7 @@ def _rich_format_help(
                     usage_highlighter(" ".join(obj.collect_usage_pieces(ctx))),
                 )
             ),
-            1,
+            (1, 1, 0, 1),
         ),
     )
 
@@ -348,10 +341,8 @@ def _rich_format_help(
                 )
             )
 
-    #
     # Groups only:
     # List click command groups
-    #
 
     if isinstance(obj, click.Group):
         # Look through COMMAND_GROUPS for this command
@@ -389,15 +380,12 @@ def _rich_format_help(
             )
             # Define formatting in first column, as commands don't match highlighter regex
             # and set column ratio for first and second column, if a ratio has been set
+            # fmt: off
             if config.style_commands_table_column_width_ratio is None:
-                table_column_width_ratio: tuple[None, None] | tuple[int, int] = (
-                    None,
-                    None,
-                )
+                table_column_width_ratio: tuple[None, None] | tuple[int, int] = (None, None)
             else:
-                table_column_width_ratio = (
-                    config.style_commands_table_column_width_ratio
-                )
+                table_column_width_ratio = (config.style_commands_table_column_width_ratio)
+            # fmt: on
 
             commands_table.add_column(
                 style=config.style_command,
@@ -445,7 +433,7 @@ def _rich_format_help(
                     _make_rich_rext(epilogue, config.style_epilog_text, formatter),
                     pad=False,
                 ),
-                1,
+                (1, 1, 0, 1),
             )
         )
 

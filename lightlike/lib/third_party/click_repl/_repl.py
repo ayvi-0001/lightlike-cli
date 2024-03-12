@@ -122,12 +122,10 @@ def repl(
         try:
             command = get_command()
         except (KeyboardInterrupt, EOFError):
-            print()  # Newline break before next prompt.
             continue
 
         if not command:
             if isatty:
-                print()  # Newline break before next prompt.
                 continue
             else:
                 break
@@ -135,7 +133,6 @@ def repl(
         try:
             args = split_arg_string(command)
             if not args:
-                print()  # Newline break before next prompt.
                 continue
 
         except exceptions.CommandLineParserError:
@@ -173,7 +170,6 @@ def repl(
             with patch_stdout(raw=True):
                 with get_console() as console:
                     console.print_exception(show_locals=True, width=console.width)
-                    console.print()
 
     if original_command:
         available_commands[repl_command_name] = original_command

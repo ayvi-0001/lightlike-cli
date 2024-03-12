@@ -25,11 +25,9 @@ TIMEZONE = AppConfig().tz
 
 def build(message: str | None = None, hide_rprompt: bool = False) -> str:
     """
-    The actual return for this function is either a sequence of tuples,
-    or a callable returning a sequence of tuples.\n
+    The actual return for this function is either a sequence of tuples, or a callable returning a sequence of tuples.
     The return value is casted as a string type only to signal to the type checker
     that the return value has the required type for :param: `message` in :class: `prompt_toolkit.shortcuts.PromptSession`.
-
     It should only be used in that context.
     """
     if not message:
@@ -73,6 +71,7 @@ def _base(
     cwd: Path, user: str = USERNAME, host: str = HOSTNAME
 ) -> list[tuple[str, str]]:
     return [
+        ("", "\n"),
         ("class:user", user),
         ("class:at", "@"),
         ("class:host", host),

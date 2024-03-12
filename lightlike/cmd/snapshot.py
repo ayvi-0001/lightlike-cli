@@ -53,9 +53,7 @@ def snapshot_create(
 ) -> None:
     """Create a snapshot clone."""
     routine.create_snapshot(table_name)
-    console.print(
-        f"[saved]Saved[/saved]. Created snapshot [code]{table_name}[/code].\n"
-    )
+    console.print(f"[saved]Saved[/saved]. Created snapshot [code]{table_name}[/code].")
 
 
 @snapshot.command(
@@ -104,11 +102,11 @@ def snapshot_restore(
     ):
         routine.restore_snapshot(selection, wait=True, render=True)
         console.print(
-            "[saved]Saved[/saved]. " f"Restored snapshot [code]{selection}[/code].\n"
+            "[saved]Saved[/saved]. " f"Restored snapshot [code]{selection}[/code]."
         )
 
     else:
-        console.print("[d]Did not restore snapshot.\n")
+        console.print("[d]Did not restore snapshot.")
 
 
 @snapshot.command(
@@ -134,7 +132,7 @@ def snapshot_list(console: "Console", routine: "CliQueryRoutines") -> None:
     )
 
     if not table.row_count:
-        console.print("[d]No snapshots found.\n")
+        console.print("[d]No snapshots found")
         return
     else:
         render.new_console_print(table)
@@ -150,7 +148,6 @@ def snapshot_list(console: "Console", routine: "CliQueryRoutines") -> None:
 )
 @_pass.console
 @_pass.client
-@utils._nl_start()
 def snapshot_delete(client: "Client", console: "Console") -> None:
     """Drop a snapshot clone."""
     dataset = AppConfig().get("bigquery", "dataset")

@@ -235,7 +235,7 @@ class ResourceCompleter(Completer):
         yield Completion(
             text=schema,
             start_position=-len(word_before_cursor),
-            display_meta=f"Schema from project {self.project}",
+            display_meta=f"SCHEMA:{self.project}",
             style="fg:#f3aa61",
             selected_style="reverse",
         )
@@ -251,7 +251,7 @@ class ResourceCompleter(Completer):
         yield Completion(
             text=table,
             start_position=start_position,
-            display_meta=f"Table from {schema}",
+            display_meta=f"TABLE:{schema}",
             style="fg:#ceaafb",
             selected_style="reverse",
         )
@@ -267,7 +267,7 @@ class ResourceCompleter(Completer):
         yield Completion(
             text=routine,
             start_position=start_position,
-            display_meta=f"Routine from {schema}",
+            display_meta=f"ROUTINE:{schema}",
             style="fg:#f08375",
             selected_style="reverse",
         )
@@ -283,6 +283,6 @@ class ResourceCompleter(Completer):
         yield Completion(
             text=field,
             start_position=start_position,
-            display_meta=f"Field from {schema}.{table}",
+            display_meta=f"FIELD:{schema}.{table}",
             selected_style="reverse",
         )

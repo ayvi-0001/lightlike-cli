@@ -55,7 +55,6 @@ bq.add_command(snapshot)
     callback=lambda: rprint("[d]Did not change configuration."),
 )
 @_pass.console
-@utils._nl_start()
 def init(console: "Console") -> None:
     """Change active project or credentials source."""
     client = get_client()
@@ -120,7 +119,6 @@ def init(console: "Console") -> None:
     short_help="Show the current credentials object.",
 )
 @_pass.console
-@utils._nl_start()
 def show(console: "Console") -> None:
     """Show the current credentials object."""
     from rich._inspect import Inspect
@@ -167,13 +165,12 @@ def projects() -> None:
 )
 @_pass.console
 @click.pass_context
-@utils._nl_start(after=True, before=True)
 def reset(ctx: click.Context, console: "Console") -> bool:
     """Reset client settings/auth."""
     if ctx.invoked_subcommand is None:
         console.print(
             "This will remove any saved client settings and "
-            "you will be asked to reconfigure client auth.\n"
+            "you will be asked to reconfigure client auth."
         )
 
         if _questionary.confirm(message="Continue?", auto_enter=True):
@@ -197,4 +194,3 @@ def reset(ctx: click.Context, console: "Console") -> bool:
 def reset_callback(result: bool) -> None:
     if result is True:
         reconfigure()
-        utils._nl()

@@ -66,7 +66,7 @@ def _run_query_repl(console: Console) -> None:
         _dest = appdir.QUERIES.joinpath(TS).resolve()
         _dest.mkdir(exist_ok=True)
         uri = _dest.as_uri()
-        console.print(f" Queries saved to: [repr.url][link={uri}]{uri}\n")
+        console.print(f" Queries saved to: [repr.url][link={uri}]{uri}")
 
     with console.status("[status.message]Loading BigQuery Resources"):
         query_session = _build_query_session(
@@ -79,10 +79,8 @@ def _run_query_repl(console: Console) -> None:
         try:
             query = query_session.prompt(cursor.build("(bigquery)"), in_thread=True)
         except KeyboardInterrupt:
-            utils._nl()
             break
         except EOFError:
-            utils._nl()
             continue
 
         if query:
@@ -117,7 +115,6 @@ def _build_query_session(completer: "Completer", **prompt_kwargs) -> PromptSessi
     )
 
 
-@utils._nl_start()
 def render_query(
     routine: "CliQueryRoutines",
     console: Console,

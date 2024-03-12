@@ -84,7 +84,6 @@ class _AuthSession:
         retry: bool = True,
     ) -> bytes:
         saved_settings = AppConfig().get("user", "password")
-        saved_password = None if saved_settings == "null" else saved_settings
         saved_password = saved_settings if saved_settings != "null" else None
 
         stay_logged_in = AppConfig().get("user", "stay_logged_in")
@@ -94,10 +93,7 @@ class _AuthSession:
 
         if not saved_password:
             if not password:
-                try:
-                    password = self.prompt_password()
-                except (KeyboardInterrupt, EOFError):
-                    exit(1)
+                password = self.prompt_password()
 
             password = sha256(password.encode()).hexdigest()
 
@@ -127,7 +123,7 @@ class _AuthSession:
                 return self.authenticate(salt, encrypted_key)
 
         except Exception as e:
-            self.console.print(f"[bright_white on dark_red]{e}.\n")
+            self.console.print(f"[bright_white on dark_red]{e}.")
             if saved_password:
                 self._update_user_credentials(
                     password="null",
@@ -146,6 +142,7 @@ class _AuthSession:
 
         return self.load_bytes(service_account_key)
 
+    @utils._nl_start(after=True, before=True)
     def prompt_password(self) -> str:
         # session: PromptSession = PromptSession(
         #     message="(password) $ ",
@@ -161,22 +158,21 @@ class _AuthSession:
         #     erase_when_done=True,
         # )
         # return session.prompt()
-        password = self.console.input("(password) $ ", password=True)
-        return password
+        try:
+            while 1:
+                password = self.console.input("(password) $ ", password=True)
+                if password != "":
+                    return password
+
+        except (KeyboardInterrupt, EOFError):
+            self.console.print(f"\n[b][red]Aborted")
+            exit(2)
 
     def prompt_new_password(self) -> tuple[sha3_256, bytes]:
-        password = None
-
-        while not password:
-            user_input = sha256(self.prompt_password().encode())
-
-            utils._nl()
+        while 1:
+            password = self.prompt_password()
             if _questionary.confirm(message="Continue with this password?"):
-                password = user_input
-                utils._nl()
-
-        salt = urandom(32)
-        return password, salt
+                return sha256(password.encode()), urandom(32)
 
     def prompt_service_account_key(self) -> str:
         self.console.print(
@@ -204,21 +200,28 @@ class _AuthSession:
         )
         service_account_key = None
 
-        while not service_account_key:
-            key_input = session.prompt()
-            try:
-                key = loads(key_input)
-            except JSONDecodeError:
-                self.console.print("[b][red]Invalid json.\n")
-                continue
-            else:
-                if "client_email" not in key.keys() or "token_uri" not in key.keys():
-                    self.console.print(
-                        "Invalid service-account json. Missing required key "
-                        "[code]client_email[/code] or [code]token_uri[/code].\n"
-                    )
+        try:
+            while not service_account_key:
+                key_input = session.prompt()
+                try:
+                    key = loads(key_input)
+                except JSONDecodeError:
+                    self.console.print("[b][red]Invalid json.")
                     continue
-                service_account_key = key_input
+                else:
+                    if (
+                        "client_email" not in key.keys()
+                        or "token_uri" not in key.keys()
+                    ):
+                        self.console.print(
+                            "Invalid service-account json. Missing required key "
+                            "[code]client_email[/code] or [code]token_uri[/code].\n"
+                        )
+                        continue
+                    service_account_key = key_input
+        except (KeyboardInterrupt, EOFError):
+            self.console.print(f"[b][red]Aborted")
+            exit(2)
 
         return service_account_key
 
@@ -258,9 +261,8 @@ class _AuthSession:
             stay_logged_in = AppConfig().get("user", "stay_logged_in")
 
             if not stay_logged_in:
-                self.console.print("\nEnter current password.\n")
-                current = self.console.input("(password) $ ", password=True)
-
+                self.console.print("Enter current password.")
+                current = self.prompt_password()
                 encrypted_key, salt = service_account_key_flow()
 
                 try:

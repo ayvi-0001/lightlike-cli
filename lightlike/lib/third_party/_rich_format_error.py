@@ -56,15 +56,12 @@ def _rich_format_error(  # type: ignore[misc]
         )
     if hasattr(self, "message"):
         console.print(
-            Padding(
-                Panel(
-                    self.message,  # highlighter(self.format_message()),
-                    border_style=config.style_errors_panel_border,
-                    title=config.errors_panel_title,
-                    title_align=config.align_errors_panel,
-                ),
-                (0, 0, 1, 0),
-            )
+            Panel(
+                self.message,  # highlighter(self.format_message()),
+                border_style=config.style_errors_panel_border,
+                title=config.errors_panel_title,
+                title_align=config.align_errors_panel,
+            ),
         )
     if config.errors_epilogue:
         console.print(Padding(config.errors_epilogue, (0, 1, 1, 1)))

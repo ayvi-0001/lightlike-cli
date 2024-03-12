@@ -76,10 +76,8 @@ def _handle_keyboard_interrupt(
             except (KeyboardInterrupt, EOFError):
                 if callback and callable(callback):
                     callback()
-                    _nl()
                 else:
                     rprint("[d]Canceled prompt.")
-                    _nl()
                 return
 
         return inner
@@ -97,7 +95,7 @@ async def _nl_async() -> None:
 
 
 def _nl_start(
-    after: bool = True, before: bool = False
+    after: bool = False, before: bool = False
 ) -> t.Callable[..., t.Callable[..., t.Any]]:
     def decorator(fn: FunctionType) -> t.Callable[..., t.Any]:
         @functools.wraps(fn)

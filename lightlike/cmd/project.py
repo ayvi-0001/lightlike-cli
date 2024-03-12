@@ -97,7 +97,7 @@ def create(
     )
 
     threads.spawn(ctx, appdata.update)
-    console.print(f"[saved]Saved[/saved]. Created new project: [code]{name}[/code].\n")
+    console.print(f"[saved]Saved[/saved]. Created new project: [code]{name}[/code].")
 
 
 @project.command(
@@ -126,7 +126,7 @@ def list_projects(routine: "CliQueryRoutines", all_: bool) -> None:
                 if all_
                 else ["name", "description", "DATE(created) as created"]
             ),
-            where="archived is null" if all_ else "",
+            where="archived is null" if not all_ else "",
             order="name",
         ).result(),
     )
@@ -143,7 +143,7 @@ def list_projects(routine: "CliQueryRoutines", all_: bool) -> None:
     nargs=1,
     type=click.STRING,
     required=True,
-    metavar="ACTIVE PROJECT",
+    metavar="ACTIVE_PROJECT",
     callback=validate.active_project,
     shell_complete=shell_complete.projects.from_argument,
 )
@@ -185,7 +185,7 @@ def update_name(
     renamed_project = PromptFactory.prompt_project(new=True)
 
     if project == renamed_project:
-        console.print("[d]Current name. Nothing changed.\n")
+        console.print("[d]Current name. Nothing changed.")
         return
 
     if not (confirm or yes):
@@ -218,7 +218,7 @@ def update_name(
         console.print(
             "[saved]Saved[/saved]. "
             f"Renamed project [repr.str]{project}[/repr.str] to "
-            f"[repr.str]{renamed_project}[/repr.str].\n"
+            f"[repr.str]{renamed_project}[/repr.str]."
         )
 
 
@@ -263,14 +263,14 @@ def update_description(
     )
 
     if current_description == description or not description:
-        console.print("[d]Current description. Nothing changed.\n")
+        console.print("[d]Current description. Nothing changed")
         return
 
     routine.update_project_description(project, description, wait=True, render=True)
     threads.spawn(ctx, appdata.update)
     console.print(
         "[saved]Saved[/saved]. Updated project description "
-        f"to [repr.str]{description}[/repr.str].\n"
+        f"to [repr.str]{description}[/repr.str]."
     )
 
 
@@ -292,7 +292,7 @@ def update_description(
     nargs=-1,
     type=click.STRING,
     required=True,
-    metavar="ACTIVE PROJECT",
+    metavar="ACTIVE_PROJECT",
     callback=validate.active_project_list,
     shell_complete=shell_complete.projects.from_argument,
 )
@@ -302,7 +302,6 @@ def update_description(
 @_pass.routine
 @_pass.console
 @click.pass_context
-@utils._nl_start()
 def delete(
     ctx: click.Context,
     console: "Console",
@@ -387,7 +386,7 @@ def delete(
     nargs=1,
     type=click.STRING,
     required=True,
-    metavar="ACTIVE PROJECT",
+    metavar="ACTIVE_PROJECT",
     callback=validate.active_project,
     shell_complete=shell_complete.projects.from_argument,
 )
@@ -397,7 +396,6 @@ def delete(
 @_pass.routine
 @_pass.console
 @click.pass_context
-@utils._nl_start()
 def archive(
     ctx: click.Context,
     console: "Console",
@@ -416,18 +414,11 @@ def archive(
 
     if matching_entries:
         console.print(
-            "One or more of running/paused entries fall under this project. "
-            "End these entries before attempting to archive this project.\n"
+            "One or more of running/paused entries fall under this project.\n"
+            "End these entries before trying to archive this project.\n"
             "Matching entries:"
         )
-        render.new_console_print(
-            render.mappings_list_to_rich_table(
-                [
-                    {k: v for k, v in entry.items() if k in ("id", "project")}
-                    for entry in matching_entries
-                ]
-            )
-        )
+        render.new_console_print(render.mappings_list_to_rich_table(matching_entries))
         return
 
     if not (confirm or yes):
@@ -458,11 +449,18 @@ def archive(
     threads.spawn(ctx, appdata.update)
     count_archived = _get.count_entries(first(query_job))
     console.print(
-        "[saved]Saved[/saved]. "
-        f"Archived project [repr.str]{project}[/repr.str] and "
-        f"[repr.number]{count_archived}[/repr.number] "
-        f"related time {'entry' if count_archived == 1 else 'entries'}. "
-        "These entries will not appear in results until you unarchive this project.",
+        "[saved]Saved[/saved].\n"
+        "Archived project [repr.str]%s[/repr.str] and [repr.number]%s[/repr.number] related time %s.%s"
+        % (
+            project,
+            count_archived,
+            "entry" if count_archived == 1 else "entries",
+            (
+                "\nThese entries will not appear in results until you unarchive this project."
+                if count_archived > 0
+                else ""
+            ),
+        )
     )
 
 
@@ -484,7 +482,7 @@ def archive(
     nargs=1,
     type=click.STRING,
     required=True,
-    metavar="ARCHIVED PROJECT",
+    metavar="ARCHIVED_PROJECT",
     callback=validate.archived_project,
     shell_complete=shell_complete.projects.from_argument,
 )
@@ -492,7 +490,6 @@ def archive(
 @_pass.routine
 @_pass.console
 @click.pass_context
-@utils._nl_start()
 def unarchive(
     ctx: click.Context,
     console: "Console",
@@ -521,9 +518,16 @@ def unarchive(
     threads.spawn(ctx, appdata.update)
     count_unarchived = _get.count_entries(first(query_job))
     console.print(
-        "[saved]Saved[/saved]. "
-        f"Unarchived project [repr.str]{project}[/repr.str] and "
-        f"[repr.number]{count_unarchived}[/repr.number] "
-        f"related time {'entry' if count_unarchived == 1 else 'entries'}."
-        "These entries will now appear in results again.",
+        "[saved]Saved[/saved].\n"
+        "Unarchived project [repr.str]%s[/repr.str] and [repr.number]%s[/repr.number] related time %s.%s"
+        % (
+            project,
+            count_unarchived,
+            "entry" if count_unarchived == 1 else "entries",
+            (
+                "\These entries will now appear in results again."
+                if count_unarchived > 0
+                else ""
+            ),
+        )
     )

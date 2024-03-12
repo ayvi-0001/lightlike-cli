@@ -125,7 +125,6 @@ def _select_credential_source() -> str | None | NoReturn:
                 instruction="(current setting highlighted)",
             )
 
-        utils._nl()
         source = _questionary.select(**select_kwargs)
 
         if source == current_setting:
@@ -167,19 +166,19 @@ def service_account_key_flow() -> tuple[bytearray, bytes]:
         rprint(
             Padding(
                 Panel.fit(
-                    "Create password. "
+                    "Create a password. "
                     "This will be used to encrypt your service-account key.\n"
                     "You will need it again to load this CLI.\n"
-                    "Press [code]enter[/code] to continue."
+                    "Type password and press [code]enter[/code] to continue."
                 ),
-                (1, 0, 1, 1),
+                (1, 0, 0, 1),
             )
         )
 
         hashed_password, salt = auth.prompt_new_password()
         key_derivation = auth._generate_key(hashed_password.hexdigest(), salt)
 
-        save_password = _questionary.confirm(message="Save password?")
+        save_password = _questionary.confirm(message="Stay logged in?")
 
         if save_password:
             auth._update_user_credentials(
@@ -246,10 +245,11 @@ def _authorize_from_environment() -> Client:
 
         console.log(f"[log.main]Default project: [code]{project_id}[/code]")
 
-        if not _questionary.confirm(message=f"Continue with project: {project_id}?"):
+        if not _questionary.confirm(
+            message=f"Continue with project: {project_id}?", auto_enter=False
+        ):
             project_id = _select_project(Client(credentials=credentials))
 
-        utils._nl()
         console.log(f"[log.main]Using project: [code]{project_id}[/code]")
 
         credentials = credentials.with_quota_project(project_id)
