@@ -10,7 +10,7 @@ from prompt_toolkit.document import Document
 
 from lightlike.app import _get, shell_complete
 from lightlike.app.client import get_client
-from lightlike.internal.utils import _alter_str, _match_str, _prerun_autocomplete
+from lightlike.internal import utils
 
 if t.TYPE_CHECKING:
     from google.cloud.bigquery import Client
@@ -65,7 +65,7 @@ class WhereClauseCompleter(WordCompleter):
     def get_completions(
         self, document: Document, complete_event: "CompleteEvent"
     ) -> t.Iterable[Completion]:
-        word_before_cursor = _alter_str(
+        word_before_cursor = utils._alter_str(
             document.get_word_before_cursor(self.WORD),
             strip_parenthesis=True,
             strip_quotes=True,
@@ -79,7 +79,7 @@ class WhereClauseCompleter(WordCompleter):
                 yield Completion(
                     text=field,
                     start_position=-len(word_before_cursor),
-                    display_meta=f"Field: {self.resource_id}",
+                    display_meta=f"FIELD:{self.resource_id}",
                     selected_style="reverse",
                 )
 
@@ -87,7 +87,7 @@ class WhereClauseCompleter(WordCompleter):
         self, document: "Document", word_before_cursor: str
     ) -> t.Iterable[Completion]:
         for project in self.projects:
-            if _match_str(
+            if utils._match_str(
                 word_before_cursor,
                 project,
                 case_sensitive=False,
@@ -97,7 +97,7 @@ class WhereClauseCompleter(WordCompleter):
                 yield Completion(
                     text=f"{project}",
                     start_position=-len(word_before_cursor),
-                    display_meta=f"Project: {project}",
+                    display_meta=f"PROJECT:{project}",
                     style="#239551",
                     selected_style="reverse",
                 )
@@ -114,7 +114,7 @@ class WhereClauseCompleter(WordCompleter):
                     text=f"{note}",
                     display=f"{note[:45]}..." if len(note) > 45 else f"{note}",
                     start_position=-len(word_before_cursor),
-                    display_meta=f"Note from project: {project}",
+                    display_meta=f"NOTE:{project}",
                     style="#239551",
                     selected_style="reverse",
                 )
@@ -161,7 +161,7 @@ def _parse_click_options(
             )
             where_clause = session.prompt(
                 default="WHERE ",
-                pre_run=_prerun_autocomplete,
+                pre_run=utils._prerun_autocomplete,
                 bottom_toolbar=shell_complete.where._bottom_toolbar(console),
             )
         else:

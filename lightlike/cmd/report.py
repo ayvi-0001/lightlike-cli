@@ -168,7 +168,7 @@ def table_report(
         )
 
         if not table.row_count:
-            console.print("[d]No entries found between %s.\n" % str_range)
+            console.print("[d]No entries found between %s." % str_range)
             return
 
         render.new_console_print(
@@ -209,7 +209,6 @@ def table_report(
 @where_args
 @_pass.routine
 @_pass.console
-@utils._nl_start()
 def csv_report(
     console: "Console",
     routine: "CliQueryRoutines",
@@ -252,7 +251,6 @@ def csv_report(
             status_renderable=status_renderable,
         )
 
-        console.log("Converting table to csv")
         row_iterator = query_job.result()
         df: "DataFrame" = row_iterator.to_dataframe()
 
@@ -261,11 +259,9 @@ def csv_report(
             uri = dest.as_uri()
             path = dest.as_posix()
             df.to_csv(path, index=False, encoding="utf-8")
-            console.log(f"Saved to [link={uri}][repr.url]{path}[/repr.url].")
+            console.print(f"Saved to [link={uri}][repr.url]{path}[/repr.url].")
 
         if print_:
-            console.log(f"Printing to terminal")
-            utils._nl()
             if not destination:
                 with tempfile.TemporaryDirectory() as temp_dir:
                     _report = Path(temp_dir).joinpath(f"{uuid4()}.csv")
@@ -319,7 +315,6 @@ def csv_report(
 @_pass.routine
 @_pass.console
 @click.pass_context
-@utils._nl_start()
 def json_report(
     ctx: click.Context,
     console: "Console",
@@ -365,7 +360,6 @@ def json_report(
             status_renderable=status_renderable,
         )
 
-        console.log("Converting table to json.")
         row_iterator = query_job.result()
         df: "DataFrame" = row_iterator.to_dataframe()
 
@@ -374,11 +368,9 @@ def json_report(
             uri = dest.as_uri()
             path = dest.as_posix()
             df.to_json(path, orient=orient, date_format="iso", indent=4)  # type: ignore[call-overload]
-            console.log(f"Saved to [link={uri}][repr.url]{path}[/repr.url].")
+            console.print(f"Saved to [link={uri}][repr.url]{path}[/repr.url].")
 
         if print_:
-            console.log(f"Printing to terminal")
-            utils._nl()
             if not destination:
                 with tempfile.TemporaryDirectory() as temp_dir:
                     _report = Path(temp_dir).joinpath(f"{uuid4()}.json")

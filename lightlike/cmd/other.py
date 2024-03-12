@@ -46,7 +46,6 @@ def help_(ctx_group: Sequence[click.Context], console: "Console") -> None:
     ),
 )
 @click.argument("path", type=Path, shell_complete=shell_complete.path)
-@utils._nl_start()
 def cd_(path: Path) -> None:
     if f"{path}" in ("~", "~/"):
         os.chdir(path.home())
@@ -145,7 +144,6 @@ def ls_(path: Path) -> None:
     default=lambda: Path.cwd(),
     shell_complete=shell_complete.path,
 )
-@utils._nl_start()
 def tree_(path: Path) -> None:
     try:
         with get_console().status(""):
@@ -193,7 +191,6 @@ def tree_(path: Path) -> None:
 @click.command(cls=_RichCommand, name="calc", hidden=True)
 @click.argument("args", nargs=-1, type=click.STRING, required=False)
 @click.option("-h", "--help", is_flag=True)
-@utils._nl_start()
 def calc_(args: list[str], help: bool) -> None:
     if help:
         from rich.syntax import Syntax
@@ -219,7 +216,6 @@ def calc_(args: list[str], help: bool) -> None:
                 background_color="default",
             )
         )
-        utils._nl()
         return
 
     if args:

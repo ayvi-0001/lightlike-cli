@@ -105,7 +105,6 @@ def app_dev() -> None:
     short_help="Launch CLI configuration file.",
 )
 @_pass.console
-@utils._nl_start()
 def app_launch_config(console: "Console") -> None:
     """Launch CLI configuration file."""
     path = AppConfig().path.resolve()
@@ -159,7 +158,6 @@ def app_launch_config(console: "Console") -> None:
     help="Launches app dir in default text-editor.",
 )
 @_pass.console
-@utils._nl_start()
 def app_dir(console: "Console", launch: t.Literal["start", "editor"]) -> None:
     from lightlike.__about__ import __appdir__
 
@@ -194,7 +192,6 @@ def app_dir(console: "Console", launch: t.Literal["start", "editor"]) -> None:
     short_help="Inspect global console.",
 )
 @_pass.console
-@utils._nl_start()
 def app_dev_show_console(console: "Console") -> None:
     """Inspect global console."""
     from rich._inspect import Inspect
@@ -244,7 +241,6 @@ def app_dev_test() -> None:
     shell_complete=shell_complete.time,
 )
 @_pass.console
-@utils._nl_start()
 def app_test_date_parse(console: "Console", date: str) -> None:
     try:
         if date:
@@ -269,7 +265,7 @@ def app_test_date_parse(console: "Console", date: str) -> None:
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Canceled Build.\n"),
+    callback=lambda: rprint("[d]Canceled Build."),
 )
 def run_bq() -> None:
     from lightlike.internal.bq_resources import build
@@ -328,7 +324,6 @@ def app_sync_cache(cache: TomlCache) -> dict[str, TomlCache]:
 
 @app_sync.result_callback()
 @_pass.console
-@utils._nl_start()
 def _app_sync_callback(console: "Console", *args: P.args, **kwargs: P.kwargs) -> None:
     subcommands = t.cast(t.Sequence[dict[str, TomlCache | EntryAppData]], args[0])
     if subcommands:
@@ -390,7 +385,6 @@ def update_settings() -> None: ...
 
 
 @update_settings.result_callback()
-@utils._nl_start()
 def update_settings_callback(*args: P.args, **kwargs: P.kwargs) -> None: ...
 
 
@@ -519,9 +513,10 @@ timezone = SettingsCommand(
         "[bold italic underline]"
         "**Restart for settings to take effect**"
         "[/bold italic underline]\n"
-        "You will also need to run [code.command]app[/code.command]"
-        ":[code.command]dev[/code.command]"
-        ":[code.command]run-bq[/code.command] "
+        "You will also need to run "
+        "[code.command]app[/code.command]:"
+        "[code.command]dev[/code.command]:"
+        "[code.command]run-bq[/code.command] "
         "to rebuild procedures using this new timezone."
     ),
 )

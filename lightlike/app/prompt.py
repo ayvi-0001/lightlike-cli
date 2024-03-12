@@ -54,7 +54,6 @@ class PromptFactory(PromptSession):
         self.key_bindings = PROMPT_BINDINGS
 
     @classmethod
-    @utils._nl_start(after=True, before=True)
     def _prompt(cls, message: str, pre_run: bool = False, **prompt_kwargs) -> Any:
         try:
             prompt = cls().prompt(
@@ -65,11 +64,10 @@ class PromptFactory(PromptSession):
             return prompt
 
         except (KeyboardInterrupt, EOFError):
-            rprint("[d]Canceled prompt.\n")
+            rprint("[d]Canceled prompt.")
             raise ClickExit(0)
 
     @classmethod
-    @utils._nl_start(after=False, before=True)
     def prompt_for_date(cls, message: str, **prompt_kwargs) -> "datetime":
         session = cls()
 
@@ -93,7 +91,7 @@ class PromptFactory(PromptSession):
             return parsed_date
 
         except (KeyboardInterrupt, EOFError):
-            rprint("[d]Canceled prompt.\n")
+            rprint("[d]Canceled prompt.")
             raise ClickExit(0)
 
     @staticmethod
@@ -114,7 +112,6 @@ class PromptFactory(PromptSession):
         return AppConfig().in_app_timezone(parsed_date.replace(microsecond=0))
 
     @classmethod
-    @utils._nl_start(after=False, before=True)
     def prompt_note(cls, project: str, message: str = "(note)", **prompt_kwargs) -> str:
         session = cls()
 
@@ -134,11 +131,10 @@ class PromptFactory(PromptSession):
             return note
 
         except (KeyboardInterrupt, EOFError):
-            rprint("[d]Canceled prompt.\n")
+            rprint("[d]Canceled prompt.")
             raise ClickExit(0)
 
     @classmethod
-    @utils._nl_start(after=False, before=True)
     def prompt_project(
         cls, message: str = "(project)", new: bool = False, **prompt_kwargs
     ) -> str:
@@ -163,5 +159,5 @@ class PromptFactory(PromptSession):
             return project
 
         except (KeyboardInterrupt, EOFError):
-            rprint("[d]Canceled prompt.\n")
+            rprint("[d]Canceled prompt.")
             raise ClickExit(0)

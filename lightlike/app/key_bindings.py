@@ -41,19 +41,17 @@ def _(event: "KeyPressEvent") -> None:
 
 
 @prompt_handle(Keys.Escape, Keys.Enter)
-@utils._nl_start()
+@utils._nl_start(before=True, after=True)
 async def _(event: "KeyPressEvent") -> None:
     buffer = event.app.current_buffer
     cmd = buffer.document.text
     buffer.append_to_history()
     buffer.reset(append_to_history=True)
-    buffer.text = ""
-    buffer.delete_before_cursor(len(buffer.document.text))
+    buffer.delete_before_cursor(len(cmd))
+    utils._nl()
     utils._nl()
     system_command = event.app.run_system_command(cmd, wait_for_enter=False)
-    utils._nl()
     await system_command
-    await utils._nl_async()
 
 
 @prompt_handle(Keys.ControlSpace)
