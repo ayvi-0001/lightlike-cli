@@ -121,7 +121,6 @@ def ls_(path: Path) -> None:
 
         name.highlight_regex(r"@|/|=|\*|\'", "not bold not dim #f0f0ff")
         name.stylize(f"link {_path.resolve().as_uri()}")
-        name.append(f" ({decimal(_path.stat().st_size)})", "blue")
 
         table.add_row(name)
         tables.append(table)
@@ -139,24 +138,15 @@ def ls_(path: Path) -> None:
         help_option_names=[],
     ),
 )
-@utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Aborted.\n"),
-)
+@utils._handle_keyboard_interrupt(callback=lambda: rprint("[d]Aborted."))
 @click.argument(
     "path",
     type=Path,
     default=lambda: Path.cwd(),
     shell_complete=shell_complete.path,
 )
-@click.option(
-    "-a",
-    "--all",
-    "all_",
-    is_flag=True,
-    help="Include files starting in _ or .",
-)
 @utils._nl_start()
-def tree_(path: Path, all_: True) -> None:
+def tree_(path: Path) -> None:
     try:
         with get_console().status(""):
             directory = (path or Path.cwd()).resolve()
@@ -171,26 +161,23 @@ def tree_(path: Path, all_: True) -> None:
                     directory.iterdir(),
                     key=lambda path: (path.is_file(), path.name.lower()),
                 )
-                for path in paths:
-                    if not all_ and (
-                        path.name.startswith("_") or path.name.startswith(".")
-                    ):
-                        continue
-                    elif path.is_dir():
-                        style = "dim " if path.name.startswith("__") else ""
+                for _path in paths:
+                    if _path.is_dir():
+                        style = "dim " if _path.name.startswith("__") else ""
                         style += "#729fcf"
                         branch = tree.add(
-                            f"[link={path.resolve().as_uri()}]{escape(path.name)}/",
+                            f"[link={_path.resolve().as_uri()}]{escape(_path.name)}/",
                             style=style,
                             guide_style=style,
                         )
-                        walk_directory(path, branch)
+                        walk_directory(_path, branch)
                     else:
-                        text_filename = Text(path.name, "#f0f0ff")
-                        text_filename.highlight_regex(r"\..*$", "red")
-                        text_filename.stylize(f"link {path.resolve().as_uri()}")
+                        text_filename = Text(_path.name, "#f0f0ff")
+                        if not _path.name.startswith("."):
+                            text_filename.highlight_regex(r"\..*$", "red")
+                        text_filename.stylize(f"link {_path.resolve().as_uri()}")
                         text_filename.append(
-                            f" ({decimal(path.stat().st_size)})", "blue"
+                            f" ({decimal(_path.stat().st_size)})", "blue"
                         )
                         tree.add(text_filename)
 

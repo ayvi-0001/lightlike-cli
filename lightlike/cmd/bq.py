@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Sequence
 
 import rich_click as click
 from rich import get_console
+from rich import print as rprint
 
 from lightlike.app import _pass, render
 from lightlike.app.client import (
@@ -51,7 +52,7 @@ bq.add_command(snapshot)
     short_help="Change active project or credentials source.",
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Did not change configuration.\n")
+    callback=lambda: rprint("[d]Did not change configuration."),
 )
 @_pass.console
 @utils._nl_start()
@@ -162,7 +163,7 @@ def projects() -> None:
     short_help="Reset client settings/auth.",
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Did not change configuration.\n")
+    callback=lambda: rprint("[d]Did not change configuration."),
 )
 @_pass.console
 @click.pass_context

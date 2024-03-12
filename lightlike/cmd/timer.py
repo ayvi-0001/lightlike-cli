@@ -10,7 +10,9 @@ from typing import TYPE_CHECKING, Any, Sequence
 import rich_click as click
 from google.api_core.exceptions import BadRequest
 from more_itertools import first, one
-from rich import box, get_console, print_json
+from rich import box, get_console
+from rich import print as rprint
+from rich import print_json
 from rich.console import Console
 from rich.table import Table
 
@@ -53,7 +55,7 @@ def timer(debug: bool) -> None: ...
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Did not start new time entry.\n")
+    callback=lambda: rprint("[d]Did not start new time entry."),
 )
 @click.option(
     "-p",
@@ -161,7 +163,7 @@ def list_() -> None: ...
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Canceled query.\n")
+    callback=lambda: rprint("[d]Canceled query."),
 )
 @click.argument(
     "date",
@@ -181,7 +183,7 @@ def list_() -> None: ...
     nargs=-1,
     type=click.STRING,
     required=False,
-    metavar="WHERE CLAUSE",
+    metavar="WHERE_CLAUSE",
 )
 @_pass.console
 @_pass.routine
@@ -226,7 +228,7 @@ def list_date(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Canceled query.\n")
+    callback=lambda: rprint("[d]Canceled query."),
 )
 @click.argument(
     "start",
@@ -261,7 +263,7 @@ def list_date(
     nargs=-1,
     type=click.STRING,
     required=False,
-    metavar="WHERE CLAUSE",
+    metavar="WHERE_CLAUSE",
 )
 @_pass.console
 @_pass.routine
@@ -571,7 +573,7 @@ def _edit_billable(billable: bool) -> dict[str, Any]:
 
 @edit_entry.result_callback()
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Did not edit entry.\n")
+    callback=lambda: rprint("[d]Did not edit entry."),
 )
 @_pass.cache
 @_pass.routine
@@ -1124,7 +1126,7 @@ def edit_group() -> None:
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Did not add new time entry.\n")
+    callback=lambda: rprint("[d]Did not add new time entry."),
 )
 @click.option(
     "-p",
@@ -1388,7 +1390,7 @@ def pause(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Did not resume time entry.\n")
+    callback=lambda: rprint("[d]Did not resume time entry."),
 )
 @click.argument(
     "entry",
@@ -1447,7 +1449,7 @@ def resume(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Did not switch time entries.\n")
+    callback=lambda: rprint("[d]Did not switch time entries."),
 )
 @_pass.console
 @_pass.active_time_entry
@@ -1458,7 +1460,7 @@ def switch(
 ) -> None:
     if cache.count_running_entries == 1:
         console.print(
-            "[d]Only 1 running time entry. Nothing to switch too.\n",
+            "[d]Only 1 running time entry. Nothing to switch too.",
         )
         return
 
@@ -1473,7 +1475,7 @@ def switch(
     )
 
     if select == cache.id:
-        console.print("[d]Already active.\n")
+        console.print("[d]Already active.")
         return
 
     cache.switch_active_entry(select)
@@ -1641,12 +1643,13 @@ def notes() -> None:
     shell_complete=shell_complete.projects.from_argument,
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Did not update notes.\n")
+    callback=lambda: rprint("[d]Did not update notes."),
 )
 @_pass.routine
 @_pass.console
 @_pass.appdata
 @click.pass_context
+@utils._nl_start()
 def update_notes(
     ctx: click.Context,
     appdata: "EntryAppData",
@@ -1665,12 +1668,12 @@ def update_notes(
             "If this was not the expected outcome, "
             "try adjusting the lookback window for time entry notes with the command "
             "[code.command]app[/code.command]:[code.command]settings[/code.command]:"
-            "[code.command]update[/code.command]:[code.command]note-history[/code.command]\n"
+            "[code.command]update[/code.command]:[code.command]note-history[/code.command]"
         )
         return
 
     if not notes_to_edit:
-        console.print(f"[d]No notes selected. Nothing happened.\n")
+        console.print(f"[d]No notes selected. Nothing happened.")
         return
 
     notes_to_replace = "\n".join(
@@ -1694,6 +1697,4 @@ def update_notes(
     )
 
     threads.spawn(ctx, appdata.update, kwargs=dict(query_job=query_job))
-    console.print(
-        "[saved]Saved[/saved]. Updated notes for [code]%s[/code].\n" % project
-    )
+    console.print("[saved]Saved[/saved]. Updated notes for [code]%s[/code]." % project)

@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import rich_click as click
 from rich import get_console
+from rich import print as rprint
 from rich.padding import Padding
 
 from lightlike.app import _pass, render, shell_complete, validate
@@ -78,7 +79,7 @@ where_args = click.argument(
     nargs=-1,
     type=click.STRING,
     required=False,
-    metavar="WHERE CLAUSE",
+    metavar="WHERE_CLAUSE",
 )
 print_option = click.option(
     "-p",
@@ -100,7 +101,7 @@ print_option = click.option(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Canceled report.\n")
+    callback=lambda: rprint("[d]Canceled report."),
 )
 @current_week_option
 @start_option
@@ -187,7 +188,7 @@ def table_report(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Canceled report.\n")
+    callback=lambda: rprint("[d]Canceled report."),
 )
 @current_week_option
 @start_option
@@ -284,7 +285,7 @@ def csv_report(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Canceled report.\n")
+    callback=lambda: rprint("[d]Canceled report."),
 )
 @current_week_option
 @start_option

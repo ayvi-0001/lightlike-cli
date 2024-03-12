@@ -83,11 +83,12 @@ def ctx_group(parents: int = 1) -> Callable[..., Callable[..., Any]]:
 def active_time_entry(fn: Callable[..., Any]) -> Callable[..., Any]:
     @cache
     @functools.wraps(fn)
-    def inner(cache: TomlCache, *args: P.args, **kwargs: P.kwargs) -> None:
+    def inner(cache: TomlCache, *args: P.args, **kwargs: P.kwargs) -> Any:
         if not cache:
             rprint("[d]There is no active time entry.\n")
+            return None
         else:
-            fn(cache, *args, **kwargs)
+            return fn(cache, *args, **kwargs)
 
     return inner
 

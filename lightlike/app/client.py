@@ -86,8 +86,7 @@ def authorize_client() -> Client | NoReturn:
         rprint(
             f"\n[failure]Auth Failed. {e}.[/failure]\n"
             "Provide either a service account key, or double check "
-            "your application default credentials. [i](try running [code]gcloud init[/code]).[/i]"
-            "\n"
+            "your application default credentials. [i](try running [code]gcloud init[/code]).[/i]\n"
         )
         exit(2)
 
@@ -130,7 +129,7 @@ def _select_credential_source() -> str | None | NoReturn:
         source = _questionary.select(**select_kwargs)
 
         if source == current_setting:
-            rprint("[d]Selected current source. Nothing happened.\n")
+            rprint("[d]Selected current source. Nothing happened.")
             return None
         else:
             return source
@@ -245,7 +244,7 @@ def _authorize_from_environment() -> Client:
     else:
         credentials, project_id = google.auth.default()
 
-        console.log(f"[log.main]Default project: [code]{project_id}[/code]\n")
+        console.log(f"[log.main]Default project: [code]{project_id}[/code]")
 
         if not _questionary.confirm(message=f"Continue with project: {project_id}?"):
             project_id = _select_project(Client(credentials=credentials))
