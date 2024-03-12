@@ -6,6 +6,7 @@ import rich_click as click
 from more_itertools import nth, one
 from pytz import all_timezones
 from rich import get_console
+from rich import print as rprint
 
 from lightlike.app import _pass, render, shell_complete, threads, validate
 from lightlike.app.cache import EntryAppData, TomlCache
@@ -268,7 +269,7 @@ def app_test_date_parse(console: "Console", date: str) -> None:
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Canceled Build.\n")
+    callback=lambda: rprint("[d]Canceled Build.\n"),
 )
 def run_bq() -> None:
     from lightlike.internal.bq_resources import build
@@ -448,9 +449,7 @@ def create_settings_fn(
         context_settings=cmd.context_settings,
     )
     @utils._handle_keyboard_interrupt(
-        callback=lambda: get_console().print(
-            f"[d]Did not update {cmd.name}.\n",
-        )
+        callback=lambda: rprint(f"[d]Did not update {cmd.name}."),
     )
     @_pass.console
     @click.pass_context
@@ -467,7 +466,7 @@ def create_settings_fn(
             c = config._reduce_keys(*config_keys, sequence=config)
             c["".join(c if c.isalnum() else "_" for c in cmd.name)] = val
 
-        utils.print_updated_val(key=cmd.name, val=val, console=console)
+        utils.print_updated_val(key=cmd.name, val=val)
 
         if cmd.callback_fn:
             cmd.callback_fn(locals())
@@ -649,7 +648,7 @@ if AppConfig().credentials_source == CredentialsSource.from_service_account_key:
         short_help="Save login password.",
     )
     @utils._handle_keyboard_interrupt(
-        callback=lambda: get_console().print("\n[d]Did not change settings.\n")
+        callback=lambda: rprint("\n[d]Did not change settings."),
     )
     @click.argument(
         "value",

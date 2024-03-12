@@ -273,9 +273,7 @@ class _AuthSession:
                     self._update_user_credentials(
                         password=current, stay_logged_in=value
                     )
-                    utils.print_updated_val(
-                        key="stay_logged_in", val=value, console=self.console
-                    )
+                    utils.print_updated_val(key="stay_logged_in", val=value)
                 except UnboundLocalError:
                     ...
 
@@ -288,6 +286,4 @@ class _AuthSession:
 
             else:
                 self._update_user_credentials(password="null", stay_logged_in=False)
-                utils.print_updated_val(
-                    key="stay_logged_in", val=False, console=self.console
-                )
+                utils.print_updated_val(key="stay_logged_in", val=False)

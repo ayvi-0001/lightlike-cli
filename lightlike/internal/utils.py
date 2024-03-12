@@ -21,7 +21,6 @@ from lightlike.internal import appdir
 if t.TYPE_CHECKING:
     from logging import Logger
 
-    from rich.console import Console
 
 __all__: t.Sequence[str] = (
     "_log",
@@ -77,8 +76,10 @@ def _handle_keyboard_interrupt(
             except (KeyboardInterrupt, EOFError):
                 if callback and callable(callback):
                     callback()
+                    _nl()
                 else:
-                    get_console().print("[d]Canceled prompt.\n")
+                    rprint("[d]Canceled prompt.")
+                    _nl()
                 return
 
         return inner
@@ -336,10 +337,7 @@ def ifbool(val: t.Any) -> t.Any:
 
 
 def print_updated_val(
-    key: str,
-    val: t.Any,
-    console: t.Optional["Console"] = None,
-    prefix: str | None = "[#00ff00]Saved[/#00ff00].",
+    key: str, val: t.Any, prefix: str | None = "[#00ff00]Saved[/#00ff00]."
 ) -> None:
     markup: str = ""
     if isinstance(val, bool) or val in (1, 0):
@@ -367,4 +365,4 @@ def print_updated_val(
         ]
     )
 
-    console.print(message) if console else get_console().print(message)
+    rprint(message)

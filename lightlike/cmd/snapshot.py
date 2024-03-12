@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Sequence
 
 import rich_click as click
 from rich import get_console
+from rich import print as rprint
 
 from lightlike.app import _get, _pass, render, shell_complete
 from lightlike.app.config import AppConfig
@@ -23,11 +24,12 @@ get_console().log(f"[log.main]Loading command group: {__name__}")
 
 @click.group(
     cls=AliasedRichGroup,
-    help="Create & Restore timesheet snapshots.",
+    name="snapshot",
     short_help="Create & Restore timesheet snapshots.",
 )
 @click.option("-d", "--debug", is_flag=True, hidden=True)
-def snapshot(debug: bool) -> None: ...
+def snapshot(debug: bool) -> None:
+    """Create & Restore timesheet snapshots."""
 
 
 @snapshot.command(
@@ -37,7 +39,7 @@ def snapshot(debug: bool) -> None: ...
     short_help="Create a snapshot clone.",
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Did not create snapshot.\n")
+    callback=lambda: rprint("[d]Did not create snapshot."),
 )
 @click.argument(
     "table_name",
@@ -62,7 +64,7 @@ def snapshot_create(
     short_help="Replace timesheet table with a snapshot clone.",
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Did not restore snapshot.\n")
+    callback=lambda: rprint("[d]Did not restore snapshot."),
 )
 @_pass.routine
 @_pass.console
@@ -123,8 +125,8 @@ def snapshot_list(console: "Console", routine: "CliQueryRoutines") -> None:
             resource=f"{routine.dataset_main}.INFORMATION_SCHEMA.TABLES",
             fields=[
                 "table_name",
-                "DATE(creation_time) AS creation_time",
-                "DATE(snapshot_time_ms) AS snapshot_time_ms",
+                "timestamp_trunc(creation_time, second) as creation_time",
+                "timestamp_trunc(snapshot_time_ms, second) as snapshot_time_ms",
             ],
             where="snapshot_time_ms is not null",
             order="creation_time",
@@ -144,7 +146,7 @@ def snapshot_list(console: "Console", routine: "CliQueryRoutines") -> None:
     short_help="Drop a snapshot clone.",
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Did not delete snapshot.\n")
+    callback=lambda: rprint("[d]Did not delete snapshot."),
 )
 @_pass.console
 @_pass.client

@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Sequence
 import rich_click as click
 from more_itertools import first
 from rich import get_console
+from rich import print as rprint
 
 from lightlike.__about__ import __appname_sc__
 from lightlike.app import _get, _pass, render, shell_complete, threads, validate
@@ -43,7 +44,7 @@ def project(debug: bool) -> None: ...
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Did not create project.\n")
+    callback=lambda: rprint("[d]Did not create project."),
 )
 @click.argument(
     "name",
@@ -121,7 +122,7 @@ def list_projects(routine: "CliQueryRoutines", all_: bool) -> None:
         row_iterator=routine.select(
             resource=routine.projects_id,
             fields=(
-                "* REPLACE(DATE(created) as created, DATE(archived) as archived)"
+                ["* REPLACE(DATE(created) as created, DATE(archived) as archived)"]
                 if all_
                 else ["name", "description", "DATE(created) as created"]
             ),
@@ -161,7 +162,7 @@ def update(ctx: click.Context, project: str) -> None:
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Did not update project.\n")
+    callback=lambda: rprint("[d]Did not update project."),
 )
 @_pass.confirm_options
 @_pass.cache
@@ -231,7 +232,7 @@ def update_name(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Did not update project.\n")
+    callback=lambda: rprint("[d]Did not update project."),
 )
 @_pass.appdata
 @_pass.routine
@@ -284,7 +285,7 @@ def update_description(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Did not delete project.\n")
+    callback=lambda: rprint("[d]Did not delete project."),
 )
 @click.argument(
     "projects",
@@ -379,7 +380,7 @@ def delete(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Did not archive project.\n")
+    callback=lambda: rprint("[d]Did not archive project."),
 )
 @click.argument(
     "project",
@@ -476,7 +477,7 @@ def archive(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: get_console().print("[d]Did not unarchive project.\n")
+    callback=lambda: rprint("[d]Did not unarchive project."),
 )
 @click.argument(
     "project",
