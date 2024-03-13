@@ -156,7 +156,7 @@ def _update_routines() -> None:
             for routine in removed:
                 routine_id = f"{client.project}.{dataset}.{routine}"
                 client.delete_routine(routine_id)
-                console.log(f"[b][green]Deleted routine[/green]:[/b] {routine_id}")
+                console.log(f"[b][green]Deleted routine[/green]:[/b] {routine}")
 
         if missing:
             bq_resources = Path(f"{__file__}/../../internal/bq_resources/sql").resolve()

@@ -122,7 +122,7 @@ class CliQueryRoutines:
 
             return query_job
 
-    def run_timer(
+    def start_time_entry(
         self,
         id: str,
         project,
@@ -147,7 +147,7 @@ class CliQueryRoutines:
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.run_timer(@id, @project, @note, @start_time, @is_billable);",
+            target=f"CALL {self.dataset_main}.start_time_entry(@id, @project, @note, @start_time, @is_billable);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -155,7 +155,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def add_timer(
+    def add_time_entry(
         self,
         id: str,
         project: str,
@@ -182,7 +182,7 @@ class CliQueryRoutines:
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.add_timer(@id, @project, @note, @start_time, @end_time, @is_billable);",
+            target=f"CALL {self.dataset_main}.add_time_entry(@id, @project, @note, @start_time, @end_time, @is_billable);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -205,7 +205,6 @@ class CliQueryRoutines:
         )
 
         return self._query(
-            # target=f"CALL {self.dataset_main}.delete_time_entry(@id);",
             target=f"DELETE FROM {self.timesheet_id} WHERE id = @id",
             job_config=job_config,
             wait=wait,
@@ -237,7 +236,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def archive_project_time_entries(
+    def archive_time_entries(
         self,
         name: str,
         wait: bool = False,
@@ -252,7 +251,7 @@ class CliQueryRoutines:
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.archive_project_time_entries(@name);",
+            target=f"CALL {self.dataset_main}.archive_time_entries(@name);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -310,7 +309,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def delete_project_time_entries(
+    def delete_time_entries(
         self,
         project: str,
         wait: bool = False,
@@ -327,7 +326,7 @@ class CliQueryRoutines:
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.delete_project_time_entries(@project);",
+            target=f"CALL {self.dataset_main}.delete_time_entries(@project);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -398,7 +397,6 @@ class CliQueryRoutines:
         )
 
         return self._query(
-            # target=f"CALL {self.dataset_main}.get_time_entry(@id);",
             target=f"SELECT * FROM {self.timesheet_id} WHERE id = @id",
             job_config=job_config,
             wait=wait,
@@ -458,10 +456,10 @@ class CliQueryRoutines:
         )
 
     @property
-    def _resume_timer(self) -> str:
-        return f"CALL {self.dataset_main}.resume_timer(@id, @time_resume);"
+    def _resume_time_entry(self) -> str:
+        return f"CALL {self.dataset_main}.resume_time_entry(@id, @time_resume);"
 
-    def resume_timer(
+    def resume_time_entry(
         self,
         id: str,
         time_resume: "datetime",
@@ -480,7 +478,7 @@ class CliQueryRoutines:
         )
 
         return self._query(
-            target=self._resume_timer,
+            target=self._resume_time_entry,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -847,16 +845,16 @@ class CliQueryRoutines:
             "now",
             "duration",
             "rounding_step",
-            "run_timer",
-            "add_timer",
+            "start_time_entry",
+            "add_time_entry",
             "archive_project",
-            "archive_project_time_entries",
+            "archive_time_entries",
             "create_project",
-            "delete_project_time_entries",
+            "delete_time_entries",
             "delete_project",
             "edit_time_entry",
             "end_time_entry",
-            "resume_timer",
+            "resume_time_entry",
             "unarchive_project",
             "unarchive_time_entries",
             "update_notes",

@@ -120,7 +120,9 @@ def run(
 
     start_local = PromptFactory._parse_date(start) if start else AppConfig().now
     time_entry_id = sha1(f"{project}{note}{start_local}".encode()).hexdigest()
-    query_job = routine.run_timer(time_entry_id, project, note, start_local, billable)
+    query_job = routine.start_time_entry(
+        time_entry_id, project, note, start_local, billable
+    )
 
     with cache.update():
         cache.id = time_entry_id
@@ -1214,7 +1216,7 @@ def add(
 
     status_renderable = "[status.message] Adding time entry"
     with console.status(status_renderable) as status:
-        query_job = routine.add_timer(
+        query_job = routine.add_time_entry(
             id=time_entry_id,
             project=project,
             note=note,
@@ -1418,12 +1420,12 @@ def resume(
         )
 
         cache.resume_paused_time_entry(select, now)
-        routine.resume_timer(cache.id, now)
+        routine.resume_time_entry(cache.id, now)
     else:
         entry = id_list.match_id(entry)
         if cache._find_entries(cache.paused_entries, "id", [entry]):
             cache.resume_paused_time_entry(entry, now)
-            routine.resume_timer(cache.id, now)
+            routine.resume_time_entry(cache.id, now)
         else:
             raise click.BadParameter(message="This entry is not paused.", ctx=ctx)
 

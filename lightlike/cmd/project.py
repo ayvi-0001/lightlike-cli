@@ -334,7 +334,7 @@ def delete(
                 status=status,
                 status_renderable=f"Deleting [code]{project}[/code] from projects",
             )
-            routine.delete_project_time_entries(
+            routine.delete_time_entries(
                 project,
                 wait=True,
                 render=True,
@@ -435,7 +435,7 @@ def archive(
         render=True,
         status_renderable="Archiving project",
     )
-    routine.archive_project_time_entries(
+    routine.archive_time_entries(
         project,
         wait=True,
         render=True,
