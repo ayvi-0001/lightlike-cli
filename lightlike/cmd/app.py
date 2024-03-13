@@ -5,7 +5,6 @@ from dataclasses import dataclass
 import rich_click as click
 from more_itertools import nth, one
 from pytz import all_timezones
-from rich import get_console
 from rich import print as rprint
 
 from lightlike.app import _pass, render, shell_complete, threads, validate
@@ -26,8 +25,6 @@ __all__: t.Sequence[str] = ("app",)
 
 
 P = t.ParamSpec("P")
-
-get_console().log(f"[log.main]Loading command group: {__name__}")
 
 
 @click.group(
@@ -67,23 +64,6 @@ def exit_(ctx: click.Context) -> None:
 )
 @_pass.console
 def clear_(console: "Console", clear_scrollback: bool) -> None:
-    """Clear the screen and move the cursor to 'home' position."""
-    console.clear()
-    if clear_scrollback:
-        os.system("clear")
-
-
-@app.command(cls=_RichCommand, name="cls", hidden=True)
-@click.option(
-    "-cs",
-    "--clear-scrollback",
-    is_flag=True,
-    default=False,
-    show_default=True,
-    help="Clear scrollback. (only works for terminals that support the clear command)",
-)
-@_pass.console
-def cls_(console: "Console", clear_scrollback: bool) -> None:
     """Clear the screen and move the cursor to 'home' position."""
     console.clear()
     if clear_scrollback:
@@ -327,14 +307,14 @@ def app_sync_cache(cache: TomlCache) -> dict[str, TomlCache]:
 def _app_sync_callback(console: "Console", *args: P.args, **kwargs: P.kwargs) -> None:
     subcommands = t.cast(t.Sequence[dict[str, TomlCache | EntryAppData]], args[0])
     if subcommands:
-        with console.status(status="[status.message]Syncing cache") as status:
+        with console.status("[status.message] Syncing cache") as status:
             for cmd in subcommands:
                 k, v = one(cmd.items())
                 if "appdata" in k and isinstance(v, EntryAppData):
-                    status.update("[status.message]Syncing appdata")
+                    status.update("[status.message] Syncing appdata")
                     v.update()
                 elif "cache" in k and isinstance(v, TomlCache):
-                    status.update("[status.message]Syncing cache")
+                    status.update("[status.message] Syncing cache")
                     v._sync_cache()
 
 
@@ -509,15 +489,17 @@ timezone = SettingsCommand(
         obj=dict(syntax=_help.app_settings_timezone_syntax),
     ),
     short_help="Timezone used for all date/time conversions.",
-    callback_fn=lambda l: get_console().print(
-        "[bold italic underline]"
-        "**Restart for settings to take effect**"
-        "[/bold italic underline]\n"
-        "You will also need to run "
-        "[code.command]app[/code.command]:"
-        "[code.command]dev[/code.command]:"
-        "[code.command]run-bq[/code.command] "
-        "to rebuild procedures using this new timezone."
+    callback_fn=lambda l: rprint(
+        "".join(
+            [
+                "[b][u]**Restart for settings to take effect**[/b][/u]]\n",
+                "You will also need to run ",
+                "[code.command]app[/code.command]:",
+                "[code.command]dev[/code.command]:",
+                "[code.command]run-bq[/code.command] ",
+                "to rebuild procedures using this new timezone.",
+            ]
+        )
     ),
 )
 

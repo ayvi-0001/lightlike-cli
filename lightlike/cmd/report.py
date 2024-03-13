@@ -70,8 +70,8 @@ where_option = click.option(
     type=click.BOOL,
     help="Filter results with a WHERE clause. Prompts for input.",
 )
-where_args = click.argument(
-    "where_args",
+where_clause = click.argument(
+    "where_clause",
     nargs=-1,
     type=click.STRING,
     required=False,
@@ -114,7 +114,7 @@ print_option = click.option(
     help="Destination path to write file.",
 )
 @where_option
-@where_args
+@where_clause
 @_pass.routine
 @_pass.console
 def table_report(
@@ -126,7 +126,7 @@ def table_report(
     destination: Path,
     current_week: bool,
     where: bool,
-    where_args: Sequence[str],
+    where_clause: Sequence[str],
 ) -> None:
     date_range = (
         dates._get_current_week_range()
@@ -136,16 +136,16 @@ def table_report(
 
     str_range = "%s -> %s" % (date_range.start.date(), date_range.end.date())
 
-    where_clause = shell_complete.where._parse_click_options(
-        flag=where, args=where_args, console=console, routine=routine
+    _where_clause = shell_complete.where._parse_click_options(
+        flag=where, args=where_clause, console=console, routine=routine
     )
 
-    status_renderable = f"[status.message]Building report"
-    with console.status(status=status_renderable) as status:
+    status_renderable = f"[status.message] Building report"
+    with console.status(status_renderable) as status:
         query_job = routine.report(
             start_date=date_range.start,
             end_date=date_range.end,
-            where_clause=where_clause,
+            where_clause=_where_clause,
             round_=round_,
             type_="table",
             wait=True,
@@ -202,7 +202,7 @@ def table_report(
 )
 @print_option
 @where_option
-@where_args
+@where_clause
 @_pass.routine
 @_pass.console
 def csv_report(
@@ -215,7 +215,7 @@ def csv_report(
     print_: bool,
     current_week: bool,
     where: bool,
-    where_args: Sequence[str],
+    where_clause: Sequence[str],
 ) -> None:
     if not destination and not print_:
         raise click.BadParameter(
@@ -229,16 +229,16 @@ def csv_report(
         else dates._parse_date_range_flags(start, end)
     )
 
-    where_clause = shell_complete.where._parse_click_options(
-        flag=where, args=where_args, console=console, routine=routine
+    _where_clause = shell_complete.where._parse_click_options(
+        flag=where, args=where_clause, console=console, routine=routine
     )
 
-    status_renderable = f"[status.message]Building report"
-    with console.status(status=status_renderable) as status:
+    status_renderable = f"[status.message] Building report"
+    with console.status(status_renderable) as status:
         query_job = routine.report(
             start_date=date_range.start,
             end_date=date_range.end,
-            where_clause=where_clause,
+            where_clause=_where_clause,
             round_=round_,
             type_="file",
             wait=True,
@@ -307,7 +307,7 @@ def csv_report(
     ).string,
 )
 @where_option
-@where_args
+@where_clause
 @_pass.routine
 @_pass.console
 @click.pass_context
@@ -323,7 +323,7 @@ def json_report(
     orient: str,
     current_week: bool,
     where: bool,
-    where_args: Sequence[str],
+    where_clause: Sequence[str],
 ) -> None:
     if not destination and not print_:
         raise click.UsageError(
@@ -338,16 +338,16 @@ def json_report(
         else dates._parse_date_range_flags(start, end)
     )
 
-    where_clause = shell_complete.where._parse_click_options(
-        flag=where, args=where_args, console=console, routine=routine
+    _where_clause = shell_complete.where._parse_click_options(
+        flag=where, args=where_clause, console=console, routine=routine
     )
 
-    status_renderable = f"[status.message]Building report"
-    with console.status(status=status_renderable) as status:
+    status_renderable = f"[status.message] Building report"
+    with console.status(status_renderable) as status:
         query_job = routine.report(
             start_date=date_range.start,
             end_date=date_range.end,
-            where_clause=where_clause,
+            where_clause=_where_clause,
             round_=round_,
             type_="file",
             wait=True,
