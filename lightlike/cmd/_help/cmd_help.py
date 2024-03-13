@@ -100,7 +100,7 @@ Example values to pass to the date parser:
 - "2 days ago"
 - "1 hour 15 min ago"
 - "1.25 hrs ago"
-- "\-1.25hr" [d][i](to use the minus operator, it must be escaped to avoid mistaking it for a flag)[/i][/d]
+- "\-1.25hr" [d](to use the minus operator, it must be escaped to avoid mistaking it for a flag)[/d]
 - "today \-2 days"
 - "monday"
 - "14:30:00"
@@ -191,7 +191,7 @@ The same 4 flags when using {code_command('timer:run')} are available, with an a
 
 If any of {flag.project} | {flag.start} | {flag.end} are not provided, a prompt will call for these values.
 
-If any of {flag.note} | {flag.billable} are not provided, they will be ignored [i][d](uses default billable set in config)[/i][/d].
+If any of {flag.note} | {flag.billable} are not provided, they will be ignored [d](uses default billable set in config)[/d].
 """
 )
 
@@ -338,7 +338,7 @@ timer_pause = _reformat_help_text(
     f"""
 Pause the [b][u]active[/b][/u] entry.
 
-[i]Also see: command {code_command('timer:run:help')}.
+Also see: command {code_command('timer:run:help')}.
 """
 )
 
@@ -355,7 +355,7 @@ timer_resume = _reformat_help_text(
     f"""
 Continue a previously paused entry, this paused entry becomes the [b][u]active[/b][/u] entry.
 
-[i]Also see: command {code_command('timer:run:help')}.
+Also see: command {code_command('timer:run:help')}.
 """
 )
 
@@ -388,11 +388,11 @@ Use the {flag.start} flag to start the entry at an earlier time. If not provided
 
 When you start a new time entry, a stopwatch displaying the duration appears on the right-hand side of the cursor.
 
-You can have multiple timers running at once, but only 1 will be displayed in the cursor - This is the [b][i]active[/b][/i] entry.
+You can have multiple timers running at once, but only 1 will be displayed in the cursor - This is the [b]active[/b] entry.
 
 When you start a new time entry and already have an [b][u]active[/b][/u] entry running, the latest will be displayed in the cursor and becomes the new [b][u]active[/b][/u] one.
 
-Use command {code_command('timer:stop')} to end the [b][u]active[/b][/u] entry. [d][i](can also use alias {code_command('end')})[/d][/i]
+Use command {code_command('timer:stop')} to end the [b][u]active[/b][/u] entry. [d](can also use alias {code_command('end')})[/d]
 
 Use command {code_command('timer:pause')} to pause the [b][u]active[/b][/u] entry.
 
@@ -417,7 +417,7 @@ timer_show = _reformat_help_text(
     f"""
 Show a table of all running and paused time entries.
 
-Any running time entries appear in the top section. The [b][u]active[/b][/u] time entry - if there is one - will always be the first row. It will be in bold italics.
+Any running time entries appear in the top section. The [b][u]active[/b][/u] time entry - if there is one - will always be the first row.
 
 If there are any paused entries, they will be appear in the bottom section, and are dimmed out.
 
@@ -438,9 +438,9 @@ timer_show_syntax = Syntax(
 
 timer_stop = _reformat_help_text(
     f"""
-End the [b][u]active[/b][/u] entry. [d][i](can also use alias {code_command('end')})[/d][/i]
+End the [b][u]active[/b][/u] entry. [d](can also use alias {code_command('end')})[/d]
 
-[i]Also see: command {code_command('timer:run:help')}.
+Also see: command {code_command('timer:run:help')}.
 """
 )
 
@@ -457,7 +457,7 @@ timer_switch = _reformat_help_text(
     f"""
 Rotate through which entry, of all that are currently running, is the [b][u]active[/b][/u] entry.
 
-[i]Also see: command {code_command('timer:run:help')}.
+Also see: command {code_command('timer:run:help')}.
 """
 )
 
@@ -474,7 +474,7 @@ timer_update = _reformat_help_text(
     f"""
 Make updates to the [b][u]active[/b][/u] time entry.
 
-[i]Note: See command [/i]{code_command('timer:edit')}[i] for making changes to entries that have already stopped.[/i]
+Note: See command {code_command('timer:edit')} for making changes to entries that have already stopped.
 
 The same 4 flags when using {code_command('timer:run')} are available, and will update the selected values for the [b][u]active[/b][/u] entry.
 """
@@ -633,9 +633,9 @@ report_csv = _reformat_help_text(
 Creates a report as a CSV.
 This can be saved to a file, or printed to the terminal.
 
-[b][u]At least 1 of the {flag.print} [u][i]or[/u][/i] {flag.destination} flag must be provided.[/b][/u]
+[b][u]At least 1 of the {flag.print} [u]or[/u] {flag.destination} flag must be provided.[/b][/u]
 
-[yellow][b][i][u]Note: running & paused entries are not included in reports.[/b][/i][/u][/yellow]
+[yellow][b][u]Note: running & paused entries are not included in reports.[/b][/u][/yellow]
 
 {_report_fields}
 
@@ -669,9 +669,9 @@ report_json = _reformat_help_text(
 Creates a report as a JSON.
 This can be saved to a file, or printed to the terminal.
 
-[b][u]At least 1 of the {flag.print} [u][i]or[/u][/i] {flag.destination} flag must be provided.[/b][/u]
+[b][u]At least 1 of the {flag.print} [u]or[/u] {flag.destination} flag must be provided.[/b][/u]
 
-[yellow][b][i][u]Note: running & paused entries are not included in reports.[/b][/i][/u][/yellow]
+[yellow][b][u]Note: running & paused entries are not included in reports.[/b][/u][/yellow]
 
 {_report_fields}
 
@@ -706,7 +706,7 @@ report_table = _reformat_help_text(
     f"""
 Creates a report and renders a table in terminal. Optional svg download.
 
-[yellow][b][i][u]Note: running & paused entries are not included in reports.[/b][/i][/u][/yellow]
+[yellow][b][u]Note: running & paused entries are not included in reports.[/b][/u][/yellow]
 
 {_report_fields}
 
@@ -995,7 +995,7 @@ Syncs local files for time entry data, projects, and cache.
 
 These can be found in the app directory using the command {code_command('app:dev:dir')}.
 
-These tables should [i]only[/i] ever be altered through the procedures in this CLI.
+These tables should only ever be altered through the procedures in this CLI.
 If the local files are ever out of sync with BigQuery, or you log in from a new location, you can use this command to re-sync them.
 """
 )

@@ -238,12 +238,6 @@ def _match_str(
     method: t.Literal["in", "startswith", "endswith"] = "in",
     replace_patterns: t.Mapping[str, str] | None = None,
 ) -> bool:
-    """
-    Default function behaviour:
-    Matches if first string is in second string, case-insensitive.
-
-    :param: strip_quotes (optional): remove all `"` and `'`.
-    """
     if not isinstance(string_to_check, str):
         string_to_check = f"{string_to_check}"
     if not isinstance(string_to_match, str):
@@ -317,21 +311,6 @@ def _sec_to_time_parts(seconds: Decimal) -> tuple[int, int, int]:
     minutes = seconds // 60
     seconds %= 60
     return int(hours), int(minutes), int(seconds)
-
-
-def ifbool(val: t.Any) -> t.Any:
-    """Convert a string representation of truth to true (1) or false (0).
-    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
-    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
-    'val' is anything else.
-    """
-    _val = str(val).lower()
-    if _val in ("y", "yes", "t", "true", "on", "1"):
-        return 1
-    elif _val in ("n", "no", "f", "false", "off", "0"):
-        return 0
-    else:
-        return val
 
 
 def print_updated_val(

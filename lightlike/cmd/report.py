@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, ParamSpec, Sequence
 from uuid import uuid4
 
 import rich_click as click
-from rich import get_console
 from rich import print as rprint
 from rich.padding import Padding
 
@@ -20,9 +19,6 @@ if TYPE_CHECKING:
     from lightlike.app.routines import CliQueryRoutines
 
 __all__: Sequence[str] = ("report",)
-
-
-get_console().log(f"[log.main]Loading command group: {__name__}")
 
 
 P = ParamSpec("P")

@@ -13,7 +13,6 @@ from rich.panel import Panel
 from lightlike.app import _get
 from lightlike.app.auth import _AuthSession
 from lightlike.app.config import AppConfig
-from lightlike.internal import utils
 from lightlike.internal.enums import CredentialsSource
 from lightlike.lib.third_party import _questionary
 
@@ -32,7 +31,7 @@ __all__: Sequence[str] = (
     "_provision_bigquery_resources",
 )
 
-get_console().log("[log.main]Authorizing BigQuery Client")
+get_console().log("Authorizing BigQuery Client")
 
 
 P = ParamSpec("P")
@@ -84,9 +83,9 @@ def authorize_client() -> Client | NoReturn:
         exit(1)
     except DefaultCredentialsError as e:
         rprint(
-            f"\n[failure]Auth Failed. {e}.[/failure]\n"
+            f"[failure]Auth Failed. {e}.[/failure]\n"
             "Provide either a service account key, or double check "
-            "your application default credentials. [i](try running [code]gcloud init[/code]).[/i]\n"
+            "your application default credentials. [d](try running [code]gcloud init[/code])[/d]"
         )
         exit(2)
 
@@ -159,7 +158,7 @@ def service_account_key_flow() -> tuple[bytearray, bytes]:
     salt = AppConfig().get("user", "salt")
 
     if not (encrypted_key and salt):
-        get_console().log("[log.main]Initializing new service-account config")
+        get_console().log("Initializing new service-account config")
 
         auth = _AuthSession()
 
@@ -203,7 +202,7 @@ def service_account_key_flow() -> tuple[bytearray, bytes]:
 
 
 def _authorize_from_service_account_key() -> Client:
-    get_console().log("[log.main]Getting credentials from service-account-key")
+    get_console().log("Getting credentials from service-account-key")
 
     encrypted_key, salt = service_account_key_flow()
 
@@ -217,13 +216,13 @@ def _authorize_from_service_account_key() -> Client:
             active_project=client.project,
         )
 
-    get_console().log("[log.main]Client authenticated")
+    get_console().log("Client authenticated")
     return client
 
 
 def _authorize_from_environment() -> Client:
     console = get_console()
-    console.log("[log.main]Getting credentials from environment")
+    console.log("Getting credentials from environment")
     active_project: str = AppConfig().get("client", "active_project")
 
     if active_project != "null" and active_project is not None:
@@ -234,23 +233,21 @@ def _authorize_from_environment() -> Client:
         with AppConfig().update() as config:
             config["client"].update(active_project=active_project)
 
-        console.log("[log.main]Client authenticated")
-        console.log(
-            f"[log.main]Client loaded with project: [code]{active_project}[/code]"
-        )
+        console.log("Client authenticated")
+        console.log(f"Client loaded with project: [code]{active_project}[/code]")
         return client
 
     else:
         credentials, project_id = google.auth.default()
 
-        console.log(f"[log.main]Default project: [code]{project_id}[/code]")
+        console.log(f"Default project: [code]{project_id}[/code]")
 
         if not _questionary.confirm(
             message=f"Continue with project: {project_id}?", auto_enter=False
         ):
             project_id = _select_project(Client(credentials=credentials))
 
-        console.log(f"[log.main]Using project: [code]{project_id}[/code]")
+        console.log(f"Using project: [code]{project_id}[/code]")
 
         credentials = credentials.with_quota_project(project_id)
 
@@ -262,7 +259,7 @@ def _authorize_from_environment() -> Client:
                 active_project=client.project,
             )
 
-        console.log("[log.main]Client authenticated")
+        console.log("Client authenticated")
         return client
 
 

@@ -343,7 +343,7 @@ def _display_meta(option: click.Option, short_flag: str | None = None) -> str:
     default = ""
     if option.default is True:
         default = "[default]"
-    elif option.default is False:
+    elif option.default is False or option.default in ("null", "None"):
         pass
     elif option.default is not None:
         if callable(option.default):

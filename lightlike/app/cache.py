@@ -526,12 +526,10 @@ class TomlCache:
         self.active["paused_hrs"] = f"{__val}"
 
     def _map_rstyle(self, row: dict[str, t.Any]) -> str:
-        if not row["state"]:
-            return "italic #888888"
-        elif row == self.running_entries[0]:
-            return "bold italic"
+        if row == self.running_entries[0]:
+            return "bold"
         elif self._ifnull(row["time_paused"]):
-            return "italic #888888"
+            return "#888888"
         else:
             return ""
 
@@ -545,18 +543,18 @@ class TomlCache:
 
         if items[0] == "id":
             _kwargs |= dict(
-                header_style="not bold green",
+                header_style="green",
                 overflow="crop",
                 min_width=7,
                 max_width=7,
             )
         elif items[0] == "note":
-            _kwargs |= dict(header_style="not bold green")
+            _kwargs |= dict(header_style="green")
             if get_console().width >= 150:
                 _kwargs |= dict(
                     overflow="fold",
-                    min_width=40,
-                    max_width=40,
+                    min_width=50,
+                    max_width=50,
                 )
             elif get_console().width < 150:
                 _kwargs |= dict(
@@ -566,7 +564,7 @@ class TomlCache:
                     max_width=25,
                 )
         elif items[0] == "project":
-            _kwargs |= dict(header_style="not bold green")
+            _kwargs |= dict(header_style="green")
             if get_console().width >= 130:
                 _kwargs |= dict(
                     overflow="fold",
@@ -583,7 +581,7 @@ class TomlCache:
         elif items[0] == "paused_hrs":
             _kwargs |= dict(
                 justify="right",
-                header_style="not bold cyan",
+                header_style="cyan",
                 overflow="crop",
                 min_width=8,
                 max_width=8,
@@ -591,15 +589,15 @@ class TomlCache:
         elif items[0] in ("start", "time_paused", "paused"):
             _kwargs |= dict(
                 justify="left",
-                header_style="not bold yellow",
+                header_style="yellow",
                 overflow="crop",
                 min_width=19,
                 max_width=19,
             )
-        elif any([n in items[0] for n in ("state", "billable", "paused")]):
+        elif any([n in items[0] for n in ("billable", "paused")]):
             _kwargs |= dict(
                 justify="left",
-                header_style="not bold red",
+                header_style="red",
             )
             if get_console().width < 150:
                 _kwargs |= dict(
@@ -634,7 +632,7 @@ class _EntryIdListSingleton(type):
         return cls._instances[cls]
 
 
-get_console().log("[log.main]Validating cache")
+get_console().log("Validating cache")
 TomlCache()._validate_toml_cache()
 
 
@@ -722,7 +720,7 @@ class EntryAppData:
         except TypeError:
             ctx = click.get_current_context()
             ctx.fail(
-                "[bold red]**WARNING**[/bold red]. "
+                "[b][red]**WARNING**[/b][/red]. "
                 "[red]Incomplete rows found in timesheet table. "
                 "Remove these records before continuing to use this CLI."
             )
@@ -746,7 +744,8 @@ class EntryAppData:
     def _project_meta(self, row: "Row") -> str:
         return "".join(
             [
-                f"[created={row.created.date()}",
+                "[",
+                f"created={row.created.date()}",
                 f", desc={row.description}" if row.description else "",
                 f", archived={row.archived.date()}" if row.archived else "",
                 "]",

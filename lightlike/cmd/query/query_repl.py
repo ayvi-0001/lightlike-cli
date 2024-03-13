@@ -57,7 +57,7 @@ def _run_query_repl(console: Console) -> None:
     save_svg: bool = query_settings.get("save_svg", False)
     hide_table_render: bool = query_settings.get("hide_table_render", False)
 
-    render.query_start_render(console, query_settings)
+    render.query_start_render(query_settings)
 
     TS = f"{int(datetime.combine(datetime.today(), datetime.min.time()).timestamp())}"
 
@@ -68,7 +68,7 @@ def _run_query_repl(console: Console) -> None:
         uri = _dest.as_uri()
         console.print(f" Queries saved to: [repr.url][link={uri}]{uri}")
 
-    with console.status("[status.message]Loading BigQuery Resources"):
+    with console.status("[status.message] Loading BigQuery Resources"):
         query_session = _build_query_session(
             query_repl_completer(), mouse_support=mouse_support
         )
@@ -125,7 +125,7 @@ def render_query(
     hide_table_render: bool,
     TS: str,
 ) -> None:
-    with console.status("[status.message]Running Query") as status:
+    with console.status("[status.message] Running Query") as status:
         try:
             query_job = routine._query(
                 target=query,
@@ -163,10 +163,10 @@ def render_query(
             show_edge=True,
         )
 
-    with console.status("[status.message]Running Query") as status:
+    with console.status("[status.message] Running Query") as status:
         if total_rows:
             console.log("[notice]total_rows[/notice] = %s" % total_rows)
-            status.update(f"[status.message]Query Complete. Building table")
+            status.update(f"[status.message] Query Complete. Building table")
 
             for field in row_iterator.schema:
                 table.add_column(field._properties["name"])
@@ -199,7 +199,7 @@ def render_query(
 
         if save_txt or save_svg:
             status.start()
-            status.update("[status.message]Saving to file")
+            status.update("[status.message] Saving to file")
 
             _file_console = Console(
                 style=CONSOLE_CONFIG.style,
@@ -248,7 +248,7 @@ def render_query(
             _query_path = _query_dir.joinpath(f"{query_job.job_id}")
 
             if save_txt:
-                status.update("[status.message]Saving as txt")
+                status.update("[status.message] Saving as txt")
 
                 _txt = _query_path.with_suffix(".txt")
                 console_text = _file_console.export_text(clear=False)
@@ -259,7 +259,7 @@ def render_query(
                 )
 
             if save_svg:
-                status.update("[status.message]Saving as svg")
+                status.update("[status.message] Saving as svg")
                 _svg = _query_path.with_suffix(".svg")
                 console_svg = _file_console.export_svg(
                     title="", code_format=_CONSOLE_SVG_FORMAT

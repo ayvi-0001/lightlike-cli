@@ -111,8 +111,8 @@ class _AuthSession:
                 )
                 self.console.print(
                     Panel(
-                        "[b][i][red]Saved credentials failed. "
-                        "Password input required[/b][/i][/red].\n"
+                        "[b][red]Saved credentials failed. "
+                        "Password input required[/b][/red].\n"
                         "Enter password."
                     )
                 )
@@ -131,8 +131,8 @@ class _AuthSession:
                 )
                 self.console.print(
                     Panel(
-                        "[b][i][red]Saved credentials failed. "
-                        "Password input required[/b][/i][/red].\n"
+                        "[b][red]Saved credentials failed. "
+                        "Password input required[/b][/red].\n"
                         "Enter password."
                     )
                 )

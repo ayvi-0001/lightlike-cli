@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Sequence
 import rich_click as click
 from google.api_core.exceptions import BadRequest
 from more_itertools import first, one
-from rich import box, get_console
+from rich import box
 from rich import print as rprint
 from rich import print_json
 from rich.console import Console
@@ -32,9 +32,6 @@ if TYPE_CHECKING:
     from lightlike.app.routines import CliQueryRoutines
 
 __all__: Sequence[str] = ("timers",)
-
-
-get_console().log(f"[log.main]Loading command group: {__name__}")
 
 
 @click.group(
@@ -335,9 +332,9 @@ def delete(
     routine: "CliQueryRoutines",
     time_entry_ids: Sequence[str],
 ) -> None:
-    with console.status(status="[status.message]Searching ID's") as status:
+    with console.status("[status.message] Searching ID's") as status:
         for _id in time_entry_ids:
-            status.update(f"[status.message]Matching entry ID: [code]{_id}[/code].")
+            status.update(f"[status.message] Matching entry ID: [code]{_id}[/code].")
             _id = id_list.match_id(_id)
 
             try:
@@ -353,15 +350,15 @@ def delete(
                     raise query_job._exception
 
                 if cache.id == _id:
-                    console.print("[b][yellow]Active time entry found.")
+                    console.print("[bright_yellow]Active time entry found.")
                     cache._clear_active()
                     console.set_window_title(__appname_sc__)
                 elif cache._if_any_entries(cache.running_entries, [_id]):
-                    console.print("[b][yellow]Running time entry found.")
+                    console.print("[bright_yellow]Running time entry found.")
                     cache._remove_entries([cache.running_entries], "id", [_id])
 
                 if cache._if_any_entries(cache.paused_entries, [_id]):
-                    console.print("[b][yellow]Paused time entry found.")
+                    console.print("[bright_yellow]Paused time entry found.")
                     cache._remove_entries([cache.paused_entries], "id", [_id])
 
                 console.print(
@@ -597,7 +594,7 @@ def _edit_entry_callback(
 
     for _id in id_sequence:
         with console.status(
-            status=f"[status.message]Searching for time entry ID: [code]{_id}[/code]"
+            status=f"[status.message] Searching for time entry ID: [code]{_id}[/code]"
         ) as status:
             set_clause = SetClause()
 
@@ -1022,8 +1019,8 @@ def _edit_entry_callback(
                     )
                 )
 
-        status_renderable = f"[status.message]Editing entry: [code]{_id}[/code]"
-        with console.status(status=status_renderable) as status:
+        status_renderable = f"[status.message] Editing entry: [code]{_id}[/code]"
+        with console.status(status_renderable) as status:
             query_job = routine.edit_time_entry(
                 set_clause=set_clause,
                 id=time_entry.id,
@@ -1062,7 +1059,7 @@ def _edit_entry_callback(
                     else:
                         _edits[k] = edits[k]
 
-                if not _edits.get(k):
+                if _edits.get(k) is None:
                     table.add_column(
                         k,
                         **render._map_s_column_type(
@@ -1071,9 +1068,7 @@ def _edit_entry_callback(
                     )
                     new_record[k] = f"{original_record[k]}"
                 else:
-                    if original_record[k] == _edits[k] or (
-                        f"{original_record[k]}" == f"{_edits[k]}"
-                    ):
+                    if f"{original_record[k]}" == f"{_edits[k]}":
                         table.add_column(
                             k,
                             header_style="yellow",
@@ -1218,8 +1213,8 @@ def add(
 
     time_entry_id = sha1(f"{project}{note}{start_local}".encode()).hexdigest()
 
-    status_renderable = "[status.message]Adding time entry"
-    with console.status(status=status_renderable) as status:
+    status_renderable = "[status.message] Adding time entry"
+    with console.status(status_renderable) as status:
         query_job = routine.add_timer(
             id=time_entry_id,
             project=project,
@@ -1303,8 +1298,11 @@ def get(
 @_pass.routine
 @_pass.console
 @_pass.active_time_entry
-def stop(cache: "TomlCache", console: "Console", routine: "CliQueryRoutines") -> None:
-    """Stop the active time entry."""
+def stop(
+    cache: "TomlCache",
+    console: "Console",
+    routine: "CliQueryRoutines",
+) -> None:
     routine.end_time_entry(cache.id)
     cache._clear_active()
     console.set_window_title(__appname_sc__)
@@ -1536,8 +1534,8 @@ def update(
     start_time: str,
     note: str,
 ) -> None:
-    status_renderable = f"[status.message]Updating time entry: [code]{cache.id}[/code]"
-    with console.status(status=status_renderable) as status:
+    status_renderable = f"[status.message] Updating time entry: [code]{cache.id}[/code]"
+    with console.status(status_renderable) as status:
         set_clause = SetClause()
 
         with cache.update():

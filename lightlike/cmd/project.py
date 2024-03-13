@@ -2,7 +2,6 @@ from typing import TYPE_CHECKING, Sequence
 
 import rich_click as click
 from more_itertools import first
-from rich import get_console
 from rich import print as rprint
 
 from lightlike.__about__ import __appname_sc__
@@ -21,9 +20,6 @@ if TYPE_CHECKING:
     from lightlike.app.routines import CliQueryRoutines
 
 __all__: Sequence[str] = ("projects",)
-
-
-get_console().log(f"[log.main]Loading command group: {__name__}")
 
 
 @click.group(
@@ -195,7 +191,7 @@ def update_name(
         ):
             return
 
-    with console.status("[status.message]Updating project name") as status:
+    with console.status("[status.message] Updating project name") as status:
         routine.update_project_name(
             project,
             renamed_project,
@@ -324,7 +320,7 @@ def delete(
         if not _questionary.confirm(message="Are you sure?", auto_enter=True):
             return
 
-    with console.status("[status.message]Matching project") as status:
+    with console.status("[status.message] Matching project") as status:
         for project in projects:
             query_job = routine.select(
                 resource=routine.timesheet_id,

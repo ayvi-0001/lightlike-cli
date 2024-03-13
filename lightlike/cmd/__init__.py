@@ -1,5 +1,10 @@
 from typing import Sequence
 
+from rich import get_console
+
+get_console().log("Loading command groups")
+
+
 from lightlike.cmd import other
 from lightlike.cmd.app import app
 from lightlike.cmd.bq import bq

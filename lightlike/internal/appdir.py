@@ -52,15 +52,15 @@ def rmtree(appdata: Path = __appdir__) -> NoReturn:
 
 def validate(__version__: str, /) -> None | NoReturn:
     console = _console.get_console()
-    console.log("[log.main]Verifying app directory")
+    console.log("Verifying app directory")
 
     if not CONFIG.exists():
         console.log("[log.error]App config not found")
-        console.log("[log.main]Initializing new directory")
+        console.log("Initializing new directory")
         return _initial_build()
 
     elif CONFIG.exists():
-        console.log("[log.main]Checking for updates")
+        console.log("Checking for updates")
         with suppress(Exception):
             from lightlike.__about__ import __latest_release__, __repo__
             from lightlike.internal.update import compare_version
@@ -72,7 +72,7 @@ def validate(__version__: str, /) -> None | NoReturn:
         _update_config(CONFIG, __version__)
 
         if rtoml.load(CONFIG)["app"]["version"] != __version__:
-            console.log("[log.main]Updating version")
+            console.log("Updating version")
             update_cli(CONFIG, __version__)
 
     return None
@@ -135,7 +135,7 @@ def _initial_build(__version__: str | None = None, /) -> None | NoReturn:
         _questionary.press_any_key_to_continue(message="Press any key to continue.")
 
         utils._nl()
-        console.log("[log.main]Writing config")
+        console.log("Writing config")
         console.log(
             f"[repr.attrib_name]appname[/repr.attrib_name]"
             f"[repr.attrib_equal]=[/repr.attrib_equal][repr.attrib_value]{__appname_sc__}"
@@ -171,7 +171,7 @@ def _initial_build(__version__: str | None = None, /) -> None | NoReturn:
 
         _DEFAULT_CONFIG["user"].update(name=user, host=host)
 
-        console.log("[log.main]Determining timezone from env..")
+        console.log("Determining timezone from env..")
 
         from pytz import all_timezones
 
@@ -194,7 +194,7 @@ def _initial_build(__version__: str | None = None, /) -> None | NoReturn:
             choices=all_timezones,
             default=default_timezone,
             validate=Validator.from_callable(
-                lambda d: False if d not in all_timezones else True,
+                lambda d: d in all_timezones,
                 error_message="Invalid timezone.",
             ),
         )
@@ -211,7 +211,7 @@ def _initial_build(__version__: str | None = None, /) -> None | NoReturn:
             Padding(
                 cleandoc(
                     f"""
-                    [i][u]Select method for authenticating client.[/i][/u]
+                    [u]Select method for authenticating client.[/u]
 
                     Methods;
                         ▸ [b][u]from-environment[/b][/u]
@@ -263,18 +263,18 @@ def _initial_build(__version__: str | None = None, /) -> None | NoReturn:
         _DEFAULT_CONFIG["client"].update(
             credentials_source=repr(client_credential_source)
         )
-        console.log("[log.main]Saving config")
+        console.log("Saving config")
         CONFIG.write_text(utils._format_toml(_DEFAULT_CONFIG))
-        console.log("[log.main]Building app directory")
+        console.log("Building app directory")
         CONFIG.touch(exist_ok=True)
-        console.log(f"[log.main]Writing {CONFIG}")
+        console.log(f"Writing {CONFIG}")
         REPL_HISTORY.touch(exist_ok=True)
-        console.log(f"[log.main]Writing {REPL_HISTORY}")
+        console.log(f"Writing {REPL_HISTORY}")
         SQL_HISTORY.touch(exist_ok=True)
-        console.log(f"[log.main]Writing {SQL_HISTORY}")
+        console.log(f"Writing {SQL_HISTORY}")
         CACHE.touch(exist_ok=True)
-        console.log(f"[log.main]Writing {CACHE}")
-        console.log("[log.main]Directory build complete")
+        console.log(f"Writing {CACHE}")
+        console.log("Directory build complete")
 
         ENTRY_APPDATA.write_text(
             '[active.no-project]\nname = "no-project"'
