@@ -69,11 +69,11 @@ def validate(__version__: str, /) -> None | NoReturn:
 
         from lightlike.internal.update import _update_config, update_cli
 
-        _update_config(CONFIG, __version__)
-
         if rtoml.load(CONFIG)["app"]["version"] != __version__:
             console.log("Updating version")
             update_cli(CONFIG, __version__)
+
+        _update_config(CONFIG, __version__)
 
     return None
 
