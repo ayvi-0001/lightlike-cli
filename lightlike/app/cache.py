@@ -38,26 +38,6 @@ __all__: t.Sequence[str] = ("TomlCache", "EntryIdList", "EntryAppData")
 T = t.TypeVar("T")
 P = t.ParamSpec("P")
 
-CACHE_DEFAULT: dict[str, t.Any] = {
-    "running": {
-        "entries": [
-            {
-                "project": None,
-                "id": None,
-                "start": None,
-                "note": None,
-                "is_billable": None,
-                "is_paused": False,
-                "time_paused": None,
-                "paused_hrs": 0,
-            }
-        ],
-    },
-    "paused": {
-        "entries": [],
-    },
-}
-
 
 class TomlCache:
     __slots__: t.ClassVar[t.Sequence[str]] = ("_entries",)
@@ -113,9 +93,11 @@ class TomlCache:
         paused_entries = []
         for entry in self.paused_entries:
             new_paused_hr = self._add_hours(
-                now, entry["time_paused"], entry["paused_hrs"]
+                now,
+                entry.copy()["time_paused"],
+                entry.copy()["paused_hrs"],
             )
-            entry["paused_hrs"] = str(round(new_paused_hr, 3))
+            entry["paused_hrs"] = str(round(new_paused_hr, 4))
             paused_entries.append(entry)
 
         reduce(
@@ -228,32 +210,13 @@ class TomlCache:
         with self.update():
             self.active["is_paused"] = True
             self.active["time_paused"] = time_paused
-            self.paused_entries.append(self.active.copy())
-            if not self.count_running_entries ^ 1:
-                self.project = None  # type: ignore[assignment]
-                self.id = None  # type: ignore[assignment]
-                self.start = None  # type: ignore[assignment]
-                self.note = None  # type: ignore[assignment]
-                self.is_billable = None  # type: ignore[assignment]
-                self.is_paused = False
-                self.time_paused = None  # type: ignore[assignment]
-                self.paused_hrs = "0"  # type: ignore[assignment]
-            else:
-                self.running_entries.pop(0)
+            self.running_entries.insert(1, self.default_entry)
+            self.paused_entries.append(self.running_entries.pop(0))
 
     def _clear_active(self) -> None:
         with self.update():
-            if not self.count_running_entries ^ 1:
-                self.project = None  # type: ignore[assignment]
-                self.id = None  # type: ignore[assignment]
-                self.start = None  # type: ignore[assignment]
-                self.note = None  # type: ignore[assignment]
-                self.is_billable = None  # type: ignore[assignment]
-                self.is_paused = False
-                self.time_paused = None  # type: ignore[assignment]
-                self.paused_hrs = "0"  # type: ignore[assignment]
-            else:
-                self.running_entries.pop(0)
+            self.running_entries.insert(1, self.default_entry)
+            self.running_entries.pop(0)
 
     def _find_entries(
         self, entries: list[dict[str, t.Any]], key: str, sequence: t.Sequence[str]
@@ -288,6 +251,15 @@ class TomlCache:
                 if idxs := self._find_entries(entry_list, key, sequence):
                     for idx in idxs:
                         entry_list.pop(idx)
+
+    def _add_hours(
+        self, now: datetime, time_paused: datetime, paused_hrs: Decimal
+    ) -> Decimal:
+        diff = now - t.cast(datetime, time_paused)
+        prev_paused_sec = Decimal(paused_hrs) * 3600
+        new_paused_sec = Decimal(diff.total_seconds()) + prev_paused_sec
+        new_paused_hr = Decimal(round((new_paused_sec / 3600), 4))
+        return new_paused_hr
 
     def _to_meta(
         self,
@@ -334,13 +306,13 @@ class TomlCache:
             self._path.touch(exist_ok=True)
             if not utils._identical_vectors(
                 list(self.active.keys()),
-                list(CACHE_DEFAULT["running"]["entries"][0].keys()),
+                list(self.default_entry.keys()),
             ):
                 with self.update():
-                    self._entries = CACHE_DEFAULT
+                    self._entries = self.default
         except Exception:
             with self.update():
-                self._entries = CACHE_DEFAULT
+                self._entries = self.default
 
     def _sync_cache(self) -> None:
         from lightlike.app.routines import CliQueryRoutines
@@ -377,7 +349,7 @@ class TomlCache:
             )
 
         if not running_entries:
-            running_entries = CACHE_DEFAULT["running"]["entries"]
+            running_entries = self.default["running"]["entries"]
 
         for row in list(paused_entries_to_cache):
             paused_entries.append(
@@ -389,7 +361,7 @@ class TomlCache:
                     is_billable=row.is_billable,
                     is_paused=row.is_paused,
                     time_paused=AppConfig().in_app_timezone(row.time_paused),
-                    paused_hrs=str(round(Decimal(row.paused_hrs or 0), 3)),
+                    paused_hrs=str(round(Decimal(row.paused_hrs or 0), 4)),
                 )
             )
 
@@ -399,8 +371,30 @@ class TomlCache:
             cache.paused_entries = paused_entries
 
     @property
-    def _keys(self) -> list[str]:
-        return CACHE_DEFAULT["running"]["entries"][0].keys()
+    def default(self) -> dict[str, t.Any]:
+        return {
+            "running": {
+                "entries": [
+                    {
+                        "project": None,
+                        "id": None,
+                        "start": None,
+                        "note": None,
+                        "is_billable": None,
+                        "is_paused": False,
+                        "time_paused": None,
+                        "paused_hrs": 0,
+                    }
+                ],
+            },
+            "paused": {
+                "entries": [],
+            },
+        }
+
+    @property
+    def default_entry(self):
+        return self.default["running"]["entries"][0]
 
     @property
     def count_running_entries(self) -> int:
@@ -594,18 +588,6 @@ class TomlCache:
                 )
 
         return _kwargs
-
-    def _add_hours(
-        self, now: datetime, time_paused: datetime, paused_hrs: Decimal
-    ) -> Decimal:
-        diff = now - t.cast(datetime, time_paused)
-        prev_paused_sec = Decimal(paused_hrs) * 3600
-        phr, pmin, psec = utils._sec_to_time_parts(prev_paused_sec)
-        new_paused_sec = Decimal(
-            diff.total_seconds() + (phr / 3600) + (pmin / 60) + psec
-        )
-        new_paused_hr = round(new_paused_sec / 60 / 60, 3)
-        return new_paused_hr
 
 
 class _EntryIdListSingleton(type):

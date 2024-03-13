@@ -95,14 +95,9 @@ def _clear_on_resize(console: Console) -> None:
 def _time_diff(cache: TomlCache) -> str:
     if cache.start is not None:
         if cache.paused_hrs:
-            phr, pmin, psec = utils._sec_to_time_parts(Decimal(cache.paused_hrs) * 3600)
-            paused_hrs = timedelta(
-                hours=phr,
-                minutes=pmin,
-                seconds=psec,
-                microseconds=0,
-            )
-            return f" {(_now() - cache.start) - paused_hrs}"
+            phr, pmin, psec = utils._sec_to_time_parts(cache.paused_hrs * 3600)
+            paused_delta = timedelta(hours=phr, minutes=pmin, seconds=psec)
+            return f" {(_now() - cache.start) - paused_delta}"
         else:
             return f" {_now() - cache.start}"
 

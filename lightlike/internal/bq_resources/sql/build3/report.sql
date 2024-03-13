@@ -77,7 +77,7 @@ FROM
       project,
       is_billable,
       note,
-      ROUND(SUM(duration), 3) AS duration,
+      ROUND(SUM(duration), 4) AS duration,
     FROM
       ${DATASET.NAME}.${TABLES.TIMESHEET}
     WHERE

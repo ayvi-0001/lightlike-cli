@@ -54,7 +54,7 @@ class CliQueryRoutines:
 
         if render:
             console = get_console()
-            status_message = f"[status.message]{status_renderable or 'Running query'}"
+            status_message = f"[status.message] {status_renderable or 'Running query'}"
             start = perf_counter_ns()
             query_job = self.client().query(query, job_config=job_config)
             query_job.add_done_callback(_completed)
@@ -701,9 +701,9 @@ class CliQueryRoutines:
               is_billable AS billable,
               is_active AS active,
               is_paused AS paused,
-              paused_hrs,
+              {self.dataset_main}.current_paused_hrs(is_paused, time_paused, paused_hrs) AS paused_hrs,
               {self.dataset_main}.duration(timestamp_end, timestamp_start, is_paused, time_paused, paused_hrs) AS duration,
-              ROUND(SUM({self.dataset_main}.duration(timestamp_end, timestamp_start, is_paused, time_paused, paused_hrs)) OVER(timer), 3) AS total,
+              ROUND(SUM({self.dataset_main}.duration(timestamp_end, timestamp_start, is_paused, time_paused, paused_hrs)) OVER(timer), 4) AS total,
             FROM
               {self.timesheet_id}
             WHERE
@@ -759,9 +759,9 @@ class CliQueryRoutines:
               is_billable AS billable,
               is_active AS active,
               is_paused AS paused,
-              paused_hrs,
+              {self.dataset_main}.current_paused_hrs(is_paused, time_paused, paused_hrs) AS paused_hrs,
               {self.dataset_main}.duration(timestamp_end, timestamp_start, is_paused, time_paused, paused_hrs) AS duration,
-              ROUND(SUM({self.dataset_main}.duration(timestamp_end, timestamp_start, is_paused, time_paused, paused_hrs)) OVER(timer), 3) AS total,
+              ROUND(SUM({self.dataset_main}.duration(timestamp_end, timestamp_start, is_paused, time_paused, paused_hrs)) OVER(timer), 4) AS total,
             FROM
               {self.timesheet_id}
             WHERE
@@ -928,6 +928,7 @@ class CliQueryRoutines:
             )
         else:
             raise click.UsageError(
+                # TODO show url for terminals that don't support.
                 message=(
                     "[b][red]Failed to request job cancel[/b][/red], "
                     "see the [link={resource_url}][repr.url]job results[/repr.url][/link] in console."
@@ -936,11 +937,13 @@ class CliQueryRoutines:
             )
 
     def _query_job_url(self, query_job: "QueryJob") -> str:
-        url = "{base_url}project={project_id}&j=bq:{region}:{job_id}&{end_point}"
-        return url.format(
-            base_url="https://console.cloud.google.com/bigquery?",
-            project_id=query_job.project,
-            region=query_job.location,
-            job_id=query_job.job_id,
-            end_point="page=queryresults",
+        url = (
+            "{base_url}project={project_id}&j=bq:{region}:{job_id}&{end_point}".format(
+                base_url="https://console.cloud.google.com/bigquery?",
+                project_id=query_job.project,
+                region=query_job.location,
+                job_id=query_job.job_id,
+                end_point="page=queryresults",
+            )
         )
+        return url

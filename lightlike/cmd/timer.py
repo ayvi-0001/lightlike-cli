@@ -658,7 +658,7 @@ def _edit_entry_callback(
                     )
 
                 total_seconds = int(duration.total_seconds())
-                dhour = round(total_seconds % (24 * 3600) / 3600, 3)
+                dhour = round(total_seconds % (24 * 3600) / 3600, 4)
 
                 utils.print_updated_val("date", new_date, prefix=None)
                 utils.print_updated_val("start", new_start.time(), prefix=None)
@@ -722,7 +722,7 @@ def _edit_entry_callback(
                     )
 
                 total_seconds = int(duration.total_seconds())
-                dhour = round(total_seconds % (24 * 3600) / 3600, 3)
+                dhour = round(total_seconds % (24 * 3600) / 3600, 4)
 
                 utils.print_updated_val("date", new_date, prefix=None)
                 utils.print_updated_val("start", new_start.time(), prefix=None)
@@ -801,7 +801,7 @@ def _edit_entry_callback(
                     )
 
                 total_seconds = int(duration.total_seconds())
-                dhour = round(total_seconds % (24 * 3600) / 3600, 3)
+                dhour = round(total_seconds % (24 * 3600) / 3600, 4)
 
                 utils.print_updated_val("date", new_date, prefix=None)
                 utils.print_updated_val("end", new_end.time(), prefix=None)
@@ -862,7 +862,7 @@ def _edit_entry_callback(
                     )
 
                 total_seconds = int(duration.total_seconds())
-                dhour = round(total_seconds % (24 * 3600) / 3600, 3)
+                dhour = round(total_seconds % (24 * 3600) / 3600, 4)
 
                 utils.print_updated_val("start", new_start.time(), prefix=None)
                 console.print("Updating duration with new start.")
@@ -931,7 +931,7 @@ def _edit_entry_callback(
                     )
 
                 total_seconds = int(duration.total_seconds())
-                dhour = round(total_seconds % (24 * 3600) / 3600, 3)
+                dhour = round(total_seconds % (24 * 3600) / 3600, 4)
 
                 utils.print_updated_val("end", new_end.time(), prefix=None)
                 console.print("Updating duration with new end.")
@@ -989,7 +989,7 @@ def _edit_entry_callback(
                     )
 
                 total_seconds = int(duration.total_seconds())
-                dhour = round(total_seconds % (24 * 3600) / 3600, 3)
+                dhour = round(total_seconds % (24 * 3600) / 3600, 4)
 
                 utils.print_updated_val("start", new_start.time(), prefix=None)
                 utils.print_updated_val("end", new_end.time(), prefix=None)
@@ -1196,7 +1196,7 @@ def add(
 
     duration = end_local - start_local
     total_seconds = int(duration.total_seconds())
-    dhour = round(total_seconds % (24 * 3600) / 3600, 3)
+    dhour = round(total_seconds % (24 * 3600) / 3600, 4)
 
     if total_seconds < 0 or _get.sign(duration.days) == -1:
         raise click.BadArgumentUsage(

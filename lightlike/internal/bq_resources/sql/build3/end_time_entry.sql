@@ -7,7 +7,7 @@ UPDATE
 SET
   timestamp_end = CURRENT_TIMESTAMP(),
   `end` = ${DATASET.NAME}.now(),
-  duration = CAST(TIMESTAMP_DIFF(CURRENT_TIMESTAMP(), timestamp_start, MICROSECOND) / 3.6e+9 AS NUMERIC) - IFNULL(paused_hrs, 0),
+  duration = ${DATASET.NAME}.duration(CURRENT_TIMESTAMP(), timestamp_start, NULL, NULL, paused_hrs),
   is_active = FALSE
 WHERE
   id = _id;

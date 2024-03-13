@@ -143,7 +143,7 @@ def render_query(
             return
 
         resource = routine._query_job_url(query_job)
-        console.log(f"resource_url: {resource}")
+        console.log(f"resource_url: [link={resource}][repr.url]{resource}")
         elapsed_time = routine._elapsed_time(query_job)
         console.log(f"elapsed_time: {elapsed_time}")
         if query_job.cache_hit:
