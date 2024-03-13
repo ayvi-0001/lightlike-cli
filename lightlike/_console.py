@@ -36,8 +36,11 @@ def reconfigure(**kwargs: Any) -> None:
         theme=CONSOLE_CONFIG.theme,
         **kwargs,
     )
+
     get_console()._log_render.omit_repeated_times = False
-    setattr(get_console(), "status", partial(get_console().status, spinner="aesthetic"))
+
+    spinner = "simpleDotsScrolling"
+    setattr(get_console(), "status", partial(get_console().status, spinner=spinner))
 
 
 COMPLETER: int = ActiveCompleter.CMD

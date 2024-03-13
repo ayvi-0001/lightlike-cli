@@ -75,7 +75,7 @@ def _base(
         ("class:user", user),
         ("class:at", "@"),
         ("class:host", host),
-        ("bold", " ➜ "),
+        ("", " ➜ "),
         ("class:path", cwd.as_posix().removeprefix(cwd.drive)),
     ]
 

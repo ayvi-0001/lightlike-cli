@@ -124,7 +124,7 @@ def lightlike(lock: fasteners.InterProcessLock = LOCK) -> None:
         cli.add_command(cmd.other.ls_)
         cli.add_command(cmd.other.tree_)
 
-        _console.get_console().log("[log.main]Starting REPL")
+        _console.get_console().log("Starting REPL")
 
         with lock:
             cli(prog_name="")  # Hiding 'python -m lightlike' in help and usage.
@@ -145,7 +145,7 @@ def _check_lock(lock: fasteners.InterProcessLock) -> None | NoReturn:
                 )
                 console.print(
                     "CLI is already running in another interpreter on this machine. "
-                    "Please close it before attempting to run again.\n",
+                    "Please close it before attempting to run again.",
                 )
             exit(2)
     return None

@@ -68,7 +68,7 @@ class CliQueryRoutines:
                 except (KeyboardInterrupt, EOFError):
                     self.cancel_job(query_job)
             else:
-                with console.status(status=status_message) as status:
+                with console.status(status_message) as status:
                     try:
                         while query_is_active:
                             self._update_elapsed_time(

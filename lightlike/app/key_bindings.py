@@ -41,7 +41,7 @@ def _(event: "KeyPressEvent") -> None:
 
 
 @prompt_handle(Keys.Escape, Keys.Enter)
-@utils._nl_start(before=True, after=True)
+@utils._nl_start(before=True)
 async def _(event: "KeyPressEvent") -> None:
     buffer = event.app.current_buffer
     cmd = buffer.document.text
@@ -83,7 +83,7 @@ def _(event: "KeyPressEvent") -> None:
     with patch_stdout(raw=True):
         get_console().log(
             "Registered KeyPress [code]F1[/code]. "
-            "Completer set to [code.command]commands[/code.command].\n"
+            "Completer set to [code.command]commands[/code.command]."
         )
 
 
@@ -94,7 +94,7 @@ def _(event: "KeyPressEvent") -> None:
     with patch_stdout(raw=True):
         get_console().log(
             "Registered KeyPress [code]F2[/code]. "
-            "Completer set to [code.command]history[/code.command].\n"
+            "Completer set to [code.command]history[/code.command]."
         )
 
 
@@ -105,7 +105,7 @@ def _(event: "KeyPressEvent") -> None:
     with patch_stdout(raw=True):
         get_console().log(
             "Registered KeyPress [code]F3[/code]. "
-            "Completer set to [code.command]path[/code.command].\n"
+            "Completer set to [code.command]path[/code.command]."
         )
 
 
@@ -116,7 +116,7 @@ def _(event: "KeyPressEvent") -> None:
     with patch_stdout(raw=True):
         get_console().log(
             "Registered KeyPress [code]F5[/code]. "
-            "Completer set to [code.command]none[/code.command].\n"
+            "Completer set to [code.command]none[/code.command]."
         )
 
 

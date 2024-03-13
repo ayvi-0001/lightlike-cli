@@ -149,14 +149,14 @@ def _update_routines() -> None:
     if not any([removed, missing]):
         return
 
-    console.log("[log.main]Updating routines in BigQuery")
+    console.log("Updating routines in BigQuery")
 
-    with console.status(status="[status.message]Updating routines.."):
+    with console.status("[status.message] Updating routines.."):
         if removed:
             for routine in removed:
                 routine_id = f"{client.project}.{dataset}.{routine}"
                 client.delete_routine(routine_id)
-                console.log(f"[bold green]Deleted routine: {routine_id}")
+                console.log(f"[b][green]Deleted routine[/green]:[/b] {routine_id}")
 
         if missing:
             bq_resources = Path(f"{__file__}/../../internal/bq_resources/sql").resolve()
@@ -173,4 +173,4 @@ def _update_routines() -> None:
                     )
                     script = script.replace("${__name__}", path.stem)
                     client.query(script)
-                    console.log(f"[bold green]Created routine: {path.stem}")
+                    console.log(f"[b][green]Created routine[/green]:[/b] {path.stem}")

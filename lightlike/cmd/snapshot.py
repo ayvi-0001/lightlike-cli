@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING, Sequence
 
 import rich_click as click
-from rich import get_console
 from rich import print as rprint
 
 from lightlike.app import _get, _pass, render, shell_complete
@@ -17,9 +16,6 @@ if TYPE_CHECKING:
     from lightlike.app.routines import CliQueryRoutines
 
 __all__: Sequence[str] = ("snapshots",)
-
-
-get_console().log(f"[log.main]Loading command group: {__name__}")
 
 
 @click.group(

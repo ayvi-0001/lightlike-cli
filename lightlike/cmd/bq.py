@@ -4,7 +4,6 @@ from inspect import cleandoc
 from typing import TYPE_CHECKING, Sequence
 
 import rich_click as click
-from rich import get_console
 from rich import print as rprint
 
 from lightlike.app import _pass, render
@@ -29,12 +28,8 @@ if TYPE_CHECKING:
 __all__: Sequence[str] = ("bq",)
 
 
-get_console().log(f"[log.main]Loading command group: {__name__}")
-
-
 @click.group(
     cls=AliasedRichGroup,
-    help="Command group for handling BigQuery Client configuration.",
     short_help="BigQuery client settings & commands.",
 )
 @click.option("-d", "--debug", is_flag=True, hidden=True)

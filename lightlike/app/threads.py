@@ -23,7 +23,7 @@ def spawn(
             with patch_stdout(raw=True):
                 console = get_console()
                 console.print(
-                    Rule(title="[bold][red]WARNING", characters="*", style="bold red")
+                    Rule(title="[b][red]WARNING", characters="*", style="bold red")
                 )
                 console.print(
                     str(rich_repr(current_thread())).replace("wrapper", repr(fn)),  # type: ignore[call-overload]
