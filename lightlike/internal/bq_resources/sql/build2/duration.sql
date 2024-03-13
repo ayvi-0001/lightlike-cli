@@ -17,7 +17,7 @@ CREATE OR REPLACE FUNCTION
           timestamp_start,
           MICROSECOND
         ) / 3.6e+9 AS NUMERIC
-      ),
-      3
-    ) - IFNULL(paused_hrs, 0)
+      ) - IFNULL(paused_hrs, 0),
+      4
+    )
   );

@@ -7,7 +7,7 @@ UPDATE
 SET
   is_paused = FALSE,
   is_active = TRUE,
-  paused_hrs = IFNULL(paused_hrs, 0) + ${DATASET.NAME}.duration(time_resume, time_paused, NULL, NULL, NULL),
+  paused_hrs = ROUND(CAST(IFNULL(paused_hrs, 0) + ${DATASET.NAME}.duration(time_resume, time_paused, NULL, NULL, NULL) AS NUMERIC), 4),
   time_paused = NULL
 WHERE
   id = _id;

@@ -148,7 +148,7 @@ def run(client: "Client", patterns: dict[str, str]) -> bool:
             TextColumn("  "),
             TimeElapsedColumn(),
             TextColumn("[b][purple]{task.fields[action]}"),
-            SpinnerColumn("aesthetic"),
+            SpinnerColumn("simpleDotsScrolling"),
             refresh_per_second=30,
         )
 
