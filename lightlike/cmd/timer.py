@@ -123,7 +123,6 @@ def run(
     query_job = routine.run_timer(time_entry_id, project, note, start_local, billable)
 
     with cache.update():
-        cache.state = True
         cache.id = time_entry_id
         cache.project = project
         cache.note = note if note != "None" else None  # type: ignore[assignment]
@@ -175,7 +174,7 @@ def list_() -> None: ...
     help="Filter results with a WHERE clause. Prompts for input.",
 )
 @click.argument(
-    "where_args",
+    "where_clause",
     nargs=-1,
     type=click.STRING,
     required=False,
@@ -188,18 +187,18 @@ def list_date(
     console: "Console",
     date: str,
     where: bool,
-    where_args: Sequence[str],
+    where_clause: Sequence[str],
 ) -> None:
     if date:
         date_local = PromptFactory._parse_date(date)
     else:
         date_local = PromptFactory.prompt_for_date("(date)")
 
-    where_clause = shell_complete.where._parse_click_options(
-        flag=where, args=where_args, console=console, routine=routine
+    _where_clause = shell_complete.where._parse_click_options(
+        flag=where, args=where_clause, console=console, routine=routine
     )
 
-    query_job = routine.list_time_entries(date=date_local, where_clause=where_clause)
+    query_job = routine.list_time_entries(date=date_local, where_clause=_where_clause)
     row_iterator = query_job.result()
     table = render.row_iter_to_rich_table(
         row_iterator=row_iterator,
@@ -255,7 +254,7 @@ def list_date(
     help="Filter results with a WHERE clause. Prompts for input.",
 )
 @click.argument(
-    "where_args",
+    "where_clause",
     nargs=-1,
     type=click.STRING,
     required=False,
@@ -270,7 +269,7 @@ def list_range(
     end: str,
     current_week: bool,
     where: bool,
-    where_args: Sequence[str],
+    where_clause: Sequence[str],
 ) -> None:
     date_range = (
         dates._get_current_week_range()
@@ -280,14 +279,14 @@ def list_range(
 
     str_range = "%s -> %s" % (date_range.start.date(), date_range.end.date())
 
-    where_clause = shell_complete.where._parse_click_options(
-        flag=where, args=where_args, console=console, routine=routine
+    _where_clause = shell_complete.where._parse_click_options(
+        flag=where, args=where_clause, console=console, routine=routine
     )
 
     query_job = routine.list_time_entries_range(
         start_date=date_range.start,
         end_date=date_range.end,
-        where_clause=where_clause,
+        where_clause=_where_clause,
     )
     row_iterator = query_job.result()
     table = render.row_iter_to_rich_table(

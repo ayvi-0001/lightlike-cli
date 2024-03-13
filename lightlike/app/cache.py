@@ -7,6 +7,7 @@ from contextlib import contextmanager, suppress
 from datetime import datetime
 from decimal import Decimal
 from functools import cached_property, reduce
+from operator import truth
 
 import fasteners  # type: ignore[import-untyped, import-not-found]
 import rich_click as click
@@ -41,7 +42,6 @@ CACHE_DEFAULT: dict[str, t.Any] = {
     "running": {
         "entries": [
             {
-                "state": False,
                 "project": None,
                 "id": None,
                 "start": None,
@@ -69,7 +69,7 @@ class TomlCache:
             self._entries = rtoml.load(self._path)
 
     def __bool__(self) -> bool:
-        return bool(self.state)
+        return truth(self.id)
 
     def __rich_console__(
         self, console: "Console", options: "ConsoleOptions"
@@ -180,7 +180,6 @@ class TomlCache:
             self.running_entries.insert(
                 0,
                 {
-                    "state": False,
                     "project": None,
                     "id": None,
                     "start": None,
@@ -231,7 +230,6 @@ class TomlCache:
             self.active["time_paused"] = time_paused
             self.paused_entries.append(self.active.copy())
             if not self.count_running_entries ^ 1:
-                self.state = False
                 self.project = None  # type: ignore[assignment]
                 self.id = None  # type: ignore[assignment]
                 self.start = None  # type: ignore[assignment]
@@ -246,7 +244,6 @@ class TomlCache:
     def _clear_active(self) -> None:
         with self.update():
             if not self.count_running_entries ^ 1:
-                self.state = False
                 self.project = None  # type: ignore[assignment]
                 self.id = None  # type: ignore[assignment]
                 self.start = None  # type: ignore[assignment]
@@ -368,7 +365,6 @@ class TomlCache:
         for row in list(running_entries_to_cache):
             running_entries.append(
                 dict(
-                    state=True,
                     project=row.project,
                     id=row.id,
                     start=AppConfig().in_app_timezone(row.timestamp_start),
@@ -386,7 +382,6 @@ class TomlCache:
         for row in list(paused_entries_to_cache):
             paused_entries.append(
                 dict(
-                    state=True,
                     project=row.project,
                     id=row.id,
                     start=AppConfig().in_app_timezone(row.timestamp_start),
@@ -439,14 +434,6 @@ class TomlCache:
     @paused_entries.setter
     def paused_entries(self, __val: T) -> None:
         self._entries["paused"]["entries"] = __val
-
-    @property
-    def state(self) -> bool:
-        return t.cast(bool, self._ifnull(self.active["state"]))
-
-    @state.setter
-    def state(self, __val: T) -> None:
-        self.active["state"] = __val
 
     @property
     def project(self) -> str:
@@ -679,20 +666,12 @@ class EntryIdList(metaclass=_EntryIdListSingleton):
 
 class EntryAppData:
     path: t.ClassVar[Path] = appdir.ENTRY_APPDATA
-    project_kwargs = dict(
-        resource=CliQueryRoutines().projects_id,
-        fields=["*"],
-    )
-    note_kwargs = dict(
-        resource=CliQueryRoutines().timesheet_id,
-        fields=["project", "note", "timestamp_start"],
-        order="project, timestamp_start desc",
-    )
 
     def update(self, query_job: t.Optional["QueryJob"] = None) -> None:
         routine = CliQueryRoutines()
         query_job_projects = routine.select(
-            **self.project_kwargs  # type:ignore[arg-type]
+            resource=CliQueryRoutines().projects_id,
+            fields=["*"],
         )
 
         appdata: dict[str, t.Any] = {"active": {}, "archived": {}}
@@ -711,7 +690,11 @@ class EntryAppData:
         if query_job and not query_job.done():
             query_job.result()  # Wait for timer:run to complete.
 
-        query_job_notes = routine.select(**self.note_kwargs)  # type:ignore[arg-type]
+        query_job_notes = routine.select(
+            resource=CliQueryRoutines().timesheet_id,
+            fields=["project", "note", "timestamp_start"],
+            order="project, timestamp_start desc",
+        )
 
         rows = list(query_job_notes)
 
