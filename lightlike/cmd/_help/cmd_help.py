@@ -95,18 +95,15 @@ The sum of hours for that note is appended on the end of each note.\
 
 _date_parser_examples = f"""\
 Example values to pass to the date parser:
-- "now"
-- "yesterday"
-- "2 days ago"
-- "1 hour 15 min ago"
-- "1.25 hrs ago"
-- "\-1.25hr" [d](to use the minus operator, it must be escaped to avoid mistaking it for a flag)[/d]
-- "today \-2 days"
-- "monday"
-- "14:30:00"
-- "2:30 PM"
-- "jan1"
-- "01/01"
+[d][b]Note:[/b] to use the minus operator, it must be escaped to avoid mistaking it for a flag[/d]
+
+| format                     | examples                                                                     |
+|----------------------------|------------------------------------------------------------------------------|
+| relative  date             | "today"/"now" [d](same result)[/d], "yesterday", "monday", "2 days ago", "\-2 days" |
+| relative time              | "1 hour 15 min ago", "1.25 hrs ago", "\-1.25hr"                              |
+| time                       | "14:30:00", "2:30 PM"                                                        |
+| date [d](assumes this year)[/d]   | "jan1", "01/01", "01-01"                                                     |
+| full date                  | "2024-01-01"                                                                 |
 
 Use command {code_command('app:test:date-parse')} to test a string against the parser.\
 """
@@ -178,7 +175,7 @@ DATE/TIME FIELDS:
     Any argument or option that asks for a date or time value will attempt to parse the string provided.
     If it's unable to parse the string, an error will raise.
     All dates are relative to today unless explicitly stated in the string.
-    See the help for command {code_command('timer:list')} for more details about what kinds of strings work best.
+    See the help for command {code_command('timer:list:date')} for more details about what kinds of strings work best.
 """
 )
 
@@ -189,7 +186,9 @@ Retroactively add a time entry.
 
 The same 4 flags when using {code_command('timer:run')} are available, with an additional flag {flag.end} to supply the time the entry ends.
 
-If any of {flag.project} | {flag.start} | {flag.end} are not provided, a prompt will call for these values.
+If {flag.end} is not provided, it will default to {code('now')}.
+
+If any of {flag.project} | {flag.start} are not provided, a prompt will call for these values.
 
 If any of {flag.note} | {flag.billable} are not provided, they will be ignored [d](uses default billable set in config)[/d].
 """
@@ -199,6 +198,8 @@ If any of {flag.note} | {flag.billable} are not provided, they will be ignored [
 timer_add_syntax = Syntax(
     code="""\
     $ timer add --project no-project --start "mon 9am" --end "mon 12pm" --note "..." --billable true
+    
+    $ timer add --project lightlike-cli --start "01-15 12PM" --end "01-15 3PM"
     """,
     **SYNTAX_KWARGS,
 )
@@ -279,6 +280,10 @@ timer_list_date_syntax = Syntax(
     code="""\
     $ timer list date today
     
+    $ t l d today
+    
+    $ timer l d yesterday -w   # will prompt for where clause
+    
     $ timer list date "2 days ago" "where is_billable is false"
     
     $ timer list date monday project = "lightlike_cli" and note like any ("something%", "else%")
@@ -304,7 +309,7 @@ timer_list_range_syntax = Syntax(
     code="""\
     $ timer list range jan1 jan31 "where project not in (\\"test\\", \\"demo\\")"
     
-    $ timer list range --current-week --where
+    $ timer list range --current-week --where   # will prompt for where clause
     
     $ t l r -cw
     """,

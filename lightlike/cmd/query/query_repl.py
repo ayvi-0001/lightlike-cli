@@ -20,7 +20,7 @@ from lightlike.app.key_bindings import QUERY_BINDINGS
 from lightlike.app.routines import CliQueryRoutines
 from lightlike.cmd.query.completers import query_repl_completer
 from lightlike.cmd.query.lexer import BqSqlLexer
-from lightlike.internal import appdir, utils
+from lightlike.internal import appdir
 
 if TYPE_CHECKING:
     from google.cloud.bigquery import QueryJob

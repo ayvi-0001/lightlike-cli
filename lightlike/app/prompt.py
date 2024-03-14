@@ -5,11 +5,9 @@ from calendar import day_name, month_name
 from typing import TYPE_CHECKING, Any, Sequence, cast
 
 import rich_click as click
-from click.exceptions import Exit as ClickExit
 from dateparser import parse
 from prompt_toolkit.shortcuts import CompleteStyle, PromptSession
 from prompt_toolkit.validation import Validator
-from rich import print as rprint
 
 from lightlike.app import cursor, shell_complete, validate
 from lightlike.app.autosuggest import _threaded_autosuggest
@@ -54,20 +52,17 @@ class PromptFactory(PromptSession):
         self.key_bindings = PROMPT_BINDINGS
 
     @classmethod
+    @utils.exit_cmd_on_interrupt()
     def _prompt(cls, message: str, pre_run: bool = False, **prompt_kwargs) -> Any:
-        try:
-            prompt = cls().prompt(
-                message=cursor.build(message),
-                pre_run=utils._prerun_autocomplete if pre_run else None,
-                **prompt_kwargs,
-            )
-            return prompt
-
-        except (KeyboardInterrupt, EOFError):
-            rprint("[d]Canceled prompt.")
-            raise ClickExit(0)
+        prompt = cls().prompt(
+            message=cursor.build(message),
+            pre_run=utils._prerun_autocomplete if pre_run else None,
+            **prompt_kwargs,
+        )
+        return prompt
 
     @classmethod
+    @utils.exit_cmd_on_interrupt()
     def prompt_for_date(cls, message: str, **prompt_kwargs) -> "datetime":
         session = cls()
 
@@ -75,24 +70,19 @@ class PromptFactory(PromptSession):
         suggestions.extend(month_name)
         suggestions.extend(day_name)
 
-        try:
-            session_pk = dict(
-                message=cursor.build(message),
-                completer=shell_complete.TimeCompleter(),
-                auto_suggest=_threaded_autosuggest(suggestions),
-                validator=Validator.from_callable(
-                    lambda d: False if not d else True,
-                    error_message="Input cannot be None.",
-                ),
-            )
-            session_pk.update(**prompt_kwargs)
-            date = session.prompt(**session_pk)
-            parsed_date = session._parse_date(date)
-            return parsed_date
-
-        except (KeyboardInterrupt, EOFError):
-            rprint("[d]Canceled prompt.")
-            raise ClickExit(0)
+        session_pk = dict(
+            message=cursor.build(message),
+            completer=shell_complete.TimeCompleter(),
+            auto_suggest=_threaded_autosuggest(suggestions),
+            validator=Validator.from_callable(
+                lambda d: False if not d else True,
+                error_message="Input cannot be None.",
+            ),
+        )
+        session_pk.update(**prompt_kwargs)
+        date = session.prompt(**session_pk)
+        parsed_date = session._parse_date(date)
+        return parsed_date
 
     @staticmethod
     def _parse_date(date: str) -> "datetime":
@@ -112,29 +102,26 @@ class PromptFactory(PromptSession):
         return AppConfig().in_app_timezone(parsed_date.replace(microsecond=0))
 
     @classmethod
+    @utils.exit_cmd_on_interrupt()
     def prompt_note(cls, project: str, message: str = "(note)", **prompt_kwargs) -> str:
         session = cls()
 
-        try:
-            session_pk = dict(
-                message=cursor.build(message, hide_rprompt=True),
-                pre_run=utils._prerun_autocomplete,
-                completer=shell_complete.notes.Notes(project),
-                rprompt=f"Project: {project}",
-                validator=Validator.from_callable(
-                    lambda d: False if not d else True,
-                    error_message="Input cannot be None.",
-                ),
-            )
-            session_pk.update(**prompt_kwargs)
-            note = session.prompt(**session_pk)
-            return note
-
-        except (KeyboardInterrupt, EOFError):
-            rprint("[d]Canceled prompt.")
-            raise ClickExit(0)
+        session_pk = dict(
+            message=cursor.build(message, hide_rprompt=True),
+            pre_run=utils._prerun_autocomplete,
+            completer=shell_complete.notes.Notes(project),
+            rprompt=f"Project: {project}",
+            validator=Validator.from_callable(
+                lambda d: False if not d else True,
+                error_message="Input cannot be None.",
+            ),
+        )
+        session_pk.update(**prompt_kwargs)
+        note = session.prompt(**session_pk)
+        return note
 
     @classmethod
+    @utils.exit_cmd_on_interrupt()
     def prompt_project(
         cls, message: str = "(project)", new: bool = False, **prompt_kwargs
     ) -> str:
@@ -146,18 +133,13 @@ class PromptFactory(PromptSession):
             "Name must match regex ^[a-zA-Z0-9-\_]{3,20}$" if new else None
         )
 
-        try:
-            session_pk = dict(
-                message=cursor.build(message, hide_rprompt=True),
-                pre_run=utils._prerun_autocomplete,
-                completer=completer,
-                validator=validator,
-                bottom_toolbar=bottom_toolbar,
-            )
-            session_pk.update(**prompt_kwargs)
-            project = session.prompt(**session_pk)
-            return project
-
-        except (KeyboardInterrupt, EOFError):
-            rprint("[d]Canceled prompt.")
-            raise ClickExit(0)
+        session_pk = dict(
+            message=cursor.build(message, hide_rprompt=True),
+            pre_run=utils._prerun_autocomplete,
+            completer=completer,
+            validator=validator,
+            bottom_toolbar=bottom_toolbar,
+        )
+        session_pk.update(**prompt_kwargs)
+        project = session.prompt(**session_pk)
+        return project

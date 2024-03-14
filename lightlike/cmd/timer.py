@@ -87,11 +87,12 @@ def timer(debug: bool) -> None: ...
     expose_value=True,
     shell_complete=shell_complete.Param("billable").bool,
     default=lambda: AppConfig().get("settings", "is_billable"),
-    help="Flag entry as billable.",
+    help="Set time entries billable flag.",
 )
 @click.option(
     "-s",
     "--start",
+    type=click.STRING,
     shell_complete=shell_complete.time,
     help="Earlier start time. Ignore option to start now.",
 )
@@ -172,7 +173,6 @@ def list_() -> None: ...
     "-w",
     "--where",
     is_flag=True,
-    type=click.BOOL,
     help="Filter results with a WHERE clause. Prompts for input.",
 )
 @click.argument(
@@ -252,7 +252,6 @@ def list_date(
     "-w",
     "--where",
     is_flag=True,
-    type=click.BOOL,
     help="Filter results with a WHERE clause. Prompts for input.",
 )
 @click.argument(
@@ -598,7 +597,6 @@ def _edit_entry_callback(
             status=f"[status.message] Searching for time entry ID: [code]{_id}[/code]"
         ) as status:
             set_clause = SetClause()
-
             _id = id_list.match_id(_id)
 
             try:
@@ -1144,7 +1142,8 @@ def edit_group() -> None:
     "-e",
     "--end",
     type=click.STRING,
-    help="Prompts for end if not provided.",
+    default="now",
+    help='Uses "now" if not provided.',
     shell_complete=shell_complete.time,
 )
 @click.option(
@@ -1152,7 +1151,7 @@ def edit_group() -> None:
     "--note",
     type=click.STRING,
     show_default=True,
-    help="Prompts for note if not provided.",
+    help="Add a new/existing note.",
     shell_complete=shell_complete.notes.from_param,
 )
 @click.option(
@@ -1444,10 +1443,7 @@ def resume(
 )
 @_pass.console
 @_pass.active_time_entry
-def switch(
-    cache: "TomlCache",
-    console: "Console",
-) -> None:
+def switch(cache: "TomlCache", console: "Console") -> None:
     if cache.count_running_entries == 1:
         console.print(
             "[d]Only 1 running time entry. Nothing to switch too.",
@@ -1608,8 +1604,7 @@ def update(
         obj=dict(syntax=_help.timer_notes_update_syntax),
     ),
 )
-def notes() -> None:
-    """Manage time entry notes."""
+def notes() -> None: ...
 
 
 @notes.command(

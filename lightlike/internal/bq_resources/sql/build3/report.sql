@@ -19,7 +19,7 @@ SELECT DISTINCT
   date,
   project,
   is_billable AS billable,
-  SUM(duration) OVER(PARTITION BY date, project, is_billable) AS timer,
+  SUM(duration) OVER(PARTITION BY date, project, is_billable) AS duration,
   STRING_AGG(note || " - " || duration, "%s") OVER(PARTITION BY date, project, is_billable) AS notes,
 FROM
   (
@@ -68,7 +68,7 @@ SELECT DISTINCT
   date,
   project,
   is_billable AS billable,
-  SUM(duration) OVER(PARTITION BY date, project, is_billable) AS timer,
+  SUM(duration) OVER(PARTITION BY date, project, is_billable) AS duration,
   STRING_AGG(note || " - " || duration, "%s") OVER(PARTITION BY date, project, is_billable) AS notes,
 FROM
   (

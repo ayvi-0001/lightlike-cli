@@ -5,6 +5,7 @@ import rich_click as click
 from pytz import all_timezones
 
 from lightlike.app.cache import TomlCache
+from lightlike.internal import utils
 from lightlike.lib.third_party import _questionary
 
 __all__: Sequence[str] = ("timezone", "edit_params", "weekstart", "report_path")
@@ -71,7 +72,7 @@ def report_path(ctx: click.Context, param: click.Parameter, value: str) -> Path 
         ):
             return path.with_suffix(suffix)
         else:
-            ctx.fail("Canceled prompt.")
+            raise utils.click_exit
     else:
         if not path.suffix:
             return path.with_suffix(suffix)
