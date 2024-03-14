@@ -153,6 +153,7 @@ def projects() -> None:
 @bq.group(
     name="reset",
     invoke_without_command=True,
+    subcommand_metavar="",
     short_help="Reset client settings/auth.",
 )
 @utils._handle_keyboard_interrupt(
