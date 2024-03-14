@@ -20,15 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import logging
-import os
-from pathlib import Path
 from typing import TYPE_CHECKING, NoReturn, Sequence
 
 import fasteners  # type: ignore[import-untyped, import-not-found]
 import rich_click as click
 from rich.traceback import install
-from rich_click.cli import patch
 
 if TYPE_CHECKING:
     from lightlike.app.group import AliasedRichGroup
@@ -37,7 +33,6 @@ __all__: Sequence[str] = ("lightlike",)
 
 
 install(suppress=[click])
-patch()
 
 
 from lightlike import _console
@@ -74,12 +69,12 @@ def build_cli() -> "AliasedRichGroup":
     @click.pass_context
     def cli(ctx: click.Context) -> None:
         if ctx.invoked_subcommand is None:
-            os.chdir(Path().home())
+            _console.get_console().log("Starting REPL")
             ctx.invoke(repl)
             get_client().close()
             utils._log().debug("Closed Bigquery client HTTPS connection.")
             utils._log().debug("Exiting gracefully.")
-            logging.shutdown()
+            utils._shutdown_log()
 
     @cli.command(name="repl")
     @click.pass_context
@@ -110,21 +105,26 @@ def lightlike(lock: fasteners.InterProcessLock = LOCK) -> None:
 
         cli = build_cli()
 
+        from rich_click.cli import patch
+
         from lightlike import cmd
 
-        cli.add_command(cmd.app)
-        cli.add_command(cmd.bq)
-        cli.add_command(cmd.project)
-        cli.add_command(cmd.report)
-        cli.add_command(cmd.timer)
-        cli.add_command(cmd.other.help_)
-        cli.add_command(cmd.other.calc_)
-        cli.add_command(cmd.other.calendar_)
-        cli.add_command(cmd.other.cd_)
-        cli.add_command(cmd.other.ls_)
-        cli.add_command(cmd.other.tree_)
+        patch()
 
-        _console.get_console().log("Starting REPL")
+        for command in [
+            cmd.app,
+            cmd.bq,
+            cmd.project,
+            cmd.report,
+            cmd.timer,
+            cmd.other.help_,
+            cmd.other.calc_,
+            cmd.other.calendar_,
+            cmd.other.cd_,
+            cmd.other.ls_,
+            cmd.other.tree_,
+        ]:
+            cli.add_command(command)
 
         with lock:
             cli(prog_name="")  # Hiding 'python -m lightlike' in help and usage.

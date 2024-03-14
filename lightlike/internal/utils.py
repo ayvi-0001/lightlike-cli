@@ -3,13 +3,14 @@ import functools
 import logging
 import re
 import typing as t
-from contextlib import suppress
+from contextlib import ContextDecorator, suppress
 from datetime import date, time, timedelta
 from decimal import Decimal
 from functools import reduce
 from types import FunctionType
 
 import rtoml
+from click.exceptions import Exit as ClickExit
 from prompt_toolkit.application import get_app, in_terminal
 from rich import get_console
 from rich import print as rprint
@@ -24,14 +25,15 @@ if t.TYPE_CHECKING:
 
 __all__: t.Sequence[str] = (
     "_log",
+    "_shutdown_log",
     "_handle_keyboard_interrupt",
+    "_nl_start",
+    "_nl",
+    "_nl_start",
     "_identical_vectors",
     "pretty_print_exception",
     "_prerun_autocomplete",
     "_regexp_replace",
-    "_nl",
-    "_nl_async",
-    "_nl_start",
     "_format_toml",
     "_alter_str",
     "_split_and_alter_str",
@@ -39,8 +41,9 @@ __all__: t.Sequence[str] = (
     "timer",
     "update_dict",
     "_sec_to_time_parts",
-    "ifbool",
     "print_updated_val",
+    "click_exit",
+    "exit_cmd_on_interrupt",
 )
 
 
@@ -63,6 +66,23 @@ logging.basicConfig(
 
 def _log() -> "Logger":
     return logging.getLogger(__appname_sc__)
+
+
+def _shutdown_log() -> None:
+    logging.shutdown()
+
+
+click_exit: t.NoReturn = t.cast(t.NoReturn, ClickExit(0))
+
+
+class exit_cmd_on_interrupt(ContextDecorator):
+    def __enter__(self):
+        try:
+            return self
+        except (KeyboardInterrupt, EOFError):
+            raise click_exit
+
+    def __exit__(self, *exc): ...
 
 
 def _handle_keyboard_interrupt(

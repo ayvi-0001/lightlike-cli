@@ -521,7 +521,7 @@ def unarchive(
             count_unarchived,
             "entry" if count_unarchived == 1 else "entries",
             (
-                "\These entries will now appear in results again."
+                "\nThese entries will now appear in results again."
                 if count_unarchived > 0
                 else ""
             ),

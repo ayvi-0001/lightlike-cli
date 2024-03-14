@@ -79,6 +79,27 @@ def _map_click_exception(e: click.ClickException) -> NoReturn:  # type: ignore
                     param_hint=e.param_hint,
                 ),
             )
+        case click.NoSuchOption:
+            e = cast(click.NoSuchOption, e)
+            no_such_option = click.NoSuchOption(
+                option_name=e.option_name,
+                message=e.message,
+                possibilities=e.possibilities,
+                ctx=e.ctx,
+            )
+            message = render(
+                no_such_option.format_message(),
+                style=CONSOLE_CONFIG.style,
+            )
+
+            _rich_format_error(
+                click.NoSuchOption(
+                    option_name=e.option_name,
+                    message=message,
+                    possibilities=e.possibilities,
+                    ctx=e.ctx,
+                ),
+            )
         case click.UsageError:
             e = cast(click.UsageError, e)
             message = render(

@@ -210,13 +210,32 @@ class TomlCache:
         with self.update():
             self.active["is_paused"] = True
             self.active["time_paused"] = time_paused
-            self.running_entries.insert(1, self.default_entry)
-            self.paused_entries.append(self.running_entries.pop(0))
+            self.paused_entries.append(self.active.copy())
+            if not self.count_running_entries ^ 1:
+                self.project = None  # type: ignore[assignment]
+                self.id = None  # type: ignore[assignment]
+                self.start = None  # type: ignore[assignment]
+                self.note = None  # type: ignore[assignment]
+                self.is_billable = None  # type: ignore[assignment]
+                self.is_paused = False
+                self.time_paused = None  # type: ignore[assignment]
+                self.paused_hrs = "0"  # type: ignore[assignment]
+            else:
+                self.running_entries.pop(0)
 
     def _clear_active(self) -> None:
         with self.update():
-            self.running_entries.insert(1, self.default_entry)
-            self.running_entries.pop(0)
+            if not self.count_running_entries ^ 1:
+                self.project = None  # type: ignore[assignment]
+                self.id = None  # type: ignore[assignment]
+                self.start = None  # type: ignore[assignment]
+                self.note = None  # type: ignore[assignment]
+                self.is_billable = None  # type: ignore[assignment]
+                self.is_paused = False
+                self.time_paused = None  # type: ignore[assignment]
+                self.paused_hrs = "0"  # type: ignore[assignment]
+            else:
+                self.running_entries.pop(0)
 
     def _find_entries(
         self, entries: list[dict[str, t.Any]], key: str, sequence: t.Sequence[str]

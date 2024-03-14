@@ -54,7 +54,7 @@ class CliQueryRoutines:
 
         if render:
             console = get_console()
-            status_message = f"[status.message] {status_renderable or 'Running query'}"
+            status_message = f"[status.message]{status_renderable or ' Running query'}"
             start = perf_counter_ns()
             query_job = self.client().query(query, job_config=job_config)
             query_job.add_done_callback(_completed)
@@ -699,9 +699,11 @@ class CliQueryRoutines:
               is_billable AS billable,
               is_active AS active,
               is_paused AS paused,
-              {self.dataset_main}.current_paused_hrs(is_paused, time_paused, paused_hrs) AS paused_hrs,
-              {self.dataset_main}.duration(timestamp_end, timestamp_start, is_paused, time_paused, paused_hrs) AS duration,
-              ROUND(SUM({self.dataset_main}.duration(timestamp_end, timestamp_start, is_paused, time_paused, paused_hrs)) OVER(timer), 4) AS total,
+              ROUND(IFNULL(paused_hrs, {self.dataset_main}.current_paused_hrs(is_paused, time_paused, paused_hrs)), 4) AS paused_hrs,
+              ROUND(IFNULL(duration, {self.dataset_main}.duration(timestamp_end, timestamp_start, is_paused, time_paused, paused_hrs)), 4) AS duration,
+              ROUND(
+                SUM(IFNULL(duration, {self.dataset_main}.duration(timestamp_end, timestamp_start, is_paused, time_paused, paused_hrs))) OVER(timer), 4
+              ) AS total,
             FROM
               {self.timesheet_id}
             WHERE
@@ -710,7 +712,7 @@ class CliQueryRoutines:
               {'AND (' + where_clause + ')' if where_clause else ''}
             WINDOW
               timer AS (
-                ORDER BY timestamp_start, timestamp_end, is_paused, time_paused, paused_counter, paused_hrs
+                ORDER BY timestamp_start, timestamp_end
               )
             ORDER BY
               timestamp_start,
@@ -757,9 +759,11 @@ class CliQueryRoutines:
               is_billable AS billable,
               is_active AS active,
               is_paused AS paused,
-              {self.dataset_main}.current_paused_hrs(is_paused, time_paused, paused_hrs) AS paused_hrs,
-              {self.dataset_main}.duration(timestamp_end, timestamp_start, is_paused, time_paused, paused_hrs) AS duration,
-              ROUND(SUM({self.dataset_main}.duration(timestamp_end, timestamp_start, is_paused, time_paused, paused_hrs)) OVER(timer), 4) AS total,
+              ROUND(IFNULL(paused_hrs, {self.dataset_main}.current_paused_hrs(is_paused, time_paused, paused_hrs)), 4) AS paused_hrs,
+              ROUND(IFNULL(duration, {self.dataset_main}.duration(timestamp_end, timestamp_start, is_paused, time_paused, paused_hrs)), 4) AS duration,
+              ROUND(
+                SUM(IFNULL(duration, {self.dataset_main}.duration(timestamp_end, timestamp_start, is_paused, time_paused, paused_hrs))) OVER(timer), 4
+              ) AS total,
             FROM
               {self.timesheet_id}
             WHERE
@@ -767,7 +771,7 @@ class CliQueryRoutines:
               {'AND (' + where_clause + ')' if where_clause else ''}
             WINDOW
               timer AS (
-                ORDER BY timestamp_start, timestamp_end, is_paused, time_paused, paused_counter, paused_hrs
+                ORDER BY timestamp_start, timestamp_end
               )
             ORDER BY
               timestamp_start,
@@ -904,9 +908,7 @@ class CliQueryRoutines:
         else:
             return f"{query_string}[b][red]{query_job._exception}"
 
-    def _format_job_cancel_message(
-        self, query_job: QueryJob, target: str | None = None
-    ) -> str:
+    def _format_job_cancel_message(self, query_job: QueryJob) -> str:
         resource_url = self._query_job_url(query_job)
         message = (
             "[b][red]Sent request to cancel job[/b][/red]. "

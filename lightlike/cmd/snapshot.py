@@ -63,12 +63,8 @@ def snapshot_create(
 @_pass.routine
 @_pass.console
 @_pass.client
-@click.pass_context
 def snapshot_restore(
-    ctx: click.Context,
-    client: "Client",
-    console: "Console",
-    routine: "CliQueryRoutines",
+    client: "Client", console: "Console", routine: "CliQueryRoutines"
 ) -> None:
     """Replace timesheet table with a snapshot clone."""
     try:
@@ -87,9 +83,11 @@ def snapshot_restore(
         )
     except ValueError as e:
         if str(e) == "A list of choices needs to be provided.":
-            ctx.fail("No snapshots exist")
+            console.print(f"[d]No snapshots exist")
+            raise utils.click_exit
         else:
-            ctx.fail(f"{e}")
+            console.print(f"[red]{e}")
+            raise utils.click_exit
 
     if _questionary.confirm(
         message="This will drop your timesheet table and replace it "
@@ -98,9 +96,8 @@ def snapshot_restore(
     ):
         routine.restore_snapshot(selection, wait=True, render=True)
         console.print(
-            "[saved]Saved[/saved]. " f"Restored snapshot [code]{selection}[/code]."
+            f"[saved]Saved[/saved]. Restored snapshot [code]{selection}[/code]."
         )
-
     else:
         console.print("[d]Did not restore snapshot.")
 
@@ -129,7 +126,6 @@ def snapshot_list(console: "Console", routine: "CliQueryRoutines") -> None:
 
     if not table.row_count:
         console.print("[d]No snapshots found")
-        return
     else:
         render.new_console_print(table)
 
@@ -154,6 +150,12 @@ def snapshot_delete(client: "Client", console: "Console") -> None:
             client.list_tables(dataset),
         )
     )
+
+    choices = list(map(_get.table_id, snapshots))
+
+    if not choices:
+        console.print(f"[d]No snapshots exist")
+        raise utils.click_exit
 
     selection = _questionary.checkbox(
         message="Select snapshots to delete $",
