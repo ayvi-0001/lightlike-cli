@@ -99,7 +99,7 @@ Example values to pass to the date parser:
 
 | format                     | examples                                                                     |
 |----------------------------|------------------------------------------------------------------------------|
-| relative  date             | "today"/"now" [d](same result)[/d], "yesterday", "monday", "2 days ago", "\-2 days" |
+| relative date              | "today"/"now" [d](same result)[/d], "yesterday", "monday", "2 days ago", "\-2 days" |
 | relative time              | "1 hour 15 min ago", "1.25 hrs ago", "\-1.25hr"                              |
 | time                       | "14:30:00", "2:30 PM"                                                        |
 | date [d](assumes this year)[/d]   | "jan1", "01/01", "01-01"                                                     |
