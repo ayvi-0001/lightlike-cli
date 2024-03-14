@@ -1362,7 +1362,7 @@ def pause(
     ctx, parent = ctx_group
 
     time_paused = AppConfig().now
-    routine.pause_timer(cache.id, time_paused)
+    routine.pause_time_entry(cache.id, time_paused)
     cache.put_active_entry_on_pause(time_paused)
     console.set_window_title(__appname_sc__)
 
