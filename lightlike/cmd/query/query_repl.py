@@ -37,6 +37,7 @@ P = ParamSpec("P")
 @click.group(
     name="query",
     invoke_without_command=True,
+    subcommand_metavar="",
     short_help="Start an interactive BQ shell.",
 )
 @_pass.console
