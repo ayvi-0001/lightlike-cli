@@ -30,12 +30,15 @@ REPL_PROMPT_KWARGS = dict(
     cursor=AppConfig().cursor_shape,
     key_bindings=PROMPT_BINDINGS,
     refresh_interval=1,
-    complete_style=CompleteStyle.COLUMN,
     complete_in_thread=True,
     complete_while_typing=True,
     validate_while_typing=True,
     enable_system_prompt=True,
     reserve_space_for_menu=14,  # int(get_console().height * 0.3),
+    complete_style=cast(
+        CompleteStyle,
+        AppConfig().get("settings", "complete_style", default="COLUMN"),
+    ),
 )
 
 

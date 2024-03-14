@@ -640,7 +640,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def pause_timer(
+    def pause_time_entry(
         self,
         id: str,
         time_paused: "datetime",
@@ -659,7 +659,7 @@ class CliQueryRoutines:
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.pause_timer(@id, @time_paused);",
+            target=f"CALL {self.dataset_main}.pause_time_entry(@id, @time_paused);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -858,7 +858,7 @@ class CliQueryRoutines:
             "edit_time_entry",
             "end_time_entry",
             "now",
-            "pause_timer",
+            "pause_time_entry",
             "report",
             "restore_snapshot",
             "resume_time_entry",

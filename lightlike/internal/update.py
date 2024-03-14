@@ -70,6 +70,7 @@ timezone = "null"
 is_billable = false
 note_required = false
 week_start = 1
+complete_style = "COLUMN"
 
 [settings.note_history]
 days = 90
