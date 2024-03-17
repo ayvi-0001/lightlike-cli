@@ -84,6 +84,7 @@ def _initial_build(__version__: str | None = None, /) -> None | NoReturn:
         console = _console.get_console()
 
         import os
+        import getpass
         import socket
         from inspect import cleandoc
 
@@ -156,7 +157,7 @@ def _initial_build(__version__: str | None = None, /) -> None | NoReturn:
             name=__appname_sc__, version=__version__, term=term
         )
 
-        user = os.getlogin()
+        user = getpass.getuser()
         console.log(
             "[repr.attrib_name]user[/repr.attrib_name]"
             "[repr.attrib_equal]=[/repr.attrib_equal]"

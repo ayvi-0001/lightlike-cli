@@ -9,6 +9,8 @@ import rtoml
 from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.styles import Style
 
+from lightlike._console import PROMPT_TOML
+
 __all__: Sequence[str] = (
     "checkbox",
     "autocomplete",
@@ -18,7 +20,7 @@ __all__: Sequence[str] = (
     "text",
 )
 
-PROMPT_CONFIG = rtoml.load(Path(f"{__file__}/../../../prompt.toml").resolve())
+PROMPT_CONFIG = rtoml.load(PROMPT_TOML)
 PROMPT_STYLE = Style.from_dict(PROMPT_CONFIG["style"])
 CURSOR_SHAPE = getattr(CursorShape, PROMPT_CONFIG["cursor-shape"])
 POINTER = "▸"
