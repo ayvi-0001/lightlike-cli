@@ -411,6 +411,13 @@ class SettingsCommand:
     no_args_is_help: bool = True
 
 
+value_arg = click.argument(
+    "value",
+    type=click.BOOL,
+    shell_complete=shell_complete.Param("value").bool,
+)
+
+
 def create_settings_fn(
     cmd: SettingsCommand, config_keys: t.Sequence[str]
 ) -> click.RichCommand:
@@ -433,7 +440,7 @@ def create_settings_fn(
         val = nth(one(kwargs.items()), 1)
 
         if val == AppConfig().get(*config_keys).get(cmd.name):
-            console.print(f"[d]{cmd.name} is already set to {val} - Nothing happened.")
+            console.print(f"[d]{cmd.name} is already set to {val}, nothing happened.")
             return
 
         with AppConfig().update() as config:
@@ -453,11 +460,7 @@ def create_settings_fn(
 
 is_billable = SettingsCommand(
     name="is_billable",
-    argument=click.argument(
-        "value",
-        type=click.BOOL,
-        shell_complete=shell_complete.Param("value").bool,
-    ),
+    argument=value_arg,
     help=_help.app_settings_is_billable,
     context_settings=dict(
         obj=dict(syntax=_help.app_settings_is_billable_syntax),
@@ -475,6 +478,14 @@ note_history = SettingsCommand(
     short_help="Days to store note history.",
     callback_threads=[(EntryAppData().update, None)],
 )
+
+
+quiet_start = SettingsCommand(
+    name="quiet_start",
+    argument=value_arg,
+    short_help="Hide logs when starting REPL.",
+)
+
 
 timezone = SettingsCommand(
     name="timezone",
@@ -531,13 +542,10 @@ editor = SettingsCommand(
     short_help="Timezone used for all date/time conversions.",
 )
 
+
 mouse_support = SettingsCommand(
     name="mouse_support",
-    argument=click.argument(
-        "value",
-        type=click.BOOL,
-        shell_complete=shell_complete.Param("value").bool,
-    ),
+    argument=value_arg,
     help=_help.app_settings_mouse_support,
     context_settings=dict(
         obj=dict(syntax=_help.app_settings_mouse_support_syntax),
@@ -547,11 +555,7 @@ mouse_support = SettingsCommand(
 
 save_txt = SettingsCommand(
     name="save_txt",
-    argument=click.argument(
-        "value",
-        type=click.BOOL,
-        shell_complete=shell_complete.Param("value").bool,
-    ),
+    argument=value_arg,
     help=_help.app_settings_save_txt,
     context_settings=dict(
         obj=dict(syntax=_help.app_settings_save_txt_syntax),
@@ -561,11 +565,7 @@ save_txt = SettingsCommand(
 
 save_query_info = SettingsCommand(
     name="save_query_info",
-    argument=click.argument(
-        "value",
-        type=click.BOOL,
-        shell_complete=shell_complete.Param("value").bool,
-    ),
+    argument=value_arg,
     help=_help.app_settings_save_query_info,
     short_help="Include query info when saving to file.",
     context_settings=dict(
@@ -577,11 +577,7 @@ save_query_info = SettingsCommand(
 
 save_svg = SettingsCommand(
     name="save_svg",
-    argument=click.argument(
-        "value",
-        type=click.BOOL,
-        shell_complete=shell_complete.Param("value").bool,
-    ),
+    argument=value_arg,
     help=_help.app_settings_save_svg,
     context_settings=dict(
         obj=dict(syntax=_help.app_settings_save_svg_syntax),
@@ -591,11 +587,7 @@ save_svg = SettingsCommand(
 
 hide_table_render = SettingsCommand(
     name="hide_table_render",
-    argument=click.argument(
-        "value",
-        type=click.BOOL,
-        shell_complete=shell_complete.Param("value").bool,
-    ),
+    argument=value_arg,
     help=_help.app_settings_hide_table_render,
     context_settings=dict(
         obj=dict(syntax=_help.app_settings_hide_table_render_syntax),
@@ -603,7 +595,7 @@ hide_table_render = SettingsCommand(
     short_help="If save_text | save_svg, enable/disable table render in console.",
 )
 
-for cmd in [is_billable, note_history, timezone, editor, week_start]:
+for cmd in [is_billable, note_history, timezone, editor, week_start, quiet_start]:
     __cmd = create_settings_fn(cmd=cmd, config_keys=["settings"])
     update_general_settings.add_command(__cmd)
 
@@ -627,11 +619,7 @@ if AppConfig().credentials_source == CredentialsSource.from_service_account_key:
     @utils._handle_keyboard_interrupt(
         callback=lambda: rprint("\n[d]Did not change settings."),
     )
-    @click.argument(
-        "value",
-        type=click.BOOL,
-        shell_complete=shell_complete.Param("value").bool,
-    )
+    @value_arg
     def stay_logged_in(value: bool) -> None:
         from lightlike.app.auth import _AuthSession
 
