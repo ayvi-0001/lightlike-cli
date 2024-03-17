@@ -477,7 +477,7 @@ def archive(
     "project",
     nargs=1,
     required=True,
-    type=shell_complete.projects.ActiveProject,
+    type=shell_complete.projects.ArchivedProject,
     metavar="TEXT",
     callback=validate.archived_project,
     shell_complete=shell_complete.projects.from_argument,
