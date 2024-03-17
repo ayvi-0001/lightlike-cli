@@ -19,6 +19,7 @@ from rich.rule import Rule
 from rich.table import Table
 
 from lightlike.__about__ import __appname_sc__
+from lightlike._console import global_console_log
 from lightlike.app import _get, render
 from lightlike.app.config import AppConfig
 from lightlike.app.routines import CliQueryRoutines
@@ -620,7 +621,7 @@ class _EntryIdListSingleton(type):
         return cls._instances[cls]
 
 
-get_console().log("Validating cache")
+global_console_log("Validating cache")
 TomlCache()._validate_toml_cache()
 
 

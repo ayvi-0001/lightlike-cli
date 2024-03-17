@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.status import Status
 from rich.table import Table
 
-from lightlike import _console
+from lightlike._console import _CONSOLE_SVG_FORMAT, CONSOLE_CONFIG, global_console_log
 
 if TYPE_CHECKING:
     from _collections_abc import dict_values
@@ -32,18 +32,18 @@ __all__: Sequence[str] = (
 def cli_info() -> None:
     from lightlike.__about__ import __appdir__, __appname_sc__, __version__
 
-    console = _console.get_console()
-    console.log(
+    console = get_console()
+    global_console_log(
         "[repr.attrib_name]__appname__[/repr.attrib_name]"
         "[repr.attrib_equal]=[/repr.attrib_equal]"
         f"[repr.attrib_value]{__appname_sc__}"
     )
-    console.log(
+    global_console_log(
         "[repr.attrib_name]__version__[/repr.attrib_name]"
         "[repr.attrib_equal]=[/repr.attrib_equal]"
         f"[repr.attrib_value]{__version__}"
     )
-    console.log(
+    global_console_log(
         "[repr.attrib_name]__appdir__[/repr.attrib_name]"
         "[repr.attrib_equal]=[/repr.attrib_equal]"
         f"[repr.attrib_value]{__appdir__.as_posix()}"
@@ -60,17 +60,17 @@ def cli_info() -> None:
     else:
         height = f"[b][red]{console.height}[/b][/red]"
 
-    console.log(
+    global_console_log(
         "[repr.attrib_name]Console[/repr.attrib_name]"
         "[repr.attrib_equal]=[/repr.attrib_equal]"
         f"<console width={width} height={height} {console._color_system!s}>"
     )
 
     if console.width < 150:
-        console.log(f"[d][red]Recommended console width </ 150")
+        global_console_log(f"[d][red]Recommended console width </ 150")
 
     if console.height < 40:
-        console.log(f"[d][red]Recommended console height </ 40")
+        global_console_log(f"[d][red]Recommended console height </ 40")
 
 
 def query_start_render(query_config: dict[str, bool]) -> None:
@@ -143,13 +143,13 @@ def new_console_print(
     print_kwargs: Mapping[str, Any] = {},
 ) -> None:
     with Console(record=True, **console_kwargs) as console:
-        console.print(*renderables, style=_console.CONSOLE_CONFIG.style, **print_kwargs)
+        console.print(*renderables, style=CONSOLE_CONFIG.style, **print_kwargs)
 
         if svg_path is not None:
             uri = svg_path.resolve().as_uri()
             path = svg_path.resolve().as_posix()
             rprint(f"Saved to [link={uri}][repr.url]{path}[/repr.url].")
-            console.save_svg(path, code_format=_console._CONSOLE_SVG_FORMAT)
+            console.save_svg(path, code_format=_CONSOLE_SVG_FORMAT)
 
         if text_path is not None:
             uri = text_path.resolve().as_uri()

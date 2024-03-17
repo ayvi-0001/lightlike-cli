@@ -20,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os
+from pathlib import Path
 from typing import TYPE_CHECKING, NoReturn, Sequence
 
 import fasteners  # type: ignore[import-untyped, import-not-found]
@@ -69,7 +71,7 @@ def build_cli() -> "AliasedRichGroup":
     @click.pass_context
     def cli(ctx: click.Context) -> None:
         if ctx.invoked_subcommand is None:
-            _console.get_console().log("Starting REPL")
+            _console.global_console_log("Starting REPL")
             ctx.invoke(repl)
             get_client().close()
             utils._log().debug("Closed Bigquery client HTTPS connection.")
@@ -127,7 +129,7 @@ def lightlike(lock: fasteners.InterProcessLock = LOCK) -> None:
             cli.add_command(command)
 
         with lock:
-            cli(prog_name="")  # Hiding 'python -m lightlike' in help and usage.
+            cli(prog_name="lightlike")
 
     except Exception:
         with _console.get_console() as console:

@@ -65,12 +65,13 @@ version = ""
 term = ""
 
 [settings]
-editor = "code"
+editor = ""
 timezone = "null"
 is_billable = false
 note_required = false
 week_start = 1
 complete_style = "COLUMN"
+quiet_start = false
 
 [settings.note_history]
 days = 90

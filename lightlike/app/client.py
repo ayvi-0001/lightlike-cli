@@ -10,6 +10,7 @@ from rich import print as rprint
 from rich.padding import Padding
 from rich.panel import Panel
 
+from lightlike._console import global_console_log
 from lightlike.app import _get
 from lightlike.app.auth import _AuthSession
 from lightlike.app.config import AppConfig
@@ -31,7 +32,7 @@ __all__: Sequence[str] = (
     "_provision_bigquery_resources",
 )
 
-get_console().log("Authorizing BigQuery Client")
+global_console_log("Authorizing BigQuery Client")
 
 
 P = ParamSpec("P")
@@ -66,7 +67,7 @@ def authorize_client() -> Client | NoReturn:
                 client = _authorize_from_environment()
 
             case CredentialsSource.not_set:
-                get_console().log("[log.error]Client configuration not found")
+                global_console_log("[log.error]Client configuration not found")
 
                 with AppConfig().update() as config:
                     config["client"].update(
@@ -127,7 +128,7 @@ def _select_credential_source() -> str | None | NoReturn:
         source = _questionary.select(**select_kwargs)
 
         if source == current_setting:
-            rprint("[d]Selected current source. Nothing happened.")
+            rprint("[d]Selected current source, nothing happened.")
             return None
         else:
             return source
@@ -158,7 +159,7 @@ def service_account_key_flow() -> tuple[bytearray, bytes]:
     salt = AppConfig().get("user", "salt")
 
     if not (encrypted_key and salt):
-        get_console().log("Initializing new service-account config")
+        global_console_log("Initializing new service-account config")
 
         auth = _AuthSession()
 
@@ -202,7 +203,7 @@ def service_account_key_flow() -> tuple[bytearray, bytes]:
 
 
 def _authorize_from_service_account_key() -> Client:
-    get_console().log("Getting credentials from service-account-key")
+    global_console_log("Getting credentials from service-account-key")
 
     encrypted_key, salt = service_account_key_flow()
 
@@ -216,13 +217,13 @@ def _authorize_from_service_account_key() -> Client:
             active_project=client.project,
         )
 
-    get_console().log("Client authenticated")
+    global_console_log("Client authenticated")
     return client
 
 
 def _authorize_from_environment() -> Client:
     console = get_console()
-    console.log("Getting credentials from environment")
+    global_console_log("Getting credentials from environment")
     active_project: str = AppConfig().get("client", "active_project")
 
     if active_project != "null" and active_project is not None:
@@ -233,21 +234,21 @@ def _authorize_from_environment() -> Client:
         with AppConfig().update() as config:
             config["client"].update(active_project=active_project)
 
-        console.log("Client authenticated")
-        console.log(f"Client loaded with project: [code]{active_project}[/code]")
+        global_console_log("Client authenticated")
+        global_console_log(f"Client loaded with project: [code]{active_project}[/code]")
         return client
 
     else:
         credentials, project_id = google.auth.default()
 
-        console.log(f"Default project: [code]{project_id}[/code]")
+        global_console_log(f"Default project: [code]{project_id}[/code]")
 
         if not _questionary.confirm(
             message=f"Continue with project: {project_id}?", auto_enter=False
         ):
             project_id = _select_project(Client(credentials=credentials))
 
-        console.log(f"Using project: [code]{project_id}[/code]")
+        global_console_log(f"Using project: [code]{project_id}[/code]")
 
         credentials = credentials.with_quota_project(project_id)
 
@@ -259,7 +260,7 @@ def _authorize_from_environment() -> Client:
                 active_project=client.project,
             )
 
-        console.log("Client authenticated")
+        global_console_log("Client authenticated")
         return client
 
 

@@ -52,7 +52,7 @@ def rmtree(appdata: Path = __appdir__) -> NoReturn:
 
 def validate(__version__: str, /) -> None | NoReturn:
     console = _console.get_console()
-    console.log("Verifying app directory")
+    _console.global_console_log("Verifying app directory")
 
     if not CONFIG.exists():
         console.log("[log.error]App config not found")
@@ -60,7 +60,7 @@ def validate(__version__: str, /) -> None | NoReturn:
         return _initial_build()
 
     elif CONFIG.exists():
-        console.log("Checking for updates")
+        _console.global_console_log("Checking for updates")
         with suppress(Exception):
             from lightlike.__about__ import __latest_release__, __repo__
             from lightlike.internal.update import compare_version
@@ -70,7 +70,7 @@ def validate(__version__: str, /) -> None | NoReturn:
         from lightlike.internal.update import _update_config, update_cli
 
         if rtoml.load(CONFIG)["app"]["version"] != __version__:
-            console.log("Updating version")
+            console.log(f"Updating version: {__version__}")
             update_cli(CONFIG, __version__)
 
         _update_config(CONFIG, __version__)

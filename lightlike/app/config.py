@@ -133,6 +133,7 @@ class AppConfig(metaclass=_AppConfigSingleton):
         editor = settings["editor"]
         timezone = settings["timezone"]
         is_billable = settings["is_billable"]
+        quiet_start = settings["quiet_start"]
         note_history = settings["note_history"]
 
         match settings["week_start"]:
@@ -145,6 +146,7 @@ class AppConfig(metaclass=_AppConfigSingleton):
             "editor": editor,
             "timezone": timezone,
             "is_billable": is_billable,
+            "quiet_start": quiet_start,
             "week_start": week_start,
             "note_history": note_history,
         }
