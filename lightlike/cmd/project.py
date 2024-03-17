@@ -137,9 +137,9 @@ def list_projects(routine: "CliQueryRoutines", all_: bool) -> None:
 @click.argument(
     "project",
     nargs=1,
-    type=click.STRING,
+    type=shell_complete.projects.ActiveProject,
+    metavar="TEXT",
     required=True,
-    metavar="ACTIVE_PROJECT",
     callback=validate.active_project,
     shell_complete=shell_complete.projects.from_argument,
 )
@@ -181,7 +181,7 @@ def update_name(
     renamed_project = PromptFactory.prompt_project(new=True)
 
     if project == renamed_project:
-        console.print("[d]Current name. Nothing changed.")
+        console.print("[d]Current name, nothing happened.")
         return
 
     if not (confirm or yes):
@@ -259,7 +259,7 @@ def update_description(
     )
 
     if current_description == description or not description:
-        console.print("[d]Current description. Nothing changed")
+        console.print("[d]Current description, nothing happened.")
         return
 
     routine.update_project_description(project, description, wait=True, render=True)
@@ -286,9 +286,9 @@ def update_description(
 @click.argument(
     "projects",
     nargs=-1,
-    type=click.STRING,
+    type=shell_complete.projects.ActiveProject,
+    metavar="TEXT",
     required=True,
-    metavar="ACTIVE_PROJECT",
     callback=validate.active_project_list,
     shell_complete=shell_complete.projects.from_argument,
 )
@@ -380,9 +380,9 @@ def delete(
 @click.argument(
     "project",
     nargs=1,
-    type=click.STRING,
+    type=shell_complete.projects.ActiveProject,
+    metavar="TEXT",
     required=True,
-    metavar="ACTIVE_PROJECT",
     callback=validate.active_project,
     shell_complete=shell_complete.projects.from_argument,
 )
@@ -476,9 +476,9 @@ def archive(
 @click.argument(
     "project",
     nargs=1,
-    type=click.STRING,
     required=True,
-    metavar="ARCHIVED_PROJECT",
+    type=shell_complete.projects.ActiveProject,
+    metavar="TEXT",
     callback=validate.archived_project,
     shell_complete=shell_complete.projects.from_argument,
 )

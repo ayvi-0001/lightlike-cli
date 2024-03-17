@@ -57,13 +57,13 @@ def timer(debug: bool) -> None: ...
 @click.option(
     "-p",
     "--project",
-    type=click.STRING,
+    type=shell_complete.projects.ActiveProject,
+    metavar="TEXT",
     show_default=True,
     is_eager=True,
     required=True,
     expose_value=True,
     default="no-project",
-    metavar="ACTIVE_PROJECT",
     callback=validate.active_project,
     help="Project to log entry under.",
     shell_complete=shell_complete.projects.from_option,
@@ -652,7 +652,7 @@ def _edit_entry_callback(
                         message=(
                             "Invalid value for args [[args]START[/args]] | "
                             "[[args]END[/args]]: New duration cannot be negative. "
-                            f"Existing paused hours = [repr.number]{time_entry.paused_hrs}[/repr.number]"
+                            f"Existing paused hours = {time_entry.paused_hrs}"
                         ),
                         ctx=ctx,
                     )
@@ -665,14 +665,9 @@ def _edit_entry_callback(
                 utils.print_updated_val("end", new_end.time(), prefix=None)
                 console.print("Updating duration.")
                 if time_entry.paused_hrs:
-                    console.print(
-                        "Subtracing paused hours "
-                        f"[repr.number]{time_entry.paused_hrs}[/repr.number]."
-                    )
+                    console.print(f"Subtracting paused hours {time_entry.paused_hrs}.")
                 utils.print_updated_val(
-                    "duration",
-                    f"[repr.number]{duration}[/repr.number] ([repr.number]{dhour}[/repr.number])",
-                    prefix=None,
+                    "duration", f"{duration} ({dhour})", prefix=None
                 )
 
                 set_clause = (
@@ -716,7 +711,7 @@ def _edit_entry_callback(
                         message=(
                             "Invalid value for args [[args]START[/args]] | "
                             "[[args]END[/args]]: New duration cannot be negative. "
-                            f"Existing paused hours = [repr.number]{time_entry.paused_hrs}[/repr.number]"
+                            f"Existing paused hours = {time_entry.paused_hrs}"
                         ),
                         ctx=ctx,
                     )
@@ -728,14 +723,9 @@ def _edit_entry_callback(
                 utils.print_updated_val("start", new_start.time(), prefix=None)
                 console.print("Updating duration with new start.")
                 if time_entry.paused_hrs:
-                    console.print(
-                        "Subtracing paused hours "
-                        f"[repr.number]{time_entry.paused_hrs}[/repr.number]."
-                    )
+                    console.print(f"Subtracting paused hours {time_entry.paused_hrs}.")
                 utils.print_updated_val(
-                    "duration",
-                    f"[repr.number]{duration}[/repr.number] ([repr.number]{dhour}[/repr.number])",
-                    prefix=None,
+                    "duration", f"{duration} ({dhour})", prefix=None
                 )
 
                 set_clause = (
@@ -795,7 +785,7 @@ def _edit_entry_callback(
                         message=(
                             "Invalid value for args [[args]START[/args]] | "
                             "[[args]END[/args]]: New duration cannot be negative. "
-                            f"Existing paused hours = [repr.number]{time_entry.paused_hrs}[/repr.number]"
+                            f"Existing paused hours = {time_entry.paused_hrs}"
                         ),
                         ctx=ctx,
                     )
@@ -807,14 +797,9 @@ def _edit_entry_callback(
                 utils.print_updated_val("end", new_end.time(), prefix=None)
                 console.print("Updating duration with new end.")
                 if time_entry.paused_hrs:
-                    console.print(
-                        "Subtracing paused hours "
-                        f"[repr.number]{time_entry.paused_hrs}[/repr.number]."
-                    )
+                    console.print(f"Subtracting paused hours {time_entry.paused_hrs}.")
                 utils.print_updated_val(
-                    "duration",
-                    f"[repr.number]{duration}[/repr.number] ([repr.number]{dhour}[/repr.number])",
-                    prefix=None,
+                    "duration", f"{duration} ({dhour})", prefix=None
                 )
 
                 set_clause = (
@@ -856,7 +841,7 @@ def _edit_entry_callback(
                         message=(
                             "Invalid value for args [[args]START[/args]] | "
                             "[[args]END[/args]]: New duration cannot be negative. "
-                            f"Existing paused hours = [repr.number]{time_entry.paused_hrs}[/repr.number]"
+                            f"Existing paused hours = {time_entry.paused_hrs}"
                         ),
                         ctx=ctx,
                     )
@@ -867,14 +852,9 @@ def _edit_entry_callback(
                 utils.print_updated_val("start", new_start.time(), prefix=None)
                 console.print("Updating duration with new start.")
                 if time_entry.paused_hrs:
-                    console.print(
-                        "Subtracing paused hours "
-                        f"[repr.number]{time_entry.paused_hrs}[/repr.number]."
-                    )
+                    console.print(f"Subtracting paused hours {time_entry.paused_hrs}.")
                 utils.print_updated_val(
-                    "duration",
-                    f"[repr.number]{duration}[/repr.number] ([repr.number]{dhour}[/repr.number])",
-                    prefix=None,
+                    "duration", f"{duration} ({dhour})", prefix=None
                 )
 
                 set_clause = (
@@ -925,7 +905,7 @@ def _edit_entry_callback(
                         message=(
                             "Invalid value for args [[args]START[/args]] | "
                             "[[args]END[/args]]: New duration cannot be negative. "
-                            f"Existing paused hours = [repr.number]{time_entry.paused_hrs}[/repr.number]"
+                            f"Existing paused hours = {time_entry.paused_hrs}"
                         ),
                         ctx=ctx,
                     )
@@ -936,14 +916,9 @@ def _edit_entry_callback(
                 utils.print_updated_val("end", new_end.time(), prefix=None)
                 console.print("Updating duration with new end.")
                 if time_entry.paused_hrs:
-                    console.print(
-                        "Subtracing paused hours "
-                        f"[repr.number]{time_entry.paused_hrs}[/repr.number]."
-                    )
+                    console.print(f"Subtracting paused hours {time_entry.paused_hrs}.")
                 utils.print_updated_val(
-                    "duration",
-                    f"[repr.number]{duration}[/repr.number] ([repr.number]{dhour}[/repr.number])",
-                    prefix=None,
+                    "duration", f"{duration} ({dhour})", prefix=None
                 )
 
                 set_clause = (
@@ -983,7 +958,7 @@ def _edit_entry_callback(
                         message=(
                             "Invalid value for args [[args]START[/args]] | "
                             "[[args]END[/args]]: New duration cannot be negative. "
-                            f"Existing paused hours = [repr.number]{time_entry.paused_hrs}[/repr.number]"
+                            f"Existing paused hours = {time_entry.paused_hrs}"
                         ),
                         ctx=ctx,
                     )
@@ -995,14 +970,9 @@ def _edit_entry_callback(
                 utils.print_updated_val("end", new_end.time(), prefix=None)
                 console.print("Updating duration.")
                 if time_entry.paused_hrs:
-                    console.print(
-                        "Subtracing paused hours "
-                        f"[repr.number]{time_entry.paused_hrs}[/repr.number]."
-                    )
+                    console.print(f"Subtracting paused hours {time_entry.paused_hrs}.")
                 utils.print_updated_val(
-                    "duration",
-                    f"[repr.number]{duration}[/repr.number] ([repr.number]{dhour}[/repr.number])",
-                    prefix=None,
+                    "duration", f"{duration} ({dhour})", prefix=None
                 )
 
                 set_clause = (
@@ -1123,19 +1093,22 @@ def edit_group() -> None:
 @click.option(
     "-p",
     "--project",
-    type=click.STRING,
-    is_eager=True,
-    expose_value=True,
+    type=shell_complete.projects.ActiveProject,
+    metavar="TEXT",
     show_default=True,
-    metavar="ACTIVE_PROJECT",
-    help="Prompts for project if not provided.",
+    is_eager=True,
+    required=True,
+    expose_value=True,
+    default="no-project",
+    callback=validate.active_project,
     shell_complete=shell_complete.projects.from_option,
 )
 @click.option(
     "-s",
     "--start",
     type=click.STRING,
-    help="Prompts for start if not provided.",
+    default="-7.5m",
+    show_default=True,
     shell_complete=shell_complete.time,
 )
 @click.option(
@@ -1143,7 +1116,7 @@ def edit_group() -> None:
     "--end",
     type=click.STRING,
     default="now",
-    help='Uses "now" if not provided.',
+    show_default=True,
     shell_complete=shell_complete.time,
 )
 @click.option(
@@ -1151,15 +1124,18 @@ def edit_group() -> None:
     "--note",
     type=click.STRING,
     show_default=True,
-    help="Add a new/existing note.",
     shell_complete=shell_complete.notes.from_param,
 )
 @click.option(
     "-b",
     "--billable",
+    show_default=True,
     type=click.BOOL,
-    help="Set time entries billable flag.",
+    is_eager=True,
+    required=True,
+    expose_value=True,
     shell_complete=shell_complete.Param("billable").bool,
+    default=lambda: AppConfig().get("settings", "is_billable"),
 )
 @_pass.routine
 @_pass.console
@@ -1263,8 +1239,18 @@ def add(
         obj=dict(syntax=_help.timer_get_syntax),
     ),
 )
-@click.argument("time_entry_id", type=click.STRING, required=True)
-@click.option("-j", "--json", "json_", is_flag=True, help="Get row as json.")
+@click.argument(
+    "time_entry_id",
+    type=click.STRING,
+    required=True,
+)
+@click.option(
+    "-j",
+    "--json",
+    "json_",
+    is_flag=True,
+    help="Get row as json.",
+)
 @_pass.routine
 @_pass.id_list
 def get(
@@ -1278,8 +1264,7 @@ def get(
     row_iterator = query_job.result()
 
     if json_:
-        row = one(row_iterator)
-        data = {k: v for k, v in row.items()}
+        data = {k: v for k, v in one(row_iterator).items()}
         print_json(data=data, default=str, indent=4)
     else:
         table = render.row_iter_to_rich_table(row_iterator=row_iterator)
@@ -1331,7 +1316,13 @@ def end(ctx: click.Context) -> None:
         obj=dict(syntax=_help.timer_show_syntax),
     ),
 )
-@click.option("-j", "--json", "json_", is_flag=True, help="Show cache as json.")
+@click.option(
+    "-j",
+    "--json",
+    "json_",
+    is_flag=True,
+    help="Show cache as json.",
+)
 @_pass.cache
 def show(cache: "TomlCache", json_: bool) -> None:
     if json_:
@@ -1479,12 +1470,12 @@ def switch(cache: "TomlCache", console: "Console") -> None:
 @click.option(
     "-p",
     "--project",
-    type=click.STRING,
+    type=shell_complete.projects.ActiveProject,
+    metavar="TEXT",
     is_eager=True,
     expose_value=True,
     show_default=True,
-    metavar="ACTIVE_PROJECT",
-    help="Project to log entry under.",
+    help="Update entry project.",
     shell_complete=shell_complete.projects.from_option,
 )
 @click.option(
@@ -1492,27 +1483,21 @@ def switch(cache: "TomlCache", console: "Console") -> None:
     "--note",
     type=click.STRING,
     show_default=True,
-    is_eager=True,
-    expose_value=True,
-    help="Write a new note.",
-    shell_complete=shell_complete.notes.from_cache,
+    help="Update entry note.",
+    shell_complete=shell_complete.notes.from_param,
 )
 @click.option(
     "-s",
     "--start_time",
     type=click.STRING,
-    is_eager=True,
-    expose_value=True,
-    help="Change the start.",
+    help="Update entry start-time.",
     shell_complete=shell_complete.cached_timer_start,
 )
 @click.option(
     "-b",
     "--billable",
     type=click.BOOL,
-    is_eager=True,
-    expose_value=True,
-    help="Update billable flag.",
+    help="Update entry billable flag.",
     shell_complete=shell_complete.Param("billable").bool,
 )
 @_pass.routine
@@ -1620,9 +1605,9 @@ def notes() -> None: ...
 @click.argument(
     "project",
     nargs=1,
-    type=click.STRING,
+    type=shell_complete.projects.ActiveProject,
+    metavar="TEXT",
     required=True,
-    metavar="ACTIVE_PROJECT",
     callback=validate.active_project,
     shell_complete=shell_complete.projects.from_argument,
 )
@@ -1656,7 +1641,7 @@ def update_notes(
         return
 
     if not notes_to_edit:
-        console.print(f"[d]No notes selected. Nothing happened.")
+        console.print(f"[d]No notes selected, nothing happened.")
         return
 
     notes_to_replace = "\n".join(

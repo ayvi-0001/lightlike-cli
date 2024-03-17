@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar, Iterator, Literal, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, Iterator, Literal, NewType, Sequence
 
 import rtoml
 from click.shell_completion import CompletionItem
@@ -22,7 +22,13 @@ __all__: Sequence[str] = (
     "from_argument",
     "from_option",
     "from_chained_cmd",
+    "ActiveProject",
+    "ArchivedProject",
 )
+
+
+ActiveProject = NewType("ActiveProject", str)
+ArchivedProject = NewType("ArchivedProject", str)
 
 
 class Projects(Completer):
@@ -124,20 +130,24 @@ def from_option(
     ctx: "click.Context", param: "click.Parameter", incomplete: str
 ) -> list[CompletionItem] | None:
     assert param.param_type_name == "option"
-    assert param.metavar
 
-    project_type = "ACTIVE" if "ACTIVE" in param.metavar else "ARCHIVED"
+    if param.type.name == "ActiveProject":
+        project_type = "ACTIVE"
+    else:
+        project_type = "ARCHIVED"
+
     completer = Projects(list_=project_type)
 
     if not completer.completion_items:
         _clear_and_return(f"{completer.list_} projects list is empty")
         return []
 
-    items = [
-        item
-        for item in completer.completion_items
-        if _match_str(incomplete, item.value)
-    ]
+    items = list(
+        filter(
+            lambda c: _match_str(incomplete, c.value),
+            completer.completion_items,
+        )
+    )
 
     return sorted(items, key=lambda c: getattr(c, "value", ""))
 
