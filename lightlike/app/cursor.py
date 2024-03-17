@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from decimal import Decimal
 from pathlib import Path
 from typing import Sequence, cast
 
@@ -190,5 +189,5 @@ def _extend_git_branch(cwd: Path, cursor: list[tuple[str, str]]) -> None:
 def _extend_cursor_shape(
     cursor: list[tuple[str, str]], message: str | None = None
 ) -> None:
-    ext = f"\n{message or ''}" f"{'$ ' if not message else ' $ '}"
+    ext = f"\n{message or ''}{'$ ' if not message else ' $ '}"
     cursor.extend([("class:cursor", ext)])

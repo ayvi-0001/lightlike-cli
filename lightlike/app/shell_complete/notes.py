@@ -90,6 +90,9 @@ def from_param(
                 for note in notes
             ]
         )
+
+    if not completions:
+        return from_cache(ctx, param, incomplete)
     return completions
 
 
@@ -126,7 +129,7 @@ def from_chained_cmd(
     project_location = first(document.find_all("project"), default=None)
 
     if project_location and (
-        project := nth(document.text[project_location:].split(" "), 1)
+        project := first(document.text[project_location:].split(" "))
     ):
         notes = filter(
             lambda n: _match_str(incomplete, n, strip_quotes=True),

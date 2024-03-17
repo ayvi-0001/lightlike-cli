@@ -17,13 +17,11 @@ __all__: Sequence[str] = ("TimeCompleter", "date", "cached_timer_start")
 def time(
     ctx: "click.Context", param: "click.Parameter", incomplete: str
 ) -> list[CompletionItem]:
-    if any(
-        [
-            ctx.params.get(str(param.name)),
-            not incomplete,
-            not ctx.resilient_parsing,
-        ]
-    ):
+    if not ctx.resilient_parsing:
+        return []
+    elif ctx.params.get("%s" % param.name) is None:
+        return []
+    elif not incomplete and not param.default:
         return []
     elif time_complete := _time_autocomplete(incomplete):
         return time_complete
