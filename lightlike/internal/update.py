@@ -33,7 +33,7 @@ def get_version(__latest_release__) -> str:
 
 
 def compare_version(__version__: str, __repo__: str, __latest_release__: str) -> str:
-    pkg_expr: Final[Pattern[str]] = re.compile(r"v(\d).(\d)+.(\d)+", re.I)
+    pkg_expr: Final[Pattern[str]] = re.compile(r"v(\d+).(\d+).(\d+)", re.I)
 
     latest_release = get_version(__latest_release__)
 

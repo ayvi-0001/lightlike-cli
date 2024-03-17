@@ -6,7 +6,6 @@ from contextlib import contextmanager
 from datetime import datetime
 from functools import reduce
 from operator import getitem
-from pathlib import Path
 
 import fasteners  # type: ignore[import-untyped, import-not-found]
 import rtoml
@@ -14,6 +13,7 @@ from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.styles import Style
 from pytz import timezone
 
+from lightlike._console import PROMPT_TOML
 from lightlike.internal import appdir, utils
 from lightlike.internal.enums import CredentialsSource
 
@@ -49,15 +49,13 @@ class AppConfig(metaclass=_AppConfigSingleton):
         "history",
         "username",
         "hostname",
-        "_path_to_prompt_config",
         "_prompt_config",
     )
     _rw_lock: t.ClassVar["ReaderWriterLock"] = fasteners.ReaderWriterLock()
 
     def __init__(self) -> None:
         self.path = appdir.CONFIG
-        self._path_to_prompt_config = Path(f"{__file__}/../../prompt.toml").resolve()
-        self._prompt_config = rtoml.load(self._path_to_prompt_config)
+        self._prompt_config = rtoml.load(PROMPT_TOML)
         self.prompt_style = Style.from_dict(self._prompt_config["style"])
         self.cursor_shape = getattr(CursorShape, self._prompt_config["cursor-shape"])
         self.history = appdir.REPL_FILE_HISTORY
