@@ -90,10 +90,13 @@ def from_argument(
     ctx: "click.Context", param: "click.Parameter", incomplete: str
 ) -> list[CompletionItem] | None:
     assert param.param_type_name == "argument"
-    assert param.metavar
     assert ctx.parent
 
-    project_type = "ACTIVE" if "ACTIVE" in param.metavar else "ARCHIVED"
+    if param.type.name == "ActiveProject":
+        project_type = "ACTIVE"
+    else:
+        project_type = "ARCHIVED"
+
     completer = Projects(list_=project_type)
     completion_items = completer.completion_items
 
@@ -167,5 +170,5 @@ def from_chained_cmd(
 
 def _clear_and_return(message: str) -> None:
     with patch_stdout(raw=True):
-        rprint(f"[d]{message}.\n")
+        rprint(f"[d]{message}.")
         get_app().current_buffer.text = ""
