@@ -6,6 +6,7 @@ import rich_click as click
 from more_itertools import nth, one
 from pytz import all_timezones
 from rich import print as rprint
+from rich.text import Text
 
 from lightlike.app import _pass, render, shell_complete, threads, validate
 from lightlike.app.cache import EntryAppData, TomlCache
@@ -14,7 +15,7 @@ from lightlike.app.config import AppConfig
 from lightlike.app.group import AliasedRichGroup, _RichCommand
 from lightlike.app.prompt import PromptFactory
 from lightlike.cmd import _help
-from lightlike.internal import utils
+from lightlike.internal import markup, utils
 from lightlike.internal.enums import CredentialsSource
 from lightlike.lib.third_party import click_repl
 
@@ -95,14 +96,16 @@ def app_launch_config(console: "Console") -> None:
         extension=".toml",
         require_save=False,
     )
-    console.print(
-        "[b][green]Launching[/b][/green] [repr.url][link={uri}]"
-        "{path}[/link][/repr.url]{editor}".format(
-            uri=path.as_uri(),
-            path=path.as_posix(),
-            editor=f" through editor [code]{editor}[/code]." if editor else ".",
-        )
+
+    message = Text.assemble(
+        markup.bg("Launching"), " ", markup.link(path.as_posix(), path.as_uri())
     )
+    if editor:
+        message.append(Text.assemble(f" through editor ", markup.code(editor), "."))
+    else:
+        message.append(".")
+
+    console.print(message)
 
 
 @app_dev.command(
@@ -147,23 +150,21 @@ def app_dir(console: "Console", launch: t.Literal["start", "editor"]) -> None:
     match launch:
         case "start":
             click.launch(path)
-            console.print(
-                "[b][green]Launching[/b][/green] [repr.url][link={uri}]"
-                "{path}[/link][/repr.url].".format(uri=uri, path=path)
+            message = Text.assemble(
+                markup.bg("Launching"), " ", markup.link(path, uri), "."
             )
+            console.print(message)
         case "editor":
             editor = AppConfig().get("settings", "editor", default=None) or None
             click.edit(editor=editor, filename=path, require_save=False)
-            console.print(
-                "[b][green]Launching[/b][/green] [repr.url][link={uri}]"
-                "{path}[/link][/repr.url]{editor}".format(
-                    uri=uri,
-                    path=path,
-                    editor=(
-                        f" through editor [code]{editor}[/code]." if editor else "."
-                    ),
+            message = Text.assemble(markup.bg("Launching"), " ", markup.link(path, uri))
+            if editor:
+                message.append(
+                    Text.assemble(f" through editor ", markup.code(editor), ".")
                 )
-            )
+            else:
+                message.append(".")
+            console.print(message)
 
 
 @app_dev.command(
@@ -245,7 +246,7 @@ def app_test_date_parse(console: "Console", date: str) -> None:
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Canceled Build."),
+    callback=lambda: rprint(markup.dim("Canceled Build.")),
 )
 def run_bq() -> None:
     from lightlike.internal.bq_resources import build
@@ -307,14 +308,14 @@ def app_sync_cache(cache: TomlCache) -> dict[str, TomlCache]:
 def _app_sync_callback(console: "Console", *args: P.args, **kwargs: P.kwargs) -> None:
     subcommands = t.cast(t.Sequence[dict[str, TomlCache | EntryAppData]], args[0])
     if subcommands:
-        with console.status("[status.message] Syncing cache") as status:
+        with console.status(markup.status_message("Syncing cache")) as status:
             for cmd in subcommands:
                 k, v = one(cmd.items())
                 if "appdata" in k and isinstance(v, EntryAppData):
-                    status.update("[status.message] Syncing appdata")
+                    status.update(markup.status_message("Syncing appdata"))
                     v.update()
                 elif "cache" in k and isinstance(v, TomlCache):
-                    status.update("[status.message] Syncing cache")
+                    status.update(markup.status_message("Syncing cache"))
                     v._sync_cache()
 
 
@@ -501,16 +502,12 @@ timezone = SettingsCommand(
     ),
     short_help="Timezone used for all date/time conversions.",
     callback_fn=lambda l: rprint(
-        "".join(
-            [
-                "[b][u]**Restart for settings to take effect**[/b][/u]]\n",
-                "You will also need to run ",
-                "[code.command]app[/code.command]:",
-                "[code.command]dev[/code.command]:",
-                "[code.command]run-bq[/code.command] ",
-                "to rebuild procedures using this new timezone.",
-            ]
-        )
+        Text.assemble(
+            markup.bold_underline("**Restart for settings to take effect**"),
+            "\nYou will also need to run ",
+            markup.code_command_sequence("app:dev:run-bq", ":"),
+            "to rebuild procedures using this new timezone.",
+        ).markup,
     ),
 )
 
@@ -518,12 +515,8 @@ week_start = SettingsCommand(
     name="week_start",
     argument=click.argument(
         "dayofweek",
-        type=click.STRING,
+        type=click.Choice(["Sunday", "Monday"]),
         callback=validate.callbacks.weekstart,
-        shell_complete=shell_complete.Param(
-            "dayofweek",
-            ["Sunday", "Monday"],
-        ).string,
     ),
     help=_help.app_settings_week_start,
     context_settings=dict(
@@ -617,7 +610,7 @@ if AppConfig().credentials_source == CredentialsSource.from_service_account_key:
         short_help="Save login password.",
     )
     @utils._handle_keyboard_interrupt(
-        callback=lambda: rprint("\n[d]Did not change settings."),
+        callback=lambda: rprint(markup.dim("\nDid not change settings.")),
     )
     @value_arg
     def stay_logged_in(value: bool) -> None:

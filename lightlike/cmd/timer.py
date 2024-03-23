@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from hashlib import sha1
 from operator import truth
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any, ParamSpec, Sequence, cast
 
 import rich_click as click
 from google.api_core.exceptions import BadRequest
@@ -15,6 +15,7 @@ from rich import print as rprint
 from rich import print_json
 from rich.console import Console
 from rich.table import Table
+from rich.text import Text
 
 from lightlike.__about__ import __appname_sc__
 from lightlike.app import _get, _pass, render, shell_complete, threads, validate
@@ -22,7 +23,8 @@ from lightlike.app.config import AppConfig
 from lightlike.app.group import AliasedRichGroup, _RichCommand
 from lightlike.app.prompt import PromptFactory
 from lightlike.cmd import _help, dates
-from lightlike.internal import utils
+from lightlike.cmd.dates import _parse_date_range_flags
+from lightlike.internal import markup, utils
 from lightlike.lib.third_party import _questionary
 
 if TYPE_CHECKING:
@@ -32,6 +34,9 @@ if TYPE_CHECKING:
     from lightlike.app.routines import CliQueryRoutines
 
 __all__: Sequence[str] = ("timers",)
+
+
+P = ParamSpec("P")
 
 
 @click.group(
@@ -52,7 +57,7 @@ def timer(debug: bool) -> None: ...
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Did not start new time entry."),
+    callback=lambda: rprint(markup.dim("Did not start new time entry.")),
 )
 @click.option(
     "-p",
@@ -161,7 +166,7 @@ def list_() -> None: ...
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Canceled query."),
+    callback=lambda: rprint(markup.dim("Canceled query.")),
 )
 @click.argument(
     "date",
@@ -180,7 +185,7 @@ def list_() -> None: ...
     nargs=-1,
     type=click.STRING,
     required=False,
-    metavar="WHERE_CLAUSE",
+    metavar="[WHERE_CLAUSE]",
 )
 @_pass.console
 @_pass.routine
@@ -207,7 +212,12 @@ def list_date(
     )
 
     if not table.row_count:
-        console.print("[d]No entries found on %s." % date_local.date())
+        console.print(
+            Text.assemble(
+                markup.dim(f"No entries found on "),
+                markup.iso8601_date(date_local.date()), ".",  # fmt: skip
+            )
+        )
         return
 
     render.new_console_print(table)
@@ -225,7 +235,7 @@ def list_date(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Canceled query."),
+    callback=lambda: rprint(markup.dim("Canceled query.")),
 )
 @click.argument(
     "start",
@@ -259,7 +269,7 @@ def list_date(
     nargs=-1,
     type=click.STRING,
     required=False,
-    metavar="WHERE_CLAUSE",
+    metavar="[WHERE_CLAUSE]",
 )
 @_pass.console
 @_pass.routine
@@ -278,7 +288,7 @@ def list_range(
         else dates._parse_date_range_flags(start, end)
     )
 
-    str_range = "%s -> %s" % (date_range.start.date(), date_range.end.date())
+    str_range = f"{date_range.start.date()!s} -> {date_range.end.date()!s}"
 
     _where_clause = shell_complete.where._parse_click_options(
         flag=where, args=where_clause, console=console, routine=routine
@@ -295,7 +305,12 @@ def list_range(
     )
 
     if not table.row_count:
-        console.print("[d]No entries found between %s." % str_range)
+        console.print(
+            Text.assemble(
+                markup.dim(f"No entries between "),
+                markup.iso8601_date(str_range), ".",  # fmt: skip
+            )
+        )
         return
 
     render.new_console_print(table)
@@ -332,9 +347,13 @@ def delete(
     routine: "CliQueryRoutines",
     time_entry_ids: Sequence[str],
 ) -> None:
-    with console.status("[status.message] Searching ID's") as status:
+    with console.status(markup.status_message("Searching ID's")) as status:
         for _id in time_entry_ids:
-            status.update(f"[status.message] Matching entry ID: [code]{_id}[/code].")
+            status.update(
+                Text.assemble(
+                    markup.status_message("Matching entry ID: "), markup.code(_id)
+                )
+            )
             _id = id_list.match_id(_id)
 
             try:
@@ -343,32 +362,36 @@ def delete(
                     wait=True,
                     render=True,
                     status=status,
-                    status_renderable="Deleting entry",
+                    status_renderable=markup.status_message("Deleting entry"),
                 )
 
                 if query_job.error_result:
                     raise query_job._exception
 
                 if cache.id == _id:
-                    console.print("[bright_yellow]Active time entry found.")
+                    console.print(markup.scope_key("Active time entry found."))
                     cache._clear_active()
                     console.set_window_title(__appname_sc__)
                 elif cache._if_any_entries(cache.running_entries, [_id]):
-                    console.print("[bright_yellow]Running time entry found.")
+                    console.print(markup.scope_key("Running time entry found."))
                     cache._remove_entries([cache.running_entries], "id", [_id])
 
                 if cache._if_any_entries(cache.paused_entries, [_id]):
-                    console.print("[bright_yellow]Paused time entry found.")
+                    console.print(markup.scope_key("Paused time entry found."))
                     cache._remove_entries([cache.paused_entries], "id", [_id])
 
                 console.print(
-                    f"[saved]Saved[/saved]. Deleted time entry [code]{_id}[/code]."
+                    Text.assemble(
+                        markup.saved("Saved"), ". Deleted time entry ",  # fmt: skip
+                        markup.code(_id), ".",  # fmt: skip
+                    )
                 )
 
-            except BadRequest as e:
-                console.print(
-                    f"[b][red]Error matching[/red] [code]{_id}[/code][/b]: {e}"
+            except BadRequest as error:
+                error_message = Text.assemble(
+                    markup.br("Error matching id "), markup.code(_id), f": {error}."
                 )
+                console.print(error_message)
 
         threads.spawn(ctx, appdata.update, kwargs=dict(query_job=query_job))
         threads.spawn(ctx, id_list.reset)
@@ -455,6 +478,7 @@ def edit() -> None: ...
     chain=True,
     help=_help.timer_edit_entry,
     short_help="Edit individual time entries by ID.",
+    invoke_without_command=True,
     context_settings=dict(
         obj=dict(syntax=_help.timer_edit_entry_syntax),
     ),
@@ -467,108 +491,56 @@ def edit() -> None: ...
     metavar="TIME_ENTRY_IDS",
     type=click.STRING,
     multiple=True,
-    help="Time entry ID. Repeat flag to edit entries consecutively.",
+    help="Repeat flag to make edits to multiple time entries.",
 )
-def edit_entry(id_sequence: tuple[str]) -> None: ...
-
-
-@edit_entry.command(
-    cls=_RichCommand,
-    name="note",
-    help=_help.timer_edit_entry,
-    short_help="Edit note.",
+@click.option(
+    "-p",
+    "--project",
+    type=shell_complete.projects.ActiveProject,
+    metavar="TEXT",
+    shell_complete=shell_complete.projects.from_option,
+    help="Edit entries value for project",
 )
-@click.argument(
-    "note",
+@click.option(
+    "-n",
+    "--note",
     type=click.STRING,
-    required=True,
-    shell_complete=shell_complete.notes.from_chained_cmd,
+    shell_complete=shell_complete.notes.from_param,
+    help="Edit entries value for note",
 )
-def _edit_note(note: str) -> dict[str, Any]:
-    return {"note": note}
-
-
-@edit_entry.command(
-    cls=_RichCommand,
-    name="project",
-    short_help="Edit Project.",
-    add_help_option=False,
-)
-@click.argument(
-    "project",
-    type=click.STRING,
-    callback=validate.active_project,
-    shell_complete=shell_complete.projects.from_chained_cmd,
-)
-def _edit_project(project: str) -> dict[str, Any]:
-    return {"project": project}
-
-
-@edit_entry.command(
-    cls=_RichCommand,
-    name="start",
-    short_help="Edit start-time.",
-    add_help_option=False,
-)
-@click.argument(
-    "start",
-    type=click.STRING,
-    required=True,
-    shell_complete=shell_complete.time,
-)
-def _edit_start(start: str) -> dict[str, Any]:
-    return {"start": PromptFactory._parse_date(start)}
-
-
-@edit_entry.command(
-    cls=_RichCommand,
-    name="end",
-    short_help="Edit end-time.",
-    add_help_option=False,
-)
-@click.argument(
-    "end",
-    type=click.STRING,
-    required=True,
-    shell_complete=shell_complete.time,
-)
-def _edit_end(end: str) -> dict[str, Any]:
-    return {"end": PromptFactory._parse_date(end)}
-
-
-@edit_entry.command(
-    cls=_RichCommand,
-    name="date",
-    short_help="Edit date.",
-    add_help_option=False,
-)
-@click.argument(
-    "date",
-    type=click.STRING,
-    shell_complete=shell_complete.time,
-)
-def _edit_date(date: str) -> dict[str, Any]:
-    return {"date": PromptFactory._parse_date(date)}
-
-
-@edit_entry.command(
-    cls=_RichCommand,
-    name="billable",
-    short_help="Edit billable flag.",
-    add_help_option=False,
-)
-@click.argument(
-    "billable",
+@click.option(
+    "-b",
+    "--billable",
     type=click.BOOL,
     shell_complete=shell_complete.Param("billable").bool,
+    help="Edit entries value for billable",
 )
-def _edit_billable(billable: bool) -> dict[str, Any]:
-    return {"billable": billable}
+@click.option(
+    "-d",
+    "--date",
+    type=click.STRING,
+    help="Edit entries value for date",
+)
+@click.option(
+    "-s",
+    "--start",
+    type=click.STRING,
+    shell_complete=shell_complete.time,
+    help="Edit entries value for start",
+)
+@click.option(
+    "-e",
+    "--end",
+    type=click.STRING,
+    shell_complete=shell_complete.time,
+    help="Edit entries value for end",
+)
+def edit_entry(*args: P.args, **kwargs: P.kwargs) -> None: ...
 
 
 @edit_entry.result_callback()
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Did not edit entry."),
+    callback=lambda: rprint(markup.dim("Did not edit entry.")),
 )
 @_pass.cache
 @_pass.routine
@@ -583,29 +555,59 @@ def _edit_entry_callback(
     console: "Console",
     routine: "CliQueryRoutines",
     cache: "TomlCache",
-    editors: Sequence[dict[str, Any]],
+    cmd_args: Sequence[dict[str, Any]],
     id_sequence: tuple[str],
+    project: str,
+    note: str,
+    billable: bool,
+    start: str,
+    end: str,
+    date: str,
 ) -> None:
-    validate.callbacks.edit_params(locals())
+    validate.callbacks.edit_params(ctx, cache, ctx.params)
 
     edits: dict[str, Any] = {}
-    for m in editors:
-        edits |= m
+
+    if project:
+        edits["project"] = validate.active_project(
+            ctx,
+            one(filter(lambda p: p.name == "project", ctx.command.params)),
+            project,
+        )
+    if note:
+        edits["project"] = note
+    if billable:
+        edits["billable"] = billable
+    if start:
+        edits["start"] = PromptFactory._parse_date(start)
+    if end:
+        edits["end"] = PromptFactory._parse_date(end)
+    if date:
+        edits["date"] = PromptFactory._parse_date(date)
+
+    edits["paused_hrs"] = 0
+    edits["duration"] = 0
 
     for _id in id_sequence:
         with console.status(
-            status=f"[status.message] Searching for time entry ID: [code]{_id}[/code]"
+            status=Text.assemble(
+                markup.status_message("Searching for time entry ID: "), markup.code(_id)
+            ).markup
         ) as status:
             set_clause = SetClause()
             _id = id_list.match_id(_id)
 
             try:
                 time_entry = first(routine.get_time_entry(_id))
-            except Exception as e:
-                console.print(f"[b][red]Error:[/b] {e}")
+            except Exception as error:
+                console.print(Text.assemble(markup.br("Error"), f": {error}."))
                 continue
 
-        console.print(f"Found matching ID: [code]{time_entry.id}[/code].")
+        console.print(
+            Text.assemble(
+                markup.saved("Found matching ID: "), markup.code(_id), "."
+            ).markup
+        )
 
         if "billable" in edits:
             billable = edits["billable"]
@@ -636,10 +638,10 @@ def _edit_entry_callback(
 
                 if duration.total_seconds() < 0 or _get.sign(duration.days) == -1:
                     raise click.BadArgumentUsage(
-                        message=(
-                            "Invalid value for args [[args]START[/args]] | "
-                            "[[args]END[/args]]: Cannot set end before start."
-                        ),
+                        message=Text.assemble(
+                            "Invalid value for args [", markup.args("START"), "] | ", # fmt: skip
+                            markup.args("END"), "]: Cannot set end before start",  # fmt: skip
+                        ).markup,
                         ctx=ctx,
                     )
 
@@ -649,25 +651,38 @@ def _edit_entry_callback(
 
                 if duration.total_seconds() < 0 or _get.sign(duration.days) == -1:
                     raise click.BadArgumentUsage(
-                        message=(
-                            "Invalid value for args [[args]START[/args]] | "
-                            "[[args]END[/args]]: New duration cannot be negative. "
-                            f"Existing paused hours = {time_entry.paused_hrs}"
-                        ),
+                        message=Text.assemble(
+                            # fmt: off
+                            "Invalid value for args [", markup.args("START"), "] | ",
+                            markup.args("END"), "]: New duration cannot be negative. ",
+                            "Existing paused hours = ", markup.repr_number(time_entry.paused_hrs), ".",
+                            # fmt: on
+                        ).markup,
                         ctx=ctx,
                     )
 
                 total_seconds = int(duration.total_seconds())
-                dhour = round(total_seconds % (24 * 3600) / 3600, 4)
+                dhour = round(total_seconds / 3600, 4)
+                edits["duration"] = Decimal(dhour)
 
                 utils.print_updated_val("date", new_date, prefix=None)
                 utils.print_updated_val("start", new_start.time(), prefix=None)
                 utils.print_updated_val("end", new_end.time(), prefix=None)
                 console.print("Updating duration.")
                 if time_entry.paused_hrs:
-                    console.print(f"Subtracting paused hours {time_entry.paused_hrs}.")
+                    console.print(
+                        Text.assemble(
+                            "Subtracting paused hours ",
+                            markup.repr_number(time_entry.paused_hrs),
+                        )
+                    )
                 utils.print_updated_val(
-                    "duration", f"{duration} ({dhour})", prefix=None
+                    "duration",
+                    Text.assemble(
+                        markup.iso8601_time(duration), " (", # fmt: skip
+                        markup.repr_number(dhour), ")",  # fmt: skip
+                    ),
+                    prefix=None,
                 )
 
                 set_clause = (
@@ -676,12 +691,7 @@ def _edit_entry_callback(
                     .add_datetime("end", new_end)
                     .add_timestamp("timestamp_start", new_start)
                     .add_timestamp("timestamp_end", new_end)
-                    .add_duration(
-                        "duration",
-                        new_end,
-                        new_start,
-                        time_entry.paused_hrs,
-                    )
+                    .add_duration("duration", new_end, new_start, time_entry.paused_hrs)
                 )
 
             case True, True, False:
@@ -695,10 +705,12 @@ def _edit_entry_callback(
 
                 if duration.total_seconds() < 0 or _get.sign(duration.days) == -1:
                     raise click.BadArgumentUsage(
-                        message=(
-                            "Invalid value for args [[args]START[/args]] | "
-                            "[[args]END[/args]]: Cannot set start before end."
-                        ),
+                        message=Text.assemble(
+                            # fmt: off
+                            "Invalid value for args [", markup.args("START"), "] | ",
+                            markup.args("END"), "]: Cannot set start before end.",
+                            # fmt: on
+                        ).markup,
                         ctx=ctx,
                     )
 
@@ -708,24 +720,37 @@ def _edit_entry_callback(
 
                 if duration.total_seconds() < 0 or _get.sign(duration.days) == -1:
                     raise click.BadArgumentUsage(
-                        message=(
-                            "Invalid value for args [[args]START[/args]] | "
-                            "[[args]END[/args]]: New duration cannot be negative. "
-                            f"Existing paused hours = {time_entry.paused_hrs}"
-                        ),
+                        message=Text.assemble(
+                            # fmt: off
+                            "Invalid value for args [", markup.args("START"), "] | ",
+                            markup.args("END"), "]: New duration cannot be negative. ",
+                            "Existing paused hours = ", markup.repr_number(time_entry.paused_hrs), ".",
+                            # fmt: on
+                        ).markup,
                         ctx=ctx,
                     )
 
                 total_seconds = int(duration.total_seconds())
-                dhour = round(total_seconds % (24 * 3600) / 3600, 4)
+                dhour = round(total_seconds / 3600, 4)
+                edits["duration"] = Decimal(dhour)
 
                 utils.print_updated_val("date", new_date, prefix=None)
                 utils.print_updated_val("start", new_start.time(), prefix=None)
-                console.print("Updating duration with new start.")
+                console.print("Updating duration.")
                 if time_entry.paused_hrs:
-                    console.print(f"Subtracting paused hours {time_entry.paused_hrs}.")
+                    console.print(
+                        Text.assemble(
+                            "Subtracting paused hours ",
+                            markup.repr_number(time_entry.paused_hrs),
+                        )
+                    )
                 utils.print_updated_val(
-                    "duration", f"{duration} ({dhour})", prefix=None
+                    "duration",
+                    Text.assemble(
+                        markup.iso8601_time(duration), " (", # fmt: skip
+                        markup.repr_number(dhour), ")",  # fmt: skip
+                    ),
+                    prefix=None,
                 )
 
                 set_clause = (
@@ -733,10 +758,7 @@ def _edit_entry_callback(
                     .add_datetime("start", new_start)
                     .add_timestamp("timestamp_start", new_start)
                     .add_duration(
-                        "duration",
-                        current_end,
-                        new_start,
-                        time_entry.paused_hrs,
+                        "duration", current_end, new_start, time_entry.paused_hrs
                     )
                 )
 
@@ -745,9 +767,28 @@ def _edit_entry_callback(
                 new_start = datetime.combine(new_date, time_entry.start.replace(microsecond=0).time())  # type: ignore[union-attr]
                 new_end = datetime.combine(new_date, time_entry.end.replace(microsecond=0).time())  # type: ignore[union-attr]
 
+                phours, pminutes, pseconds = utils._sec_to_time_parts(
+                    Decimal(time_entry.paused_hrs or 0) * 3600
+                )
+                duration = new_end - new_start
+                duration = duration - timedelta(
+                    hours=phours, minutes=pminutes, seconds=pseconds
+                )
+                total_seconds = int(duration.total_seconds())
+                dhour = round(total_seconds / 3600, 4)
+                edits["duration"] = Decimal(dhour)
+
                 utils.print_updated_val("date", new_date, prefix=None)
                 utils.print_updated_val("start", new_start, prefix=None)
                 utils.print_updated_val("end", new_end, prefix=None)
+                utils.print_updated_val(
+                    "duration",
+                    Text.assemble(
+                        markup.iso8601_time(duration), " (", # fmt: skip
+                        markup.repr_number(dhour), ")",  # fmt: skip
+                    ),
+                    prefix=None,
+                )
 
                 set_clause = (
                     set_clause.add_date("date", new_date)
@@ -755,6 +796,7 @@ def _edit_entry_callback(
                     .add_timestamp("timestamp_start", new_start)
                     .add_datetime("end", new_end)
                     .add_timestamp("timestamp_end", new_end)
+                    .add_duration("duration", new_end, new_start, time_entry.paused_hrs)
                 )
 
             case True, False, True:
@@ -769,10 +811,10 @@ def _edit_entry_callback(
 
                 if duration.total_seconds() < 0 or _get.sign(duration.days) == -1:
                     raise click.BadArgumentUsage(
-                        message=(
-                            "Invalid value for args [[args]START[/args]] | "
-                            "[[args]END[/args]]: Cannot set end before start."
-                        ),
+                        message=Text.assemble(
+                            "Invalid value for args [", markup.args("START"), "] | ", # fmt: skip
+                            markup.args("END"), "]: Cannot set end before start",  # fmt: skip
+                        ).markup,
                         ctx=ctx,
                     )
 
@@ -782,24 +824,37 @@ def _edit_entry_callback(
 
                 if duration.total_seconds() < 0 or _get.sign(duration.days) == -1:
                     raise click.BadArgumentUsage(
-                        message=(
-                            "Invalid value for args [[args]START[/args]] | "
-                            "[[args]END[/args]]: New duration cannot be negative. "
-                            f"Existing paused hours = {time_entry.paused_hrs}"
-                        ),
+                        message=Text.assemble(
+                            # fmt: off
+                            "Invalid value for args [", markup.args("START"), "] | ",
+                            markup.args("END"), "]: New duration cannot be negative. ",
+                            "Existing paused hours = ", markup.repr_number(time_entry.paused_hrs), ".",
+                            # fmt: on
+                        ).markup,
                         ctx=ctx,
                     )
 
                 total_seconds = int(duration.total_seconds())
-                dhour = round(total_seconds % (24 * 3600) / 3600, 4)
+                dhour = round(total_seconds / 3600, 4)
+                edits["duration"] = Decimal(dhour)
 
                 utils.print_updated_val("date", new_date, prefix=None)
                 utils.print_updated_val("end", new_end.time(), prefix=None)
-                console.print("Updating duration with new end.")
+                console.print("Updating duration.")
                 if time_entry.paused_hrs:
-                    console.print(f"Subtracting paused hours {time_entry.paused_hrs}.")
+                    console.print(
+                        Text.assemble(
+                            "Subtracting paused hours ",
+                            markup.repr_number(time_entry.paused_hrs),
+                        )
+                    )
                 utils.print_updated_val(
-                    "duration", f"{duration} ({dhour})", prefix=None
+                    "duration",
+                    Text.assemble(
+                        markup.iso8601_time(duration), " (", # fmt: skip
+                        markup.repr_number(dhour), ")",  # fmt: skip
+                    ),
+                    prefix=None,
                 )
 
                 set_clause = (
@@ -807,10 +862,7 @@ def _edit_entry_callback(
                     .add_datetime("end", new_end)
                     .add_timestamp("timestamp_end", new_end)
                     .add_duration(
-                        "duration",
-                        new_end,
-                        current_start,
-                        time_entry.paused_hrs,
+                        "duration", new_end, current_start, time_entry.paused_hrs
                     )
                 )
 
@@ -820,11 +872,12 @@ def _edit_entry_callback(
 
                 if new_start > current_end:
                     raise click.BadArgumentUsage(
-                        message=(
-                            "Invalid value for args [[args]START[/args]] | "
-                            "[[args]END[/args]]: Cannot set start before end. "
-                            "(Try editing both start and date fields)."
-                        ),
+                        message=Text.assemble(
+                            # fmt: off
+                            "Invalid value for args [", markup.args("START"), "] | ",
+                            markup.args("END"), "]: Cannot set start before end.",
+                            # fmt: on
+                        ).markup,
                         ctx=ctx,
                     )
 
@@ -838,33 +891,43 @@ def _edit_entry_callback(
 
                 if duration.total_seconds() < 0 or _get.sign(duration.days) == -1:
                     raise click.BadArgumentUsage(
-                        message=(
-                            "Invalid value for args [[args]START[/args]] | "
-                            "[[args]END[/args]]: New duration cannot be negative. "
-                            f"Existing paused hours = {time_entry.paused_hrs}"
-                        ),
+                        message=Text.assemble(
+                            # fmt: off
+                            "Invalid value for args [", markup.args("START"), "] | ",
+                            markup.args("END"), "]: New duration cannot be negative. ",
+                            "Existing paused hours = ", markup.repr_number(time_entry.paused_hrs), ".",
+                            # fmt: on
+                        ).markup,
                         ctx=ctx,
                     )
 
                 total_seconds = int(duration.total_seconds())
-                dhour = round(total_seconds % (24 * 3600) / 3600, 4)
+                dhour = round(total_seconds / 3600, 4)
+                edits["duration"] = Decimal(dhour)
 
                 utils.print_updated_val("start", new_start.time(), prefix=None)
-                console.print("Updating duration with new start.")
+                console.print("Updating duration.")
                 if time_entry.paused_hrs:
-                    console.print(f"Subtracting paused hours {time_entry.paused_hrs}.")
+                    console.print(
+                        Text.assemble(
+                            "Subtracting paused hours ",
+                            markup.repr_number(time_entry.paused_hrs),
+                        )
+                    )
                 utils.print_updated_val(
-                    "duration", f"{duration} ({dhour})", prefix=None
+                    "duration",
+                    Text.assemble(
+                        markup.iso8601_time(duration), " (", # fmt: skip
+                        markup.repr_number(dhour), ")",  # fmt: skip
+                    ),
+                    prefix=None,
                 )
 
                 set_clause = (
                     set_clause.add_datetime("start", new_start)
                     .add_timestamp("timestamp_start", new_start)
                     .add_duration(
-                        "duration",
-                        current_end,
-                        new_start,
-                        time_entry.paused_hrs,
+                        "duration", current_end, new_start, time_entry.paused_hrs
                     )
                 )
 
@@ -874,11 +937,10 @@ def _edit_entry_callback(
 
                 if new_end < current_start:
                     raise click.BadArgumentUsage(
-                        message=(
-                            "Invalid value for args [[args]START[/args]] | "
-                            "[[args]END[/args]]: Cannot set end before start. "
-                            "(Try editing both end and date fields)."
-                        ),
+                        message=Text.assemble(
+                            "Invalid value for args [", markup.args("START"), "] | ", # fmt: skip
+                            markup.args("END"), "]: Cannot set end before start.",  # fmt: skip
+                        ).markup,
                         ctx=ctx,
                     )
 
@@ -889,10 +951,10 @@ def _edit_entry_callback(
 
                 if duration.total_seconds() < 0 or _get.sign(duration.days) == -1:
                     raise click.BadArgumentUsage(
-                        message=(
-                            "Invalid value for args [[args]START[/args]] | "
-                            "[[args]END[/args]]: Cannot set end before start."
-                        ),
+                        message=Text.assemble(
+                            "Invalid value for args [", markup.args("START"), "] | ", # fmt: skip
+                            markup.args("END"), "]: Cannot set end before start",  # fmt: skip
+                        ).markup,
                         ctx=ctx,
                     )
 
@@ -902,33 +964,43 @@ def _edit_entry_callback(
 
                 if duration.total_seconds() < 0 or _get.sign(duration.days) == -1:
                     raise click.BadArgumentUsage(
-                        message=(
-                            "Invalid value for args [[args]START[/args]] | "
-                            "[[args]END[/args]]: New duration cannot be negative. "
-                            f"Existing paused hours = {time_entry.paused_hrs}"
-                        ),
+                        message=Text.assemble(
+                            # fmt: off
+                            "Invalid value for args [", markup.args("START"), "] | ",
+                            markup.args("END"), "]: New duration cannot be negative. ",
+                            "Existing paused hours = ", markup.repr_number(time_entry.paused_hrs), ".",
+                            # fmt: on
+                        ).markup,
                         ctx=ctx,
                     )
 
                 total_seconds = int(duration.total_seconds())
-                dhour = round(total_seconds % (24 * 3600) / 3600, 4)
+                dhour = round(total_seconds / 3600, 4)
+                edits["duration"] = Decimal(dhour)
 
                 utils.print_updated_val("end", new_end.time(), prefix=None)
-                console.print("Updating duration with new end.")
+                console.print("Updating duration.")
                 if time_entry.paused_hrs:
-                    console.print(f"Subtracting paused hours {time_entry.paused_hrs}.")
+                    console.print(
+                        Text.assemble(
+                            "Subtracting paused hours ",
+                            markup.repr_number(time_entry.paused_hrs),
+                        )
+                    )
                 utils.print_updated_val(
-                    "duration", f"{duration} ({dhour})", prefix=None
+                    "duration",
+                    Text.assemble(
+                        markup.iso8601_time(duration), " (", # fmt: skip
+                        markup.repr_number(dhour), ")",  # fmt: skip
+                    ),
+                    prefix=None,
                 )
 
                 set_clause = (
                     set_clause.add_datetime("end", new_end)
                     .add_timestamp("timestamp_end", new_end)
                     .add_duration(
-                        "duration",
-                        new_end,
-                        current_start,
-                        time_entry.paused_hrs,
+                        "duration", new_end, current_start, time_entry.paused_hrs
                     )
                 )
 
@@ -942,10 +1014,10 @@ def _edit_entry_callback(
 
                 if duration.total_seconds() < 0 or _get.sign(duration.days) == -1:
                     raise click.BadArgumentUsage(
-                        message=(
-                            "Invalid value for args [[args]START[/args]] | "
-                            "[[args]END[/args]]: Cannot set end before start."
-                        ),
+                        message=Text.assemble(
+                            "Invalid value for args [", markup.args("START"), "] | ", # fmt: skip
+                            markup.args("END"), "]: Cannot set end before start",  # fmt: skip
+                        ).markup,
                         ctx=ctx,
                     )
 
@@ -955,24 +1027,37 @@ def _edit_entry_callback(
 
                 if duration.total_seconds() < 0 or _get.sign(duration.days) == -1:
                     raise click.BadArgumentUsage(
-                        message=(
-                            "Invalid value for args [[args]START[/args]] | "
-                            "[[args]END[/args]]: New duration cannot be negative. "
-                            f"Existing paused hours = {time_entry.paused_hrs}"
-                        ),
+                        message=Text.assemble(
+                            # fmt: off
+                            "Invalid value for args [", markup.args("START"), "] | ",
+                            markup.args("END"), "]: New duration cannot be negative. ",
+                            "Existing paused hours = ", markup.repr_number(time_entry.paused_hrs), ".",
+                            # fmt: on
+                        ).markup,
                         ctx=ctx,
                     )
 
                 total_seconds = int(duration.total_seconds())
-                dhour = round(total_seconds % (24 * 3600) / 3600, 4)
+                dhour = round(total_seconds / 3600, 4)
+                edits["duration"] = Decimal(dhour)
 
                 utils.print_updated_val("start", new_start.time(), prefix=None)
                 utils.print_updated_val("end", new_end.time(), prefix=None)
                 console.print("Updating duration.")
                 if time_entry.paused_hrs:
-                    console.print(f"Subtracting paused hours {time_entry.paused_hrs}.")
+                    console.print(
+                        Text.assemble(
+                            "Subtracting paused hours ",
+                            markup.repr_number(time_entry.paused_hrs),
+                        )
+                    )
                 utils.print_updated_val(
-                    "duration", f"{duration} ({dhour})", prefix=None
+                    "duration",
+                    Text.assemble(
+                        markup.iso8601_time(duration), " (", # fmt: skip
+                        markup.repr_number(dhour), ")",  # fmt: skip
+                    ),
+                    prefix=None,
                 )
 
                 set_clause = (
@@ -980,15 +1065,12 @@ def _edit_entry_callback(
                     .add_timestamp("timestamp_start", new_start)
                     .add_datetime("end", new_end)
                     .add_timestamp("timestamp_end", new_end)
-                    .add_duration(
-                        "duration",
-                        new_end,
-                        new_start,
-                        time_entry.paused_hrs,
-                    )
+                    .add_duration("duration", new_end, new_start, time_entry.paused_hrs)
                 )
 
-        status_renderable = f"[status.message] Editing entry: [code]{_id}[/code]"
+        status_renderable = Text.assemble(
+            markup.status_message("Editing entry: "), markup.code(_id)
+        ).markup
         with console.status(status_renderable) as status:
             query_job = routine.edit_time_entry(
                 set_clause=set_clause,
@@ -1005,7 +1087,17 @@ def _edit_entry_callback(
                 show_header=True,
                 show_edge=True,
             )
-            keys = ["id", "project", "date", "start", "end", "note", "billable"]
+            keys = [
+                "id",
+                "project",
+                "date",
+                "start",
+                "end",
+                "note",
+                "billable",
+                "paused_hrs",
+                "duration",
+            ]
 
             original_record = {
                 "id": time_entry.id[:7],
@@ -1015,6 +1107,8 @@ def _edit_entry_callback(
                 "end": time_entry.end.time().replace(microsecond=0),
                 "note": time_entry.note,
                 "billable": time_entry.is_billable,
+                "paused_hrs": time_entry.paused_hrs or 0,
+                "duration": time_entry.duration,
             }
             new_record = {}
             _edits = {}
@@ -1028,14 +1122,14 @@ def _edit_entry_callback(
                     else:
                         _edits[k] = edits[k]
 
-                if _edits.get(k) is None:
+                if _edits.get(k) is None or _edits.get(k) == 0:
                     table.add_column(
                         k,
                         **render._map_s_column_type(
                             one({k: original_record[k]}.items()), no_color=True
                         ),
                     )
-                    new_record[k] = f"{original_record[k]}"
+                    new_record[k] = Text(f"{original_record[k]!s}").markup
                 else:
                     if f"{original_record[k]}" == f"{_edits[k]}":
                         table.add_column(
@@ -1045,7 +1139,7 @@ def _edit_entry_callback(
                                 one({k: _edits[k]}.items()), no_color=True
                             ),
                         )
-                        new_record[k] = f"[yellow]{_edits[k]}[/yellow]"
+                        new_record[k] = Text(f"{_edits[k]!s}", style="yellow").markup
                     else:
                         table.add_column(
                             k,
@@ -1054,12 +1148,11 @@ def _edit_entry_callback(
                                 one({k: _edits[k]}.items()), no_color=True
                             ),
                         )
-                        new_record[k] = (
-                            f"[s][d][red]{original_record[k]}[/s][/d][/red] "
-                            f"[b][green]{_edits[k]}[/b][/green]"
-                        )
+                        new_record[k] = Text.assemble(
+                            markup.sdr(original_record[k]), " ", markup.bg(_edits[k])
+                        ).markup
 
-            console.print(f"[saved]Saved[/saved]. Updated record:")
+            console.print(Text.assemble(markup.saved("Saved"), ". Updated record:"))
             table.add_row(*render.map_cell_style(new_record.values()))
             render.new_console_print(table, status=status)
 
@@ -1088,7 +1181,7 @@ def edit_group() -> None:
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Did not add new time entry."),
+    callback=lambda: rprint(markup.dim("Did not add new time entry.")),
 )
 @click.option(
     "-p",
@@ -1107,7 +1200,7 @@ def edit_group() -> None:
     "-s",
     "--start",
     type=click.STRING,
-    default="-7.5m",
+    default=lambda: AppConfig().default_timer_add_min,
     show_default=True,
     shell_complete=shell_complete.time,
 )
@@ -1154,42 +1247,33 @@ def add(
     note: str,
     billable: bool,
 ) -> None:
-    if not project:
-        project = PromptFactory.prompt_project()
+    project = PromptFactory.prompt_project() if not project else project
+    start_param = one(filter(lambda p: p.name == "start", ctx.command.params))
+    end_param = one(filter(lambda p: p.name == "end", ctx.command.params))
+    start_default = cast(float, start_param.get_default(ctx, call=True))
+    end_default = cast(str, end_param.get_default(ctx, call=True))
 
-    if start:
-        start_local = PromptFactory._parse_date(start)
-        if not start_local:
-            start_local = PromptFactory.prompt_for_date("(start-date)")
-    else:
-        start_local = PromptFactory.prompt_for_date("(start-date)")
+    _start = (
+        (AppConfig().now - timedelta(minutes=-start_default)).isoformat()
+        if f"{start}" == f"{start_default}"
+        else None
+    )
+    _end = AppConfig().now if f"{end}" == f"{end_default}" else None
 
-    if end:
-        end_local = PromptFactory._parse_date(end)
-        if not end_local:
-            end_local = PromptFactory.prompt_for_date("(end-date)")
-    else:
-        end_local = PromptFactory.prompt_for_date("(end-date)")
-
-    duration = end_local - start_local
-    total_seconds = int(duration.total_seconds())
-    dhour = round(total_seconds % (24 * 3600) / 3600, 4)
-
-    if total_seconds < 0 or _get.sign(duration.days) == -1:
-        raise click.BadArgumentUsage(
-            message=(
-                "Invalid value for args [[args]START[/args]] | "
-                "[[args]END[/args]]: Cannot set end before start."
-            ),
-            ctx=ctx,
-        )
+    date_params = _parse_date_range_flags(_start or start, _end or end)
+    end_local, start_local, total_seconds = (
+        date_params.end,
+        date_params.start,
+        date_params.total_seconds,
+    )
+    dhour = round(total_seconds / 3600, 3)
 
     if billable is None:
         billable = AppConfig().get("settings", "is_billable")
 
     time_entry_id = sha1(f"{project}{note}{start_local}".encode()).hexdigest()
 
-    status_renderable = "[status.message] Adding time entry"
+    status_renderable = Text.assemble(markup.status_message("Adding time entry")).markup
     with console.status(status_renderable) as status:
         query_job = routine.add_time_entry(
             id=time_entry_id,
@@ -1209,7 +1293,7 @@ def add(
 
         threads.spawn(ctx, id_list.reset)
 
-        console.print(f"[saved]Saved[/saved]. Added record:")
+        console.print(Text.assemble(markup.saved("Saved"), ". Added record:"))
         render.new_console_print(
             render.mappings_list_to_rich_table(
                 [
@@ -1372,7 +1456,7 @@ def pause(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Did not resume time entry."),
+    callback=lambda: rprint(markup.dim("Did not resume time entry.")),
 )
 @click.argument(
     "entry",
@@ -1394,7 +1478,7 @@ def resume(
     entry: str,
 ) -> None:
     if not cache.paused_entries:
-        console.print("[d]No paused time entries.")
+        console.print(markup.dim("No paused time entries."))
         return
 
     now = AppConfig().now
@@ -1430,14 +1514,16 @@ def resume(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Did not switch time entries."),
+    callback=lambda: rprint(markup.dim("Did not switch time entries.")),
 )
 @_pass.console
 @_pass.active_time_entry
 def switch(cache: "TomlCache", console: "Console") -> None:
     if cache.count_running_entries == 1:
         console.print(
-            "[d]Only 1 running time entry. Nothing to switch too.",
+            markup.dim(
+                "Only 1 running time entry. Nothing to switch too.",
+            )
         )
         return
 
@@ -1452,7 +1538,7 @@ def switch(cache: "TomlCache", console: "Console") -> None:
     )
 
     if select == cache.id:
-        console.print("[d]Already active.")
+        console.print(markup.dim("Already active."))
         return
 
     cache.switch_active_entry(select)
@@ -1516,15 +1602,27 @@ def update(
     start_time: str,
     note: str,
 ) -> None:
-    status_renderable = f"[status.message] Updating time entry: [code]{cache.id}[/code]"
+    copy = cache.active.copy()
+
+    status_renderable = Text.assemble(
+        markup.status_message("Updating time entry: "), markup.code(cache.id)
+    ).markup
     with console.status(status_renderable) as status:
         set_clause = SetClause()
 
         with cache.update():
             if note is not None:
-                updated_note = re.compile(r"(\"|')").sub("", note)
-                set_clause.add_string("note", updated_note)
-                cache.note = updated_note
+                if note == cache.note:
+                    console.log(
+                        Text.assemble(
+                            "Active time entry note is already ",
+                            markup.repr_str(note), " - skipping update.",  # fmt: skip
+                        )
+                    )
+                else:
+                    updated_note = re.compile(r"(\"|')").sub("", note)
+                    set_clause.add_string("note", updated_note)
+                    cache.note = updated_note
 
             if start_time is not None:
                 start = PromptFactory._parse_date(start_time)
@@ -1540,11 +1638,13 @@ def update(
 
                 if duration.total_seconds() < 0 or _get.sign(duration.days) == -1:
                     raise click.BadArgumentUsage(
-                        message=(
-                            "Invalid value for args [[args]START[/args]] | "
-                            "[[args]END[/args]]: New duration cannot be negative. "
-                            f"Existing paused hours = [repr.number]{cache.paused_hrs}[/repr.number]"
-                        ),
+                        message=Text.assemble(
+                            # fmt: off
+                            "Invalid value for args [", markup.args("START"), "] | ",
+                            markup.args("END"), "]: New duration cannot be negative. ",
+                            "Existing paused hours = ", markup.repr_number(cache.paused_hrs), ".",
+                            # fmt: on
+                        ).markup,
                         ctx=ctx,
                     )
 
@@ -1553,32 +1653,57 @@ def update(
                 cache.start = new_start
 
             if billable is not None:
-                set_clause.add_bool("is_billable", billable)
-                cache.is_billable = billable
+                if billable == cache.is_billable:
+                    console.log(
+                        Text.assemble(
+                            "Active time entry billable is already set to ",
+                            (
+                                markup.repr_bool_true(billable)
+                                if billable is True
+                                else markup.repr_bool_false(billable)
+                            ),
+                            " - skipping update.",
+                        )
+                    )
+                else:
+                    set_clause.add_bool("is_billable", billable)
+                    cache.is_billable = billable
 
             if project is not None:
-                validate.active_project(ctx, None, project)  # type: ignore[arg-type]
-                set_clause.add_string("project", project)
-                cache.project = project
+                if project == cache.project:
+                    console.log(
+                        Text.assemble(
+                            "Active time entry project is already ",
+                            markup.repr_str(project), " - skipping update.",  # fmt: skip
+                        )
+                    )
+                else:
+                    validate.active_project(ctx, None, project)  # type: ignore[arg-type]
+                    set_clause.add_string("project", project)
+                    cache.project = project
 
-        query_job = routine.edit_time_entry(
-            set_clause=set_clause,
-            id=cache.id,
-            wait=True,
-            render=True,
-            status=status,
-            status_renderable=status_renderable,
-        )
+        if repr(set_clause) != "SET ":
+            query_job = routine.edit_time_entry(
+                set_clause=set_clause,
+                id=cache.id,
+                wait=True,
+                render=True,
+                status=status,
+                status_renderable=status_renderable,
+            )
+        else:
+            console.log("No valid fields to update, nothing happened.")
+            return
 
-        if note is not None:
+        if note is not None and note != copy["note"]:
             threads.spawn(ctx, appdata.update, kwargs=dict(query_job=query_job))
             utils.print_updated_val(key="note", val=updated_note)
         if start_time is not None:
             utils.print_updated_val(key="start", val=new_start)
-        if billable is not None:
+        if billable is not None and billable != copy["is_billable"]:
             utils.print_updated_val(key="is_billable", val=billable)
-        if project is not None:
-            utils.print_updated_val(key="project", val=project)
+        if project is not None and project != copy["project"]:
+            utils.print_updated_val(key="project", val=markup.code(project))
 
 
 @timer.group(
@@ -1605,14 +1730,14 @@ def notes() -> None: ...
 @click.argument(
     "project",
     nargs=1,
-    type=shell_complete.projects.ActiveProject,
+    type=shell_complete.projects.AnyProject,
     metavar="TEXT",
     required=True,
     callback=validate.active_project,
     shell_complete=shell_complete.projects.from_argument,
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Did not update notes."),
+    callback=lambda: rprint(markup.dim("Did not update notes.")),
 )
 @_pass.routine
 @_pass.console
@@ -1632,16 +1757,20 @@ def update_notes(
         )
     except AttributeError:
         console.print(
-            f"[code]{project}[/code] has no notes to edit.\n"
-            "If this was not the expected outcome, "
-            "try adjusting the lookback window for time entry notes with the command "
-            "[code.command]app[/code.command]:[code.command]settings[/code.command]:"
-            "[code.command]update[/code.command]:[code.command]note-history[/code.command]"
+            Text.assemble(
+                markup.code(project),
+                " has no notes to edit.\n",
+                "If this was not the expected outcome, ",
+                "try adjusting the lookback window for time entry notes with the command ",
+                markup.code_command_sequence(
+                    "app:settings:update:general:note-history", ":"
+                ),
+            )
         )
         return
 
     if not notes_to_edit:
-        console.print(f"[d]No notes selected, nothing happened.")
+        console.print(markup.dim("No notes selected, nothing happened."))
         return
 
     notes_to_replace = "\n".join(
@@ -1661,8 +1790,12 @@ def update_notes(
         project=project,
         wait=True,
         render=True,
-        status_renderable="Updating notes",
+        status_renderable=markup.status_message("Updating notes"),
     )
 
     threads.spawn(ctx, appdata.update, kwargs=dict(query_job=query_job))
-    console.print("[saved]Saved[/saved]. Updated notes for [code]%s[/code]." % project)
+
+    complete_text = Text.assemble(
+        markup.saved("Saved"), ". Updated notes for ", markup.code(project), "."
+    )
+    console.print(complete_text)

@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Sequence
 import rich_click as click
 from more_itertools import first
 from rich import print as rprint
+from rich.text import Text
 
 from lightlike.__about__ import __appname_sc__
 from lightlike.app import _get, _pass, render, shell_complete, threads, validate
@@ -10,7 +11,7 @@ from lightlike.app.autosuggest import _threaded_autosuggest
 from lightlike.app.group import AliasedRichGroup, _RichCommand
 from lightlike.app.prompt import PromptFactory
 from lightlike.cmd import _help
-from lightlike.internal import utils
+from lightlike.internal import markup, utils
 from lightlike.lib.third_party import _questionary
 
 if TYPE_CHECKING:
@@ -40,7 +41,7 @@ def project(debug: bool) -> None: ...
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Did not create project."),
+    callback=lambda: rprint(markup.dim("Did not create project.")),
 )
 @click.argument(
     "name",
@@ -89,11 +90,16 @@ def create(
         description or "",
         wait=True,
         render=True,
-        status_renderable="Creating project",
+        status_renderable=markup.status_message("Creating project"),
     )
 
     threads.spawn(ctx, appdata.update)
-    console.print(f"[saved]Saved[/saved]. Created new project: [code]{name}[/code].")
+    console.print(
+        Text.assemble(
+            markup.saved("Saved"), ". Created new project: ",  # fmt: skip
+            markup.code(name), ".",  # fmt: skip
+        )
+    )
 
 
 @project.command(
@@ -158,7 +164,7 @@ def update(ctx: click.Context, project: str) -> None:
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Did not update project."),
+    callback=lambda: rprint(markup.dim("Did not update project.")),
 )
 @_pass.confirm_options
 @_pass.cache
@@ -181,7 +187,7 @@ def update_name(
     renamed_project = PromptFactory.prompt_project(new=True)
 
     if project == renamed_project:
-        console.print("[d]Current name, nothing happened.")
+        console.print(markup.dim("Current name, nothing happened."))
         return
 
     if not (confirm or yes):
@@ -191,14 +197,14 @@ def update_name(
         ):
             return
 
-    with console.status("[status.message] Updating project name") as status:
+    with console.status(markup.status_message("Updating project name")) as status:
         routine.update_project_name(
             project,
             renamed_project,
             wait=True,
             render=True,
             status=status,
-            status_renderable="Updating project name",
+            status_renderable=markup.status_message("Updating project name"),
         )
         routine.update_time_entry_projects(
             project,
@@ -206,15 +212,16 @@ def update_name(
             wait=True,
             render=True,
             status=status,
-            status_renderable="Updating time entries",
+            status_renderable=markup.status_message("Updating time entries"),
         )
 
         threads.spawn(ctx, appdata.update)
         cache._sync_cache()
         console.print(
-            "[saved]Saved[/saved]. "
-            f"Renamed project [repr.str]{project}[/repr.str] to "
-            f"[repr.str]{renamed_project}[/repr.str]."
+            Text.assemble(
+                markup.saved("Saved"),". Renamed project ",  # fmt: skip
+                markup.code(project)," to ", markup.code(renamed_project), ".",  # fmt: skip
+            )
         )
 
 
@@ -228,7 +235,7 @@ def update_name(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Did not update project."),
+    callback=lambda: rprint(markup.dim("Did not update project.")),
 )
 @_pass.appdata
 @_pass.routine
@@ -259,14 +266,16 @@ def update_description(
     )
 
     if current_description == description or not description:
-        console.print("[d]Current description, nothing happened.")
+        console.print(markup.dim("Current description, nothing happened."))
         return
 
     routine.update_project_description(project, description, wait=True, render=True)
     threads.spawn(ctx, appdata.update)
     console.print(
-        "[saved]Saved[/saved]. Updated project description "
-        f"to [repr.str]{description}[/repr.str]."
+        Text.assemble(
+            markup.saved("Saved"), ". Updated project description to ",  # fmt: skip
+            markup.repr_str(description), ".",  # fmt: skip
+        )
     )
 
 
@@ -281,7 +290,7 @@ def update_description(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Did not delete project."),
+    callback=lambda: rprint(markup.dim("Did not delete project.")),
 )
 @click.argument(
     "projects",
@@ -320,7 +329,7 @@ def delete(
         if not _questionary.confirm(message="Are you sure?", auto_enter=True):
             return
 
-    with console.status("[status.message] Matching project") as status:
+    with console.status(markup.status_message("Matching project")) as status:
         for project in projects:
             query_job = routine.select(
                 resource=routine.timesheet_id,
@@ -332,23 +341,31 @@ def delete(
                 wait=True,
                 render=True,
                 status=status,
-                status_renderable=f"Deleting [code]{project}[/code] from projects",
+                status_renderable=Text.assemble(
+                    "Deleting ", markup.code(project), " from projects"
+                ),
             )
             routine.delete_time_entries(
                 project,
                 wait=True,
                 render=True,
                 status=status,
-                status_renderable=f"Deleting [code]{project}[/code] time entries",
+                status_renderable=Text.assemble(
+                    "Deleting ", markup.code(project), " time entries"
+                ),
             )
 
             threads.spawn(ctx, appdata.update)
             count_deleted = _get.count_entries(first(query_job))
             console.print(
-                "[saved]Saved[/saved]. "
-                f"Deleted project [repr.str]{project}[/repr.str] and "
-                f"[repr.number]{count_deleted}[/repr.number] "
-                f"related time {'entry' if count_deleted == 1 else 'entries'}.",
+                # fmt: off
+                Text.assemble(
+                    markup.saved("Saved"), ". ",
+                    "Deleted project ", markup.code(project),
+                    " and ", markup.repr_number(count_deleted),
+                    f" related time {'entry' if count_deleted == 1 else 'entries'}.",
+                )
+                # fmt: on
             )
 
             if cache and cache.project == project:
@@ -361,7 +378,7 @@ def delete(
                 sequence=[project],
             )
 
-            status.update("[status.message]")
+            status.update("")
 
 
 @project.command(
@@ -375,7 +392,7 @@ def delete(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Did not archive project."),
+    callback=lambda: rprint(markup.dim("Did not archive project.")),
 )
 @click.argument(
     "project",
@@ -433,30 +450,31 @@ def archive(
         project,
         wait=True,
         render=True,
-        status_renderable="Archiving project",
+        status_renderable=markup.status_message("Archiving project"),
     )
     routine.archive_time_entries(
         project,
         wait=True,
         render=True,
-        status_renderable="Archiving time entries",
+        status_renderable=markup.status_message("Archiving time entries"),
     )
 
     threads.spawn(ctx, appdata.update)
     count_archived = _get.count_entries(first(query_job))
     console.print(
-        "[saved]Saved[/saved].\n"
-        "Archived project [repr.str]%s[/repr.str] and [repr.number]%s[/repr.number] related time %s.%s"
-        % (
-            project,
-            count_archived,
-            "entry" if count_archived == 1 else "entries",
+        # fmt: off
+        Text.assemble(
+            markup.saved("Saved"), ". ",
+            "Archived project ", markup.code(project),
+            " and ", markup.repr_number(count_archived),
             (
-                "\nThese entries will not appear in results until you unarchive this project."
+                f" related time {'entry' if count_archived == 1 else 'entries'}.%s"
+                % "\nThese entries will not appear in results until you unarchive this project."
                 if count_archived > 0
                 else ""
             ),
         )
+        # fmt: on
     )
 
 
@@ -471,7 +489,7 @@ def archive(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Did not unarchive project."),
+    callback=lambda: rprint(markup.dim("Did not unarchive project.")),
 )
 @click.argument(
     "project",
@@ -502,28 +520,29 @@ def unarchive(
         project,
         wait=True,
         render=True,
-        status_renderable="Unarchiving project",
+        status_renderable=markup.status_message("Unarchiving project"),
     )
     routine.unarchive_time_entries(
         project,
         wait=True,
         render=True,
-        status_renderable="Unarchiving time entries",
+        status_renderable=markup.status_message("Unarchiving time entries"),
     )
 
     threads.spawn(ctx, appdata.update)
     count_unarchived = _get.count_entries(first(query_job))
     console.print(
-        "[saved]Saved[/saved].\n"
-        "Unarchived project [repr.str]%s[/repr.str] and [repr.number]%s[/repr.number] related time %s.%s"
-        % (
-            project,
-            count_unarchived,
-            "entry" if count_unarchived == 1 else "entries",
+        # fmt: off
+        Text.assemble(
+            markup.saved("Saved"), ". ",
+            "Unarchived project ", markup.code(project),
+            " and ", markup.repr_number(count_unarchived),
             (
-                "\nThese entries will now appear in results again."
+                f" related time {'entry' if count_unarchived == 1 else 'entries'}.%s"
+                % "\nThese entries will now appear in results again."
                 if count_unarchived > 0
                 else ""
             ),
         )
+        # fmt: on
     )

@@ -40,10 +40,12 @@ count_entries = operator.attrgetter("count_entries")
 
 sign = lambda x: copysign(1, x)
 
-project_display: t.Callable[["Project"], str] = lambda p: "%s | %s | %s" % (
-    p.friendly_name,
-    p.project_id,
-    p.numeric_id,
+project_display: t.Callable[["Project"], str] = lambda p: " | ".join(
+    [
+        p.friendly_name,
+        p.project_id,
+        p.numeric_id,
+    ]
 )
 
 where_clause: t.Final[re.Pattern[str]] = re.compile(

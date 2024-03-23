@@ -1,5 +1,6 @@
 # mypy: disable-error-code="import-untyped"
 
+import sys
 from typing import TYPE_CHECKING, NoReturn, ParamSpec, Sequence
 
 import google.auth
@@ -9,11 +10,13 @@ from rich import get_console
 from rich import print as rprint
 from rich.padding import Padding
 from rich.panel import Panel
+from rich.text import Text
 
 from lightlike._console import global_console_log
 from lightlike.app import _get
 from lightlike.app.auth import _AuthSession
 from lightlike.app.config import AppConfig
+from lightlike.internal import markup
 from lightlike.internal.enums import CredentialsSource
 from lightlike.lib.third_party import _questionary
 
@@ -67,7 +70,7 @@ def authorize_client() -> Client | NoReturn:
                 client = _authorize_from_environment()
 
             case CredentialsSource.not_set:
-                global_console_log("[log.error]Client configuration not found")
+                global_console_log(markup.log_error("Client configuration not found"))
 
                 with AppConfig().update() as config:
                     config["client"].update(
@@ -81,20 +84,25 @@ def authorize_client() -> Client | NoReturn:
         return client
 
     except KeyboardInterrupt:
-        exit(1)
-    except DefaultCredentialsError as e:
+        sys.exit(1)
+    except DefaultCredentialsError as error:
         rprint(
-            f"[failure]Auth Failed. {e}.[/failure]\n"
-            "Provide either a service account key, or double check "
-            "your application default credentials. [d](try running [code]gcloud init[/code])[/d]"
+            Text.assemble(
+                markup.failure(f"Auth failed: {error}"),
+                "\nProvided either a service account key, ",
+                "or double check your application default credentials. ",
+                markup.dim(f"(try running "),
+                markup.code("gcloud init"),
+                markup.dim(f")"),
+            )
         )
-        exit(2)
+        sys.exit(2)
 
-    except Exception as e:
-        if "cannot access local variable 'service_account_key'" in f"{e}":
-            rprint(f"[failure]Auth Failed. Incorrect Pass.")
+    except Exception as error:
+        if "cannot access local variable 'service_account_key'" in f"{error}":
+            rprint(markup.failure(f"Auth Failed. Incorrect Pass."))
         else:
-            rprint(f"[failure]Auth Failed. {e}")
+            rprint(markup.failure(f"Auth failed: {error}"))
             if credentials_source == CredentialsSource.from_service_account_key:
                 _AuthSession()._update_user_credentials(
                     password="null", stay_logged_in=False
@@ -128,13 +136,13 @@ def _select_credential_source() -> str | None | NoReturn:
         source = _questionary.select(**select_kwargs)
 
         if source == current_setting:
-            rprint("[d]Selected current source, nothing happened.")
+            rprint(markup.dim("Selected current source, nothing happened."))
             return None
         else:
             return source
 
     except (KeyboardInterrupt, EOFError):
-        exit(1)
+        sys.exit(1)
 
 
 def _select_project(client: Client) -> str:
@@ -163,17 +171,17 @@ def service_account_key_flow() -> tuple[bytearray, bytes]:
 
         auth = _AuthSession()
 
-        rprint(
-            Padding(
-                Panel.fit(
-                    "Create a password. "
-                    "This will be used to encrypt your service-account key.\n"
-                    "You will need it again to load this CLI.\n"
-                    "Type password and press [code]enter[/code] to continue."
-                ),
-                (1, 0, 0, 1),
+        panel = Panel.fit(
+            Text.assemble(
+                "Create a password.",
+                "This will be used to encrypt your service-account key.\n",
+                "You will need it again to load this CLI.\n",
+                "Type password and press ",
+                markup.code("enter"),
+                " to continue.",
             )
         )
+        rprint(Padding(panel, (1, 0, 0, 1)))
 
         hashed_password, salt = auth.prompt_new_password()
         key_derivation = auth._generate_key(hashed_password.hexdigest(), salt)
@@ -235,20 +243,22 @@ def _authorize_from_environment() -> Client:
             config["client"].update(active_project=active_project)
 
         global_console_log("Client authenticated")
-        global_console_log(f"Client loaded with project: [code]{active_project}[/code]")
+        global_console_log(
+            Text.assemble("Client loaded with project: ", markup.code(active_project))
+        )
         return client
 
     else:
         credentials, project_id = google.auth.default()
 
-        global_console_log(f"Default project: [code]{project_id}[/code]")
+        global_console_log(Text.assemble("Default project: ", markup.code(project_id)))
 
         if not _questionary.confirm(
             message=f"Continue with project: {project_id}?", auto_enter=False
         ):
             project_id = _select_project(Client(credentials=credentials))
 
-        global_console_log(f"Using project: [code]{project_id}[/code]")
+        global_console_log(Text.assemble("Using project: ", markup.code(project_id)))
 
         credentials = credentials.with_quota_project(project_id)
 

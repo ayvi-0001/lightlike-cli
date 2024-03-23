@@ -1,3 +1,4 @@
+import re
 from datetime import date, datetime, time, timedelta
 from functools import reduce
 from pathlib import Path
@@ -8,8 +9,10 @@ from rich import print as rprint
 from rich.console import Console
 from rich.status import Status
 from rich.table import Table
+from rich.text import Text
 
 from lightlike._console import _CONSOLE_SVG_FORMAT, CONSOLE_CONFIG, global_console_log
+from lightlike.internal import markup
 
 if TYPE_CHECKING:
     from _collections_abc import dict_values
@@ -33,44 +36,55 @@ def cli_info() -> None:
     from lightlike.__about__ import __appdir__, __appname_sc__, __version__
 
     console = get_console()
-    global_console_log(
-        "[repr.attrib_name]__appname__[/repr.attrib_name]"
-        "[repr.attrib_equal]=[/repr.attrib_equal]"
-        f"[repr.attrib_value]{__appname_sc__}"
-    )
-    global_console_log(
-        "[repr.attrib_name]__version__[/repr.attrib_name]"
-        "[repr.attrib_equal]=[/repr.attrib_equal]"
-        f"[repr.attrib_value]{__version__}"
-    )
-    global_console_log(
-        "[repr.attrib_name]__appdir__[/repr.attrib_name]"
-        "[repr.attrib_equal]=[/repr.attrib_equal]"
-        f"[repr.attrib_value]{__appdir__.as_posix()}"
-    )
     console.set_window_title(__appname_sc__)
 
-    if console.width >= 150:
-        width = f"[b][green]{console.width}[/b][/green]"
-    else:
-        width = f"[b][red]{console.width}[/b][/red]"
-
-    if console.height >= 40:
-        height = f"[b][green]{console.height}[/b][/green]"
-    else:
-        height = f"[b][red]{console.height}[/b][/red]"
-
     global_console_log(
-        "[repr.attrib_name]Console[/repr.attrib_name]"
-        "[repr.attrib_equal]=[/repr.attrib_equal]"
-        f"<console width={width} height={height} {console._color_system!s}>"
+        Text.assemble(
+            markup.repr_attrib_name("__appname__"),
+            markup.repr_attrib_equal(),
+            markup.repr_attrib_value(__appname_sc__),
+        )
+    )
+    global_console_log(
+        Text.assemble(
+            markup.repr_attrib_name("__version__"),
+            markup.repr_attrib_equal(),
+            markup.repr_attrib_value(__version__),
+        )
+    )
+    global_console_log(
+        Text.assemble(
+            markup.repr_attrib_name("__appdir__"),
+            markup.repr_attrib_equal(),
+            markup.repr_attrib_value(__appdir__.as_posix()),
+        )
     )
 
-    if console.width < 150:
-        global_console_log(f"[d][red]Recommended console width </ 150")
+    if console.width >= 150:
+        width = markup.bg(console.width).markup
+    else:
+        width = markup.br(console.width).markup
 
-    if console.height < 40:
-        global_console_log(f"[d][red]Recommended console height </ 40")
+    if console.height >= 40:
+        height = markup.bg(console.height).markup
+    else:
+        height = markup.br(console.height).markup
+
+    console_repr = (
+        Text.assemble(
+            markup.repr_attrib_name("Console"),
+            markup.repr_attrib_equal(),
+        ).markup
+        + f"<console ConsoleDimensions(width={width} height={height}) {console._color_system!s}>"
+    )
+
+    global_console_log(console_repr)
+
+    if console.width < 150:
+        global_console_log(markup.dbr("Recommended console width </ 150"))
+
+    if console.height < 35:
+        global_console_log(markup.dbr("Recommended console height </ 35"))
 
 
 def query_start_render(query_config: dict[str, bool]) -> None:
@@ -85,15 +99,15 @@ def query_start_render(query_config: dict[str, bool]) -> None:
     )
 
     general = [
-        "[b][#6b90f7]BigQuery Shell[/b][/#6b90f7]",
-        "Submit: [code]esc[/code]+[code]enter[/code]",
-        "Exit: [code]ctrl[/code]+[code]Q[/code]",
+        markup.pygments_keyword("BigQuery Shell"),
+        Text.assemble(Text("Submit: ", end=""), markup.code_sequence("esc+enter", "+")),
+        Text.assemble(Text("Exit: ", end=""), markup.code_sequence("ctrl+Q", "+")),
     ]
 
     query = []
     for name, value in query_config.items():
-        setting = f"{name.replace('_', ' ').capitalize()}: "
-        setting += "[b][green]on" if value is True else "[b][red]off"
+        setting = Text(f"{name.replace('_', ' ').capitalize()}: ")
+        setting += markup.bg("on") if value is True else markup.br("off")
         query.append(setting)
 
     for _ in range(8):
@@ -146,15 +160,17 @@ def new_console_print(
         console.print(*renderables, style=CONSOLE_CONFIG.style, **print_kwargs)
 
         if svg_path is not None:
-            uri = svg_path.resolve().as_uri()
-            path = svg_path.resolve().as_posix()
-            rprint(f"Saved to [link={uri}][repr.url]{path}[/repr.url].")
+            resolved = svg_path.resolve()
+            uri = resolved.as_uri()
+            path = resolved.as_posix()
+
+            rprint(Text.assemble(Text("Saved to "), markup.link(path, uri), "."))
             console.save_svg(path, code_format=_CONSOLE_SVG_FORMAT)
 
         if text_path is not None:
             uri = text_path.resolve().as_uri()
             path = text_path.resolve().as_posix()
-            rprint(f"Saved to [link={uri}][repr.url]{path}[/repr.url].")
+            rprint(Text.assemble(Text("Saved to "), markup.link(path, uri), "."))
             console.save_text(path)
 
         if status:
@@ -188,7 +204,7 @@ def map_cell_style(values: "dict_values[str, Any]") -> map:
     display_values: list[Any] = []
     for value in values:
         if not value or value in ("null", "None"):
-            display_values.append(f"[#888888]{value}")
+            display_values.append(markup.dimmed(value).markup)
             continue
         if isinstance(value, datetime):
             display_values.append(value.replace(tzinfo=None))

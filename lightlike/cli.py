@@ -20,27 +20,29 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os
-from pathlib import Path
+import sys
 from typing import TYPE_CHECKING, NoReturn, Sequence
 
 import fasteners  # type: ignore[import-untyped, import-not-found]
 import rich_click as click
+from rich import print as rprint
 from rich.traceback import install
+from rich_click.cli import patch
 
 if TYPE_CHECKING:
     from lightlike.app.group import AliasedRichGroup
 
 __all__: Sequence[str] = ("lightlike",)
 
-
 install(suppress=[click])
 
-
 from lightlike import _console
-from lightlike.__about__ import __lock__, __version__
 
 _console.reconfigure()
+
+from lightlike.__about__ import __lock__, __version__
+from lightlike.app import render
+from lightlike.internal import appdir, markup
 
 LOCK = fasteners.InterProcessLock(__lock__)
 
@@ -96,18 +98,16 @@ def build_cli() -> "AliasedRichGroup":
 def lightlike(lock: fasteners.InterProcessLock = LOCK) -> None:
     try:
         _check_lock(lock)
-
-        from lightlike.app import render
-
         render.cli_info()
 
-        from lightlike.internal import appdir
-
-        appdir.validate(__version__)
+        try:
+            appdir.validate(__version__)
+        except Exception as error:
+            rprint(markup.br("An error occured:"))
+            rprint(f"{error}")
+            sys.exit(2)
 
         cli = build_cli()
-
-        from rich_click.cli import patch
 
         from lightlike import cmd
 
@@ -131,7 +131,7 @@ def lightlike(lock: fasteners.InterProcessLock = LOCK) -> None:
         with lock:
             cli(prog_name="lightlike")
 
-    except Exception:
+    except Exception as error:
         with _console.get_console() as console:
             console.print_exception(show_locals=True, width=console.width)
 
@@ -149,5 +149,5 @@ def _check_lock(lock: fasteners.InterProcessLock) -> None | NoReturn:
                     "CLI is already running in another interpreter on this machine. "
                     "Please close it before attempting to run again.",
                 )
-            exit(2)
+            sys.exit(2)
     return None

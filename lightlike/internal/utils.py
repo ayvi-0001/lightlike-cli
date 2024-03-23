@@ -7,6 +7,7 @@ from contextlib import ContextDecorator, suppress
 from datetime import date, time, timedelta
 from decimal import Decimal
 from functools import reduce
+from operator import truth
 from types import FunctionType
 
 import rtoml
@@ -15,9 +16,10 @@ from prompt_toolkit.application import get_app, in_terminal
 from rich import get_console
 from rich import print as rprint
 from rich.console import NewLine
+from rich.text import Text
 
 from lightlike.__about__ import __appdir__, __appname_sc__
-from lightlike.internal import appdir
+from lightlike.internal import appdir, markup
 
 if t.TYPE_CHECKING:
     from logging import Logger
@@ -97,7 +99,7 @@ def _handle_keyboard_interrupt(
                 if callback and callable(callback):
                     callback()
                 else:
-                    rprint("[d]Canceled prompt.")
+                    rprint(markup.dim("Canceled prompt."))
                 return
 
         return inner
@@ -334,32 +336,34 @@ def _sec_to_time_parts(seconds: Decimal) -> tuple[int, int, int]:
 
 
 def print_updated_val(
-    key: str, val: t.Any, prefix: str | None = "[#00ff00]Saved[/#00ff00]."
+    key: str,
+    val: t.Any,
+    prefix: str | Text | None = markup.saved("Saved. "),
 ) -> None:
-    markup: str = ""
-    if isinstance(val, bool) or val in (1, 0):
-        markup = "repr.bool_true" if bool(val) else "repr.bool_false"
+    if isinstance(val, Text):
+        val_markup = val
+    elif isinstance(val, bool) or val in (1, 0):
+        val_markup = (
+            markup.repr_bool_true(val) if truth(val) else markup.repr_bool_false(val)
+        )
     elif isinstance(val, date):
-        markup = "iso8601.date"
+        val_markup = markup.iso8601_date(val)
     elif isinstance(val, (time, timedelta)):
-        markup = "iso8601.time"
+        val_markup = markup.iso8601_time(val)
     elif isinstance(val, str):
-        markup = "repr.str"
+        val_markup = markup.repr_str(val)
     elif not val or val in ("null", "None"):
-        markup = "italic #888888"
+        val_markup = markup.dimmed(val)
     elif isinstance(val, int):
-        markup = "repr.number"
+        val_markup = markup.repr_number(val)
     else:
-        markup = "code"
+        val_markup = markup.code(val)
 
-    message = "".join(
-        [
-            f"{prefix} " if prefix else "",
-            "Setting ",
-            f"[scope.key]{key}[/scope.key] ",
-            "to ",
-            f"[{markup}]{val}[/{markup}].",
-        ]
+    # fmt:off
+    text = Text.assemble(
+        prefix if prefix else "",
+        "Setting ", markup.scope_key(key),
+        " to ", val_markup,
     )
-
-    rprint(message)
+    # fmt:on
+    rprint(text)

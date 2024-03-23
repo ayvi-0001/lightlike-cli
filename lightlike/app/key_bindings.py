@@ -9,9 +9,10 @@ from prompt_toolkit.key_binding.bindings.named_commands import get_by_name
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import get_console
+from rich.text import Text
 
 from lightlike._console import reconfigure_completer
-from lightlike.internal import enums, utils
+from lightlike.internal import enums, markup, utils
 
 if TYPE_CHECKING:
     from prompt_toolkit.key_binding import KeyPressEvent
@@ -82,8 +83,12 @@ def _(event: "KeyPressEvent") -> None:
     reconfigure_completer(completer=enums.ActiveCompleter.CMD)
     with patch_stdout(raw=True):
         get_console().log(
-            "Registered KeyPress [code]F1[/code]. "
-            "Completer set to [code.command]commands[/code.command]."
+            Text.assemble(
+                # fmt: off
+                "Registered KeyPress ", markup.code("F1"),
+                ". Completer set to ", markup.code_command("commands"), ".",
+                # fmt: on
+            )
         )
 
 
@@ -93,8 +98,12 @@ def _(event: "KeyPressEvent") -> None:
     reconfigure_completer(completer=enums.ActiveCompleter.HISTORY)
     with patch_stdout(raw=True):
         get_console().log(
-            "Registered KeyPress [code]F2[/code]. "
-            "Completer set to [code.command]history[/code.command]."
+            Text.assemble(
+                # fmt: off
+                "Registered KeyPress ", markup.code("F2"),
+                ". Completer set to ", markup.code_command("history"), ".",
+                # fmt: on
+            )
         )
 
 
@@ -104,8 +113,12 @@ def _(event: "KeyPressEvent") -> None:
     reconfigure_completer(completer=enums.ActiveCompleter.PATH)
     with patch_stdout(raw=True):
         get_console().log(
-            "Registered KeyPress [code]F3[/code]. "
-            "Completer set to [code.command]path[/code.command]."
+            Text.assemble(
+                # fmt: off
+                "Registered KeyPress ", markup.code("F3"),
+                ". Completer set to ", markup.code_command("path"), ".",
+                # fmt: on
+            )
         )
 
 
@@ -115,8 +128,12 @@ def _(event: "KeyPressEvent") -> None:
     reconfigure_completer(completer=enums.ActiveCompleter.NONE)
     with patch_stdout(raw=True):
         get_console().log(
-            "Registered KeyPress [code]F5[/code]. "
-            "Completer set to [code.command]none[/code.command]."
+            Text.assemble(
+                # fmt: off
+                "Registered KeyPress ", markup.code("F5"),
+                ". Completer set to ", markup.code_command("none"), ".",
+                # fmt: on
+            )
         )
 
 

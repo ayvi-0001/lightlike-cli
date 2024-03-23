@@ -12,6 +12,7 @@ from rich.filesize import decimal
 from rich.padding import Padding
 from rich.syntax import Syntax
 from rich.table import Table
+from rich.text import Text
 
 from lightlike._console import _CONSOLE_SVG_FORMAT, CONSOLE_CONFIG
 from lightlike.app import _pass, cursor, render
@@ -20,7 +21,7 @@ from lightlike.app.key_bindings import QUERY_BINDINGS
 from lightlike.app.routines import CliQueryRoutines
 from lightlike.cmd.query.completers import query_repl_completer
 from lightlike.cmd.query.lexer import BqSqlLexer
-from lightlike.internal import appdir
+from lightlike.internal import appdir, markup
 
 if TYPE_CHECKING:
     from google.cloud.bigquery import QueryJob
@@ -69,7 +70,7 @@ def _run_query_repl(console: Console) -> None:
         uri = _dest.as_uri()
         console.print(f" Queries saved to: [repr.url][link={uri}]{uri}")
 
-    with console.status("[status.message] Loading BigQuery Resources"):
+    with console.status(markup.status_message("Loading BigQuery Resources")):
         query_session = _build_query_session(
             query_repl_completer(), mouse_support=mouse_support
         )
@@ -126,7 +127,7 @@ def render_query(
     hide_table_render: bool,
     TS: str,
 ) -> None:
-    with console.status("[status.message] Running Query") as status:
+    with console.status(markup.status_message("Running Query")) as status:
         try:
             query_job = routine._query(
                 target=query,
@@ -164,10 +165,16 @@ def render_query(
             show_edge=True,
         )
 
-    with console.status("[status.message] Running Query") as status:
+    with console.status(markup.status_message("Running Query")) as status:
         if total_rows:
-            console.log("[notice]total_rows[/notice] = %s" % total_rows)
-            status.update(f"[status.message] Query Complete. Building table")
+            console.log(
+                Text.assemble(
+                    markup.repr_attrib_name("total_rows"),
+                    markup.repr_attrib_equal(),
+                    markup.repr_number(total_rows),
+                )
+            )
+            status.update(markup.status_message("Query Complete. Building table"))
 
             for field in row_iterator.schema:
                 table.add_column(field._properties["name"])
@@ -200,7 +207,7 @@ def render_query(
 
         if save_txt or save_svg:
             status.start()
-            status.update("[status.message] Saving to file")
+            status.update(markup.status_message("Saving to file"))
 
             _file_console = Console(
                 style=CONSOLE_CONFIG.style,
@@ -213,7 +220,7 @@ def render_query(
             if save_query_info:
                 _file_console.begin_capture()
 
-                _file_console.print(f"Query:")
+                _file_console.print("Query:")
                 _file_console.print(
                     Padding(
                         Syntax(
@@ -235,7 +242,13 @@ def render_query(
                 _log_statistics(_file_console, query_job)
 
                 if total_rows:
-                    _file_console.log("[notice]total_rows[/notice] = %s" % total_rows)
+                    _file_console.log(
+                        Text.assemble(
+                            markup.repr_attrib_name("total_rows"),
+                            markup.repr_attrib_equal(),
+                            markup.repr_number(total_rows),
+                        )
+                    )
 
                 _file_console.export_text(clear=True)
 
@@ -249,26 +262,30 @@ def render_query(
             _query_path = _query_dir.joinpath(f"{query_job.job_id}")
 
             if save_txt:
-                status.update("[status.message] Saving as txt")
+                status.update(markup.status_message("Saving as txt"))
 
-                _txt = _query_path.with_suffix(".txt")
+                _txt = _query_path.with_suffix(".txt").resolve()
                 console_text = _file_console.export_text(clear=False)
                 _txt.write_text(console_text, encoding="utf-8")
                 console.log(
-                    f"[link={_txt.as_uri()}][repr.url]{_txt.name}[/repr.url][/link] "
-                    f"({decimal(_txt.stat().st_size)})"
+                    Text.assemble(
+                        markup.link(_txt.as_posix(), _txt.as_uri()), markup.bold(" ("),  # fmt: skip
+                        markup.repr_number(decimal(_txt.stat().st_size)), markup.bold(")"),  # fmt: skip
+                    )
                 )
 
             if save_svg:
-                status.update("[status.message] Saving as svg")
-                _svg = _query_path.with_suffix(".svg")
+                status.update(markup.status_message("Saving as svg"))
+                _svg = _query_path.with_suffix(".svg").resolve()
                 console_svg = _file_console.export_svg(
                     title="", code_format=_CONSOLE_SVG_FORMAT
                 )
                 _svg.write_text(console_svg, encoding="utf-8")
                 console.log(
-                    f"[link={_svg.as_uri()}][repr.url]{_svg.name}[/repr.url][/link] "
-                    f"({decimal(_svg.stat().st_size)})"
+                    Text.assemble(
+                        markup.link(_svg.as_posix(), _svg.as_uri()), markup.bold(" ("),  # fmt: skip
+                        markup.repr_number(decimal(_svg.stat().st_size)), markup.bold(")"),  # fmt: skip
+                    )
                 )
 
         elif not total_rows and query_job.statement_type == "SELECT":
@@ -279,47 +296,56 @@ def _log_statistics(console: Console, query_job: "QueryJob") -> None:
     statement_type = getattr(query_job, "statement_type")
     if statement_type:
         console.log(
-            f"[scope.key]statement_type[/scope.key] = [repr.str]{statement_type}"
+            Text.assemble(
+                markup.scope_key("statement_type"),
+                markup.repr_attrib_equal(),
+                markup.repr_str(statement_type),
+            )
         )
 
     slot_millis = getattr(query_job, "slot_millis")
     if slot_millis:
-        console.log(f"[scope.key]slot_millis[/scope.key] = {slot_millis}")
+        console.log(
+            Text.assemble(
+                markup.scope_key("slot_millis"),
+                markup.repr_attrib_equal(),
+                markup.repr_number(slot_millis),
+            )
+        )
 
     total_bytes_processed = getattr(query_job, "total_bytes_processed")
     if total_bytes_processed:
         console.log(
-            (
-                "[scope.key]total_bytes_processed[/scope.key] = "
-                f"{getattr(query_job, 'total_bytes_processed')} | "
-                "[scope.key]total_bytes_billed[/scope.key] = "
-                f"{getattr(query_job, 'total_bytes_billed')}"
+            Text.assemble(
+                markup.scope_key("total_bytes_processed"),
+                markup.repr_attrib_equal(),
+                markup.repr_number(getattr(query_job, "total_bytes_processed")),
+                markup.scope_key(" | total_bytes_billed"),
+                markup.repr_attrib_equal(),
+                markup.repr_number(getattr(query_job, "total_bytes_billed")),
             )
         )
 
     if query_job.dml_stats:
         for execution in query_job.query_plan:
-            dml_stats = "".join(
-                [
-                    "{name} ({duration}) {input_stages} ",
-                    "slot_ms: {slot_ms} ",
-                    "shuffle_output_bytes: {shuffle_output_bytes} ",
-                    "shuffle_output_bytes_spilled: {shuffle_output_bytes_spilled} ",
-                    "[scope.key]records_read[/scope.key]={records_read}, ",
-                    "[scope.key]records_written[/scope.key]={records_written}",
-                ]
-            )
             console.log(
-                dml_stats.format(
-                    name=execution.name,
-                    duration=(execution.end - execution.start),
-                    input_stages=execution.input_stages,
-                    slot_ms=execution._properties["slotMs"],
-                    shuffle_output_bytes=execution.shuffle_output_bytes,
-                    shuffle_output_bytes_spilled=execution.shuffle_output_bytes_spilled,
-                    records_read=execution.records_read,
-                    records_written=execution.records_written,
+                # fmt: off
+                Text.assemble(
+                    execution.name,
+                    " (", markup.repr_number(execution.end - execution.start),") slot_ms: ",
+                    markup.repr_number(execution._properties["slotMs"]), " ",
+                    markup.bold(execution.input_stages),
+                    " shuffle_output_bytes: ",
+                    markup.repr_number(execution.shuffle_output_bytes),
+                    " shuffle_output_bytes_spilled: ",
+                    markup.repr_number(execution.shuffle_output_bytes_spilled),
+                    markup.scope_key(" records_read"),
+                    markup.bold(markup.scope_equals("=")),
+                    markup.repr_number(execution.records_read),
+                    markup.scope_key(", records_written"),
+                    markup.bold(markup.scope_equals("=")),
+                    markup.repr_number(execution.records_written),
                 )
+                # fmt: on
             )
-
         console.log(query_job.dml_stats)

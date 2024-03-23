@@ -22,7 +22,7 @@ from rich.tree import Tree
 from lightlike.app import _pass, shell_complete
 from lightlike.app.group import _RichCommand
 from lightlike.cmd import _help
-from lightlike.internal import utils
+from lightlike.internal import markup, utils
 
 __all__: Sequence[str] = ("help_", "cd_", "ls_", "tree_", "calendar_", "calc_")
 
@@ -52,10 +52,8 @@ def cd_(path: Path) -> None:
     else:
         try:
             os.chdir(path.resolve())
-        except FileNotFoundError as e:
-            rprint(f"[b][red]FileNotFoundError:[/b][/red] {Path(str(e)).as_posix()}")
-        except NotADirectoryError as e:
-            rprint(f"[b][red]NotADirectoryError:[/b][/red] {Path(str(e)).as_posix()}")
+        except Exception as error:
+            rprint(f"{error!r}; {str(path.resolve())!r}")
 
 
 @click.command(
@@ -137,7 +135,7 @@ def ls_(path: Path) -> None:
         help_option_names=[],
     ),
 )
-@utils._handle_keyboard_interrupt(callback=lambda: rprint("[d]Aborted."))
+@utils._handle_keyboard_interrupt(callback=lambda: rprint(markup.dim("Aborted.")))
 @click.argument(
     "path",
     type=Path,
@@ -182,10 +180,8 @@ def tree_(path: Path) -> None:
             walk_directory(directory, tree)
             rprint(Padding(tree, (1, 0, 1, 0)))
 
-    except FileNotFoundError as e:
-        rprint(f"[b][red]FileNotFoundError:[/b][/red] {Path(str(e)).as_posix()}")
-    except NotADirectoryError as e:
-        rprint(f"[b][red]NotADirectoryError:[/b][/red] {Path(str(e)).as_posix()}")
+    except Exception as error:
+        rprint(f"{error!r}; {str(path.resolve())!r}")
 
 
 @click.command(cls=_RichCommand, name="calc", hidden=True)

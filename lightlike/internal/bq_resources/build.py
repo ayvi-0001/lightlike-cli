@@ -7,6 +7,7 @@ from google.api_core.exceptions import BadRequest
 from google.cloud.bigquery import Client
 from more_itertools import zip_equal
 from rich import get_console
+from rich import print as rprint
 from rich.console import Group
 from rich.live import Live
 from rich.markup import escape
@@ -20,14 +21,16 @@ from rich.progress import (
     TextColumn,
     TimeElapsedColumn,
 )
+from rich.text import Text
 
+from lightlike.internal import markup
 from lightlike.internal.utils import _regexp_replace
 from lightlike.lib.third_party import _questionary
 
 __all__: Sequence[str] = ("run",)
 
 
-SCRIPTS = Path(f"{__file__}/../sql/").resolve()
+SCRIPTS = (Path(__file__) / ".." / "sql").resolve()
 
 
 @dataclass
@@ -37,7 +40,7 @@ class Build:
 
     @property
     def path(self) -> Path:
-        return SCRIPTS.joinpath(f"build{self.ordinal}")
+        return SCRIPTS / f"build{self.ordinal}"
 
     @property
     def scripts(self) -> Sequence[Path]:
@@ -75,8 +78,15 @@ def _run_script(
         step_progress.update(task_id, advance=1)
         client.query_and_wait(script)  # type: ignore[attr-defined]
         step_progress.update(task_id, advance=1)
-    except BadRequest as err:
-        get_console().print("[b][red]Error in script: %s\n[/b]%s\n" % (path.name, err))
+    except BadRequest as error:
+        rprint(
+            Text.assemble(
+                markup.br("Error in script: "),
+                markup.repr_url(path.name),
+                "\n",
+                markup.red(error),
+            )
+        )
 
 
 def _run_build(
@@ -118,19 +128,19 @@ def _run_build(
 
 
 def run(client: "Client", patterns: dict[str, str]) -> bool:
-    get_console().print(
-        Padding(
-            Panel.fit(
-                "Press [code]y[/code] to build tables/procedures in BigQuery.\n"
-                f"These scripts can be viewed in [repr.url][link={SCRIPTS.as_uri()}]"
-                f"{escape(SCRIPTS.as_uri())}[/repr.url]."
-            ),
-            (1, 0, 1, 1),
+    panel = Panel.fit(
+        Text.assemble(
+            # fmt: off
+            "Press ", markup.code("y"),
+            " to build tables/procedures in BigQuery.\n",
+            "These scripts can be viewed in ",
+            markup.link(escape(SCRIPTS.as_posix()), SCRIPTS.as_uri()), ".",
+            # fmt: on
         )
     )
+    rprint(Padding(panel, (1, 0, 1, 1)))
 
     if _questionary.confirm(message="Run SQL scripts?", default=False, auto_enter=True):
-        get_console().print()
         overall_progress = Progress(
             TimeElapsedColumn(),
             BarColumn(),
@@ -154,7 +164,7 @@ def run(client: "Client", patterns: dict[str, str]) -> bool:
 
         build_steps_progress = Progress(
             TextColumn(
-                "[notice]Progress for build: "
+                "[#32ccfe]Progress for build: "
                 "{task.fields[name]}: {task.percentage:.0f}%"
             ),
             BarColumn(),

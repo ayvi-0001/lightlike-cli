@@ -17,13 +17,14 @@ from rich import box, get_console
 from rich.measure import Measurement
 from rich.rule import Rule
 from rich.table import Table
+from rich.text import Text
 
 from lightlike.__about__ import __appname_sc__
 from lightlike._console import global_console_log
 from lightlike.app import _get, render
 from lightlike.app.config import AppConfig
 from lightlike.app.routines import CliQueryRoutines
-from lightlike.internal import appdir, utils
+from lightlike.internal import appdir, markup, utils
 
 if t.TYPE_CHECKING:
     from pathlib import Path
@@ -584,8 +585,8 @@ class TomlCache:
                 justify="right",
                 header_style="cyan",
                 overflow="crop",
-                min_width=8,
-                max_width=8,
+                min_width=10,
+                max_width=10,
             )
         elif items[0] in ("start", "time_paused", "paused"):
             _kwargs |= dict(
@@ -642,17 +643,25 @@ class EntryIdList(metaclass=_EntryIdListSingleton):
 
         if not self.id_pattern.match(input_id):
             raise click.ClickException(
-                message="[repr.str]%s[/repr.str] is not a valid ID. "
-                "Must provide ID matching regex [code]^\w{7,40}$[/code]" % input_id
+                message=Text.assemble(
+                    markup.repr_str(input_id),
+                    " is not a valid ID. ID must match regex ",
+                    markup.code("^\w{7,40}$"),
+                ).markup
             )
         elif len(matching) >= 2:
             raise click.ClickException(
-                message=f"Multiple possible entries starting with [code]{input_id}[/code]. "
-                "Use a longer string to match ID."
+                message=Text.assemble(
+                    "Multiple possible entries starting with ",
+                    markup.repr_str(input_id),
+                    "Use a longer string to match ID.",
+                ).markup
             )
         elif not matching:
             raise click.ClickException(
-                message=f"Cannot find entry ID: [code]{input_id}[/code]"
+                message=Text.assemble(
+                    "Cannot find entry ID: ", markup.repr_str(input_id)
+                ).markup
             )
         else:
             return first(matching)
@@ -705,9 +714,13 @@ class EntryAppData:
         except TypeError:
             ctx = click.get_current_context()
             ctx.fail(
-                "[b][red]**WARNING**[/b][/red]. "
-                "[red]Incomplete rows found in timesheet table. "
-                "Remove these records before continuing to use this CLI."
+                Text.assemble(
+                    markup.br("**WARNING**"),
+                    markup.red("Incomplete rows found in timesheet table."),
+                    markup.red(
+                        "Remove these records before continuing to use this CLI."
+                    ),
+                ).markup
             )
 
         def _map_notes(a: dict[str, t.Any], p: t.Any) -> dict[str, t.Any]:

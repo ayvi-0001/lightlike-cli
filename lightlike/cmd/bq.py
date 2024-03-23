@@ -17,7 +17,7 @@ from lightlike.app.config import AppConfig
 from lightlike.app.group import AliasedRichGroup, _RichCommand
 from lightlike.cmd.query import query_repl
 from lightlike.cmd.snapshot import snapshot
-from lightlike.internal import utils
+from lightlike.internal import markup, utils
 from lightlike.internal.enums import ClientInitOptions, CredentialsSource
 from lightlike.lib.third_party import _questionary
 
@@ -47,7 +47,7 @@ bq.add_command(snapshot)
     short_help="Change active project or credentials source.",
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Did not change configuration."),
+    callback=lambda: rprint(markup.dim("Did not change configuration.")),
 )
 @_pass.console
 def init(console: "Console") -> None:
@@ -157,7 +157,7 @@ def projects() -> None:
     short_help="Reset client settings/auth.",
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Did not change configuration."),
+    callback=lambda: rprint(markup.dim("Did not change configuration.")),
 )
 @_pass.console
 @click.pass_context

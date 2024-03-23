@@ -2,11 +2,12 @@ from typing import TYPE_CHECKING, Sequence
 
 import rich_click as click
 from rich import print as rprint
+from rich.text import Text
 
 from lightlike.app import _get, _pass, render, shell_complete
 from lightlike.app.config import AppConfig
 from lightlike.app.group import AliasedRichGroup, _RichCommand
-from lightlike.internal import utils
+from lightlike.internal import markup, utils
 from lightlike.lib.third_party import _questionary
 
 if TYPE_CHECKING:
@@ -35,7 +36,7 @@ def snapshot(debug: bool) -> None:
     short_help="Create a snapshot clone.",
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Did not create snapshot."),
+    callback=lambda: rprint(markup.dim("Did not create snapshot.")),
 )
 @click.argument(
     "table_name",
@@ -49,7 +50,12 @@ def snapshot_create(
 ) -> None:
     """Create a snapshot clone."""
     routine.create_snapshot(table_name)
-    console.print(f"[saved]Saved[/saved]. Created snapshot [code]{table_name}[/code].")
+    console.print(
+        Text.assemble(
+            markup.saved("Saved"), ". Created snapshot ",  # fmt: skip
+            markup.code(table_name), ".",  # fmt: skip
+        )
+    )
 
 
 @snapshot.command(
@@ -58,7 +64,7 @@ def snapshot_create(
     short_help="Replace timesheet table with a snapshot clone.",
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Did not restore snapshot."),
+    callback=lambda: rprint(markup.dim("Did not restore snapshot.")),
 )
 @_pass.routine
 @_pass.console
@@ -83,7 +89,7 @@ def snapshot_restore(
         )
     except ValueError as e:
         if str(e) == "A list of choices needs to be provided.":
-            console.print(f"[d]No snapshots exist")
+            console.print(markup.dim("No snapshots exist"))
             raise utils.click_exit
         else:
             console.print(f"[red]{e}")
@@ -96,10 +102,14 @@ def snapshot_restore(
     ):
         routine.restore_snapshot(selection, wait=True, render=True)
         console.print(
-            f"[saved]Saved[/saved]. Restored snapshot [code]{selection}[/code]."
+            Text.assemble(
+                markup.saved("Saved"), ". Restored snapshot ",  # fmt: skip
+                markup.code(selection), ".",  # fmt: skip
+            )
         )
+
     else:
-        console.print("[d]Did not restore snapshot.")
+        console.print(markup.dim("Did not restore snapshot."))
 
 
 @snapshot.command(
@@ -125,7 +135,7 @@ def snapshot_list(console: "Console", routine: "CliQueryRoutines") -> None:
     )
 
     if not table.row_count:
-        console.print("[d]No snapshots found")
+        console.print(markup.dim("No snapshots found"))
     else:
         render.new_console_print(table)
 
@@ -136,7 +146,7 @@ def snapshot_list(console: "Console", routine: "CliQueryRoutines") -> None:
     short_help="Drop a snapshot clone.",
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Did not delete snapshot."),
+    callback=lambda: rprint(markup.dim("Did not delete snapshot.")),
 )
 @_pass.console
 @_pass.client
@@ -154,7 +164,7 @@ def snapshot_delete(client: "Client", console: "Console") -> None:
     choices = list(map(_get.table_id, snapshots))
 
     if not choices:
-        console.print(f"[d]No snapshots exist")
+        console.print(markup.dim("No snapshots exist"))
         raise utils.click_exit
 
     selection = _questionary.checkbox(
@@ -167,6 +177,6 @@ def snapshot_delete(client: "Client", console: "Console") -> None:
     ):
         for snapshot in selection:
             client.delete_table(f"{dataset}.{snapshot}")
-            console.print(f"Deleted [code]{snapshot}[/code].")
+            console.print(Text.assemble(f"Deleted ", markup.code(snapshot), "."))
     else:
-        console.print(f"[d]Did not select any snapshots.")
+        console.print(markup.dim("Did not select any snapshots."))

@@ -19,9 +19,7 @@ def time(
 ) -> list[CompletionItem]:
     if not ctx.resilient_parsing:
         return []
-    elif ctx.params.get("%s" % param.name) is None:
-        return []
-    elif not incomplete and not param.default:
+    elif ctx.params.get(f"{param.name!s}") is not None and not param.default:
         return []
     elif time_complete := _time_autocomplete(incomplete):
         return time_complete

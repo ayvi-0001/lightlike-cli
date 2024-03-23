@@ -1,11 +1,13 @@
+from operator import truth
 from pathlib import Path
 from typing import Any, Sequence, cast
 
 import rich_click as click
 from pytz import all_timezones
+from rich.text import Text
 
 from lightlike.app.cache import TomlCache
-from lightlike.internal import utils
+from lightlike.internal import markup, utils
 from lightlike.lib.third_party import _questionary
 
 __all__: Sequence[str] = ("timezone", "edit_params", "weekstart", "report_path")
@@ -19,33 +21,43 @@ def timezone(ctx: click.Context, param: click.Parameter, value: str) -> str:
     return value
 
 
-def edit_params(locals: dict[str, Any]) -> bool:
-    id_sequence = cast(list[str], locals.get("id_sequence"))
-    ctx = cast(click.Context, locals.get("ctx"))
-    cache = cast(TomlCache, locals.get("cache"))
-    editors = cast(Sequence[dict[str, Any]], locals.get("editors"))
+def edit_params(ctx: click.Context, cache: TomlCache, params: dict[str, Any]) -> bool:
+    id_sequence = cast(list[str], params.get("id_sequence"))
 
     if not id_sequence:
         raise click.UsageError(message="No ID provided.", ctx=ctx)
-
-    elif not editors:
+    elif not any(
+        [
+            truth(params.get("project")),
+            truth(params.get("note")),
+            truth(params.get("billable")),
+            truth(params.get("start")),
+            truth(params.get("end")),
+            truth(params.get("date")),
+        ]
+    ):
         raise click.UsageError(message="No fields selected.", ctx=ctx)
 
     if cache._if_any_entries(cache.running_entries, id_sequence):
         raise click.UsageError(
-            message="This entry is currently active. Use the command "
-            "[code.command]timer[/code.command]:[code.command]update[/code.command] instead.",
+            message=Text.assemble(
+                "This entry is currently active. Use the command ",
+                markup.code_command_sequence("timer:update", ":"), " instead.",  # fmt: skip
+            ).markup,
             ctx=ctx,
         )
     if cache._if_any_entries(cache.paused_entries, id_sequence):
         raise click.UsageError(
-            message="This entry is paused. "
-            "Either use commands "
-            "[code.command]timer[/code.command]:[code.command]resume[/code.command] -> "
-            "[code.command]timer[/code.command]:[code.command]update[/code.command], or "
-            "[code.command]timer[/code.command]:[code.command]resume[/code.command] -> "
-            "[code.command]timer[/code.command]:[code.command]stop[/code.command] -> "
-            "[code.command]timer[/code.command]:[code.command]edit[/code.command].",
+            message=Text.assemble(
+                # fmt: off
+                "This entry is paused. Either use commands ",
+                markup.code_command_sequence("timer:resume", ":"), " -> ",
+                markup.code_command_sequence("timer:update", ":"), ", or ",
+                markup.code_command_sequence("timer:resume", ":"), " -> ",
+                markup.code_command_sequence("timer:stop", ":"), " -> ",
+                markup.code_command_sequence("timer:edit", ":"), ".",
+                # fmt: on
+            ).markup,
             ctx=ctx,
         )
 
