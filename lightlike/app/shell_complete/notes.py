@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, ClassVar, Iterator, Sequence
 
 import rtoml
 from click.shell_completion import CompletionItem
-from more_itertools import first, nth
+from more_itertools import first
 from prompt_toolkit.application import get_app
 from prompt_toolkit.completion import Completer, Completion
 

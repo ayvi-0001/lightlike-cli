@@ -18,7 +18,6 @@ __all__: Sequence[str] = ("build",)
 
 USERNAME = AppConfig().username
 HOSTNAME = AppConfig().hostname
-CONSOLE_WIDTH: int = get_console().width
 TIMEZONE = AppConfig().tz
 
 
@@ -34,7 +33,6 @@ def build(message: str | None = None, hide_rprompt: bool = False) -> str:
         console = get_console()
         cwd = Path.cwd()
 
-        _clear_on_resize(console)
         _set_title_time(console, cache)
 
         cursor = _base(cwd)
@@ -51,7 +49,6 @@ def build(message: str | None = None, hide_rprompt: bool = False) -> str:
         console = get_console()
         cwd = Path.cwd()
 
-        _clear_on_resize(console)
         _set_title_time(console, cache)
 
         cursor = _base(cwd)
@@ -82,13 +79,6 @@ def _base(
 def _set_title_time(console: Console, cache: TomlCache) -> None:
     if cache:
         console.set_window_title(f"{_time_diff(cache)}#{cache.project}")
-
-
-def _clear_on_resize(console: Console) -> None:
-    global CONSOLE_WIDTH
-    if console.width != CONSOLE_WIDTH:
-        CONSOLE_WIDTH = console.width
-        console.clear()
 
 
 def _time_diff(cache: TomlCache) -> str:
@@ -191,3 +181,12 @@ def _extend_cursor_shape(
 ) -> None:
     ext = f"\n{message or ''}{'$ ' if not message else ' $ '}"
     cursor.extend([("class:cursor", ext)])
+
+
+# CONSOLE_WIDTH: int = get_console().width
+
+# def _clear_on_resize(console: Console) -> None:
+#     global CONSOLE_WIDTH
+#     if console.width != CONSOLE_WIDTH:
+#         CONSOLE_WIDTH = console.width
+#         console.clear()

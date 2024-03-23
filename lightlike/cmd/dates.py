@@ -3,9 +3,12 @@ from datetime import datetime, timedelta
 from typing import Sequence
 
 import rich_click as click
+from rich.text import Text
 
+from lightlike.app import _get
 from lightlike.app.config import AppConfig
 from lightlike.app.prompt import PromptFactory
+from lightlike.internal import markup
 
 __all__: Sequence[str] = ("_parse_date_range_flags", "_get_current_week_range")
 
@@ -14,31 +17,43 @@ __all__: Sequence[str] = ("_parse_date_range_flags", "_get_current_week_range")
 class DateParams:
     start: datetime
     end: datetime
+    duration: timedelta
+    total_seconds: int
 
 
 def _parse_date_range_flags(
-    start: str | None = None, end: str | None = None
+    start: datetime | str | None = None, end: datetime | str | None = None
 ) -> DateParams:
     if not start:
         start_local = PromptFactory.prompt_for_date("(start-date)")
     else:
-        start_local = PromptFactory._parse_date(start)
+        start_local = PromptFactory._parse_date(f"{start!s}")
 
     if not end:
         end_local = PromptFactory.prompt_for_date("(end-date)")
     else:
-        end_local = PromptFactory._parse_date(end)
+        end_local = PromptFactory._parse_date(f"{end!s}")
 
-    if end_local < start_local:
+    duration = end_local - start_local
+    total_seconds = int(duration.total_seconds())
+
+    if total_seconds < 0 or _get.sign(duration.days) == -1:
         raise click.BadParameter(
-            message=(
-                "Invalid value for args [[args]START[/args]] | "
-                "[[args]END[/args]]: End date cannot be before start date. "
-            ),
+            message=Text.assemble(
+                # fmt: off
+                "Invalid value for args [", markup.args("START"), "] | ",
+                markup.args("END"), "]: Cannot set end before start",
+                # fmt: on
+            ).markup,
             ctx=click.get_current_context(),
         )
 
-    return DateParams(start=start_local, end=end_local)
+    return DateParams(
+        start=start_local,
+        end=end_local,
+        duration=duration,
+        total_seconds=total_seconds,
+    )
 
 
 def _get_current_week_range() -> DateParams:
@@ -52,6 +67,14 @@ def _get_current_week_range() -> DateParams:
 
     week_start = today - delta
     week_end = week_start + timedelta(days=6)
-    date_range = DateParams(start=week_start, end=week_end)
+    duration = week_end - week_start
+    total_seconds = int(duration.total_seconds())
+
+    date_range = DateParams(
+        start=week_start,
+        end=week_end,
+        duration=duration,
+        total_seconds=total_seconds,
+    )
 
     return date_range

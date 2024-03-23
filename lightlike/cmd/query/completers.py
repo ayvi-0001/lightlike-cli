@@ -25,8 +25,8 @@ __all__: t.Sequence[str] = ("query_repl_completer",)
 
 def query_repl_completer() -> ThreadedCompleter:
     completers = [
-        LoopNestedCompleter.from_nested_dict(SQL_KEYWORDS, KEYWORD_META),
         ResourceCompleter(),
+        LoopNestedCompleter.from_nested_dict(SQL_KEYWORDS, KEYWORD_META),
     ]
     return ThreadedCompleter(merge_completers(completers, deduplicate=True))
 

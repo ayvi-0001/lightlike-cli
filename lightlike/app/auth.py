@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from base64 import b64encode
 from hashlib import sha3_256, sha256
 from json import JSONDecodeError, loads
@@ -16,9 +17,10 @@ from prompt_toolkit.validation import Validator
 from rich import get_console
 from rich.padding import Padding
 from rich.panel import Panel
+from rich.text import Text
 
 from lightlike.app.config import AppConfig
-from lightlike.internal import utils
+from lightlike.internal import markup, utils
 from lightlike.internal.enums import CredentialsSource
 from lightlike.lib.third_party import _questionary
 
@@ -58,7 +60,7 @@ class _AuthSession:
                 credentials_source=CredentialsSource.not_set,
                 service_account_key=[],
             )
-        exit(0)
+        sys.exit(0)
 
     def encrypt(self, __key: bytes, __val: str) -> bytes:
         return Fernet(__key).encrypt(__val.encode())
@@ -95,7 +97,7 @@ class _AuthSession:
             if not password:
                 password = self.prompt_password()
 
-            password = sha256(password.encode()).hexdigest()
+            password = sha256(password.encode()).hexdigest()  # type: ignore[union-attr]
 
         try:
             service_account_key = self.decrypt(
@@ -111,13 +113,14 @@ class _AuthSession:
                 )
                 self.console.print(
                     Panel(
-                        "[b][red]Saved credentials failed. "
-                        "Password input required[/b][/red].\n"
-                        "Enter password."
+                        Text.assemble(
+                            markup.br("Saved credentials failed."),
+                            "Password input required.\nEnter password.",
+                        )
                     )
                 )
             else:
-                self.console.print("[b][red]Incorrect password.")
+                self.console.print(markup.br("Incorrect password."))
 
             if retry:
                 return self.authenticate(salt, encrypted_key)
@@ -131,9 +134,10 @@ class _AuthSession:
                 )
                 self.console.print(
                     Panel(
-                        "[b][red]Saved credentials failed. "
-                        "Password input required[/b][/red].\n"
-                        "Enter password."
+                        Text.assemble(
+                            markup.br("Saved credentials failed."),
+                            "Password input required.\nEnter password.",
+                        )
                     )
                 )
 
@@ -165,8 +169,8 @@ class _AuthSession:
                     return password
 
         except (KeyboardInterrupt, EOFError):
-            self.console.print(f"\n[b][red]Aborted")
-            exit(2)
+            self.console.print(markup.br("\nAborted"))
+            sys.exit(2)
 
     def prompt_new_password(self) -> tuple[sha3_256, bytes]:
         while 1:
@@ -178,8 +182,11 @@ class _AuthSession:
         self.console.print(
             Padding(
                 Panel.fit(
-                    "Copy and paste service-account key. Press "
-                    "[code]esc[/code] + [code]enter[/code] to continue."
+                    Text.assemble(
+                        "Copy and paste service-account key. Press ",
+                        markup.code_sequence("esc+enter", "+"),
+                        " to continue.",
+                    )
                 ),
                 (1, 0, 1, 1),
             )
@@ -206,7 +213,7 @@ class _AuthSession:
                 try:
                     key = loads(key_input)
                 except JSONDecodeError:
-                    self.console.print("[b][red]Invalid json.")
+                    self.console.print(markup.br("Invalid json."))
                     continue
                 else:
                     if (
@@ -214,14 +221,17 @@ class _AuthSession:
                         or "token_uri" not in key.keys()
                     ):
                         self.console.print(
-                            "Invalid service-account json. Missing required key "
-                            "[code]client_email[/code] or [code]token_uri[/code].\n"
+                            Text.assemble(
+                                "Invalid service-account json. Missing required key ",
+                                markup.code("client_email"), " or ",  # fmt: skip
+                                markup.code("token_uri"), ".\n",  # fmt: skip
+                            )
                         )
                         continue
                     service_account_key = key_input
         except (KeyboardInterrupt, EOFError):
-            self.console.print(f"[b][red]Aborted")
-            exit(2)
+            self.console.print(markup.br("Aborted"))
+            sys.exit(2)
 
         return service_account_key
 
@@ -280,11 +290,11 @@ class _AuthSession:
                     ...
 
             else:
-                self.console.print("[d]Setting is already on.")
+                self.console.print(markup.dim("Setting is already on."))
 
         elif value is False:
             if not AppConfig().get("user", "stay_logged_in"):
-                self.console.print("[d]Setting is already off.")
+                self.console.print(markup.dim("Setting is already off."))
 
             else:
                 self._update_user_credentials(password="null", stay_logged_in=False)

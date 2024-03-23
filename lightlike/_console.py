@@ -1,13 +1,17 @@
 import sys
+from contextlib import suppress
 from dataclasses import dataclass
 from functools import partial
 from typing import Any, Literal, Sequence
 
+import fasteners  # type: ignore[import-untyped, import-not-found]
 import rtoml
 from rich import get_console
 from rich import reconfigure as rich_reconfigure
 from rich.console import Style, Theme
+from rich.text import Text
 
+from lightlike.internal.appdir import __appdir__
 from lightlike.internal.enums import ActiveCompleter
 
 __all__: Sequence[str] = (
@@ -20,7 +24,7 @@ __all__: Sequence[str] = (
 )
 
 
-CONSOLE_TOML = """
+CONSOLE_TOML: str = """
 [style]
 color = "#f0f0ff"
 bold = false
@@ -30,8 +34,8 @@ attr = "bold #fafa19"
 notice = "#32ccfe"
 code = "bold #f08375"
 "code.command" = "bold #3465a4"
-"code.lflag" = "bold #00ffff"
-"code.sflag" = "bold #00ff00"
+"flag.long" = "bold #00ffff"
+"flag.short" = "bold #00ff00"
 args = "bold #34e2e2"
 "header.str" = "#ff0000"
 "header.dt" = "#ffff00"
@@ -40,7 +44,6 @@ args = "bold #34e2e2"
 failure = "#f0f0ff on #ff0000"
 none = "#f0f0ff"
 prompt = "#f0f0ff"
-# d = "#888888"
 dimmed = "#888888"
 saved = "#00ff00"
 "tree.line" = "bold magenta"
@@ -52,7 +55,7 @@ saved = "#00ff00"
 "table.cell.empty" = "#888888"
 "table.title" = "bold #f0f0ff"
 "table.caption" = "dim"
-"status.message" = "#19667f"
+"status.message" = "#32ccfe"
 "status.spinner" = "#32ccfe"
 "progress.description" = "#f0f0ff"
 "progress.spinner" = "#32ccfe"
@@ -85,7 +88,7 @@ class ConsoleConfig:
         self.theme = Theme(**self.config["theme"])
 
 
-CONSOLE_CONFIG = ConsoleConfig(rtoml.loads(CONSOLE_TOML))
+CONSOLE_CONFIG: ConsoleConfig = ConsoleConfig(rtoml.loads(CONSOLE_TOML))
 
 
 def reconfigure(**kwargs: Any) -> None:
@@ -101,30 +104,27 @@ def reconfigure(**kwargs: Any) -> None:
     setattr(get_console(), "status", partial(get_console().status, spinner=spinner))
 
 
-CONSOLE_QUIET_START: bool = True
+CONSOLE_QUIET_START: bool = False
 
 
-def _configure_quiet_start():
-    from lightlike.__about__ import __appdir__
+@fasteners.interprocess_locked(__appdir__ / "config.lock")
+def _configure_quiet_start() -> None:
+    with suppress(Exception):
+        if (config_path := __appdir__ / "config.toml").exists():
+            config = rtoml.load(config_path)
+            quiet_start = config["settings"].get("quiet_start")
 
-    if (config_path := __appdir__.joinpath("config.toml")).exists():
-        import rtoml
-
-        config = rtoml.load(config_path)
-        quiet_start = config["settings"].get("quiet_start")
-
-        global CONSOLE_QUIET_START
-        if len(sys.argv) > 1:
-            CONSOLE_QUIET_START = True
-
-        elif quiet_start is not None and isinstance(quiet_start, bool):
-            CONSOLE_QUIET_START = quiet_start
+            global CONSOLE_QUIET_START
+            if len(sys.argv) > 1:
+                CONSOLE_QUIET_START = True
+            elif quiet_start is not None:
+                CONSOLE_QUIET_START = bool(quiet_start)
 
 
 _configure_quiet_start()
 
 
-def global_console_log(message: str) -> None:
+def global_console_log(message: Text | str) -> None:
     global CONSOLE_QUIET_START
     if CONSOLE_QUIET_START is False:
         get_console().log(message)
@@ -155,7 +155,7 @@ def reconfigure_completer(
     COMPLETER = NEW_COMPLETER
 
 
-PROMPT_TOML = """
+PROMPT_TOML: str = """
 cursor-shape = "BLOCK"
 
 [style]

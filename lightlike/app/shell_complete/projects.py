@@ -24,11 +24,13 @@ __all__: Sequence[str] = (
     "from_chained_cmd",
     "ActiveProject",
     "ArchivedProject",
+    "AnyProject",
 )
 
 
 ActiveProject = NewType("ActiveProject", str)
 ArchivedProject = NewType("ArchivedProject", str)
+AnyProject = NewType("AnyProject", str)
 
 
 class Projects(Completer):
@@ -93,14 +95,18 @@ def from_argument(
     assert ctx.parent
 
     if param.type.name == "ActiveProject":
-        project_type = "ACTIVE"
+        completer = Projects(list_="ACTIVE")
+        completion_items = completer.completion_items
+    elif param.type.name == "ArchivedProject":
+        completer = Projects(list_="ARCHIVED")
+        completion_items = completer.completion_items
     else:
-        project_type = "ARCHIVED"
+        completion_items = (
+            Projects(list_="ACTIVE").completion_items
+            + Projects(list_="ARCHIVED").completion_items
+        )
 
-    completer = Projects(list_=project_type)
-    completion_items = completer.completion_items
-
-    if not completer.completion_items:
+    if not completion_items:
         _clear_and_return(f"{completer.list_} projects list is empty")
         return []
 
@@ -110,7 +116,9 @@ def from_argument(
                 item
                 for item in completion_items
                 if _match_str(incomplete, item.value)
-                and item.value not in ctx.parent.args + ["no-project"]
+                and item.value
+                not in ctx.parent.args
+                + (["no-project"] if param.type.name != "AnyProject" else [])
             ],
             key=lambda c: getattr(c, "value"),
         )
@@ -121,7 +129,9 @@ def from_argument(
                 item
                 for item in completion_items
                 if _match_str(incomplete, item.value)
-                and item.value not in ctx.parent.args + ["no-project"]
+                and item.value
+                not in ctx.parent.args
+                + (["no-project"] if param.type.name != "AnyProject" else [])
             ],
             key=lambda c: getattr(c, "value"),
         )
@@ -135,20 +145,25 @@ def from_option(
     assert param.param_type_name == "option"
 
     if param.type.name == "ActiveProject":
-        project_type = "ACTIVE"
+        completer = Projects(list_="ACTIVE")
+        completion_items = completer.completion_items
+    elif param.type.name == "ArchivedProject":
+        completer = Projects(list_="ARCHIVED")
+        completion_items = completer.completion_items
     else:
-        project_type = "ARCHIVED"
+        completion_items = (
+            Projects(list_="ACTIVE").completion_items
+            + Projects(list_="ARCHIVED").completion_items
+        )
 
-    completer = Projects(list_=project_type)
-
-    if not completer.completion_items:
+    if not completion_items:
         _clear_and_return(f"{completer.list_} projects list is empty")
         return []
 
     items = list(
         filter(
             lambda c: _match_str(incomplete, c.value),
-            completer.completion_items,
+            completion_items,
         )
     )
 

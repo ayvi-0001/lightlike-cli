@@ -14,6 +14,7 @@ from lightlike.app.cache import EntryAppData, EntryIdList, TomlCache
 from lightlike.app.client import get_client, get_console
 from lightlike.app.config import AppConfig
 from lightlike.app.routines import CliQueryRoutines
+from lightlike.internal import markup
 
 __all__: Sequence[str] = (
     "routine",
@@ -85,7 +86,7 @@ def active_time_entry(fn: Callable[..., Any]) -> Callable[..., Any]:
     @functools.wraps(fn)
     def inner(cache: TomlCache, *args: P.args, **kwargs: P.kwargs) -> Any:
         if not cache:
-            rprint("[d]There is no active time entry.")
+            rprint(markup.dim("There is no active time entry."))
             return None
         else:
             return fn(cache, *args, **kwargs)

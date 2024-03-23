@@ -36,7 +36,7 @@ __all__: Sequence[str] = (
 )
 
 
-def get_app_dir(app_name: str, roaming: bool = True, force_posix: bool = False) -> str:
+def get_app_dir(app_name: str, roaming: bool = True, force_posix: bool = True) -> str:
     # Copy of function from click.
     # Import from click in this file was causing errors with hatch build,
     # temporarily copying this function here until that issue is resolved.
@@ -68,8 +68,8 @@ finally:
     __appname__: Final[str] = "Lightlike CLI%s" % (f" {env}" if env else '')
 
 __appname_sc__: Final[str] = "".join(c if c.isalnum() else "_" for c in __appname__.lower())
-__version__: Final[str] = "v0.8.10"
+__version__: Final[str] = "v0.8.14"
 __repo__: Final[str] = "https://github.com/ayvi-0001/lightlike-cli"
 __latest_release__: Final[str] = f"{__repo__}/releases/latest"
 __appdir__: Final[Path] = Path(get_app_dir(__appname__, roaming=True))
-__lock__: Final[Path] = __appdir__.joinpath("cli.lock")
+__lock__: Final[Path] = __appdir__ / "cli.lock"

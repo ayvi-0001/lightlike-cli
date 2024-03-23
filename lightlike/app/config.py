@@ -14,6 +14,7 @@ from prompt_toolkit.styles import Style
 from pytz import timezone
 
 from lightlike._console import PROMPT_TOML
+from lightlike.app import _get
 from lightlike.internal import appdir, utils
 from lightlike.internal.enums import CredentialsSource
 
@@ -124,6 +125,11 @@ class AppConfig(metaclass=_AppConfigSingleton):
 
     def in_app_timezone(self, dt: datetime) -> datetime:
         return dt.astimezone(self.tz).replace(microsecond=0)
+
+    @property
+    def default_timer_add_min(self) -> float:
+        timer_add_min: float = self.get("settings", "timer_add_min")
+        return -timer_add_min if _get.sign(timer_add_min) != -1 else timer_add_min
 
     @property
     def general_settings(self) -> dict[str, t.Any]:

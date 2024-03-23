@@ -8,12 +8,13 @@ import rich_click as click
 from dateparser import parse
 from prompt_toolkit.shortcuts import CompleteStyle, PromptSession
 from prompt_toolkit.validation import Validator
+from rich.text import Text
 
 from lightlike.app import cursor, shell_complete, validate
 from lightlike.app.autosuggest import _threaded_autosuggest
 from lightlike.app.config import AppConfig
 from lightlike.app.key_bindings import PROMPT_BINDINGS
-from lightlike.internal import utils
+from lightlike.internal import markup, utils
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -34,10 +35,18 @@ REPL_PROMPT_KWARGS = dict(
     complete_while_typing=True,
     validate_while_typing=True,
     enable_system_prompt=True,
-    reserve_space_for_menu=14,  # int(get_console().height * 0.3),
+    reserve_space_for_menu=AppConfig().get(
+        "settings",
+        "reserve_space_for_menu",
+        default=7,
+    ),
     complete_style=cast(
         CompleteStyle,
-        AppConfig().get("settings", "complete_style", default="COLUMN"),
+        AppConfig().get(
+            "settings",
+            "complete_style",
+            default="COLUMN",
+        ),
     ),
 )
 
@@ -99,7 +108,9 @@ class PromptFactory(PromptSession):
         parsed_date = parse(date, settings=parser_settings)
         if not parsed_date:
             raise click.UsageError(
-                message=f"Failed to parse date: [code]{date}[/code]",
+                message=Text.assemble(
+                    f"Failed to parse date: ", markup.code(date)
+                ).markup,
                 ctx=click.get_current_context(),
             )
         return AppConfig().in_app_timezone(parsed_date.replace(microsecond=0))

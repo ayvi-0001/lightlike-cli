@@ -6,11 +6,12 @@ from uuid import uuid4
 import rich_click as click
 from rich import print as rprint
 from rich.padding import Padding
+from rich.text import Text
 
 from lightlike.app import _pass, render, shell_complete, validate
 from lightlike.app.group import AliasedRichGroup, _RichCommand
 from lightlike.cmd import _help, dates
-from lightlike.internal import utils
+from lightlike.internal import markup, utils
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -75,7 +76,7 @@ where_clause = click.argument(
     nargs=-1,
     type=click.STRING,
     required=False,
-    metavar="WHERE_CLAUSE",
+    metavar="[WHERE_CLAUSE]",
 )
 print_option = click.option(
     "-p",
@@ -97,7 +98,7 @@ print_option = click.option(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Canceled report."),
+    callback=lambda: rprint(markup.dim("Canceled report.")),
 )
 @current_week_option
 @start_option
@@ -134,13 +135,13 @@ def table_report(
         else dates._parse_date_range_flags(start, end)
     )
 
-    str_range = "%s -> %s" % (date_range.start.date(), date_range.end.date())
+    str_range = f"{date_range.start.date()!s} -> {date_range.end.date()!s}"
 
     _where_clause = shell_complete.where._parse_click_options(
         flag=where, args=where_clause, console=console, routine=routine
     )
 
-    status_renderable = f"[status.message] Building report"
+    status_renderable = Text.assemble(markup.status_message("Building report")).markup
     with console.status(status_renderable) as status:
         query_job = routine.report(
             start_date=date_range.start,
@@ -164,7 +165,12 @@ def table_report(
         )
 
         if not table.row_count:
-            console.print("[d]No entries found between %s." % str_range)
+            console.print(
+                Text.assemble(
+                    markup.dim(f"No entries between "),
+                    markup.iso8601_date(str_range), ".",  # fmt: skip
+                )
+            )
             return
 
         render.new_console_print(
@@ -184,7 +190,7 @@ def table_report(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Canceled report."),
+    callback=lambda: rprint(markup.dim("Canceled report.")),
 )
 @current_week_option
 @start_option
@@ -219,8 +225,16 @@ def csv_report(
 ) -> None:
     if not destination and not print_:
         raise click.BadParameter(
-            message="For csv and json reports, "
-            "at least one of --print or --destination flags must be used.",
+            message=Text.assemble(
+                # fmt: off
+                "For ", markup.code_command("csv"),
+                " and ", markup.code_command("json"),
+                " reports, at least one of ",
+                markup.code_flag("--print", "-p"),
+                " or ", markup.code_flag("--destination", "-d"),
+                " must be provided.",
+                # fmt: on
+            ).markup,
         )
 
     date_range = (
@@ -233,7 +247,7 @@ def csv_report(
         flag=where, args=where_clause, console=console, routine=routine
     )
 
-    status_renderable = f"[status.message] Building report"
+    status_renderable = Text.assemble(markup.status_message("Building report")).markup
     with console.status(status_renderable) as status:
         query_job = routine.report(
             start_date=date_range.start,
@@ -255,7 +269,7 @@ def csv_report(
             uri = dest.as_uri()
             path = dest.as_posix()
             df.to_csv(path, index=False, encoding="utf-8")
-            console.print(f"Saved to [link={uri}][repr.url]{path}[/repr.url].")
+            console.print(Text.assemble(Text("Saved to "), markup.link(path, uri), "."))
 
         if print_:
             if not destination:
@@ -277,7 +291,7 @@ def csv_report(
     ),
 )
 @utils._handle_keyboard_interrupt(
-    callback=lambda: rprint("[d]Canceled report."),
+    callback=lambda: rprint(markup.dim("Canceled report.")),
 )
 @current_week_option
 @start_option
@@ -327,8 +341,16 @@ def json_report(
 ) -> None:
     if not destination and not print_:
         raise click.UsageError(
-            message="For csv and json reports, "
-            "at least one of --print or --destination flags must be used.",
+            message=Text.assemble(
+                # fmt: off
+                "For ", markup.code_command("csv"),
+                " and ", markup.code_command("json"),
+                " reports, at least one of ",
+                markup.code_flag("--print", "-p"),
+                " or ", markup.code_flag("--destination", "-d"),
+                " must be provided.",
+                # fmt: on
+            ).markup,
             ctx=ctx,
         )
 
@@ -342,7 +364,7 @@ def json_report(
         flag=where, args=where_clause, console=console, routine=routine
     )
 
-    status_renderable = f"[status.message] Building report"
+    status_renderable = Text.assemble(markup.status_message("Building report")).markup
     with console.status(status_renderable) as status:
         query_job = routine.report(
             start_date=date_range.start,
@@ -364,7 +386,7 @@ def json_report(
             uri = dest.as_uri()
             path = dest.as_posix()
             df.to_json(path, orient=orient, date_format="iso", indent=4)  # type: ignore[call-overload]
-            console.print(f"Saved to [link={uri}][repr.url]{path}[/repr.url].")
+            console.print(Text.assemble(Text("Saved to "), markup.link(path, uri), "."))
 
         if print_:
             if not destination:

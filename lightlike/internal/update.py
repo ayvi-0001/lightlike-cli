@@ -5,19 +5,24 @@ from typing import Final, Pattern, Sequence
 import rtoml
 from more_itertools import flatten, interleave_longest
 from rich import get_console
+from rich.text import Text
 
-from lightlike.internal import utils
+from lightlike.internal import markup, utils
 from lightlike.internal.utils import update_dict
 
-__all__: Sequence[str] = ("update_cli", "_update_config")
+__all__: Sequence[str] = ("update_cli", "update_config")
 
 
-def update_cli(config: Path, __version__: str | None = None, /) -> None:
-    _update_routines()
-    # ...  # TODO
+def update_cli(config: Path, __version__: str, /) -> None:
+    update_routine_diff()
+
+    # TODO
+    # v_local = extract_version(__version__)
+    # if v_local < :
+    #     ...
 
 
-def get_version(__latest_release__) -> str:
+def get_version_from_release(__latest_release__) -> str:
     import httpx
 
     headers = {
@@ -32,27 +37,35 @@ def get_version(__latest_release__) -> str:
     return version
 
 
-def compare_version(__version__: str, __repo__: str, __latest_release__: str) -> str:
+def extract_version(version_text: str) -> tuple[int, int, int]:
     pkg_expr: Final[Pattern[str]] = re.compile(r"v(\d+).(\d+).(\d+)", re.I)
+    match = pkg_expr.match(version_text)
+    major, minor, patch = match.group(1, 2, 3)  # type: ignore[union-attr]
+    version = int(major), int(minor), int(patch)
+    return version
 
-    latest_release = get_version(__latest_release__)
 
-    vLocal = pkg_expr.match(__version__)
-    vLatest = pkg_expr.match(latest_release)
-
-    local_major, local_minor, local_patch = vLocal.group(1, 2, 3)  # type: ignore[union-attr]
-    latest_major, latest_minor, latest_patch = vLatest.group(1, 2, 3)  # type: ignore[union-attr]
-
-    local_version = int(local_major), int(local_minor), int(local_patch)
-    latest_version = int(latest_major), int(latest_minor), int(latest_patch)
+def compare_version(__version__: str, __repo__: str, __latest_release__: str) -> str:
+    latest_release = get_version_from_release(__latest_release__)
+    local_version = extract_version(__version__)
+    latest_version = extract_version(latest_release)
 
     if local_version < latest_version:
+        tag = ".".join(map(str, latest_version))
         get_console().log(
-            f"[b][green]New Release available[/b][/green]: {latest_release[1:]}. "
-            "Install update by running command below: "
+            Text.assemble(
+                # fmt: off
+                markup.bg("New Release available"), ": v", 
+                markup.repr_number(f"{latest_release[1:]}"), 
+                ". Install update by running command: ",
+                # fmt: on
+            )
         )
         get_console().log(
-            f'[code]$ pip install -U[/code] "lightlike @ git+{__repo__}@main"'
+            Text.assemble(
+                markup.code("$ pip install -U"), " ", # fmt: skip
+                markup.repr_str(f"lightlike @ git+{__repo__}@v{tag}"),  # fmt: skip
+            )
         )
 
     return latest_release
@@ -68,10 +81,12 @@ term = ""
 editor = ""
 timezone = "null"
 is_billable = false
-note_required = false
+# note_required = false
 week_start = 1
 complete_style = "COLUMN"
 quiet_start = false
+reserve_space_for_menu = 10
+timer_add_min = -7.5
 
 [settings.note_history]
 days = 90
@@ -108,7 +123,7 @@ in_repo = false
 """
 
 
-def _update_config(config: Path, __version__: str | None = None, /) -> None:
+def update_config(config: Path, __version__: str | None = None, /) -> None:
     CURRENT_CONFIG = rtoml.load(config)
     NEW_CONFIG = update_dict(
         original=rtoml.load(DEFAULT_CONFIG),
@@ -118,61 +133,82 @@ def _update_config(config: Path, __version__: str | None = None, /) -> None:
     config.write_text(utils._format_toml(NEW_CONFIG))
 
 
-def _update_routines() -> None:
-    from lightlike.app import _get, routines
-    from lightlike.app.client import get_client
-    from lightlike.app.config import AppConfig
+def update_routine_diff() -> None:
+    try:
+        from lightlike.app import _get, routines
+        from lightlike.app.client import get_client
+        from lightlike.app.config import AppConfig
 
-    client = get_client()
+        client = get_client()
 
-    if not client:
-        return
+        if not client:
+            return
 
-    console = get_console()
-    cli_routines = routines.CliQueryRoutines()
+        console = get_console()
+        cli_routines = routines.CliQueryRoutines()
 
-    mapping = AppConfig().get("bigquery")
-    dataset = mapping["dataset"]
-    timesheet_table = mapping["timesheet"]
-    projects_table = mapping["projects"]
+        mapping = AppConfig().get("bigquery")
+        dataset = mapping["dataset"]
+        timesheet_table = mapping["timesheet"]
+        projects_table = mapping["projects"]
 
-    bq_patterns = {
-        "${DATASET.NAME}": dataset,
-        "${TABLES.TIMESHEET}": timesheet_table,
-        "${TABLES.PROJECTS}": projects_table,
-        "${TIMEZONE}": str(AppConfig().tz),
-    }
+        bq_patterns = {
+            "${DATASET.NAME}": dataset,
+            "${TABLES.TIMESHEET}": timesheet_table,
+            "${TABLES.PROJECTS}": projects_table,
+            "${TIMEZONE}": str(AppConfig().tz),
+        }
 
-    list_routines = client.list_routines(dataset=dataset)
-    existing_routines = list(map(_get.routine_id, list_routines))
-    removed = set(existing_routines).difference(list(cli_routines._all_routines_ids))
-    missing = set(cli_routines._all_routines_ids).difference(existing_routines)
+        list_routines = client.list_routines(dataset=dataset)
+        existing_routines = list(map(_get.routine_id, list_routines))
+        removed = set(existing_routines).difference(
+            list(cli_routines._all_routines_ids)
+        )
+        missing = set(cli_routines._all_routines_ids).difference(existing_routines)
 
-    if not any([removed, missing]):
-        return
+        if not any([removed, missing]):
+            return
 
-    console.log("Updating routines in BigQuery")
+        console.log("Updating routines in BigQuery")
 
-    with console.status("[status.message] Updating routines.."):
-        if removed:
-            for routine in removed:
-                routine_id = f"{client.project}.{dataset}.{routine}"
-                client.delete_routine(routine_id)
-                console.log(f"[b][green]Deleted routine[/green]:[/b] {routine}")
-
-        if missing:
-            bq_resources = Path(f"{__file__}/../../internal/bq_resources/sql").resolve()
-
-            for path in flatten(
-                interleave_longest(
-                    list(map(lambda b: b.iterdir(), bq_resources.iterdir()))
-                )
-            ):
-                if path.stem in missing:
-                    script = utils._regexp_replace(
-                        text=path.read_text(),
-                        patterns=bq_patterns,
+        with console.status(markup.status_message("Updating routines..")):
+            if removed:
+                for routine in removed:
+                    routine_id = f"{client.project}.{dataset}.{routine}"
+                    client.delete_routine(routine_id)
+                    console.log(
+                        Text.assemble(markup.bg("Deleted routine: "), f"{routine}")
                     )
-                    script = script.replace("${__name__}", path.stem)
-                    client.query(script)
-                    console.log(f"[b][green]Created routine[/green]:[/b] {path.stem}")
+
+            if missing:
+                bq_resources = Path(
+                    f"{__file__}/../../internal/bq_resources/sql"
+                ).resolve()
+
+                for path in flatten(
+                    interleave_longest(
+                        list(map(lambda b: b.iterdir(), bq_resources.iterdir()))
+                    )
+                ):
+                    if path.stem in missing:
+                        script = utils._regexp_replace(
+                            text=path.read_text(),
+                            patterns=bq_patterns,
+                        )
+                        script = script.replace("${__name__}", path.stem)
+                        client.query(script)
+                        console.log(
+                            Text.assemble(
+                                markup.bg("Created routine: "), f"{path.stem}"
+                            )
+                        )
+
+    except Exception:
+        console.log(
+            Text.assemble(
+                markup.br("Failed to update BigQuery scripts"),
+                markup.br("Run command "),
+                markup.code_command_sequence("app:dev:run-bq", ":"),
+                markup.br(" or some functions may not work properly."),
+            )
+        )

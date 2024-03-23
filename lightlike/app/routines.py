@@ -7,9 +7,11 @@ import rich_click as click
 from google.cloud.bigquery import QueryJob, QueryJobConfig
 from google.cloud.bigquery.query import ScalarQueryParameter, SqlParameterScalarTypes
 from rich import get_console
+from rich.text import Text
 
 from lightlike.app.client import get_client
 from lightlike.app.config import AppConfig
+from lightlike.internal import markup
 
 if t.TYPE_CHECKING:
     from datetime import datetime
@@ -54,7 +56,11 @@ class CliQueryRoutines:
 
         if render:
             console = get_console()
-            status_message = f"[status.message]{status_renderable or ' Running query'}"
+            status_message = (
+                status_renderable.markup
+                if isinstance(status_renderable, Text)
+                else status_renderable or markup.status_message("Running query")
+            )
             start = perf_counter_ns()
             query_job = self.client().query(query, job_config=job_config)
             query_job.add_done_callback(_completed)
@@ -888,13 +894,14 @@ class CliQueryRoutines:
         self,
         query_job: "QueryJob",
         status: "Status",
-        status_message: str,
+        status_message: t.Optional["RenderableType"],
         start: float | None = None,
     ) -> None:
-        status.update(
-            f"[status.message]{status_message} "
-            f"{self._elapsed_time(query_job, start=start)}",
-        )
+        elapsed_time = markup.repr_number(self._elapsed_time(query_job, start=start))
+        if isinstance(status_message, Text):
+            status.update(Text.assemble(status_message, " ", elapsed_time))
+        else:
+            status.update(f"{status_message} " f"{elapsed_time.markup}")
 
     def _format_error_message(
         self, query_job: QueryJob, target: str | None = None
@@ -904,36 +911,35 @@ class CliQueryRoutines:
         query_string = f"QUERY: {target}" + "\n\n" if target else ""
         if error:
             message = pattern.sub("", f"{query_job._exception}")
-            return f"{query_string}[b][red]{error[0]}[/b]{message}"
+            return Text.assemble(query_string, markup.br(error[0]), message).markup
         else:
-            return f"{query_string}[b][red]{query_job._exception}"
+            return Text.assemble(query_string, markup.br(query_job._exception)).markup
 
-    def _format_job_cancel_message(self, query_job: QueryJob) -> str:
-        resource_url = self._query_job_url(query_job)
-        message = (
-            "[b][red]Sent request to cancel job[/b][/red]. "
-            "It's not possible to check if a job was canceled in the API. "
-            "To verify if the job was canceled or not, see the "
-            "[link={resource_url}][repr.url]job results[/repr.url][/link] in console."
-        ).format(resource_url=resource_url)
-        return message
+    def _format_job_cancel_message(self, query_job: QueryJob) -> Text:
+        return Text.assemble(
+            markup.br("Sent request to cancel job. "),
+            "It's not possible to check if a job was canceled in the API. ",
+            "To verify if the job was canceled or not, see the ",
+            markup.link("job results", self._query_job_url(query_job)),
+            " in console.\n",
+            markup.repr_url(self._query_job_url(query_job)),
+        )
 
     def cancel_job(self, query_job: "QueryJob") -> None:
         cancel_job = query_job.cancel()
-        resource_url = self._query_job_url(query_job)
 
         if cancel_job:
             raise click.UsageError(
-                message=self._format_job_cancel_message(query_job),
+                message=self._format_job_cancel_message(query_job).markup,
                 ctx=click.get_current_context(),
             )
         else:
             raise click.UsageError(
-                # TODO show url for terminals that don't support.
-                message=(
-                    "[b][red]Failed to request job cancel[/b][/red], "
-                    "see the [link={resource_url}][repr.url]job results[/repr.url][/link] in console."
-                ).format(resource_url=resource_url),
+                message=Text.assemble(
+                    markup.br("Failed to request job cancel"),
+                    ", see the job results in console.\n",
+                    markup.repr_url(self._query_job_url(query_job)),
+                ).markup,
                 ctx=click.get_current_context(),
             )
 

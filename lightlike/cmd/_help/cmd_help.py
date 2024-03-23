@@ -47,6 +47,7 @@ class flag:
     note = "--note / -n"
     start = "--start / -s"
     end = "--end / -e"
+    date = "--date / -d"
     billable = "--billable / -b"
     where = "--where / -w"
     current_week = "--current-week / -cw"
@@ -224,25 +225,25 @@ timer_edit_entry = _reformat_help_text(
     f"""
 Edit entries that have already been stopped.
 
-Use the {flag.id} flag to specify which entries you want to edit.
+Use the {flag.id} option specify which entries you want to edit.
 
-Use the sub commands {code_command('billable')} | {code_command('date')} | {code_command('end')} | {code_command('note')} | {code_command('project')} | {code_command('start')} to select which fields you want to edit.
+Use options {flag.project} | {flag.note} | {flag.billable} | {flag.start} | {flag.end} | {flag.date}  to select which fields you want to edit.
 
-For {code_command('start')} & {code_command('end')}, only the [b]time value[/b] of the parsed date will be used.
-For {code_command('date')}, only the [b]date value[/b] of the parsed date will be used.
+For {flag.start} & {flag.end}, only the [b]time value[/b] of the parsed date will be used.
+For {flag.date}, only the [b]date value[/b] of the parsed date will be used.
 
-If the subcommand {code_command('project')} is provided, the subcommand {code_command('note')} will autocomplete relevant values for that project.
+If the option {flag.project} is provided, the option {flag.note} will autocomplete relevant values for that project.
 """
 )
 
 
 timer_edit_entry_syntax = Syntax(
     code="""\
-    $ timer edit entry --id b95eb89 billable false end now
+    $ timer edit entry --id b95eb89 --billable false --end now
     
-    $ timer edit entry --id b95eb89 project lightlike-cli start 10am
+    $ timer edit entry -i b95eb89 -i 36c9fe5 -i 2ad3a25 --project lightlike-cli --start 10:00:00
     
-    $ t e e -i b95eb89 date "2 days ago" start 11am end 2pm
+    $ t e e -i b95eb89 -d "2 days ago" -s 11am -e 2pm
     """,
     **SYNTAX_KWARGS,
 )
