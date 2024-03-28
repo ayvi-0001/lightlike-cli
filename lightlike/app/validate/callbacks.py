@@ -10,7 +10,13 @@ from lightlike.app.cache import TomlCache
 from lightlike.internal import markup, utils
 from lightlike.lib.third_party import _questionary
 
-__all__: Sequence[str] = ("timezone", "edit_params", "weekstart", "report_path")
+__all__: Sequence[str] = (
+    "timezone",
+    "edit_params",
+    "raise_if_cached_entry",
+    "weekstart",
+    "report_path",
+)
 
 
 def timezone(ctx: click.Context, param: click.Parameter, value: str) -> str:
@@ -38,6 +44,13 @@ def edit_params(ctx: click.Context, cache: TomlCache, params: dict[str, Any]) ->
     ):
         raise click.UsageError(message="No fields selected.", ctx=ctx)
 
+    raise_if_cached_entry(ctx, cache, id_sequence)
+    return True
+
+
+def raise_if_cached_entry(
+    ctx: click.Context, cache: TomlCache, id_sequence: list[str]
+) -> None:
     if cache._if_any_entries(cache.running_entries, id_sequence):
         raise click.UsageError(
             message=Text.assemble(
@@ -60,8 +73,6 @@ def edit_params(ctx: click.Context, cache: TomlCache, params: dict[str, Any]) ->
             ).markup,
             ctx=ctx,
         )
-
-    return True
 
 
 def report_path(ctx: click.Context, param: click.Parameter, value: str) -> Path | None:

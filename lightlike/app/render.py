@@ -4,6 +4,7 @@ from functools import reduce
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
+from more_itertools import one
 from rich import box, get_console
 from rich import print as rprint
 from rich.console import Console
@@ -29,6 +30,7 @@ __all__: Sequence[str] = (
     "map_cell_style",
     "_map_s_column_type",
     "_map_s_column_field",
+    "create_row_diff",
 )
 
 
@@ -321,3 +323,44 @@ def _map_s_column_field(field: Any, **override) -> dict[str, Any]:
 
     _kwargs.update(override)
     return _kwargs
+
+
+def create_row_diff(original: dict[str, Any], new: dict[str, Any]) -> Table:
+    table = Table(
+        box=box.MARKDOWN, border_style="bold", show_header=True, show_edge=True
+    )
+
+    new_record = {}
+    diff = {}
+
+    for k in original.keys():
+        if k in new:
+            diff[k] = new[k]
+
+        if (diff.get(k) is None or diff.get(k) == 0) and diff.get(k) is not False:
+            table.add_column(
+                k,
+                **_map_s_column_type(one({k: original[k]}.items()), no_color=True),
+            )
+            new_record[k] = Text(f"{original[k]!s}").markup
+
+        else:
+            if f"{original[k]}" == f"{diff[k]}":
+                table.add_column(
+                    k,
+                    header_style="yellow",
+                    **_map_s_column_type(one({k: diff[k]}.items()), no_color=True),
+                )
+                new_record[k] = Text(f"{diff[k]!s}", style="yellow").markup
+            else:
+                table.add_column(
+                    k,
+                    header_style="green",
+                    **_map_s_column_type(one({k: diff[k]}.items()), no_color=True),
+                )
+                new_record[k] = Text.assemble(
+                    markup.sdr(original[k]), " ", markup.bg(diff[k])
+                ).markup
+
+    table.add_row(*map_cell_style(new_record.values()))
+    return table

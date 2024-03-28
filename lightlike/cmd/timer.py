@@ -499,41 +499,41 @@ def edit() -> None: ...
     type=shell_complete.projects.ActiveProject,
     metavar="TEXT",
     shell_complete=shell_complete.projects.from_option,
-    help="Edit entries value for project",
+    help="Edit entry's project value",
 )
 @click.option(
     "-n",
     "--note",
     type=click.STRING,
     shell_complete=shell_complete.notes.from_param,
-    help="Edit entries value for note",
+    help="Edit entry's note value",
 )
 @click.option(
     "-b",
     "--billable",
     type=click.BOOL,
     shell_complete=shell_complete.Param("billable").bool,
-    help="Edit entries value for billable",
+    help="Edit entry's billable value",
 )
 @click.option(
     "-d",
     "--date",
     type=click.STRING,
-    help="Edit entries value for date",
+    help="Edit entry's date value",
 )
 @click.option(
     "-s",
     "--start",
     type=click.STRING,
     shell_complete=shell_complete.time,
-    help="Edit entries value for start",
+    help="Edit entry's start value",
 )
 @click.option(
     "-e",
     "--end",
     type=click.STRING,
     shell_complete=shell_complete.time,
-    help="Edit entries value for end",
+    help="Edit entry's end value",
 )
 def edit_entry(*args: P.args, **kwargs: P.kwargs) -> None: ...
 
@@ -565,24 +565,20 @@ def _edit_entry_callback(
     date: str,
 ) -> None:
     validate.callbacks.edit_params(ctx, cache, ctx.params)
-
     edits: dict[str, Any] = {}
 
-    if project:
-        edits["project"] = validate.active_project(
-            ctx,
-            one(filter(lambda p: p.name == "project", ctx.command.params)),
-            project,
-        )
-    if note:
-        edits["project"] = note
-    if billable:
+    if project is not None:
+        project_param = one(filter(lambda p: p.name == "project", ctx.command.params))
+        edits["project"] = validate.active_project(ctx, project_param, project)
+    if note is not None:
+        edits["note"] = note
+    if billable is not None:
         edits["billable"] = billable
-    if start:
+    if start is not None:
         edits["start"] = PromptFactory._parse_date(start)
-    if end:
+    if end is not None:
         edits["end"] = PromptFactory._parse_date(end)
-    if date:
+    if date is not None:
         edits["date"] = PromptFactory._parse_date(date)
 
     edits["paused_hrs"] = 0
@@ -595,6 +591,7 @@ def _edit_entry_callback(
             ).markup
         ) as status:
             set_clause = SetClause()
+
             _id = id_list.match_id(_id)
 
             try:
@@ -604,9 +601,7 @@ def _edit_entry_callback(
                 continue
 
         console.print(
-            Text.assemble(
-                markup.saved("Found matching ID: "), markup.code(_id), "."
-            ).markup
+            Text.assemble(markup.saved("Found matching ID: "), markup.code(_id), ".")
         )
 
         if "billable" in edits:
@@ -663,7 +658,7 @@ def _edit_entry_callback(
 
                 total_seconds = int(duration.total_seconds())
                 dhour = round(total_seconds / 3600, 4)
-                edits["duration"] = Decimal(dhour)
+                edits["duration"] = round(Decimal(dhour), 4)
 
                 utils.print_updated_val("date", new_date, prefix=None)
                 utils.print_updated_val("start", new_start.time(), prefix=None)
@@ -685,7 +680,7 @@ def _edit_entry_callback(
                     prefix=None,
                 )
 
-                set_clause = (
+                (
                     set_clause.add_date("date", new_date)
                     .add_datetime("start", new_start)
                     .add_datetime("end", new_end)
@@ -706,10 +701,8 @@ def _edit_entry_callback(
                 if duration.total_seconds() < 0 or _get.sign(duration.days) == -1:
                     raise click.BadArgumentUsage(
                         message=Text.assemble(
-                            # fmt: off
-                            "Invalid value for args [", markup.args("START"), "] | ",
-                            markup.args("END"), "]: Cannot set start before end.",
-                            # fmt: on
+                            "Invalid value for args [", markup.args("START"), "] | ", # fmt: skip
+                            markup.args("END"), "]: Cannot set start before end.",  # fmt: skip
                         ).markup,
                         ctx=ctx,
                     )
@@ -732,7 +725,7 @@ def _edit_entry_callback(
 
                 total_seconds = int(duration.total_seconds())
                 dhour = round(total_seconds / 3600, 4)
-                edits["duration"] = Decimal(dhour)
+                edits["duration"] = round(Decimal(dhour), 4)
 
                 utils.print_updated_val("date", new_date, prefix=None)
                 utils.print_updated_val("start", new_start.time(), prefix=None)
@@ -753,7 +746,7 @@ def _edit_entry_callback(
                     prefix=None,
                 )
 
-                set_clause = (
+                (
                     set_clause.add_date("date", new_date)
                     .add_datetime("start", new_start)
                     .add_timestamp("timestamp_start", new_start)
@@ -776,7 +769,7 @@ def _edit_entry_callback(
                 )
                 total_seconds = int(duration.total_seconds())
                 dhour = round(total_seconds / 3600, 4)
-                edits["duration"] = Decimal(dhour)
+                edits["duration"] = round(Decimal(dhour), 4)
 
                 utils.print_updated_val("date", new_date, prefix=None)
                 utils.print_updated_val("start", new_start, prefix=None)
@@ -790,7 +783,7 @@ def _edit_entry_callback(
                     prefix=None,
                 )
 
-                set_clause = (
+                (
                     set_clause.add_date("date", new_date)
                     .add_datetime("start", new_start)
                     .add_timestamp("timestamp_start", new_start)
@@ -836,7 +829,7 @@ def _edit_entry_callback(
 
                 total_seconds = int(duration.total_seconds())
                 dhour = round(total_seconds / 3600, 4)
-                edits["duration"] = Decimal(dhour)
+                edits["duration"] = round(Decimal(dhour), 4)
 
                 utils.print_updated_val("date", new_date, prefix=None)
                 utils.print_updated_val("end", new_end.time(), prefix=None)
@@ -857,7 +850,7 @@ def _edit_entry_callback(
                     prefix=None,
                 )
 
-                set_clause = (
+                (
                     set_clause.add_date("date", new_date)
                     .add_datetime("end", new_end)
                     .add_timestamp("timestamp_end", new_end)
@@ -873,10 +866,8 @@ def _edit_entry_callback(
                 if new_start > current_end:
                     raise click.BadArgumentUsage(
                         message=Text.assemble(
-                            # fmt: off
-                            "Invalid value for args [", markup.args("START"), "] | ",
-                            markup.args("END"), "]: Cannot set start before end.",
-                            # fmt: on
+                            "Invalid value for args [", markup.args("START"), "] | ", # fmt: skip
+                            markup.args("END"), "]: Cannot set start before end.",  # fmt: skip
                         ).markup,
                         ctx=ctx,
                     )
@@ -903,7 +894,7 @@ def _edit_entry_callback(
 
                 total_seconds = int(duration.total_seconds())
                 dhour = round(total_seconds / 3600, 4)
-                edits["duration"] = Decimal(dhour)
+                edits["duration"] = round(Decimal(dhour), 4)
 
                 utils.print_updated_val("start", new_start.time(), prefix=None)
                 console.print("Updating duration.")
@@ -923,7 +914,7 @@ def _edit_entry_callback(
                     prefix=None,
                 )
 
-                set_clause = (
+                (
                     set_clause.add_datetime("start", new_start)
                     .add_timestamp("timestamp_start", new_start)
                     .add_duration(
@@ -976,7 +967,7 @@ def _edit_entry_callback(
 
                 total_seconds = int(duration.total_seconds())
                 dhour = round(total_seconds / 3600, 4)
-                edits["duration"] = Decimal(dhour)
+                edits["duration"] = round(Decimal(dhour), 4)
 
                 utils.print_updated_val("end", new_end.time(), prefix=None)
                 console.print("Updating duration.")
@@ -996,7 +987,7 @@ def _edit_entry_callback(
                     prefix=None,
                 )
 
-                set_clause = (
+                (
                     set_clause.add_datetime("end", new_end)
                     .add_timestamp("timestamp_end", new_end)
                     .add_duration(
@@ -1039,7 +1030,7 @@ def _edit_entry_callback(
 
                 total_seconds = int(duration.total_seconds())
                 dhour = round(total_seconds / 3600, 4)
-                edits["duration"] = Decimal(dhour)
+                edits["duration"] = round(Decimal(dhour), 4)
 
                 utils.print_updated_val("start", new_start.time(), prefix=None)
                 utils.print_updated_val("end", new_end.time(), prefix=None)
@@ -1060,7 +1051,7 @@ def _edit_entry_callback(
                     prefix=None,
                 )
 
-                set_clause = (
+                (
                     set_clause.add_datetime("start", new_start)
                     .add_timestamp("timestamp_start", new_start)
                     .add_datetime("end", new_end)
@@ -1070,7 +1061,8 @@ def _edit_entry_callback(
 
         status_renderable = Text.assemble(
             markup.status_message("Editing entry: "), markup.code(_id)
-        ).markup
+        )
+
         with console.status(status_renderable) as status:
             query_job = routine.edit_time_entry(
                 set_clause=set_clause,
@@ -1081,24 +1073,6 @@ def _edit_entry_callback(
                 status_renderable=status_renderable,
             )
 
-            table = Table(
-                box=box.MARKDOWN,
-                border_style="bold",
-                show_header=True,
-                show_edge=True,
-            )
-            keys = [
-                "id",
-                "project",
-                "date",
-                "start",
-                "end",
-                "note",
-                "billable",
-                "paused_hrs",
-                "duration",
-            ]
-
             original_record = {
                 "id": time_entry.id[:7],
                 "project": time_entry.project,
@@ -1108,53 +1082,21 @@ def _edit_entry_callback(
                 "note": time_entry.note,
                 "billable": time_entry.is_billable,
                 "paused_hrs": time_entry.paused_hrs or 0,
-                "duration": time_entry.duration,
+                "duration": round(time_entry.duration, 4),
             }
-            new_record = {}
-            _edits = {}
 
-            for k in keys:
-                if k in edits:
-                    if k in ("start", "end"):
-                        _edits[k] = edits[k].time()
-                    elif k in ("date"):
-                        _edits[k] = edits[k].date()
-                    else:
-                        _edits[k] = edits[k]
+            if "start" in edits:
+                edits["start"] = edits["start"].time()
+            if "end" in edits:
+                edits["end"] = edits["end"].time()
+            if "date" in edits:
+                edits["date"] = edits["date"].date()
 
-                if _edits.get(k) is None or _edits.get(k) == 0:
-                    table.add_column(
-                        k,
-                        **render._map_s_column_type(
-                            one({k: original_record[k]}.items()), no_color=True
-                        ),
-                    )
-                    new_record[k] = Text(f"{original_record[k]!s}").markup
-                else:
-                    if f"{original_record[k]}" == f"{_edits[k]}":
-                        table.add_column(
-                            k,
-                            header_style="yellow",
-                            **render._map_s_column_type(
-                                one({k: _edits[k]}.items()), no_color=True
-                            ),
-                        )
-                        new_record[k] = Text(f"{_edits[k]!s}", style="yellow").markup
-                    else:
-                        table.add_column(
-                            k,
-                            header_style="green",
-                            **render._map_s_column_type(
-                                one({k: _edits[k]}.items()), no_color=True
-                            ),
-                        )
-                        new_record[k] = Text.assemble(
-                            markup.sdr(original_record[k]), " ", markup.bg(_edits[k])
-                        ).markup
-
-            console.print(Text.assemble(markup.saved("Saved"), ". Updated record:"))
-            table.add_row(*render.map_cell_style(new_record.values()))
-            render.new_console_print(table, status=status)
+            table = render.create_row_diff(original=original_record, new=edits)
+        
+        console.print(
+            Text.assemble(markup.saved("Saved"), ". Updated record:"), table
+        )
 
     if "note" in edits:
         threads.spawn(ctx, appdata.update, kwargs=dict(query_job=query_job))
