@@ -36,7 +36,7 @@ def edit_params(ctx: click.Context, cache: TomlCache, params: dict[str, Any]) ->
         [
             truth(params.get("project")),
             truth(params.get("note")),
-            truth(params.get("billable")),
+            params.get("billable") is not None,
             truth(params.get("start")),
             truth(params.get("end")),
             truth(params.get("date")),

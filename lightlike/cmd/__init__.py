@@ -1,8 +1,9 @@
 from typing import Sequence
 
-from lightlike._console import global_console_log
+from lightlike import _console
 
-global_console_log("Loading command groups")
+if not _console.QUIET_START:
+    _console.get_console().log("Loading command groups")
 
 
 from lightlike.cmd import other

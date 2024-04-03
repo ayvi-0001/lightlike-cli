@@ -10,11 +10,9 @@ from typing import TYPE_CHECKING, Any, ParamSpec, Sequence, cast
 import rich_click as click
 from google.api_core.exceptions import BadRequest
 from more_itertools import first, one
-from rich import box
 from rich import print as rprint
 from rich import print_json
 from rich.console import Console
-from rich.table import Table
 from rich.text import Text
 
 from lightlike.__about__ import __appname_sc__
@@ -402,6 +400,9 @@ class SetClause:
         self._base = "SET "
         self._tz = tz
 
+    def __bool__(self) -> bool:
+        return self._base != "SET "
+
     def add_date(self, field: str, date_local: date) -> SetClause:
         self._base += f"`{field}` = DATE '{date_local}', "
         return self
@@ -499,41 +500,41 @@ def edit() -> None: ...
     type=shell_complete.projects.ActiveProject,
     metavar="TEXT",
     shell_complete=shell_complete.projects.from_option,
-    help="Edit entry's project value",
+    help="Edit entry's project value.",
 )
 @click.option(
     "-n",
     "--note",
     type=click.STRING,
     shell_complete=shell_complete.notes.from_param,
-    help="Edit entry's note value",
+    help="Edit entry's note value.",
 )
 @click.option(
     "-b",
     "--billable",
     type=click.BOOL,
     shell_complete=shell_complete.Param("billable").bool,
-    help="Edit entry's billable value",
+    help="Edit entry's billable value.",
 )
 @click.option(
     "-d",
     "--date",
     type=click.STRING,
-    help="Edit entry's date value",
+    help="Edit entry's date value.",
 )
 @click.option(
     "-s",
     "--start",
     type=click.STRING,
     shell_complete=shell_complete.time,
-    help="Edit entry's start value",
+    help="Edit entry's start value.",
 )
 @click.option(
     "-e",
     "--end",
     type=click.STRING,
     shell_complete=shell_complete.time,
-    help="Edit entry's end value",
+    help="Edit entry's end value.",
 )
 def edit_entry(*args: P.args, **kwargs: P.kwargs) -> None: ...
 
@@ -1093,10 +1094,8 @@ def _edit_entry_callback(
                 edits["date"] = edits["date"].date()
 
             table = render.create_row_diff(original=original_record, new=edits)
-        
-        console.print(
-            Text.assemble(markup.saved("Saved"), ". Updated record:"), table
-        )
+
+        console.print(Text.assemble(markup.saved("Saved"), ". Updated record:"), table)
 
     if "note" in edits:
         threads.spawn(ctx, appdata.update, kwargs=dict(query_job=query_job))
@@ -1432,7 +1431,7 @@ def resume(
 
         select = _questionary.select(
             message="Which time entry do you want to resume?",
-            choices=list(map(_get.id, paused_entries)),
+            choices=list(map(_get._id, paused_entries)),
         )
 
         cache.resume_paused_time_entry(select, now)
@@ -1475,7 +1474,7 @@ def switch(cache: "TomlCache", console: "Console") -> None:
     select = _questionary.select(
         message="Select a time entry.",
         instruction="(active entry highlighted)",
-        choices=list(map(_get.id, cache.running_entries)),
+        choices=list(map(_get._id, cache.running_entries)),
         default=cache.id,
     )
 
@@ -1516,7 +1515,7 @@ def switch(cache: "TomlCache", console: "Console") -> None:
 )
 @click.option(
     "-s",
-    "--start_time",
+    "--start",
     type=click.STRING,
     help="Update entry start-time.",
     shell_complete=shell_complete.cached_timer_start,
@@ -1541,10 +1540,21 @@ def update(
     routine: "CliQueryRoutines",
     billable: bool,
     project: str,
-    start_time: str,
+    start: str,
     note: str,
 ) -> None:
+    if not any(
+        [
+            truth(project),
+            truth(note),
+            billable is not None,
+            truth(start),
+        ]
+    ):
+        raise click.UsageError(message="No fields selected.", ctx=ctx)
+
     copy = cache.active.copy()
+    edits: dict[str, Any] = {}
 
     status_renderable = Text.assemble(
         markup.status_message("Updating time entry: "), markup.code(cache.id)
@@ -1555,7 +1565,7 @@ def update(
         with cache.update():
             if note is not None:
                 if note == cache.note:
-                    console.log(
+                    console.print(
                         Text.assemble(
                             "Active time entry note is already ",
                             markup.repr_str(note), " - skipping update.",  # fmt: skip
@@ -1565,38 +1575,46 @@ def update(
                     updated_note = re.compile(r"(\"|')").sub("", note)
                     set_clause.add_string("note", updated_note)
                     cache.note = updated_note
+                    edits["note"] = updated_note
 
-            if start_time is not None:
-                start = PromptFactory._parse_date(start_time)
-                new_start = AppConfig().in_app_timezone(
-                    datetime.combine(cache.start.date(), start.time())
-                )
-                phours, pminutes, pseconds = utils._sec_to_time_parts(
-                    Decimal(cache.paused_hrs or 0) * 3600
-                )
-                duration = (AppConfig().now - new_start) - timedelta(
-                    hours=phours, minutes=pminutes, seconds=pseconds
-                )
-
-                if duration.total_seconds() < 0 or _get.sign(duration.days) == -1:
-                    raise click.BadArgumentUsage(
-                        message=Text.assemble(
-                            # fmt: off
-                            "Invalid value for args [", markup.args("START"), "] | ",
-                            markup.args("END"), "]: New duration cannot be negative. ",
-                            "Existing paused hours = ", markup.repr_number(cache.paused_hrs), ".",
-                            # fmt: on
-                        ).markup,
-                        ctx=ctx,
+            if start is not None:
+                new_start = PromptFactory._parse_date(start)
+                if new_start == cache.start:
+                    console.print(
+                        Text.assemble(
+                            "Active time entry start is already ",
+                            markup.iso8601_time(new_start), 
+                            " - skipping update.",  # fmt: skip
+                        )
+                    )
+                else:
+                    phours, pminutes, pseconds = utils._sec_to_time_parts(
+                        Decimal(cache.paused_hrs or 0) * 3600
+                    )
+                    duration = (AppConfig().now - new_start) - timedelta(
+                        hours=phours, minutes=pminutes, seconds=pseconds
                     )
 
-                set_clause.add_timestamp("timestamp_start", new_start)
-                set_clause.add_datetime("start", new_start)
-                cache.start = new_start
+                    if duration.total_seconds() < 0 or _get.sign(duration.days) == -1:
+                        raise click.BadArgumentUsage(
+                            message=Text.assemble(
+                                # fmt: off
+                                "Invalid value for args [", markup.args("START"), "] | ",
+                                markup.args("END"), "]: New duration cannot be negative. ",
+                                "Existing paused hours = ", markup.repr_number(cache.paused_hrs), ".",
+                                # fmt: on
+                            ).markup,
+                            ctx=ctx,
+                        )
+
+                    set_clause.add_timestamp("timestamp_start", new_start)
+                    set_clause.add_datetime("start", new_start)
+                    cache.start = new_start
+                    edits["start"] = new_start
 
             if billable is not None:
                 if billable == cache.is_billable:
-                    console.log(
+                    console.print(
                         Text.assemble(
                             "Active time entry billable is already set to ",
                             (
@@ -1610,10 +1628,11 @@ def update(
                 else:
                     set_clause.add_bool("is_billable", billable)
                     cache.is_billable = billable
+                    edits["billable"] = billable
 
             if project is not None:
                 if project == cache.project:
-                    console.log(
+                    console.print(
                         Text.assemble(
                             "Active time entry project is already ",
                             markup.repr_str(project), " - skipping update.",  # fmt: skip
@@ -1623,8 +1642,9 @@ def update(
                     validate.active_project(ctx, None, project)  # type: ignore[arg-type]
                     set_clause.add_string("project", project)
                     cache.project = project
+                    edits["project"] = project
 
-        if repr(set_clause) != "SET ":
+        if set_clause:
             query_job = routine.edit_time_entry(
                 set_clause=set_clause,
                 id=cache.id,
@@ -1634,18 +1654,31 @@ def update(
                 status_renderable=status_renderable,
             )
         else:
-            console.log("No valid fields to update, nothing happened.")
+            console.print("No valid fields to update, nothing happened.")
             return
 
         if note is not None and note != copy["note"]:
             threads.spawn(ctx, appdata.update, kwargs=dict(query_job=query_job))
-            utils.print_updated_val(key="note", val=updated_note)
-        if start_time is not None:
-            utils.print_updated_val(key="start", val=new_start)
+            utils.print_updated_val(key="note", val=updated_note, prefix=None)
+        if start is not None and new_start != copy["start"]:
+            utils.print_updated_val(key="start", val=new_start, prefix=None)
         if billable is not None and billable != copy["is_billable"]:
-            utils.print_updated_val(key="is_billable", val=billable)
+            utils.print_updated_val(key="is_billable", val=billable, prefix=None)
         if project is not None and project != copy["project"]:
-            utils.print_updated_val(key="project", val=markup.code(project))
+            utils.print_updated_val(
+                key="project", val=markup.code(project), prefix=None
+            )
+
+        original_record = {
+            "id": copy["id"][:7],
+            "project": copy["project"],
+            "start": copy["start"].replace(microsecond=0),
+            "note": copy["note"],
+            "billable": copy["is_billable"],
+        }
+
+        table = render.create_row_diff(original=original_record, new=edits)
+        console.print(Text.assemble(markup.saved("Saved"), ". Updated record:"), table)
 
 
 @timer.group(

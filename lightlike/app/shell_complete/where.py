@@ -1,3 +1,4 @@
+import re
 import typing as t
 
 from prompt_toolkit.completion import (
@@ -8,7 +9,7 @@ from prompt_toolkit.completion import (
 )
 from prompt_toolkit.document import Document
 
-from lightlike.app import _get, shell_complete
+from lightlike.app import shell_complete
 from lightlike.app.client import get_client
 from lightlike.internal import utils
 
@@ -144,6 +145,11 @@ def _bottom_toolbar(console: "Console") -> t.Callable[..., list[tuple[str, str]]
     return lambda: text
 
 
+WHERE_CLAUSE: t.Final[re.Pattern[str]] = re.compile(
+    r"^(?:'|\"|)(?:.?where\s+|)(.*)(?:'|\"|)$", re.IGNORECASE
+)
+
+
 def _parse_click_options(
     flag: bool,
     args: t.Sequence[str],
@@ -170,7 +176,7 @@ def _parse_click_options(
         where_clause = " ".join(args)
 
     if where_clause:
-        capture_groups = _get.where_clause.match(where_clause)
+        capture_groups = WHERE_CLAUSE.match(where_clause)
         if capture_groups:
             where_clause = capture_groups.group(1)
         else:

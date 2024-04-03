@@ -68,7 +68,7 @@ finally:
     __appname__: Final[str] = "Lightlike CLI%s" % (f" {env}" if env else '')
 
 __appname_sc__: Final[str] = "".join(c if c.isalnum() else "_" for c in __appname__.lower())
-__version__: Final[str] = "v0.8.15"
+__version__: Final[str] = "v0.8.17"
 __repo__: Final[str] = "https://github.com/ayvi-0001/lightlike-cli"
 __latest_release__: Final[str] = f"{__repo__}/releases/latest"
 __appdir__: Final[Path] = Path(get_app_dir(__appname__, roaming=True))

@@ -19,8 +19,8 @@ from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
 
+from lightlike import _console
 from lightlike.__about__ import __appname_sc__
-from lightlike._console import global_console_log
 from lightlike.app import _get, render
 from lightlike.app.config import AppConfig
 from lightlike.app.routines import CliQueryRoutines
@@ -342,14 +342,14 @@ class TomlCache:
         running_entries_to_cache = routine.select(
             resource=routine.timesheet_id,
             fields=["*"],
-            where="is_active IS TRUE",
-            order="timestamp_start",
+            where=["is_active IS TRUE"],
+            order=["timestamp_start"],
         )
         paused_entries_to_cache = routine.select(
             resource=routine.timesheet_id,
             fields=["*"],
-            where="is_paused IS TRUE",
-            order="timestamp_start",
+            where=["is_paused IS TRUE"],
+            order=["timestamp_start"],
         )
 
         running_entries = []
@@ -460,7 +460,7 @@ class TomlCache:
 
     @property
     def id(self) -> str:
-        return t.cast(str, self._ifnull(_get.id(self.active)))
+        return t.cast(str, self._ifnull(_get._id(self.active)))
 
     @id.setter
     def id(self, __val: T) -> None:
@@ -622,7 +622,9 @@ class _EntryIdListSingleton(type):
         return cls._instances[cls]
 
 
-global_console_log("Validating cache")
+if not _console.QUIET_START:
+    get_console().log("Validating cache")
+
 TomlCache()._validate_toml_cache()
 
 
@@ -633,7 +635,7 @@ class EntryIdList(metaclass=_EntryIdListSingleton):
     def ids(self) -> list[str]:
         routine = CliQueryRoutines()
         ids = routine.select(resource=routine.timesheet_id, fields=["id"])
-        return list(map(_get.id, ids))
+        return list(map(_get._id, ids))
 
     def clear(self) -> None:
         del self.__dict__["ids"]
@@ -704,7 +706,7 @@ class EntryAppData:
         query_job_notes = routine.select(
             resource=CliQueryRoutines().timesheet_id,
             fields=["project", "note", "timestamp_start"],
-            order="project, timestamp_start desc",
+            order=["project", "timestamp_start desc"],
         )
 
         rows = list(query_job_notes)

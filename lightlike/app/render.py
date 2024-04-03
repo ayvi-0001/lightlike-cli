@@ -12,7 +12,7 @@ from rich.status import Status
 from rich.table import Table
 from rich.text import Text
 
-from lightlike._console import _CONSOLE_SVG_FORMAT, CONSOLE_CONFIG, global_console_log
+from lightlike import _console
 from lightlike.internal import markup
 
 if TYPE_CHECKING:
@@ -35,26 +35,29 @@ __all__: Sequence[str] = (
 
 
 def cli_info() -> None:
+    if _console.QUIET_START:
+        return
+
     from lightlike.__about__ import __appdir__, __appname_sc__, __version__
 
     console = get_console()
     console.set_window_title(__appname_sc__)
 
-    global_console_log(
+    console.log(
         Text.assemble(
             markup.repr_attrib_name("__appname__"),
             markup.repr_attrib_equal(),
             markup.repr_attrib_value(__appname_sc__),
         )
     )
-    global_console_log(
+    console.log(
         Text.assemble(
             markup.repr_attrib_name("__version__"),
             markup.repr_attrib_equal(),
             markup.repr_attrib_value(__version__),
         )
     )
-    global_console_log(
+    console.log(
         Text.assemble(
             markup.repr_attrib_name("__appdir__"),
             markup.repr_attrib_equal(),
@@ -80,13 +83,13 @@ def cli_info() -> None:
         + f"<console ConsoleDimensions(width={width} height={height}) {console._color_system!s}>"
     )
 
-    global_console_log(console_repr)
+    console.log(console_repr)
 
     if console.width < 150:
-        global_console_log(markup.dbr("Recommended console width </ 150"))
+        console.log(markup.dbr("Recommended console width </ 150"))
 
     if console.height < 35:
-        global_console_log(markup.dbr("Recommended console height </ 35"))
+        console.log(markup.dbr("Recommended console height </ 35"))
 
 
 def query_start_render(query_config: dict[str, bool]) -> None:
@@ -159,7 +162,7 @@ def new_console_print(
     print_kwargs: Mapping[str, Any] = {},
 ) -> None:
     with Console(record=True, **console_kwargs) as console:
-        console.print(*renderables, style=CONSOLE_CONFIG.style, **print_kwargs)
+        console.print(*renderables, style=_console.CONSOLE_CONFIG.style, **print_kwargs)
 
         if svg_path is not None:
             resolved = svg_path.resolve()
@@ -167,7 +170,7 @@ def new_console_print(
             path = resolved.as_posix()
 
             rprint(Text.assemble(Text("Saved to "), markup.link(path, uri), "."))
-            console.save_svg(path, code_format=_CONSOLE_SVG_FORMAT)
+            console.save_svg(path, code_format=_console._CONSOLE_SVG_FORMAT)
 
         if text_path is not None:
             uri = text_path.resolve().as_uri()
@@ -207,11 +210,10 @@ def map_cell_style(values: "dict_values[str, Any]") -> map:
     for value in values:
         if not value or value in ("null", "None"):
             display_values.append(markup.dimmed(value).markup)
-            continue
-        if isinstance(value, datetime):
+        elif isinstance(value, datetime):
             display_values.append(value.replace(tzinfo=None))
-            continue
-        display_values.append(value)
+        else:
+            display_values.append(value)
 
     return map(str, display_values)
 

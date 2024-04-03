@@ -1,7 +1,7 @@
 # mypy: disable-error-code="import-untyped"
 
 import sys
-from typing import TYPE_CHECKING, NoReturn, ParamSpec, Sequence
+from typing import TYPE_CHECKING, Callable, NoReturn, ParamSpec, Sequence
 
 import google.auth
 from google.auth.exceptions import DefaultCredentialsError
@@ -12,8 +12,7 @@ from rich.padding import Padding
 from rich.panel import Panel
 from rich.text import Text
 
-from lightlike._console import global_console_log
-from lightlike.app import _get
+from lightlike import _console
 from lightlike.app.auth import _AuthSession
 from lightlike.app.config import AppConfig
 from lightlike.internal import markup
@@ -34,6 +33,12 @@ __all__: Sequence[str] = (
     "_authorize_from_environment",
     "_provision_bigquery_resources",
 )
+
+
+def global_console_log(message: Text | str) -> None:
+    if not _console.QUIET_START:
+        get_console().log(message)
+
 
 global_console_log("Authorizing BigQuery Client")
 
@@ -148,9 +153,17 @@ def _select_credential_source() -> str | None | NoReturn:
 def _select_project(client: Client) -> str:
     projects: Sequence["Project"] = list(client.list_projects())
 
+    project_display: Callable[["Project"], str] = lambda p: " | ".join(
+        [
+            p.friendly_name,
+            p.project_id,
+            p.numeric_id,
+        ]
+    )
+
     select_kwargs = dict(
         message="Select source for BigQuery Client.",
-        choices=list(map(_get.project_display, projects)),
+        choices=list(map(project_display, projects)),
         style=AppConfig().prompt_style,
         cursor=AppConfig().cursor_shape,
         instruction="",
@@ -230,7 +243,6 @@ def _authorize_from_service_account_key() -> Client:
 
 
 def _authorize_from_environment() -> Client:
-    console = get_console()
     global_console_log("Getting credentials from environment")
     active_project: str = AppConfig().get("client", "active_project")
 
@@ -299,6 +311,5 @@ def _provision_bigquery_resources(client: Client) -> None:
             if _questionary.confirm(
                 message="This CLI will not work if the required tables/procedures do not exist. "
                 "Are you sure you want to continue?",
-                auto_enter=True,
             ):
                 build_state = False

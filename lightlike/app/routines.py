@@ -831,8 +831,8 @@ class CliQueryRoutines:
         self,
         resource: str,
         fields: t.Sequence[str] = ["*"],
-        where: t.Optional[str] = None,
-        order: t.Optional[str] = None,
+        where: t.Optional[t.Sequence[str]] = None,
+        order: t.Optional[t.Sequence[str]] = None,
         distinct: bool = False,
         wait: bool = False,
         render: bool = False,
@@ -842,8 +842,8 @@ class CliQueryRoutines:
                 f"SELECT {'DISTINCT ' if distinct else ''}",
                 f"{','.join(fields)} ",
                 f"FROM {resource} ",
-                f"WHERE {where} " if where else " ",
-                f"ORDER BY {order}" if order else "",
+                f"WHERE {' AND '.join(where)} " if where else " ",
+                f"ORDER BY {','.join(order)}" if order else " ",
                 ";",
             ]
         )
