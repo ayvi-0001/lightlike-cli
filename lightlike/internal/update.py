@@ -86,7 +86,7 @@ week_start = 1
 complete_style = "COLUMN"
 quiet_start = false
 reserve_space_for_menu = 10
-timer_add_min = -7.5
+timer_add_min = -6
 
 [settings.note_history]
 days = 90
@@ -206,7 +206,7 @@ def update_routine_diff() -> None:
     except Exception:
         console.log(
             Text.assemble(
-                markup.br("Failed to update BigQuery scripts"),
+                markup.br("Failed to update BigQuery scripts. "),
                 markup.br("Run command "),
                 markup.code_command_sequence("app:dev:run-bq", ":"),
                 markup.br(" or some functions may not work properly."),

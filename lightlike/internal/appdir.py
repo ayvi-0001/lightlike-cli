@@ -59,7 +59,8 @@ from lightlike.internal.utils import _identical_vectors
 
 def validate(__version__: str, /) -> None | NoReturn:
     console = _console.get_console()
-    _console.global_console_log("Verifying app directory")
+    if not _console.QUIET_START:
+        console.log("Verifying app directory")
 
     if not CONFIG.exists():
         console.log("config.toml not found")
@@ -67,7 +68,8 @@ def validate(__version__: str, /) -> None | NoReturn:
         return _initial_build()
 
     else:
-        _console.global_console_log("Checking for updates")
+        if not _console.QUIET_START:
+            console.log("Checking for updates")
 
         config = rtoml.load(CONFIG)
 

@@ -73,7 +73,8 @@ def build_cli() -> "AliasedRichGroup":
     @click.pass_context
     def cli(ctx: click.Context) -> None:
         if ctx.invoked_subcommand is None:
-            _console.global_console_log("Starting REPL")
+            if not _console.QUIET_START:
+                _console.get_console().log("Starting REPL")
             ctx.invoke(repl)
             get_client().close()
             utils._log().debug("Closed Bigquery client HTTPS connection.")

@@ -1,13 +1,9 @@
-import operator
-import re
 import typing as t
 from math import copysign
-
-if t.TYPE_CHECKING:
-    from google.cloud.bigquery.client import Project
+from operator import attrgetter, itemgetter
 
 __all__: t.Sequence[str] = (
-    "id",
+    "_id",
     "project",
     "note",
     "name",
@@ -19,35 +15,21 @@ __all__: t.Sequence[str] = (
     "projects_list",
     "count_entries",
     "sign",
-    "project_display",
-    "where_clause",
 )
 
-T = t.TypeVar("T")
+t_itemgetter: t.TypeAlias = itemgetter
+t_attrgetter: t.TypeAlias = attrgetter
 
+_id: t_itemgetter = itemgetter("id")
+project: t_itemgetter = itemgetter("project")
+note: t_itemgetter = itemgetter("note")
+name: t_attrgetter = attrgetter("name")
+description: t_attrgetter = attrgetter("description")
+table_name: t_attrgetter = attrgetter("table_name")
+table_id: t_attrgetter = attrgetter("table_id")
+routine_id: t_attrgetter = attrgetter("routine_id")
+dataset_id: t_attrgetter = attrgetter("dataset_id")
+projects_list: t_attrgetter = attrgetter("projects_list")
+count_entries: t_attrgetter = attrgetter("count_entries")
 
-id = operator.itemgetter("id")
-project = operator.itemgetter("project")
-note = operator.itemgetter("note")
-name = operator.attrgetter("name")
-description = operator.attrgetter("description")
-table_name = operator.attrgetter("table_name")
-table_id = operator.attrgetter("table_id")
-routine_id = operator.attrgetter("routine_id")
-dataset_id = operator.attrgetter("dataset_id")
-projects_list = operator.attrgetter("projects_list")
-count_entries = operator.attrgetter("count_entries")
-
-sign = lambda x: copysign(1, x)
-
-project_display: t.Callable[["Project"], str] = lambda p: " | ".join(
-    [
-        p.friendly_name,
-        p.project_id,
-        p.numeric_id,
-    ]
-)
-
-where_clause: t.Final[re.Pattern[str]] = re.compile(
-    r"^(?:'|\"|)(?:.?where\s+|)(.*)(?:'|\"|)$", re.IGNORECASE
-)
+sign: t.Callable[[t.SupportsFloat | t.SupportsIndex], float] = lambda x: copysign(1, x)

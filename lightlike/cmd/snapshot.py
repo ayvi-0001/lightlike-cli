@@ -129,8 +129,8 @@ def snapshot_list(console: "Console", routine: "CliQueryRoutines") -> None:
                 "timestamp_trunc(creation_time, second) as creation_time",
                 "timestamp_trunc(snapshot_time_ms, second) as snapshot_time_ms",
             ],
-            where="snapshot_time_ms is not null",
-            order="creation_time",
+            where=["snapshot_time_ms is not null"],
+            order=["creation_time"],
         ).result(),
     )
 

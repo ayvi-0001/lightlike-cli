@@ -104,7 +104,7 @@ def reconfigure(**kwargs: Any) -> None:
     setattr(get_console(), "status", partial(get_console().status, spinner=spinner))
 
 
-CONSOLE_QUIET_START: bool = False
+QUIET_START: bool = False
 
 
 @fasteners.interprocess_locked(__appdir__ / "config.lock")
@@ -114,20 +114,14 @@ def _configure_quiet_start() -> None:
             config = rtoml.load(config_path)
             quiet_start = config["settings"].get("quiet_start")
 
-            global CONSOLE_QUIET_START
+            global QUIET_START
             if len(sys.argv) > 1:
-                CONSOLE_QUIET_START = True
+                QUIET_START = True
             elif quiet_start is not None:
-                CONSOLE_QUIET_START = bool(quiet_start)
+                QUIET_START = bool(quiet_start)
 
 
 _configure_quiet_start()
-
-
-def global_console_log(message: Text | str) -> None:
-    global CONSOLE_QUIET_START
-    if CONSOLE_QUIET_START is False:
-        get_console().log(message)
 
 
 COMPLETER: int = ActiveCompleter.CMD

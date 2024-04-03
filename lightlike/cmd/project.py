@@ -128,8 +128,8 @@ def list_projects(routine: "CliQueryRoutines", all_: bool) -> None:
                 if all_
                 else ["name", "description", "DATE(created) as created"]
             ),
-            where="archived is null" if not all_ else "",
-            order="name",
+            where=["archived is null"] if not all_ else [""],
+            order=["name"],
         ).result(),
     )
     render.new_console_print(table)
@@ -138,7 +138,11 @@ def list_projects(routine: "CliQueryRoutines", all_: bool) -> None:
 @project.group(
     cls=AliasedRichGroup,
     name="update",
+    help=_help.project_update,
     short_help="Update a project's name/description.",
+    context_settings=dict(
+        obj=dict(syntax=_help.project_update_syntax),
+    ),
 )
 @click.argument(
     "project",
@@ -158,7 +162,7 @@ def update(ctx: click.Context, project: str) -> None:
     cls=_RichCommand,
     name="name",
     help=_help.project_update_name,
-    short_help="Change projects name.",
+    short_help="Update project name.",
     context_settings=dict(
         obj=dict(syntax=_help.project_update_name_syntax),
     ),
@@ -229,7 +233,7 @@ def update_name(
     cls=_RichCommand,
     name="description",
     help=_help.project_update_description,
-    short_help="Change projects description.",
+    short_help="Update project description.",
     context_settings=dict(
         obj=dict(syntax=_help.project_update_description_syntax),
     ),
@@ -253,7 +257,7 @@ def update_description(
     query_job = routine.select(
         resource=routine.projects_id,
         fields=["description"],
-        where=f'name = "{project}"',
+        where=[f'name = "{project}"'],
     )
 
     current_description: str = _get.description(first(query_job))
@@ -284,7 +288,7 @@ def update_description(
     name="delete",
     help=_help.project_delete,
     no_args_is_help=True,
-    short_help="Delete a project. Remove all related time entries.",
+    short_help="Delete a project and all related time entries.",
     context_settings=dict(
         obj=dict(syntax=_help.project_delete_syntax),
     ),
@@ -334,7 +338,7 @@ def delete(
             query_job = routine.select(
                 resource=routine.timesheet_id,
                 fields=["count(*) as count_entries"],
-                where=f'project = "{project}"',
+                where=[f'project = "{project}"'],
             )
             routine.delete_project(
                 project,
@@ -386,7 +390,7 @@ def delete(
     name="archive",
     help=_help.project_archive,
     no_args_is_help=True,
-    short_help="Archive a project. Hide all related time entries.",
+    short_help="Archive a project and all related time entries.",
     context_settings=dict(
         obj=dict(syntax=_help.project_archive_syntax),
     ),
@@ -444,7 +448,7 @@ def archive(
     query_job = routine.select(
         resource=routine.timesheet_id,
         fields=["count(*) as count_entries"],
-        where=f'project = "{project}"',
+        where=[f'project = "{project}"'],
     )
     routine.archive_project(
         project,
@@ -483,7 +487,7 @@ def archive(
     name="unarchive",
     help=_help.project_unarchive,
     no_args_is_help=True,
-    short_help="Unarchive a project. Restore all hidden time entries.",
+    short_help="Unarchive a project and all hidden time entries.",
     context_settings=dict(
         obj=dict(syntax=_help.project_unarchive_syntax),
     ),
@@ -514,7 +518,7 @@ def unarchive(
     query_job = routine.select(
         resource=routine.timesheet_id,
         fields=["count(*) as count_entries"],
-        where=f'project = "{project}"',
+        where=[f'project = "{project}"'],
     )
     routine.unarchive_project(
         project,

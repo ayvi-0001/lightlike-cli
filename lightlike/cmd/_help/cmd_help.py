@@ -287,7 +287,7 @@ timer_list_date_syntax = Syntax(
     
     $ timer list date "2 days ago" "where is_billable is false"
     
-    $ timer list date monday project = "lightlike_cli" and note like any ("something%", "else%")
+    $ timer list date monday project = \\"lightlike_cli\\" and note like any (\\"something%\\", \\"else%\\")
     """,
     **SYNTAX_KWARGS,
 )
@@ -308,7 +308,7 @@ List time entries on a given date.
 
 timer_list_range_syntax = Syntax(
     code="""\
-    $ timer list range jan1 jan31 "where project not in (\\"test\\", \\"demo\\")"
+    $ timer list range jan1 jan31 "where project not in ('test', 'demo')"
     
     $ timer list range --current-week --where   # will prompt for where clause
     
@@ -546,7 +546,7 @@ project_create_syntax = Syntax(
 
 project_delete = _reformat_help_text(
     f"""
-Delete a project and all time entries under this project.
+Delete a project and all time entries.
 
 {_confirm_flags}
 """
@@ -594,6 +594,23 @@ When you unarchive a project, all related time entries are also unarchived, and 
 project_unarchive_syntax = Syntax(
     code="""\
     $ project unarchive lightlike-cli
+    """,
+    **SYNTAX_KWARGS,
+)
+
+
+project_update = _reformat_help_text(
+    f"""
+Update a projects name or description.
+"""
+)
+
+
+project_update_syntax = Syntax(
+    code="""\
+    $ project update lightlike-cli name
+    
+    $ project update lightlike-cli description
     """,
     **SYNTAX_KWARGS,
 )
