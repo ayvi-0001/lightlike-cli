@@ -4,8 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "lightlike"
-dynamic = ["version"]
+readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.11"
+dynamic = ["version"]
 dependencies = [
   "anyio==4.3.0",
   "cachetools==5.3.3",
@@ -14,7 +16,7 @@ dependencies = [
   "charset-normalizer==3.3.2",
   "click==8.1.7",
   "colorama==0.4.6",
-  "cryptography==42.0.5",
+  "cryptography==42.0.7",
   "dateparser==1.2.0",
   "db-dtypes==1.2.0",
   "fasteners==0.19",
@@ -28,16 +30,16 @@ dependencies = [
   "h11==0.14.0",
   "httpcore==1.0.4",
   "httpx==0.27.0",
-  "idna==3.6",
+  "idna==3.7",
   "markdown-it-py==3.0.0",
   "mdurl==0.1.2",
   "more-itertools==10.2.0",
-  "numpy==1.26.4",
+  "numpy~=1.26.4",
   "packaging==23.2",
-  "pandas==2.2.1",
+  "pandas~=2.2.1",
   "prompt-toolkit==3.0.43",
   "protobuf==4.25.3",
-  "pyarrow==15.0.1",
+  "pyarrow~=15.0.1",
   "pyasn1==0.5.1",
   "pyasn1-modules==0.3.0",
   "pycparser==2.21",
@@ -48,7 +50,7 @@ dependencies = [
   "regex==2023.12.25",
   "requests==2.31.0",
   "rich==13.7.1",
-  "rich-click==1.7.3",
+  "rich-click==1.8.2",
   "rsa==4.9",
   "rtoml==0.10.0",
   "six==1.16.0",
@@ -62,13 +64,13 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "black==24.1.1",
-  "isort==5.13.2",
-  "mypy==1.8.0",
-  "mypy-extensions==1.0.0",
-  "pandas-stubs==2.2.0.240218",
-  "types-dateparser==1.1.4.20240106",
-  "types-pytz==2023.3.1.1",
+  "black>=24.3.0",
+  "isort>=5.13.2",
+  "mypy>=1.8.0",
+  "mypy-extensions>=1.0.0",
+  "pandas-stubs>=2.2.0.240218",
+  "types-dateparser>=1.1.4.20240106",
+  "types-pytz>=2023.3.1.1",
 ]
 
 [project.scripts]
@@ -88,6 +90,9 @@ path = "lightlike/__about__.py"
 source = "code"
 search-paths = ["lightlike"]
 pattern = "__version__: Final[str] = 'b(?P<version>[^']+)'"
+
+[tool.black]
+target-version = ["py311"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

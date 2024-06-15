@@ -1,35 +1,31 @@
-import re
+# mypy: disable-error-code="func-returns-value"
+
+import typing as t
 from datetime import date, datetime, time, timedelta
+from decimal import Decimal
 from functools import reduce
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, Mapping, Sequence
+from os import getenv
 
 from more_itertools import one
 from rich import box, get_console
 from rich import print as rprint
-from rich.console import Console
-from rich.status import Status
 from rich.table import Table
 from rich.text import Text
 
 from lightlike import _console
-from lightlike.internal import markup
+from lightlike.internal import appdir, markup, utils
 
-if TYPE_CHECKING:
+if t.TYPE_CHECKING:
     from _collections_abc import dict_values
-    from google.cloud.bigquery.table import RowIterator
 
 
-__all__: Sequence[str] = (
+__all__: t.Sequence[str] = (
     "cli_info",
     "query_start_render",
-    "mappings_list_to_rich_table",
-    "row_iter_to_rich_table",
-    "new_console_print",
-    "new_table",
+    "map_sequence_to_rich_table",
     "map_cell_style",
-    "_map_s_column_type",
-    "_map_s_column_field",
+    "map_column_style",
+    "create_table_diff",
     "create_row_diff",
 )
 
@@ -44,55 +40,55 @@ def cli_info() -> None:
     console.set_window_title(__appname_sc__)
 
     console.log(
-        Text.assemble(
-            markup.repr_attrib_name("__appname__"),
-            markup.repr_attrib_equal(),
-            markup.repr_attrib_value(__appname_sc__),
-        )
+        "__appname__[b red]=[/]",
+        markup.repr_attrib_value(__appname_sc__),
+        sep="",
     )
     console.log(
-        Text.assemble(
-            markup.repr_attrib_name("__version__"),
-            markup.repr_attrib_equal(),
-            markup.repr_attrib_value(__version__),
-        )
+        "__version__[b red]=[/]",
+        markup.repr_number(__version__),
+        sep="",
     )
+
+    if LIGHTLIKE_CLI_DEV_USERNAME := getenv("LIGHTLIKE_CLI_DEV_USERNAME"):
+        console.log(
+            "__appdir__[b red]=[/]",
+            markup.repr_path(f"/{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike-cli"),
+            sep="",
+        )
+    else:
+        console.log(
+            "__appdir__[b red]=[/]",
+            markup.repr_path(__appdir__.as_posix()),
+            sep="",
+        )
+
+    width = (
+        markup.bg(console.width).markup
+        if console.width >= 140
+        else markup.br(console.width).markup
+    )
+    height = (
+        markup.bg(console.height).markup
+        if console.height >= 40
+        else markup.br(console.height).markup
+    )
+
     console.log(
-        Text.assemble(
-            markup.repr_attrib_name("__appdir__"),
-            markup.repr_attrib_equal(),
-            markup.repr_attrib_value(__appdir__.as_posix()),
-        )
+        f"Console[b red]=[/]<console",
+        f"ConsoleDimensions(width={width} height={height})",
+        f"{console._color_system!s}>",
     )
-
-    if console.width >= 150:
-        width = markup.bg(console.width).markup
-    else:
-        width = markup.br(console.width).markup
-
-    if console.height >= 40:
-        height = markup.bg(console.height).markup
-    else:
-        height = markup.br(console.height).markup
-
-    console_repr = (
-        Text.assemble(
-            markup.repr_attrib_name("Console"),
-            markup.repr_attrib_equal(),
-        ).markup
-        + f"<console ConsoleDimensions(width={width} height={height}) {console._color_system!s}>"
-    )
-
-    console.log(console_repr)
-
-    if console.width < 150:
-        console.log(markup.dbr("Recommended console width </ 150"))
-
-    if console.height < 35:
-        console.log(markup.dbr("Recommended console height </ 35"))
+    console.width < 140 and console.log("[dim red]Recommended console width </ 140")
+    console.height < 40 and console.log("[dim red]Recommended console height </ 40")
 
 
-def query_start_render(query_config: dict[str, bool]) -> None:
+def query_start_render(
+    query_config: dict[str, bool],
+    timestamp: str,
+    print_output_dir: bool = False,
+) -> None:
+
     table = Table(
         show_edge=False,
         show_header=False,
@@ -105,8 +101,8 @@ def query_start_render(query_config: dict[str, bool]) -> None:
 
     general = [
         markup.pygments_keyword("BigQuery Shell"),
-        Text.assemble(Text("Submit: ", end=""), markup.code_sequence("esc+enter", "+")),
-        Text.assemble(Text("Exit: ", end=""), markup.code_sequence("ctrl+Q", "+")),
+        Text.assemble("Submit: ", markup.code("esc enter")),
+        Text.assemble("Exit: ", markup.code("ctrl q")),
     ]
 
     query = []
@@ -121,28 +117,32 @@ def query_start_render(query_config: dict[str, bool]) -> None:
     table.add_row(*general, *query)
     rprint(table)
 
+    if print_output_dir:
+        appdir.QUERIES.mkdir(exist_ok=True)
+        _dest = appdir.QUERIES.joinpath(timestamp).resolve()
+        _dest.mkdir(exist_ok=True)
+        uri = _dest.as_uri()
 
-def mappings_list_to_rich_table(
-    mappings_list: list[dict[str, Any]],
-    table_kwargs: Mapping[str, Any] = {},
-    column_kwargs: Mapping[str, Any] = {},
-    row_kwargs: Mapping[str, Any] = {},
+        if LIGHTLIKE_CLI_DEV_USERNAME := getenv("LIGHTLIKE_CLI_DEV_USERNAME"):
+            uri = f"{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike-cli/queries/{timestamp}"
+            rprint(f" Queries saved to: [repr.url][link={uri}]{uri}")
+        else:
+            rprint(f" Queries saved to: [repr.url][link={uri}]{uri}")
+
+
+def map_sequence_to_rich_table(
+    mappings: list[dict[str, t.Any]],
+    string_ctype: list[str] = [],
+    bool_ctype: list[str] = [],
+    num_ctype: list[str] = [],
+    datetime_ctype: list[str] = [],
+    time_ctype: list[str] = [],
+    date_ctype: list[str] = [],
+    row_kwargs: t.Mapping[str, t.Any] = {},
+    table_kwargs: t.Mapping[str, t.Any] = {},
+    column_kwargs: t.Mapping[str, t.Any] = {},
+    message_if_empty: str | None = None,
 ) -> Table:
-    table = new_table(table_kwargs)
-    reduce(
-        lambda n, c: table.add_column(c[0], **_map_s_column_type(c), **column_kwargs),
-        mappings_list[0].items(),
-        None,
-    )
-    reduce(
-        lambda n, r: table.add_row(*map_cell_style(r.values()), **row_kwargs),
-        mappings_list,
-        None,
-    )
-    return table
-
-
-def new_table(table_kwargs: Mapping[str, Any] = {}) -> Table:
     default = {
         "box": box.MARKDOWN,
         "border_style": "bold",
@@ -150,190 +150,227 @@ def new_table(table_kwargs: Mapping[str, Any] = {}) -> Table:
         "show_edge": True,
     }
     default.update(table_kwargs)
-    return Table(**default)  # type: ignore[arg-type]
+    table: Table = Table(**default)  # type: ignore[arg-type]
+    console_width: int = get_console().width
 
+    try:
+        first_row = mappings[0]
+    except IndexError:
+        rprint(markup.dimmed(message_if_empty or "No results"))
+        raise utils.click_exit
 
-def new_console_print(
-    *renderables,
-    svg_path: Path | None = None,
-    text_path: Path | None = None,
-    status: Status | None = None,
-    console_kwargs: Mapping[str, Any] = {},
-    print_kwargs: Mapping[str, Any] = {},
-) -> None:
-    with Console(record=True, **console_kwargs) as console:
-        console.print(*renderables, style=_console.CONSOLE_CONFIG.style, **print_kwargs)
+    fn = lambda c: map_column_style(
+        items=c,
+        string_ctype=string_ctype,
+        bool_ctype=bool_ctype,
+        num_ctype=num_ctype,
+        datetime_ctype=datetime_ctype,
+        time_ctype=time_ctype,
+        date_ctype=date_ctype,
+        console_width=console_width,
+        no_color=False,
+    )
 
-        if svg_path is not None:
-            resolved = svg_path.resolve()
-            uri = resolved.as_uri()
-            path = resolved.as_posix()
-
-            rprint(Text.assemble(Text("Saved to "), markup.link(path, uri), "."))
-            console.save_svg(path, code_format=_console._CONSOLE_SVG_FORMAT)
-
-        if text_path is not None:
-            uri = text_path.resolve().as_uri()
-            path = text_path.resolve().as_posix()
-            rprint(Text.assemble(Text("Saved to "), markup.link(path, uri), "."))
-            console.save_text(path)
-
-        if status:
-            status.stop()
-
-
-def row_iter_to_rich_table(
-    row_iterator: "RowIterator",
-    table_kwargs: Mapping[str, Any] = {},
-    column_kwargs: Mapping[str, Any] = {},
-    row_kwargs: Mapping[str, Any] = {},
-) -> Table:
-    table = new_table(table_kwargs)
     reduce(
-        lambda n, c: table.add_column(
-            c._properties["name"],
-            **_map_s_column_field(c, **column_kwargs),
-        ),
-        row_iterator.schema,
+        lambda n, c: table.add_column(c[0], **fn(c), **column_kwargs),
+        first_row.items(),
         None,
     )
     reduce(
         lambda n, r: table.add_row(*map_cell_style(r.values()), **row_kwargs),
-        list(row_iterator),
+        mappings,
         None,
     )
+
+    if not table.row_count:
+        rprint(markup.dimmed(message_if_empty or "No results"))
+        raise utils.click_exit
+
     return table
 
 
-def map_cell_style(values: "dict_values[str, Any]") -> map:
-    display_values: list[Any] = []
+def map_cell_style(values: "dict_values[str, t.Any]") -> map:
+    display_values: list[t.Any] = []
     for value in values:
         if not value or value in ("null", "None"):
             display_values.append(markup.dimmed(value).markup)
-        elif isinstance(value, datetime):
-            display_values.append(value.replace(tzinfo=None))
         else:
             display_values.append(value)
-
     return map(str, display_values)
 
 
-def _map_s_column_type(items: Sequence[Any], no_color: bool = False) -> dict[str, Any]:
-    _kwargs: dict[str, Any] = dict(vertical="top")
+def map_column_style(
+    items: t.Sequence[t.Any],
+    string_ctype: list[str] = [],
+    bool_ctype: list[str] = [],
+    num_ctype: list[str] = [],
+    datetime_ctype: list[str] = [],
+    time_ctype: list[str] = [],
+    date_ctype: list[str] = [],
+    console_width: int | None = None,
+    no_color: bool = False,
+) -> dict[str, t.Any]:
+    kwargs: dict[str, t.Any] = dict(vertical="top")
+    key = items[0]
+    value = items[1] if items[1] != "null" else None
 
-    if items[0] == "id":
-        _kwargs |= dict(
-            overflow="crop",
-            min_width=7,
-            max_width=7,
+    if not console_width:
+        console_width = get_console().width
+
+    if key in bool_ctype or isinstance(value, bool):
+        kwargs |= dict(
+            justify="left",
         )
-
-    if isinstance(items[1], bool):
-        _kwargs |= dict(justify="left")
         if not no_color:
-            _kwargs |= dict(header_style="red")
-        if get_console().width < 150:
-            _kwargs |= dict(
+            kwargs |= dict(
+                header_style="red",
+            )
+        if console_width <= 150:
+            kwargs |= dict(
                 overflow="ignore",
-                min_width=1,
                 max_width=1,
             )
-    elif isinstance(items[1], (int, float)):
-        _kwargs |= dict(
+    elif key in num_ctype or isinstance(value, (int, float, Decimal)):
+        kwargs |= dict(
             justify="right",
             overflow="crop",
             min_width=8,
         )
         if not no_color:
-            _kwargs |= dict(header_style="cyan")
-    elif isinstance(items[1], str):
-        _kwargs |= dict(justify="left")
-        if not no_color:
-            _kwargs |= dict(header_style="green")
-    elif isinstance(items[1], (date, datetime, time, timedelta)):
-        _kwargs |= dict(justify="left", overflow="crop")
-        if not no_color:
-            _kwargs |= dict(header_style="yellow")
-        if isinstance(items[1], datetime):
-            _kwargs |= dict(min_width=19)
-        elif isinstance(items[1], (time, timedelta)):
-            _kwargs |= dict(min_width=8)
-        elif isinstance(items[1], date):
-            _kwargs |= dict(min_width=10)
-    else:
-        _kwargs |= dict(justify="center")
-
-    return _kwargs
-
-
-def _map_s_column_field(field: Any, **override) -> dict[str, Any]:
-    _kwargs: dict[str, Any] = dict(vertical="top")
-
-    if field._properties["name"] == "id":
-        _kwargs |= dict(
-            overflow="crop",
-            min_width=7,
-            max_width=7,
-        )
-
-    if field._properties["type"].startswith("BOOL"):
-        _kwargs |= dict(
-            justify="left",
-            header_style="red",
-        )
-        if get_console().width < 150:
-            _kwargs |= dict(
-                overflow="ignore",
-                min_width=1,
-                max_width=1,
+            kwargs |= dict(
+                header_style="cyan",
             )
-    elif field._properties["type"] in ("NUMERIC", "INTEGER", "FLOAT"):
-        _kwargs |= dict(
-            justify="right",
-            overflow="crop",
-            header_style="cyan",
-            min_width=8,
-        )
-    elif field._properties["type"] == "STRING":
-        _kwargs |= dict(
+    elif key in string_ctype or isinstance(value, str):
+        kwargs |= dict(
             justify="left",
-            header_style="green",
         )
-    elif field._properties["type"] in ("DATETIME", "TIMESTAMP"):
-        _kwargs |= dict(
+        if not no_color:
+            kwargs |= dict(
+                header_style="green",
+            )
+    elif key in [
+        *datetime_ctype,
+        *date_ctype,
+        *time_ctype,
+    ] or isinstance(
+        value,
+        (date, datetime, time, timedelta),
+    ):
+        kwargs |= dict(
             justify="left",
-            header_style="yellow",
             overflow="crop",
-            min_width=19,
+            min_width=25,
         )
-    elif field._properties["type"] == "DATE":
-        _kwargs |= dict(
-            justify="left",
-            header_style="yellow",
-            overflow="crop",
-            min_width=10,
-        )
-    elif field._properties["type"] == "TIME":
-        _kwargs |= dict(
-            justify="left",
-            header_style="yellow",
-            overflow="crop",
-            min_width=8,
-        )
+        if not no_color:
+            kwargs |= dict(
+                header_style="yellow",
+            )
+        if key in date_ctype or isinstance(value, date):
+            kwargs |= dict(
+                min_width=10,
+            )
+        elif key in time_ctype or isinstance(value, time):
+            kwargs |= dict(
+                min_width=8,
+            )
     else:
-        _kwargs |= dict(justify="center")
+        kwargs |= dict(
+            justify="left",
+            header_style="dim",
+        )
 
-    _kwargs.update(override)
-    return _kwargs
+    if items[0] == "row":
+        kwargs |= dict(
+            overflow="crop",
+            min_width=3,
+            ratio=1,
+        )
+    return kwargs
 
 
-def create_row_diff(original: dict[str, Any], new: dict[str, Any]) -> Table:
-    table = Table(
-        box=box.MARKDOWN, border_style="bold", show_header=True, show_edge=True
+def create_table_diff(
+    list_original: list[dict[str, t.Any]], list_new: list[dict[str, t.Any]]
+) -> Table:
+    final_table: Table = Table(
+        box=box.MARKDOWN,
+        border_style="bold",
+        show_header=True,
+        show_edge=True,
     )
+    new_records: list[dict[str, t.Any]] = []
+    console_width: int = get_console().width
 
-    new_record = {}
-    diff = {}
+    for original, new in zip(list_original, list_new):
+        table: Table = Table(
+            box=box.MARKDOWN,
+            border_style="bold",
+            show_header=True,
+            show_edge=True,
+        )
+
+        new_record: dict[str, t.Any] = {}
+        diff: dict[str, t.Any] = {}
+
+        for k in original.keys():
+            if k in new:
+                diff[k] = new[k]
+
+            if (diff.get(k) is None or diff.get(k) == 0) and diff.get(k) is not False:
+                table.add_column(
+                    k,
+                    **map_column_style(
+                        one({k: original[k]}.items()),
+                        console_width=console_width,
+                        no_color=True,
+                    ),
+                )
+                new_record[k] = Text(f"{original[k]!s}").markup
+
+            else:
+                if f"{original[k]}" == f"{diff[k]}":
+                    table.add_column(
+                        k,
+                        header_style="yellow",
+                        **map_column_style(
+                            one({k: diff[k]}.items()),
+                            console_width=console_width,
+                            no_color=True,
+                        ),
+                    )
+                    new_record[k] = Text(f"{diff[k]!s}", style="yellow").markup
+                else:
+                    table.add_column(
+                        k,
+                        header_style="green",
+                        **map_column_style(
+                            one({k: diff[k]}.items()),
+                            console_width=console_width,
+                            no_color=True,
+                        ),
+                    )
+                    new_record[k] = Text.assemble(
+                        markup.sdr(original[k]), " ", markup.bg(diff[k])
+                    ).markup
+
+        new_records.append(new_record)
+        final_table.columns = table.columns
+
+    for record in new_records:
+        final_table.add_row(*map_cell_style(record.values()))
+
+    return final_table
+
+
+def create_row_diff(original: dict[str, t.Any], new: dict[str, t.Any]) -> Table:
+    table: Table = Table(
+        box=box.MARKDOWN,
+        border_style="bold",
+        show_header=True,
+        show_edge=True,
+    )
+    new_record: dict[str, t.Any] = {}
+    diff: dict[str, t.Any] = {}
+    console_width: int = get_console().width
 
     for k in original.keys():
         if k in new:
@@ -342,7 +379,11 @@ def create_row_diff(original: dict[str, Any], new: dict[str, Any]) -> Table:
         if (diff.get(k) is None or diff.get(k) == 0) and diff.get(k) is not False:
             table.add_column(
                 k,
-                **_map_s_column_type(one({k: original[k]}.items()), no_color=True),
+                **map_column_style(
+                    one({k: original[k]}.items()),
+                    console_width=console_width,
+                    no_color=True,
+                ),
             )
             new_record[k] = Text(f"{original[k]!s}").markup
 
@@ -351,14 +392,22 @@ def create_row_diff(original: dict[str, Any], new: dict[str, Any]) -> Table:
                 table.add_column(
                     k,
                     header_style="yellow",
-                    **_map_s_column_type(one({k: diff[k]}.items()), no_color=True),
+                    **map_column_style(
+                        one({k: diff[k]}.items()),
+                        console_width=console_width,
+                        no_color=True,
+                    ),
                 )
                 new_record[k] = Text(f"{diff[k]!s}", style="yellow").markup
             else:
                 table.add_column(
                     k,
                     header_style="green",
-                    **_map_s_column_type(one({k: diff[k]}.items()), no_color=True),
+                    **map_column_style(
+                        one({k: diff[k]}.items()),
+                        console_width=console_width,
+                        no_color=True,
+                    ),
                 )
                 new_record[k] = Text.assemble(
                     markup.sdr(original[k]), " ", markup.bg(diff[k])

@@ -1,13 +1,15 @@
-# mypy: disable-error-code="import-untyped"
+# mypy: disable-error-code="import-untyped, func-returns-value"
 
 import sys
-from typing import TYPE_CHECKING, Callable, NoReturn, ParamSpec, Sequence
+import typing as t
+from inspect import cleandoc
+from pathlib import Path
 
-import google.auth
 from google.auth.exceptions import DefaultCredentialsError
 from google.cloud.bigquery import Client
 from rich import get_console
 from rich import print as rprint
+from rich.markup import escape
 from rich.padding import Padding
 from rich.panel import Panel
 from rich.text import Text
@@ -15,14 +17,17 @@ from rich.text import Text
 from lightlike import _console
 from lightlike.app.auth import _AuthSession
 from lightlike.app.config import AppConfig
-from lightlike.internal import markup
+from lightlike.internal import markup, utils
 from lightlike.internal.enums import CredentialsSource
 from lightlike.lib.third_party import _questionary
 
-if TYPE_CHECKING:
+if t.TYPE_CHECKING:
+    from hashlib import _Hash
+
     from google.cloud.bigquery.client import Project
 
-__all__: Sequence[str] = (
+
+__all__: t.Sequence[str] = (
     "get_client",
     "reconfigure",
     "authorize_client",
@@ -31,19 +36,15 @@ __all__: Sequence[str] = (
     "service_account_key_flow",
     "_authorize_from_service_account_key",
     "_authorize_from_environment",
-    "_provision_bigquery_resources",
+    "provision_bigquery_resources",
 )
 
 
-def global_console_log(message: Text | str) -> None:
-    if not _console.QUIET_START:
-        get_console().log(message)
+P = t.ParamSpec("P")
 
 
-global_console_log("Authorizing BigQuery Client")
-
-
-P = ParamSpec("P")
+def global_console_log(*objects: t.Any) -> None:
+    not _console.QUIET_START and get_console().log(*objects)
 
 
 CLIENT: Client | None = None
@@ -63,7 +64,7 @@ def reconfigure(*args: P.args, **kwargs: P.kwargs) -> None:
     CLIENT = NEW_CLIENT
 
 
-def authorize_client() -> Client | NoReturn:
+def authorize_client() -> Client:
     credentials_source: str = AppConfig().get("client", "credentials_source")
 
     try:
@@ -77,29 +78,33 @@ def authorize_client() -> Client | NoReturn:
             case CredentialsSource.not_set:
                 global_console_log(markup.log_error("Client configuration not found"))
 
-                with AppConfig().update() as config:
+                with AppConfig().rw() as config:
                     config["client"].update(
                         credentials_source=_select_credential_source()
                     )
 
                 return authorize_client()
 
-        if not AppConfig().get("bigquery", "resources_provisioned"):
-            _provision_bigquery_resources(client)
+        resources_provisioned = AppConfig().get("bigquery", "resources_provisioned")
+        updates = AppConfig().get("updates")
+
+        if not resources_provisioned:
+            provision_bigquery_resources(client)
+        elif updates and any([updates[k] is False for k in updates]):
+            provision_bigquery_resources(client, updates=updates)
+
         return client
 
     except KeyboardInterrupt:
         sys.exit(1)
     except DefaultCredentialsError as error:
         rprint(
-            Text.assemble(
-                markup.failure(f"Auth failed: {error}"),
-                "\nProvided either a service account key, ",
-                "or double check your application default credentials. ",
-                markup.dim(f"(try running "),
-                markup.code("gcloud init"),
-                markup.dim(f")"),
-            )
+            # fmt: off
+            markup.failure(f"Auth failed: {error}"), "\nProvided either a service account key, ",
+            "or double check your application default credentials. ",
+            markup.dimmed("(try running "), markup.code("gcloud init"), markup.dimmed(")"),
+            # fmt: on
+            sep="",
         )
         sys.exit(2)
 
@@ -116,32 +121,25 @@ def authorize_client() -> Client | NoReturn:
         return authorize_client()
 
 
-def _select_credential_source() -> str | None | NoReturn:
+def _select_credential_source() -> str | None | t.NoReturn:
     try:
         choices = [
             CredentialsSource.from_environment,
             CredentialsSource.from_service_account_key,
         ]
 
-        select_kwargs = dict(
-            message="Select source for BigQuery Client.",
+        current_setting = AppConfig().get("client", "credentials_source")
+
+        source = _questionary.select(
+            message="Select GCP project.",
             choices=choices,
             style=AppConfig().prompt_style,
             cursor=AppConfig().cursor_shape,
+            default=current_setting if current_setting in choices else None,
         )
 
-        current_setting = AppConfig().credentials_source
-
-        if current_setting in choices:
-            select_kwargs.update(
-                default=current_setting,
-                instruction="(current setting highlighted)",
-            )
-
-        source = _questionary.select(**select_kwargs)
-
         if source == current_setting:
-            rprint(markup.dim("Selected current source, nothing happened."))
+            rprint(markup.dimmed("Selected current source, nothing happened."))
             return None
         else:
             return source
@@ -151,9 +149,9 @@ def _select_credential_source() -> str | None | NoReturn:
 
 
 def _select_project(client: Client) -> str:
-    projects: Sequence["Project"] = list(client.list_projects())
+    projects: t.Sequence["Project"] = list(client.list_projects())
 
-    project_display: Callable[["Project"], str] = lambda p: " | ".join(
+    project_display: t.Callable[["Project"], str] = lambda p: " | ".join(
         [
             p.friendly_name,
             p.project_id,
@@ -161,8 +159,8 @@ def _select_project(client: Client) -> str:
         ]
     )
 
-    select_kwargs = dict(
-        message="Select source for BigQuery Client.",
+    select = _questionary.select(
+        message="Select GCP project.",
         choices=list(map(project_display, projects)),
         style=AppConfig().prompt_style,
         cursor=AppConfig().cursor_shape,
@@ -170,55 +168,52 @@ def _select_project(client: Client) -> str:
         use_indicator=True,
     )
 
-    select = _questionary.select(**select_kwargs)
     project_id = select.split("|")[1].strip()
     return project_id
 
 
-def service_account_key_flow() -> tuple[bytearray, bytes]:
-    encrypted_key = AppConfig().get("client", "service_account_key")
-    salt = AppConfig().get("user", "salt")
+def service_account_key_flow() -> tuple[bytes, bytes]:
+    encrypted_key: bytes | None = AppConfig().get("client", "service_account_key")
+    salt: bytes | None = AppConfig().get("user", "salt")
 
     if not (encrypted_key and salt):
         global_console_log("Initializing new service-account config")
 
-        auth = _AuthSession()
+        auth: _AuthSession = _AuthSession()
 
-        panel = Panel.fit(
+        panel: Panel = Panel.fit(
             Text.assemble(
-                "Create a password.",
+                "Create a password. ",
                 "This will be used to encrypt your service-account key.\n",
-                "You will need it again to load this CLI.\n",
-                "Type password and press ",
+                "You will need it again to load this cli. ",
+                "Type password (will not be echoed) and press ",
                 markup.code("enter"),
                 " to continue.",
             )
         )
         rprint(Padding(panel, (1, 0, 0, 1)))
 
-        hashed_password, salt = auth.prompt_new_password()
-        key_derivation = auth._generate_key(hashed_password.hexdigest(), salt)
+        hashed_password, salt = t.cast(
+            tuple["_Hash", bytes], auth.prompt_new_password()
+        )
+        key_derivation: bytes = auth._generate_key(hashed_password.hexdigest(), salt)
 
-        save_password = _questionary.confirm(message="Stay logged in?")
-
-        if save_password:
+        utils._nl()
+        if _questionary.confirm(message="Stay logged in?"):
             auth._update_user_credentials(
                 password=hashed_password,
                 stay_logged_in=True,
             )
 
-        service_account = auth.prompt_service_account_key()
+        service_account: str = auth.prompt_service_account_key()
         encrypted_key = auth.encrypt(key_derivation, service_account)
 
         auth._update_user_credentials(salt=salt)
-
-        with AppConfig().update() as config:
+        with AppConfig().rw() as config:
             config["client"].update(service_account_key=encrypted_key)
 
         del hashed_password
         del key_derivation
-
-        return encrypted_key, salt
 
     return encrypted_key, salt
 
@@ -232,17 +227,23 @@ def _authorize_from_service_account_key() -> Client:
         _AuthSession().authenticate(salt=salt, encrypted_key=encrypted_key)
     )
 
-    with AppConfig().update() as config:
+    with AppConfig().rw() as config:
         config["client"].update(
             credentials_source=CredentialsSource.from_service_account_key,
             active_project=client.project,
         )
+
+    import lightlike.app.cursor
+
+    lightlike.app.cursor.GCP_PROJECT = client.project
 
     global_console_log("Client authenticated")
     return client
 
 
 def _authorize_from_environment() -> Client:
+    import google.auth
+
     global_console_log("Getting credentials from environment")
     active_project: str = AppConfig().get("client", "active_project")
 
@@ -251,45 +252,99 @@ def _authorize_from_environment() -> Client:
 
         client = Client(project=active_project, credentials=credentials)
 
-        with AppConfig().update() as config:
+        with AppConfig().rw() as config:
             config["client"].update(active_project=active_project)
 
+        import lightlike.app.cursor
+
+        lightlike.app.cursor.GCP_PROJECT = active_project
+
         global_console_log("Client authenticated")
-        global_console_log(
-            Text.assemble("Client loaded with project: ", markup.code(active_project))
-        )
+        global_console_log("Current project:", markup.code(active_project))
         return client
 
     else:
         credentials, project_id = google.auth.default()
 
-        global_console_log(Text.assemble("Default project: ", markup.code(project_id)))
+        global_console_log("Default project:", markup.code(project_id))
 
         if not _questionary.confirm(
-            message=f"Continue with project: {project_id}?", auto_enter=False
+            message=f"Continue with project: {project_id}?", auto_enter=True
         ):
             project_id = _select_project(Client(credentials=credentials))
 
-        global_console_log(Text.assemble("Using project: ", markup.code(project_id)))
+        global_console_log("Current project:", markup.code(project_id))
 
         credentials = credentials.with_quota_project(project_id)
 
         client = Client(project=project_id, credentials=credentials)
 
-        with AppConfig().update() as config:
+        with AppConfig().rw() as config:
             config["client"].update(
                 credentials_source=CredentialsSource.from_environment,
                 active_project=client.project,
             )
 
+        import lightlike.app.cursor
+
+        lightlike.app.cursor.GCP_PROJECT = client.project
+
         global_console_log("Client authenticated")
         return client
 
 
-def _provision_bigquery_resources(client: Client) -> None:
+def provision_bigquery_resources(
+    client: Client,
+    force: bool = False,
+    updates: dict[str, bool] | None = None,
+    yes: bool = False,
+) -> None:
     from lightlike.internal.bq_resources import build
 
-    mapping = AppConfig().get("bigquery")
+    if updates:
+        update_panel = Panel.fit(
+            cleandoc(
+                """\
+            App detected that this version either:
+                ▸ is currently updating to a version with breaking changes, and needs to run scripts in BigQuery.
+                ▸ has not ran scripts in BigQuery following an update with breaking changes.
+            
+            There may have been modified tables/functions.
+            In every case, there should be no change to the existing data.
+            A snapshot will be created before updates and will expire in 5 days.
+            
+            Please run scripts. This prompt will continue until this version update is marked as confirmed.
+            [b][red]![/red] [u]This cli will not work as expected if tables or procedures are not up to date[/u].\
+                """
+            ),
+            border_style="bold green",
+            title="CONFIG UPDATE",
+            title_align="center",
+            subtitle="Changes in BigQuery",
+            subtitle_align="center",
+            padding=(1, 1),
+        )
+        rprint(Padding(update_panel, (1, 0, 1, 1)))
+
+    link = markup.link(escape(build.SCRIPTS.as_posix()), build.SCRIPTS.as_uri())
+    confirm_panel = Panel.fit(
+        f"Press {markup.code('y').markup} and {markup.code('enter').markup} "
+        f"to build tables/procedures in BigQuery.\nView scripts in {link.markup}"
+    )
+
+    not (force or yes) and rprint(Padding(confirm_panel, (1, 0, 1, 1)))
+
+    def update_config():
+        updates = AppConfig().get("updates")
+
+        with AppConfig().rw() as config:
+            config["bigquery"].update(resources_provisioned=True)
+
+            if updates is not None and any([updates[k] is False for k in updates]):
+                for k in updates:
+                    config["updates"][k] = True
+
+    mapping: dict[str, t.Any] = AppConfig().get("bigquery")
     bq_patterns = {
         "${DATASET.NAME}": mapping["dataset"],
         "${TABLES.TIMESHEET}": mapping["timesheet"],
@@ -297,19 +352,97 @@ def _provision_bigquery_resources(client: Client) -> None:
         "${TIMEZONE}": f"{AppConfig().tz}",
     }
 
-    build_state = True
-    while build_state:
-        build_status = build.run(client=client, patterns=bq_patterns)
+    if force:
+        if not yes:
+            if not _questionary.confirm(message="Run SQL scripts?", default=False):
+                return
 
-        if build_status:
-            with AppConfig().update() as config:
-                config["bigquery"].update(resources_provisioned=True)
-
-            build_state = False
-
-        if not build_status:
-            if _questionary.confirm(
-                message="This CLI will not work if the required tables/procedures do not exist. "
-                "Are you sure you want to continue?",
-            ):
+        build.run(client=client, patterns=bq_patterns)
+        update_routine_diff(client)
+        update_config()
+    else:
+        build_state = True
+        while build_state:
+            if _questionary.confirm(message="Run SQL scripts?", default=False):
+                build.run(client=client, patterns=bq_patterns)
+                update_routine_diff(client)
+                update_config()
                 build_state = False
+            else:
+                if updates:
+                    rprint(
+                        "[b][red]![/] [b]"
+                        "This cli will not work as expected if tables or procedures are not up to date."
+                    )
+                else:
+                    rprint(
+                        "[b][red]![/] [b]"
+                        "This cli will not work if the required tables/procedures do not exist."
+                    )
+                if _questionary.confirm(
+                    message="Are you sure you want to continue without running?",
+                    default=False,
+                ):
+                    build_state = False
+
+
+def update_routine_diff(client: Client) -> None:
+    try:
+        from more_itertools import flatten, interleave_longest
+
+        from lightlike.app import _get, routines
+
+        console = get_console()
+        routine = routines.CliQueryRoutines()
+
+        dataset = AppConfig().get("bigquery", "dataset")
+        list_routines = client.list_routines(dataset=dataset)
+        existing_routines = list(map(_get.routine_id, list_routines))
+        removed = set(existing_routines).difference(list(routine._all_routines_ids))
+        missing = set(routine._all_routines_ids).difference(existing_routines)
+
+        if not any([removed, missing]):
+            return
+
+        with console.status(markup.status_message("Updating routines")):
+            if removed:
+                console.log("Dropping deprecated/unrecognized procedures")
+
+                for routine in removed:
+                    routine_id = f"{client.project}.{dataset}.{routine}"
+                    client.delete_routine(routine_id)
+                    console.log(markup.bg("Dropped routine:"), routine)
+
+            if missing:
+                mapping: dict[str, t.Any] = AppConfig().get("bigquery")
+                bq_patterns = {
+                    "${DATASET.NAME}": mapping["dataset"],
+                    "${TABLES.TIMESHEET}": mapping["timesheet"],
+                    "${TABLES.PROJECTS}": mapping["projects"],
+                    "${TIMEZONE}": f"{AppConfig().tz}",
+                }
+                console.log("Creating missing procedures")
+
+                bq_resources = Path(
+                    f"{__file__}/../../internal/bq_resources/sql"
+                ).resolve()
+
+                for path in flatten(
+                    interleave_longest(
+                        list(map(lambda b: b.iterdir(), bq_resources.iterdir()))
+                    )
+                ):
+                    if path.stem in missing:
+                        script = utils._regexp_replace(
+                            text=path.read_text(), patterns=bq_patterns
+                        )
+                        script = script.replace("${__name__}", path.stem)
+                        client.query(script)
+                        console.log(markup.bg("Created routine:"), path.stem)
+
+    except Exception:
+        console.log(
+            markup.br("Failed to update BigQuery scripts."),
+            markup.br("Try running command app:run-bq"),
+            markup.br("or some functions may not work properly."),
+        )

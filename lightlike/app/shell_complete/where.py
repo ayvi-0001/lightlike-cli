@@ -47,14 +47,14 @@ class WhereClauseCompleter(WordCompleter):
         "start",
         "timestamp_end",
         "end",
-        "is_active",
-        "is_billable",
-        "is_archived",
-        "is_paused",
-        "time_paused",
+        "active",
+        "billable",
+        "archived",
+        "paused",
+        "timestamp_paused",
         "paused_counter",
-        "paused_hrs",
-        "duration",
+        "paused_hours",
+        "hours",
     ]
 
     def __init__(self, schema: str, table: str) -> None:
@@ -113,7 +113,7 @@ class WhereClauseCompleter(WordCompleter):
             if note.startswith(word_before_cursor):
                 yield Completion(
                     text=f"{note}",
-                    display=f"{note[:45]}..." if len(note) > 45 else f"{note}",
+                    display=f"{note[:45]}…" if len(note) > 45 else f"{note}",
                     start_position=-len(word_before_cursor),
                     display_meta=f"NOTE:{project}",
                     style="#239551",

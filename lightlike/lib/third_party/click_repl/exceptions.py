@@ -19,6 +19,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import typing as t
+
+__all__: t.Sequence[str] = (
+    "InternalCommandException",
+    "ExitReplException",
+    "CommandLineParserError",
+    "InvalidGroupFormat",
+    "ClickExit",
+)
+
+from click.exceptions import Exit as ClickExit
+
 
 class InternalCommandException(Exception): ...
 
@@ -30,11 +42,3 @@ class CommandLineParserError(Exception): ...
 
 
 class InvalidGroupFormat(Exception): ...
-
-
-# Handle click.exceptions.Exit introduced in Click 7.0
-try:
-    from click.exceptions import Exit as ClickExit
-except (ImportError, ModuleNotFoundError):
-
-    class ClickExit(RuntimeError): ...  # type: ignore[no-redef]

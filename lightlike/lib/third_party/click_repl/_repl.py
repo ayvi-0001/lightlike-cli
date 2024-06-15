@@ -19,58 +19,67 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+
+# This cli uses a modified version of the click-repl repo.
 # Original Repo: https://github.com/click-contrib/click-repl
-# This CLI uses a modified version of the click-repl repo.
-#   - Changes from original:
-#   - Renamed parameters.
-#   - Replace click objects with rich_click objects.
-#   - Don't break on EOFError
-#   - Remove internal/external commands.
-#   - Remap click exceptions and render as rich_click errors.
-#   - Use dynamic completer callable for completer.
-#   - Bootstrap prompt removed.
-#   - Add new line starts after prompts.
+# Changes from original:
+#   - Replace click objects with rich_click objects
+#   - Remap exceptions to rich_click errors
+#   - Add app specific error handling
+#   - Rename parameters
+#   - Add types
+#   - Add dynamic completer callable
+#   - Remove internal/external commands
+#   - Remove bootstrap prompt
+#   - Remove break on EOFError
+#   - Add system command default if command does not exist
+
 
 from __future__ import with_statement
 
 import sys
-from typing import Any, Callable, Sequence, TypeVar, cast
+import typing as t
+from subprocess import PIPE, STDOUT, Popen, list2cmdline
 
 import rich_click as click
+from more_itertools import first, last
 from prompt_toolkit import PromptSession
+from prompt_toolkit.application import get_app
 from prompt_toolkit.completion import Completer
-from prompt_toolkit.patch_stdout import patch_stdout
-from rich import get_console
 
-from lightlike.app.group import AliasedRichGroup
-from lightlike.lib.third_party._map_click_exception import _map_click_exception
+from lightlike.app.config import AppConfig
+from lightlike.app.core import AliasedRichGroup, _map_click_exception
+from lightlike.internal.utils import notify_and_log_error
 from lightlike.lib.third_party.click_repl import exceptions
 from lightlike.lib.third_party.click_repl._completer import ClickCompleter
 from lightlike.lib.third_party.click_repl.utils import split_arg_string
 
-__all__: Sequence[str] = ("register_repl", "repl")
+if t.TYPE_CHECKING:
+    from prompt_toolkit.buffer import Buffer
+
+__all__: t.Sequence[str] = ("register_repl", "repl")
 
 
-RG = TypeVar("RG", bound=click.RichGroup)
-RC = TypeVar("RC", bound=click.RichContext)
+RG = t.TypeVar("RG", bound=click.RichGroup)
+RC = t.TypeVar("RC", bound=click.RichContext)
 
 
 def repl(
     ctx: click.RichContext,
-    prompt_kwargs: dict[str, Any],
-    completer: Callable[..., ClickCompleter[RG, RC]],
-    dynamic_completer: Callable[[ClickCompleter[RG, RC]], Completer] | None = None,
+    prompt_kwargs: dict[str, t.Any],
+    completer: t.Callable[..., ClickCompleter[RG, RC]],
+    dynamic_completer: t.Callable[[ClickCompleter[RG, RC]], Completer] | None = None,
 ) -> None:
     group_ctx = ctx
 
     # Switching to the parent context that has a Group as its command
-    # as a Group acts as a CLI for all of its subcommands
+    # as a Group acts as a cli for all of its subcommands
     if ctx.parent and not isinstance(ctx.command, click.RichGroup):
-        group_ctx = cast(click.RichContext, ctx.parent)
+        group_ctx = t.cast(click.RichContext, ctx.parent)
 
-    group = cast(AliasedRichGroup, group_ctx.command)
+    group = t.cast(AliasedRichGroup, group_ctx.command)
 
-    # An Optional click.Argument in the CLI Group, that has no value
+    # An Optional click.Argument in the cli Group, that has no value
     # will consume the first word from the REPL input, causing issues in
     # executing the command
     # So, if there's an empty Optional Argument
@@ -112,7 +121,7 @@ def repl(
 
         session: PromptSession = PromptSession(**prompt_kwargs)
 
-        def get_command() -> Any:
+        def get_command() -> t.Any:
             return session.prompt()
 
     else:
@@ -138,9 +147,6 @@ def repl(
         except exceptions.CommandLineParserError:
             continue
 
-        except exceptions.ExitReplException:
-            break
-
         try:
             # The group command will dispatch based on args.
             old_protected_args = group_ctx.protected_args
@@ -150,15 +156,28 @@ def repl(
             finally:
                 group_ctx.protected_args = old_protected_args
 
+        except click.UsageError as e1:
+            usage_ctx = e1.ctx
+            if (
+                usage_ctx
+                and usage_ctx.command_path == ""
+                and e1.message.startswith("No such command")
+            ):
+                try:
+                    _execute_system_command(args)
+                except Exception as e3:
+                    print(e3)
+            else:
+                _map_click_exception(e1)
+
         except (
             click.MissingParameter,
             click.BadOptionUsage,
             click.BadParameter,
             click.BadArgumentUsage,
-            click.UsageError,
             click.ClickException,
-        ) as e:
-            _map_click_exception(e)
+        ) as e4:
+            _map_click_exception(e4)
 
         except (exceptions.ClickExit, SystemExit):
             pass
@@ -166,15 +185,66 @@ def repl(
         except exceptions.ExitReplException:
             break
 
-        except Exception as e:
-            with patch_stdout(raw=True):
-                with get_console() as console:
-                    console.print_exception(show_locals=True, width=console.width)
+        except Exception as e5:
+            notify_and_log_error(e5)
 
     if original_command:
         available_commands[repl_command_name] = original_command
 
 
-def register_repl(group: click.Context, name: str = "repl") -> None:
-    """Register :func:`repl()` as sub-command *name* of *group*."""
-    group.command(name=name)(click.pass_context(repl))
+def _execute_system_command(args: list[str]) -> None:
+    args2cmdline = list2cmdline(args)
+
+    buffer: "Buffer" = get_app().current_buffer
+    buffer.append_to_history()
+    buffer.reset(append_to_history=True)
+    buffer.delete_before_cursor(len(args2cmdline))
+
+    shell = AppConfig().get("system-command", "shell")
+
+    for cmd_args in args2cmdline.split("&&"):
+        commands = list(map(lambda c: c.strip(), cmd_args.split("|")))
+        processes: list[Popen] = []
+
+        while commands:
+            try:
+                last_process = last(processes)
+                last_process.wait()
+            except ValueError:
+                last_process = None
+
+            proc_args = list(filter(lambda l: l != "", first(commands).split(" ")))
+
+            stdin = last_process.stdout if last_process else PIPE
+            stdout = sys.stdout if len(commands) == 1 else PIPE
+            stderr = STDOUT
+
+            try:
+                _cmd: str = list2cmdline(proc_args)
+                if shell:
+                    if isinstance(shell, str):
+                        _cmd = f'{shell} "{_cmd}"'
+                    elif isinstance(shell, list):
+                        _cmd = f'{list2cmdline(shell)} "{_cmd}"'
+
+                proc: Popen[str] = Popen(  # type: ignore[call-overload]
+                    _cmd,
+                    stdin=stdin,
+                    stdout=stdout,
+                    stderr=stderr,
+                    shell=True,
+                    text=True,
+                    close_fds=True,
+                )
+
+            except Exception as e2:
+                print(e2)
+                break
+
+            processes.append(proc)
+            commands.pop(0)
+
+        if not processes:
+            continue
+
+        last(processes).wait()

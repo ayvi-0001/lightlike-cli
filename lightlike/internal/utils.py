@@ -1,22 +1,22 @@
-import contextlib
-import functools
+# mypy: disable-error-code="func-returns-value"
+
 import logging
 import re
 import typing as t
 from contextlib import ContextDecorator, suppress
-from datetime import date, time, timedelta
-from decimal import Decimal
-from functools import reduce
-from operator import truth
+from datetime import datetime
+from functools import reduce, wraps
+from operator import getitem
+from time import perf_counter_ns
 from types import FunctionType
 
 import rtoml
 from click.exceptions import Exit as ClickExit
 from prompt_toolkit.application import get_app, in_terminal
+from prompt_toolkit.patch_stdout import patch_stdout
 from rich import get_console
 from rich import print as rprint
-from rich.console import NewLine
-from rich.text import Text
+from rich.console import Console, NewLine
 
 from lightlike.__about__ import __appdir__, __appname_sc__
 from lightlike.internal import appdir, markup
@@ -28,24 +28,25 @@ if t.TYPE_CHECKING:
 __all__: t.Sequence[str] = (
     "_log",
     "_shutdown_log",
+    "click_exit",
+    "exit_cmd_on_interrupt",
     "_handle_keyboard_interrupt",
-    "_nl_start",
     "_nl",
+    "_nl_async",
     "_nl_start",
+    "notify_and_log_error",
     "_identical_vectors",
     "pretty_print_exception",
     "_prerun_autocomplete",
     "_regexp_replace",
     "_format_toml",
+    "reduce_keys",
     "_alter_str",
     "_split_and_alter_str",
     "_match_str",
-    "timer",
+    "ns_time_diff",
     "update_dict",
-    "_sec_to_time_parts",
-    "print_updated_val",
-    "click_exit",
-    "exit_cmd_on_interrupt",
+    "_print_message_and_clear_buffer",
 )
 
 
@@ -54,14 +55,9 @@ P = t.ParamSpec("P")
 
 logging.basicConfig(
     level=logging.DEBUG,
-    filename=appdir.LOG.as_posix(),
+    filename=appdir.LOGS / "cli.log",
     filemode="a",
-    format=(
-        "[%(asctime)s] "
-        "fn(%(funcName)s) "
-        "{%(pathname)s:%(lineno)d} "
-        "%(levelname)s - %(message)s"
-    ),
+    format="[%(asctime)s] {%(pathname)s:%(lineno)d}\n" "%(levelname)s: %(message)s",
     datefmt="%m-%d %H:%M:%S",
 )
 
@@ -91,16 +87,19 @@ def _handle_keyboard_interrupt(
     callback: t.Callable[..., t.Any] | None = None
 ) -> t.Callable[..., t.Callable[..., t.Any]]:
     def decorator(fn: FunctionType) -> t.Callable[..., t.Any]:
-        @functools.wraps(fn)
+        @wraps(fn)
         def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
             try:
                 return fn(*args, **kwargs)
-            except (KeyboardInterrupt, EOFError):
+            except (KeyboardInterrupt, EOFError) as error:
                 if callback and callable(callback):
-                    callback()
+                    return callback()
                 else:
-                    rprint(markup.dim("Canceled prompt."))
-                return
+                    if isinstance(error, KeyboardInterrupt):
+                        rprint(markup.dimmed("Command killed by keyboard interrupt."))
+                    elif isinstance(error, EOFError):
+                        rprint(markup.dimmed("End of file. No input."))
+                    return None
 
         return inner
 
@@ -120,16 +119,39 @@ def _nl_start(
     after: bool = False, before: bool = False
 ) -> t.Callable[..., t.Callable[..., t.Any]]:
     def decorator(fn: FunctionType) -> t.Callable[..., t.Any]:
-        @functools.wraps(fn)
+        @wraps(fn)
         def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
-            _nl() if before else ...
+            before and _nl()
             r = fn(*args, **kwargs)
-            _nl() if after else ...
+            after and _nl()
             return r
 
         return inner
 
     return decorator
+
+
+def notify_and_log_error(error: Exception) -> None:
+    error_logs = appdir.LOGS / "errors"
+    error_logs.mkdir(exist_ok=True)
+    timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
+    file_name = f"{error.__class__.__name__}_{timestamp}.log"
+    error_log = error_logs / file_name
+
+    with Console(record=True, width=200) as console:
+        console.begin_capture()
+        console.print_exception(show_locals=True, width=console.width)
+        console.save_text(f"{error_log!s}", clear=True)
+        console.end_capture()
+
+    with patch_stdout(raw=True):
+        rprint(
+            f"\n[b][red]Encountered an unexpected error:[/] {error!r}."
+            "\nIf you'd like to create an issue for this, you can submit @ "
+            "[repr.url]https://github.com/ayvi-0001/lightlike-cli/issues/new[/repr.url]."
+            "\nPlease include any relevant info in the traceback found at:"
+            f"\n[repr.url]{error_log.as_uri()}[/repr.url]\n",
+        )
 
 
 def _identical_vectors(l1: list[t.Any], l2: list[t.Any]) -> bool:
@@ -140,8 +162,8 @@ def _identical_vectors(l1: list[t.Any], l2: list[t.Any]) -> bool:
     )
 
 
-def pretty_print_exception(fn) -> t.Callable[..., t.Any]:
-    @functools.wraps(fn)
+def pretty_print_exception(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
+    @wraps(fn)
     def inner(*args: P.args, **kwargs: P.kwargs) -> None:
         try:
             return fn(*args, **kwargs)
@@ -183,9 +205,19 @@ def _format_toml(toml_obj: t.MutableMapping[str, t.Any]) -> str:
     return _regexp_replace(toml_patterns, rtoml.dumps(toml_obj))
 
 
+def reduce_keys(
+    *keys: t.Sequence[str], sequence: t.Any, default: t.Optional[t.Any] = None
+) -> t.Any:
+    try:
+        return reduce(getitem, [*keys], sequence)
+    except KeyError:
+        return default
+
+
 def _alter_str(
     string: t.Any,
     strip: bool = False,
+    split: str | None = None,
     lower: bool = False,
     strip_quotes: bool = False,
     strip_parenthesis: bool = False,
@@ -205,7 +237,10 @@ def _alter_str(
     if add_quotes:
         string = f'"{string}"'
 
-    return string
+    if split:
+        return string.split(split)
+    else:
+        return string
 
 
 def _split_and_alter_str(
@@ -215,11 +250,10 @@ def _split_and_alter_str(
     lower: bool = False,
     strip_quotes: bool = True,
     filter_null_strings: bool = True,
-    filter_fns: t.Sequence[t.Callable[..., t.Any]] | None = None,
-    map_fns: t.Sequence[t.Callable[..., t.Any]] | None = None,
+    filter_fns: list[t.Callable[..., t.Any]] = [],
+    map_fns: list[t.Callable[..., t.Any]] = [],
 ) -> list[str]:
     string_args: list[str] = string.split(delimeter)
-
     iter_map_fn: list[t.Callable[..., t.Any]] = []
 
     if strip:
@@ -234,16 +268,11 @@ def _split_and_alter_str(
 
     mapped_args = reduce(lambda s, fn: [*map(fn, s)], iter_map_fn, string_args)
 
+    if filter_null_strings:
+        filter_fns.append(lambda s: s != "")
+
     if filter_fns:
-        iter_filter_fn: list[t.Callable[..., t.Any]] = []
-        if filter_null_strings:
-            iter_filter_fn.append(lambda s: s != "")
-        if filter_fns:
-            for fn in filter_fns:
-                iter_filter_fn.append(fn)
-
         filtered_args = reduce(lambda x, y: [*map(y, x)], filter_fns, mapped_args)
-
         return filtered_args
 
     else:
@@ -299,27 +328,21 @@ def _match_str(
             raise ValueError("Invalid method for string match.")
 
 
-@contextlib.contextmanager
-def timer(subject: str = "time") -> t.Generator[None, None, None]:
-    from time import time
-
-    start = time()
-    yield
-    elapsed = time() - start
-    elapsed_ms = elapsed * 1000
-    print(f"{subject} elapsed {elapsed_ms:.1f}ms")
+def ns_time_diff(ns: int) -> float:
+    return round((perf_counter_ns() - ns) * 1.0e-9, 6)
 
 
 def update_dict(
     original: t.MutableMapping[str, t.Any],
     updates: t.MutableMapping[str, t.Any],
-    ignore: t.Sequence[str] | None = None,
+    ignore: t.Sequence[str] = [],
 ) -> t.MutableMapping[str, t.Any]:
     for __key, __val in updates.items():
-        if ignore and __key in ignore:
+        if __key in ignore:
             original[__key] = __val
-        if __key not in original:
+        elif __key not in original:
             continue
+
         if isinstance(__val, t.MutableMapping):
             original[__key] = update_dict(original.get(__key, {}), __val)
         else:
@@ -327,43 +350,7 @@ def update_dict(
     return original
 
 
-def _sec_to_time_parts(seconds: Decimal) -> tuple[int, int, int]:
-    hours = seconds // 3600
-    seconds %= 3600
-    minutes = seconds // 60
-    seconds %= 60
-    return int(hours), int(minutes), int(seconds)
-
-
-def print_updated_val(
-    key: str,
-    val: t.Any,
-    prefix: str | Text | None = markup.saved("Saved. "),
-) -> None:
-    if isinstance(val, Text):
-        val_markup = val
-    elif isinstance(val, bool) or val in (1, 0):
-        val_markup = (
-            markup.repr_bool_true(val) if truth(val) else markup.repr_bool_false(val)
-        )
-    elif isinstance(val, date):
-        val_markup = markup.iso8601_date(val)
-    elif isinstance(val, (time, timedelta)):
-        val_markup = markup.iso8601_time(val)
-    elif isinstance(val, str):
-        val_markup = markup.repr_str(val)
-    elif not val or val in ("null", "None"):
-        val_markup = markup.dimmed(val)
-    elif isinstance(val, int):
-        val_markup = markup.repr_number(val)
-    else:
-        val_markup = markup.code(val)
-
-    # fmt:off
-    text = Text.assemble(
-        prefix if prefix else "",
-        "Setting ", markup.scope_key(key),
-        " to ", val_markup,
-    )
-    # fmt:on
-    rprint(text)
+def _print_message_and_clear_buffer(message: str) -> None:
+    with patch_stdout(raw=True):
+        rprint(markup.dimmed(f"{message}."))
+        get_app().current_buffer.text = ""

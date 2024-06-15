@@ -32,6 +32,7 @@ __all__: Sequence[str] = (
     "__repo__",
     "__latest_release__",
     "__appdir__",
+    "__config__",
     "__lock__",
 )
 
@@ -63,13 +64,15 @@ def get_app_dir(app_name: str, roaming: bool = True, force_posix: bool = True) -
     )
 
 try:
-    env = os.getenv("LIGHTLIKE_CLI")
+    env: str | None = os.getenv("LIGHTLIKE_CLI")
 finally:
     __appname__: Final[str] = "Lightlike CLI%s" % (f" {env}" if env else '')
+    __config: Final[str] = f".lightlike{('_' + env.lower()) if env else ''}.toml"
 
 __appname_sc__: Final[str] = "".join(c if c.isalnum() else "_" for c in __appname__.lower())
-__version__: Final[str] = "v0.8.17"
+__version__: Final[str] = "v0.9.0"
 __repo__: Final[str] = "https://github.com/ayvi-0001/lightlike-cli"
 __latest_release__: Final[str] = f"{__repo__}/releases/latest"
 __appdir__: Final[Path] = Path(get_app_dir(__appname__, roaming=True))
+__config__: Final[Path] = Path.home() / __config
 __lock__: Final[Path] = __appdir__ / "cli.lock"

@@ -7,6 +7,7 @@ from lightlike.app.validate.projects import (
     active_project,
     active_project_list,
     archived_project,
+    archived_project_list,
     new_project,
 )
 
@@ -18,4 +19,5 @@ __all__: Sequence[str] = (
     "active_project_list",
     "new_project",
     "archived_project",
+    "archived_project_list",
 )

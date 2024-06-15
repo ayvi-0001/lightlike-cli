@@ -5,7 +5,7 @@ BEGIN
 UPDATE
   ${DATASET.NAME}.${TABLES.TIMESHEET}
 SET
-  is_archived = FALSE
+  archived = FALSE
 WHERE
   project = _name;
 

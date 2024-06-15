@@ -1,20 +1,27 @@
-import logging
-import shutil
+# mypy: disable-error-code="func-returns-value, import-untyped"
+
 import sys
-from contextlib import suppress
+import typing as t
 from pathlib import Path
-from typing import Final, NoReturn, Sequence
 
 import rtoml
+from fasteners import interprocess_locked
 from prompt_toolkit.history import FileHistory, ThreadedHistory
+from rich import print as rprint
 from rich.text import Text
 
 from lightlike import _console
-from lightlike.__about__ import __appdir__, __appname__
+from lightlike.__about__ import (
+    __appdir__,
+    __appname__,
+    __config__,
+    __latest_release__,
+    __lock__,
+    __repo__,
+)
 from lightlike.internal import markup
 
-__all__: Sequence[str] = (
-    "CONFIG",
+__all__: t.Sequence[str] = (
     "CACHE",
     "ENTRY_APPDATA",
     "SQL_HISTORY",
@@ -22,7 +29,8 @@ __all__: Sequence[str] = (
     "REPL_HISTORY",
     "REPL_FILE_HISTORY",
     "QUERIES",
-    "LOG",
+    "LOGS",
+    "TIMER_LIST_CACHE",
     "rmtree",
 )
 
@@ -30,85 +38,83 @@ __all__: Sequence[str] = (
 # fmt: off
 __appdir__.mkdir(exist_ok=True)
 
-CONFIG: Final[Path] = __appdir__ / "config.toml"
-CACHE: Final[Path] = __appdir__ / "cache.toml"
+CACHE: t.Final[Path] = __appdir__ / "cache.toml"
 CACHE.touch(exist_ok=True)
-ENTRY_APPDATA: Final[Path] = __appdir__ / "entry_appdata.toml"
+ENTRY_APPDATA: t.Final[Path] = __appdir__ / "entry_appdata.toml"
 ENTRY_APPDATA.touch(exist_ok=True)
-SQL_HISTORY: Final[Path] = __appdir__ / ".sql_history"
+SQL_HISTORY: t.Final[Path] = __appdir__ / ".sql_history"
 SQL_HISTORY.touch(exist_ok=True)
-SQL_FILE_HISTORY: Final[ThreadedHistory] = ThreadedHistory(FileHistory(f"{SQL_HISTORY}"))
-REPL_HISTORY: Final[Path] = __appdir__ / ".repl_history"
+SQL_FILE_HISTORY: t.Final[t.Callable[..., ThreadedHistory]] = lambda: ThreadedHistory(FileHistory(f"{SQL_HISTORY}"))
+REPL_HISTORY: t.Final[Path] = __appdir__ / ".repl_history"
 REPL_HISTORY.touch(exist_ok=True)
-REPL_FILE_HISTORY: Final[ThreadedHistory] = ThreadedHistory(FileHistory(f"{REPL_HISTORY}"))
-QUERIES: Final[Path] = __appdir__ / "queries"
-LOG: Final[Path] = __appdir__ / "cli.log"
-# SQLITE_DB: Final[Path] = __appdir__ / "lightlike_cli.db"
+REPL_FILE_HISTORY: t.Final[t.Callable[..., ThreadedHistory]] = lambda: ThreadedHistory(FileHistory(f"{REPL_HISTORY}"))
+QUERIES: t.Final[Path] = __appdir__ / "queries"
+TIMER_LIST_CACHE: t.Final[Path] = __appdir__ / "timer_list_cache.json"
+LOGS: t.Final[Path] = __appdir__ / "logs"
+LOGS.mkdir(exist_ok=True)
 # fmt: on
 
 
-def rmtree(appdata: Path = __appdir__) -> NoReturn:
+def rmtree(appdata: Path = __appdir__) -> t.NoReturn:
+    import logging
+    import shutil
+
     logging.shutdown()
     shutil.rmtree(appdata, ignore_errors=True)
     sys.exit(1)
 
 
-from lightlike.internal.update import DEFAULT_CONFIG
-from lightlike.internal.utils import _identical_vectors
+from lightlike.internal import utils
+from lightlike.internal.toml import DEFAULT_CONFIG
+from lightlike.internal.update import (
+    _patch_appdir_lt_v_0_9_0,
+    _patch_cache_lt_v_0_9_0,
+    check_latest_release,
+    extract_version,
+)
 
 
-def validate(__version__: str, /) -> None | NoReturn:
+@interprocess_locked(__appdir__ / "config.lock")
+def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
     console = _console.get_console()
-    if not _console.QUIET_START:
-        console.log("Verifying app directory")
 
-    if not CONFIG.exists():
-        console.log("config.toml not found")
-        console.log("Initializing new directory")
+    not _console.QUIET_START and console.log("Validating app directory")
+
+    _patch_appdir_lt_v_0_9_0(__appdir__, __config__)
+
+    if not __config__.exists():
+        console.log(f"{__config__} not found")
+        console.log("Initializing app directory")
         return _initial_build()
-
     else:
-        if not _console.QUIET_START:
-            console.log("Checking for updates")
+        not _console.QUIET_START and console.log("Checking for updates")
 
-        config = rtoml.load(CONFIG)
+        v_package: tuple[int, int, int] = extract_version(__version__)
 
-        if not (
-            _identical_vectors(
-                list(rtoml.load(DEFAULT_CONFIG).keys()), list(config.keys())
-            )
-        ):
-            console.log(
-                markup.log_error("App config is either corrupt or missing keys")
-            )
-            console.log("Initializing new directory")
-            return _initial_build()
+        check_latest_release(v_package, __repo__, __latest_release__)
 
-        with suppress(Exception):
-            from lightlike.__about__ import __latest_release__, __repo__
-            from lightlike.internal.update import compare_version
+        local_config = rtoml.load(__config__)
 
-            compare_version(__version__, __repo__, __latest_release__)
+        v_local = extract_version(local_config["app"]["version"])
+        v_local < v_package and console.log(
+            "Updating version: v",
+            markup.repr_number(".".join(map(str, v_package))),
+            sep="",
+        )
+        v_local < (0, 9, 0) and _patch_cache_lt_v_0_9_0(__appdir__)
 
-        from lightlike.internal.update import extract_version, update_cli, update_config
-
-        if config["app"]["version"] != __version__:
-            console.log(
-                Text.assemble(
-                    "Updating version: v",
-                    markup.repr_number(
-                        ".".join(map(str, extract_version(__version__)))
-                    ),
-                )
-            )
-            update_cli(CONFIG, __version__)
-
-        update_config(CONFIG, __version__)
+        updated_config = utils.update_dict(
+            original=rtoml.load(DEFAULT_CONFIG),
+            updates=local_config,
+            ignore=["cli", "lazy_subcommands"],
+        )
+        updated_config["app"].update(version=__version__)
+        __config__.write_text(utils._format_toml(updated_config))
 
     return None
 
 
-def _initial_build(__version__: str | None = None, /) -> None | NoReturn:
+def _initial_build() -> None | t.NoReturn:
     try:
         _console.reconfigure()
         console = _console.get_console()
@@ -122,13 +128,11 @@ def _initial_build(__version__: str | None = None, /) -> None | NoReturn:
         from rich.markdown import Markdown
         from rich.padding import Padding
 
-        from lightlike.__about__ import __appname_sc__, __version__
-        from lightlike.internal import utils
+        from lightlike.__about__ import __appname_sc__, __config__, __version__
         from lightlike.internal.enums import CredentialsSource
-        from lightlike.internal.update import DEFAULT_CONFIG
         from lightlike.lib.third_party import _questionary
 
-        _DEFAULT_CONFIG = rtoml.load(DEFAULT_CONFIG)
+        default_config = rtoml.load(DEFAULT_CONFIG)
 
         license = Markdown(
             markup=cleandoc(
@@ -168,54 +172,49 @@ def _initial_build(__version__: str | None = None, /) -> None | NoReturn:
         utils._nl()
         console.log("Writing config")
         console.log(
-            Text.assemble(
-                markup.repr_attrib_name("appname"),
-                markup.repr_attrib_equal(),
-                markup.repr_attrib_value(__appname_sc__),
-            )
+            markup.repr_attrib_name("appname"),
+            markup.repr_attrib_equal(),
+            markup.repr_attrib_value(__appname_sc__),
+            sep="",
         )
         console.log(
-            Text.assemble(
-                markup.repr_attrib_name("version"),
-                markup.repr_attrib_equal(),
-                markup.repr_attrib_value(__version__),
-            )
+            markup.repr_attrib_name("version"),
+            markup.repr_attrib_equal(),
+            markup.repr_attrib_value(__version__),
+            sep="",
         )
         console.set_window_title(__appname_sc__)
 
         term = os.getenv("TERM", "unknown")
         console.log(
-            Text.assemble(
-                markup.repr_attrib_name("term"),
-                markup.repr_attrib_equal(),
-                markup.repr_attrib_value(term),
-            )
+            markup.repr_attrib_name("term"),
+            markup.repr_attrib_equal(),
+            markup.repr_attrib_value(term),
+            sep="",
         )
 
-        _DEFAULT_CONFIG["app"].update(
+        default_config["app"].update(
             name=__appname_sc__, version=__version__, term=term
         )
 
         user = getpass.getuser()
         console.log(
-            Text.assemble(
-                markup.repr_attrib_name("user"),
-                markup.repr_attrib_equal(),
-                markup.repr_attrib_value(user),
-            )
+            markup.repr_attrib_name("user"),
+            markup.repr_attrib_equal(),
+            markup.repr_attrib_value(user),
+            sep="",
         )
         host = socket.gethostname()
         console.log(
-            Text.assemble(
-                markup.repr_attrib_name("host"),
-                markup.repr_attrib_equal(),
-                markup.repr_attrib_value(host),
-            )
+            markup.repr_attrib_name("host"),
+            markup.repr_attrib_equal(),
+            markup.repr_attrib_value(host),
+            sep="",
         )
 
-        _DEFAULT_CONFIG["user"].update(name=user, host=host)
+        default_config["user"].update(name=user, host=host)
 
-        console.log("Determining timezone from env..")
+        console.log("Determining timezone from env")
 
         from pytz import all_timezones
 
@@ -245,13 +244,12 @@ def _initial_build(__version__: str | None = None, /) -> None | NoReturn:
 
         utils._nl()
         console.log(
-            Text.assemble(
-                markup.repr_attrib_name("timezone"),
-                markup.repr_attrib_equal(),
-                markup.repr_attrib_value(timezone),
-            )
+            markup.repr_attrib_name("timezone"),
+            markup.repr_attrib_equal(),
+            markup.repr_attrib_value(timezone),
+            sep="",
         )
-        _DEFAULT_CONFIG["settings"].update(timezone=timezone)
+        default_config["settings"].update(timezone=timezone)
 
         console.print(
             Padding(
@@ -259,7 +257,7 @@ def _initial_build(__version__: str | None = None, /) -> None | NoReturn:
                     """
                     [u]Select method for authenticating client.[/u]
 
-                    Methods;
+                    Methods:
                         ▸ [b][u]from-environment[/b][/u]
                           Let the client determine credentials from the current environment.
                           This will likely use Application Default Credentials.
@@ -278,8 +276,8 @@ def _initial_build(__version__: str | None = None, /) -> None | NoReturn:
         client_credential_source = _questionary.select(
             message="Select authorization",
             choices=[
-                CredentialsSource.from_environment,
                 CredentialsSource.from_service_account_key,
+                CredentialsSource.from_environment,
             ],
         )
 
@@ -287,7 +285,8 @@ def _initial_build(__version__: str | None = None, /) -> None | NoReturn:
             Padding(
                 Text.assemble(
                     "App will create the dataset ",
-                    markup.code(__appname_sc__), " in BigQuery.",  # fmt: skip
+                    markup.code(__appname_sc__),
+                    " in BigQuery.",
                 ),
                 (1, 0, 1, 1),
             )
@@ -308,22 +307,22 @@ def _initial_build(__version__: str | None = None, /) -> None | NoReturn:
 
         utils._nl()
         console.log(
-            Text.assemble(
-                markup.repr_attrib_name("dataset"),
-                markup.repr_attrib_equal(),
-                markup.repr_attrib_value(dataset_name),
-            )
+            markup.repr_attrib_name("dataset"),
+            markup.repr_attrib_equal(),
+            markup.repr_attrib_value(dataset_name),
+            sep="",
         )
 
-        _DEFAULT_CONFIG["bigquery"].update(dataset=dataset_name)
-        _DEFAULT_CONFIG["client"].update(
+        default_config["bigquery"].update(dataset=dataset_name)
+        default_config["client"].update(
             credentials_source=repr(client_credential_source)
         )
         console.log("Saving config")
-        CONFIG.write_text(utils._format_toml(_DEFAULT_CONFIG))
+
+        __config__.write_text(utils._format_toml(default_config))
         console.log("Building app directory")
-        CONFIG.touch(exist_ok=True)
-        console.log(f"Writing {CONFIG}")
+        __config__.touch(exist_ok=True)
+        console.log(f"Writing {__config__}")
         REPL_HISTORY.touch(exist_ok=True)
         console.log(f"Writing {REPL_HISTORY}")
         SQL_HISTORY.touch(exist_ok=True)
@@ -333,8 +332,15 @@ def _initial_build(__version__: str | None = None, /) -> None | NoReturn:
         console.log("Directory build complete")
 
         ENTRY_APPDATA.write_text(
-            '[active.no-project]\nname = "no-project"'
-            '\ndescription = "default"\nnotes=[]'
+            cleandoc(
+                """
+                [active.no-project]
+                name = "no-project"
+                description = "default"
+                default_billable = false
+                notes = []
+                """
+            )
         )
         return None
 
@@ -342,10 +348,6 @@ def _initial_build(__version__: str | None = None, /) -> None | NoReturn:
         sys.exit(1)
 
     except Exception as error:
-        _console.get_console().print(
-            Text.assemble(
-                markup.failure(f"Failed to build app directory {error}.\n"),
-                "Deleting app directory.",
-            )
-        )
+        rprint(markup.failure("Failed build:"), error)
+        rprint(markup.failure("Deleting app directory."))
         rmtree()

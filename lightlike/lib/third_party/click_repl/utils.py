@@ -19,91 +19,59 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import shlex
-from typing import NoReturn, Sequence, cast
+
+# This cli uses a modified version of the click-repl repo.
+# Original Repo: https://github.com/click-contrib/click-repl
+# Changes from original package:
+#   - Add types
+#   - Replace click objects with rich_click objects
+#   - Remove internal commands
+#   - Remove handling for older python versions
+#   - Rework resolve command to break on chained commands
+#   - Rename exit -> exit_repl
+
+
+import typing as t
+from shlex import shlex
 
 import rich_click as click
 
-from .exceptions import ExitReplException
+from lightlike.internal import utils
+from lightlike.lib.third_party.click_repl.exceptions import ExitReplException
 
-__all__: Sequence[str] = (
-    "_resolve_context",
-    "split_arg_string",
-    "_exit_internal",
-    "exit",
-)
+__all__: t.Sequence[str] = ("_resolve_context", "split_arg_string", "exit_repl")
 
 
 def _resolve_context(args: list[str], ctx: click.RichContext) -> click.RichContext:
-    """Produce the context hierarchy starting with the command and
-    traversing the complete arguments. This only follows the commands,
-    it doesn't trigger input prompts or callbacks.
-
-    :param args: List of complete args before the incomplete value.
-    :param cli_ctx: `click.Context` object of the CLI group
-    """
     try:
         while args:
             command = ctx.command
 
-            if isinstance(command, click.RichGroup):
-                if not command.chain:
-                    name, cmd, args = command.resolve_command(ctx, args)
+            if isinstance(command, click.RichGroup) and not command.chain:
+                name, cmd, args = t.cast(
+                    tuple[str | None, click.Command | None, list[str]],
+                    command.resolve_command(ctx, args),
+                )
 
-                    if cmd is None:
-                        return ctx
+                if cmd is None:
+                    return ctx
 
-                    ctx = cast(
-                        click.RichContext,
-                        cmd.make_context(
-                            name, args, parent=ctx, resilient_parsing=True
-                        ),
-                    )
-                    args = ctx.protected_args + ctx.args
-                else:
-                    sub_ctx = click.RichContext()
-
-                    while args:
-                        name, cmd, args = command.resolve_command(ctx, args)
-
-                        if cmd is None:
-                            return ctx
-
-                        sub_ctx = cast(
-                            click.RichContext,
-                            cmd.make_context(
-                                name,
-                                args,
-                                parent=ctx,
-                                allow_extra_args=True,
-                                allow_interspersed_args=False,
-                                resilient_parsing=True,
-                            ),
-                        )
-                        args = sub_ctx.args
-
-                    ctx = sub_ctx
-                    args = [*sub_ctx.protected_args, *sub_ctx.args]
+                ctx = t.cast(
+                    click.RichContext,
+                    cmd.make_context(name, args, parent=ctx, resilient_parsing=True),
+                )
+                args = ctx.protected_args + ctx.args
             else:
                 break
-    except Exception:
-        pass
+    except Exception as error:
+        if "No such command" not in f"{error}":
+            utils._log().error(f"Failed to resolve context: {error}")
 
     return ctx
 
 
 def split_arg_string(string: str, posix=True) -> list[str]:
-    """Split an argument string as with :func:`shlex.split`, but don't
-    fail if the string is incomplete. Ignores a missing closing quote or
-    incomplete escape sequence and uses the partial token as-is.
-    .. code-block:: python
-        split_arg_string("example 'my file")
-        ["example", "my file"]
-        split_arg_string("example my\\")
-        ["example", "my"]
-    :param string: String to split.
-    """
-    lex = shlex.shlex(string, posix=posix)
+    lex = shlex(string, posix=posix)
     lex.whitespace_split = True
     lex.commenters = ""
     out = []
@@ -120,10 +88,9 @@ def split_arg_string(string: str, posix=True) -> list[str]:
     return out
 
 
-def _exit_internal() -> NoReturn:
+def _exit_internal() -> t.NoReturn:
     raise ExitReplException()
 
 
-def exit() -> NoReturn:
-    """Exit the repl"""
+def exit_repl() -> t.NoReturn:
     _exit_internal()

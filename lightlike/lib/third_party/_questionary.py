@@ -1,17 +1,20 @@
-# mypy: disable-error-code="arg-type, misc"
+import typing as t
 
-import functools
-from pathlib import Path
-from typing import Any, ParamSpec, Sequence
-
-import questionary  # type: ignore[import-not-found]
-import rtoml
+from prompt_toolkit.completion import Completer
 from prompt_toolkit.cursor_shapes import CursorShape
+from prompt_toolkit.lexers import Lexer
+from prompt_toolkit.shortcuts.prompt import CompleteStyle
 from prompt_toolkit.styles import Style
+from questionary import Question
+from questionary import autocomplete as _autocomplete
+from questionary import checkbox as _checkbox
+from questionary import confirm as _confirm
+from questionary import press_any_key_to_continue as _press_any_key_to_continue
+from questionary import select as _select
+from questionary import text as _text
+from questionary.prompts.common import Choice
 
-from lightlike._console import PROMPT_TOML
-
-__all__: Sequence[str] = (
+__all__: t.Sequence[str] = (
     "checkbox",
     "autocomplete",
     "confirm",
@@ -20,51 +23,190 @@ __all__: Sequence[str] = (
     "text",
 )
 
-PROMPT_CONFIG = rtoml.load(PROMPT_TOML)
-PROMPT_STYLE = Style.from_dict(PROMPT_CONFIG["style"])
-CURSOR_SHAPE = getattr(CursorShape, PROMPT_CONFIG["cursor-shape"])
-POINTER = "▸"
-DEFAULT_QUESTION_KWARGS = {"style": PROMPT_STYLE}
+
+PROMPT_CONFIG: t.MutableMapping[str, t.Any]
+from lightlike.__about__ import __config__
+
+if not __config__.exists():
+    import rtoml
+
+    from lightlike.internal import toml
+
+    PROMPT_CONFIG = rtoml.load(toml.PROMPT)
+else:
+    from lightlike.app.config import AppConfig
+
+    PROMPT_CONFIG = AppConfig()._prompt_config
 
 
-P = ParamSpec("P")
+# Wrapping original functions with default arguments and to automatically call unsafe_ask method.
 
 
-# Wrap original functions to automatically call unsafe_ask method.
+def checkbox(
+    message: str,
+    choices: t.Sequence[t.Union[str, Choice, dict[str, t.Any]]],
+    default: t.Optional[str] = None,
+    validate: t.Callable[[list[str]], t.Union[bool, str]] = lambda a: True,
+    qmark: str = "?",
+    pointer: t.Optional[str] = "▸",
+    style: t.Optional[Style] = Style.from_dict(PROMPT_CONFIG["style"]),
+    cursor: CursorShape = getattr(CursorShape, PROMPT_CONFIG["cursor-shape"]),
+    initial_choice: t.Optional[t.Union[str, Choice, dict[str, t.Any]]] = None,
+    use_arrow_keys: bool = True,
+    use_jk_keys: bool = True,
+    use_emacs_keys: bool = True,
+    instruction: t.Optional[str] = None,
+    **kwargs: t.Any,
+) -> t.Any:
+    question: Question = _checkbox(
+        message,
+        choices,
+        default=default,
+        validate=validate,
+        qmark=qmark,
+        pointer=pointer,
+        style=style,
+        cursor=cursor,
+        initial_choice=initial_choice,
+        use_arrow_keys=use_arrow_keys,
+        use_jk_keys=use_jk_keys,
+        use_emacs_keys=use_emacs_keys,
+        instruction=instruction,
+        **kwargs,
+    )
+    return question.unsafe_ask(patch_stdout=True)
 
 
-@functools.wraps(questionary.checkbox)
-def checkbox(*args: P.args, **kwargs: P.kwargs) -> Any:
-    kwargs.update(DEFAULT_QUESTION_KWARGS)
-    return questionary.checkbox(**kwargs).unsafe_ask(patch_stdout=True)
+def autocomplete(
+    message: str,
+    choices: list[str],
+    default: str = "",
+    qmark: str = "?",
+    completer: t.Optional[Completer] = None,
+    meta_information: t.Optional[dict[str, t.Any]] = None,
+    ignore_case: bool = True,
+    match_middle: bool = True,
+    complete_style: CompleteStyle = CompleteStyle.COLUMN,
+    validate: t.Any = None,
+    style: t.Optional[Style] = Style.from_dict(PROMPT_CONFIG["style"]),
+    cursor: CursorShape = getattr(CursorShape, PROMPT_CONFIG["cursor-shape"]),
+    **kwargs: t.Any,
+) -> t.Any:
+    question: Question = _autocomplete(
+        message,
+        choices=choices,
+        default=default,
+        qmark=qmark,
+        completer=completer,
+        meta_information=meta_information,
+        ignore_case=ignore_case,
+        match_middle=match_middle,
+        complete_style=complete_style,
+        validate=validate,
+        style=style,
+        cursor=cursor,
+        **kwargs,
+    )
+    return question.unsafe_ask(patch_stdout=True)
 
 
-@functools.wraps(questionary.autocomplete)
-def autocomplete(*args: P.args, **kwargs: P.kwargs) -> Any:
-    kwargs.update(DEFAULT_QUESTION_KWARGS)
-    return questionary.autocomplete(**kwargs).unsafe_ask(patch_stdout=True)
+def confirm(
+    message: str,
+    default: bool = True,
+    qmark: str = "?",
+    style: t.Optional[Style] = Style.from_dict(PROMPT_CONFIG["style"]),
+    cursor: CursorShape = getattr(CursorShape, PROMPT_CONFIG["cursor-shape"]),
+    auto_enter: bool = True,
+    instruction: t.Optional[str] = None,
+    **kwargs: t.Any,
+) -> t.Any:
+    question: Question = _confirm(
+        message,
+        default=default,
+        qmark=qmark,
+        style=style,
+        cursor=cursor,
+        auto_enter=auto_enter,
+        instruction=instruction,
+        **kwargs,
+    )
+    return question.unsafe_ask(patch_stdout=True)
 
 
-@functools.wraps(questionary.confirm)
-def confirm(*args: P.args, **kwargs: P.kwargs) -> Any:
-    kwargs.update(DEFAULT_QUESTION_KWARGS)
-    return questionary.confirm(**kwargs).unsafe_ask(patch_stdout=True)
+def press_any_key_to_continue(
+    message: t.Optional[str] = None,
+    style: t.Optional[Style] = Style.from_dict(PROMPT_CONFIG["style"]),
+    cursor: CursorShape = getattr(CursorShape, PROMPT_CONFIG["cursor-shape"]),
+    **kwargs: t.Any,
+) -> t.Any:
+    question: Question = _press_any_key_to_continue(
+        message,
+        style=style,
+        cursor=cursor,
+        **kwargs,
+    )
+    return question.unsafe_ask(patch_stdout=True)
 
 
-@functools.wraps(questionary.press_any_key_to_continue)
-def press_any_key_to_continue(*args: P.args, **kwargs: P.kwargs) -> Any:
-    kwargs.update(DEFAULT_QUESTION_KWARGS)
-    return questionary.press_any_key_to_continue(**kwargs).unsafe_ask(patch_stdout=True)
+def select(
+    message: str,
+    choices: t.Sequence[t.Union[str, Choice, dict[str, t.Any]]],
+    default: t.Optional[t.Union[str, Choice, dict[str, t.Any]]] = None,
+    qmark: str = "?",
+    pointer: t.Optional[str] = "▸",
+    style: t.Optional[Style] = Style.from_dict(PROMPT_CONFIG["style"]),
+    cursor: CursorShape = getattr(CursorShape, PROMPT_CONFIG["cursor-shape"]),
+    use_shortcuts: bool = False,
+    use_arrow_keys: bool = True,
+    use_indicator: bool = False,
+    use_jk_keys: bool = True,
+    use_emacs_keys: bool = True,
+    show_selected: bool = False,
+    instruction: t.Optional[str] = None,
+    **kwargs: t.Any,
+) -> t.Any:
+    question: Question = _select(
+        message,
+        choices,
+        default=default,
+        qmark=qmark,
+        pointer=pointer,
+        style=style,
+        cursor=cursor,
+        use_shortcuts=use_shortcuts,
+        use_arrow_keys=use_arrow_keys,
+        use_indicator=use_indicator,
+        use_jk_keys=use_jk_keys,
+        use_emacs_keys=use_emacs_keys,
+        show_selected=show_selected,
+        instruction=instruction,
+        **kwargs,
+    )
+    return question.unsafe_ask(patch_stdout=True)
 
 
-@functools.wraps(questionary.select)
-def select(*args: P.args, **kwargs: P.kwargs) -> Any:
-    kwargs.update(DEFAULT_QUESTION_KWARGS)
-    kwargs.update(pointer=POINTER)
-    return questionary.select(**kwargs).unsafe_ask(patch_stdout=True)
-
-
-@functools.wraps(questionary.text)
-def text(*args: P.args, **kwargs: P.kwargs) -> Any:
-    kwargs.update(DEFAULT_QUESTION_KWARGS)
-    return questionary.text(**kwargs).unsafe_ask(patch_stdout=True)
+def text(
+    message: str,
+    default: str = "",
+    validate: t.Any = None,
+    qmark: str = "?",
+    style: t.Optional[Style] = Style.from_dict(PROMPT_CONFIG["style"]),
+    cursor: CursorShape = getattr(CursorShape, PROMPT_CONFIG["cursor-shape"]),
+    multiline: bool = False,
+    instruction: t.Optional[str] = None,
+    lexer: t.Optional[Lexer] = None,
+    **kwargs: t.Any,
+) -> t.Any:
+    question: Question = _text(
+        message,
+        default=default,
+        validate=validate,
+        qmark=qmark,
+        style=style,
+        cursor=cursor,
+        multiline=multiline,
+        instruction=instruction,
+        lexer=lexer,
+        **kwargs,
+    )
+    return question.unsafe_ask(patch_stdout=True)

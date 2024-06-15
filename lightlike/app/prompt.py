@@ -1,52 +1,48 @@
 # mypy: disable-error-code="arg-type"
-from __future__ import annotations
 
-from calendar import day_name, month_name
-from typing import TYPE_CHECKING, Any, Sequence, cast
+import sys
+import typing as t
+from datetime import datetime
 
-import rich_click as click
-from dateparser import parse
 from prompt_toolkit.shortcuts import CompleteStyle, PromptSession
 from prompt_toolkit.validation import Validator
-from rich.text import Text
 
-from lightlike.app import cursor, shell_complete, validate
-from lightlike.app.autosuggest import _threaded_autosuggest
+from lightlike.app import cursor, dates, shell_complete, validate
 from lightlike.app.config import AppConfig
-from lightlike.app.key_bindings import PROMPT_BINDINGS
-from lightlike.internal import markup, utils
+from lightlike.internal import appdir, utils
 
-if TYPE_CHECKING:
-    from datetime import datetime
+__all__: t.Sequence[str] = ("PromptFactory", "REPL_PROMPT_KWARGS")
 
-    from dateparser import _Settings
 
-__all__: Sequence[str] = ("PromptFactory", "REPL_PROMPT_KWARGS")
+if len(sys.argv) == 1:
+    from lightlike.app.key_bindings import PROMPT_BINDINGS
 
+    bindings = PROMPT_BINDINGS
+else:
+    from prompt_toolkit.key_binding import KeyBindings
+
+    bindings = KeyBindings()
 
 REPL_PROMPT_KWARGS = dict(
     message=cursor.build,
-    history=AppConfig().history,
+    history=appdir.REPL_FILE_HISTORY(),
     style=AppConfig().prompt_style,
     cursor=AppConfig().cursor_shape,
-    key_bindings=PROMPT_BINDINGS,
+    key_bindings=bindings,
     refresh_interval=1,
     complete_in_thread=True,
     complete_while_typing=True,
     validate_while_typing=True,
     enable_system_prompt=True,
+    enable_open_in_editor=True,
     reserve_space_for_menu=AppConfig().get(
         "settings",
         "reserve_space_for_menu",
         default=7,
     ),
-    complete_style=cast(
+    complete_style=t.cast(
         CompleteStyle,
-        AppConfig().get(
-            "settings",
-            "complete_style",
-            default="COLUMN",
-        ),
+        AppConfig().get("settings", "complete_style", default="COLUMN"),
     ),
 )
 
@@ -55,17 +51,18 @@ class PromptFactory(PromptSession):
     def __init__(self, **prompt_kwargs) -> None:
         super().__init__(**prompt_kwargs)
         self.style = AppConfig().prompt_style
-        self.history = AppConfig().history
+        self.history = appdir.REPL_FILE_HISTORY()
         self.cursor = AppConfig().cursor_shape
         self.complete_in_thread = True
         self.validate_while_typing = True
         self.complete_while_typing = True
+        self.enable_open_in_editor = True
         self.refresh_interval = 1
-        self.key_bindings = PROMPT_BINDINGS
+        self.key_bindings = bindings
 
     @classmethod
     @utils.exit_cmd_on_interrupt()
-    def _prompt(cls, message: str, pre_run: bool = False, **prompt_kwargs) -> Any:
+    def _prompt(cls, message: str, pre_run: bool = False, **prompt_kwargs) -> t.Any:
         prompt = cls().prompt(
             message=cursor.build(message),
             pre_run=utils._prerun_autocomplete if pre_run else None,
@@ -75,17 +72,19 @@ class PromptFactory(PromptSession):
 
     @classmethod
     @utils.exit_cmd_on_interrupt()
-    def prompt_for_date(cls, message: str, **prompt_kwargs) -> "datetime":
-        session = cls()
+    def prompt_date(cls, message: str, **prompt_kwargs) -> datetime:
+        from calendar import day_name, month_name
 
+        from lightlike.app.autosuggest import threaded_autosuggest
+
+        session = cls()
         suggestions = ["yesterday", "today", "now"]
         suggestions.extend(month_name)
         suggestions.extend(day_name)
 
         session_pk = dict(
             message=cursor.build(message),
-            completer=shell_complete.TimeCompleter(),
-            auto_suggest=_threaded_autosuggest(suggestions),
+            auto_suggest=threaded_autosuggest(suggestions),
             validator=Validator.from_callable(
                 lambda d: False if not d else True,
                 error_message="Input cannot be None.",
@@ -93,33 +92,13 @@ class PromptFactory(PromptSession):
         )
         session_pk.update(**prompt_kwargs)
         date = session.prompt(**session_pk)
-        parsed_date = session._parse_date(date)
+        parsed_date = dates.parse_date(date, tzinfo=AppConfig().tz)
         return parsed_date
-
-    @staticmethod
-    def _parse_date(date: str) -> "datetime":
-        parser_settings = cast(
-            "_Settings",
-            {
-                "RELATIVE_BASE": AppConfig().now,
-                "PREFER_DATES_FROM": "past",
-            },
-        )
-        parsed_date = parse(date, settings=parser_settings)
-        if not parsed_date:
-            raise click.UsageError(
-                message=Text.assemble(
-                    f"Failed to parse date: ", markup.code(date)
-                ).markup,
-                ctx=click.get_current_context(),
-            )
-        return AppConfig().in_app_timezone(parsed_date.replace(microsecond=0))
 
     @classmethod
     @utils.exit_cmd_on_interrupt()
     def prompt_note(cls, project: str, message: str = "(note)", **prompt_kwargs) -> str:
         session = cls()
-
         session_pk = dict(
             message=cursor.build(message, hide_rprompt=True),
             pre_run=utils._prerun_autocomplete,
@@ -140,13 +119,11 @@ class PromptFactory(PromptSession):
         cls, message: str = "(project)", new: bool = False, **prompt_kwargs
     ) -> str:
         session = cls()
-
         validator = validate.ExistingProject() if not new else validate.NewProject()
         completer = shell_complete.projects.Active() if not new else None
         bottom_toolbar = lambda: (
             "Name must match regex ^[a-zA-Z0-9-\_]{3,20}$" if new else None
         )
-
         session_pk = dict(
             message=cursor.build(message, hide_rprompt=True),
             pre_run=utils._prerun_autocomplete,

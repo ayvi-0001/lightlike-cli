@@ -1,62 +1,64 @@
-from typing import TYPE_CHECKING, Any, Sequence
+import ast
+import typing as t
 
+import rich_click as click
 from click.shell_completion import CompletionItem
 
-from lightlike.app.config import AppConfig
 from lightlike.internal import utils
 
-if TYPE_CHECKING:
-    import rich_click as click
-
-__all__: Sequence[str] = ("Param", "snapshot_table_name")
+__all__: t.Sequence[str] = ("Param",)
 
 
 class Param:
     def __init__(
-        self,
-        param_name: str,
-        completion_items: Sequence[Any] = [],
+        self, param_name: str, completion_items: t.Sequence[t.Any] = []
     ) -> None:
         self.param_name = param_name
         self.completion_items = completion_items
 
     def bool(
-        self, ctx: "click.Context", param: "click.Parameter", incomplete: str
-    ) -> Sequence[CompletionItem | None]:
+        self,
+        ctx: click.RichContext,
+        param: click.Parameter,
+        incomplete: str,
+    ) -> t.Sequence[CompletionItem]:
+        completion_items = []
+
         if ctx.params.get(self.param_name) is None or param.default is not None:
-            return [
-                CompletionItem(value=k, help=f"[{', '.join(v)}]")
-                for k, v in {
-                    "true": ("1", "true", "t", "yes", "y"),
-                    "false": ("0", "false", "f", "no", "n"),
-                }.items()
-                if any(i.startswith(incomplete) for i in v)
-            ]
-        return []
+            bool_values = {
+                "true": ("1", "true", "t", "yes", "y"),
+                "false": ("0", "false", "f", "no", "n"),
+            }
+
+            for k, v in bool_values.items():
+                if any(i.startswith(incomplete) for i in v):
+                    completion_items.append(
+                        CompletionItem(value=k, help=f"[{', '.join(v)}]")
+                    )
+
+        return completion_items
 
     def string(
-        self, ctx: "click.Context", param: "click.Parameter", incomplete: str
-    ) -> Sequence[str | None]:
+        self,
+        ctx: click.RichContext,
+        param: click.Parameter,
+        incomplete: str,
+    ) -> t.Sequence[str | None]:
+        completion_items = []
         if (
             ctx.params.get(self.param_name) is None
             or ctx.params.get(self.param_name) == param.default
         ):
-            return [
-                item
-                for item in self.completion_items
-                if utils._match_str(incomplete, item)
-            ]
+            for item in self.completion_items:
+                if utils._match_str(incomplete, item):
+                    completion_items.append(item)
 
-        return []
+        return completion_items
 
 
-def snapshot_table_name(
-    ctx: "click.Context", param: "click.Parameter", incomplete: str
-) -> list[str]:
-    ts = int(AppConfig().now.timestamp())
-    default = f"timesheet_{ts}"
-
-    if not incomplete and utils._match_str(incomplete, default, method="startswith"):
-        return [default]
-    else:
-        return []
+class LiteralEvalArg(click.Argument):
+    def type_cast_value(self, ctx: click.Context, value: t.Any) -> t.Any:
+        try:
+            return ast.literal_eval(value)
+        except:
+            raise click.BadParameter(value)

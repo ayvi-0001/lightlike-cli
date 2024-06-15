@@ -4,7 +4,7 @@ CREATE OR REPLACE PROCEDURE
     IN project STRING,
     IN note STRING,
     IN start_time TIMESTAMP,
-    IN is_billable BOOL
+    IN billable BOOL
   )
 BEGIN
 
@@ -16,10 +16,10 @@ INSERT INTO
     note,
     timestamp_start,
     start,
-    is_billable,
-    is_active,
-    is_archived,
-    is_paused
+    billable,
+    active,
+    archived,
+    paused
   )
 VALUES
   (
@@ -29,7 +29,7 @@ VALUES
     NULLIF(note, "None"),
     start_time,
     EXTRACT(DATETIME FROM start_time AT TIME ZONE "${TIMEZONE}"),
-    is_billable,
+    billable,
     TRUE,
     FALSE,
     FALSE

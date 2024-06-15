@@ -1,1053 +1,1454 @@
-# mypy: disable-error-code="arg-type"
+from os import getenv
 
-from inspect import cleandoc
-
-import rich_click as click
 from rich.syntax import Syntax
-from rich.text import Text
 
-from lightlike.__about__ import __appdir__, __appname_sc__, __lock__, __version__
-
-
-def _reformat_help_text(help_text: str) -> str:
-    """
-    Cancels out some of the formatting done by click/rich_click's help string formatters.
-    The result of this should appear in the help text almost exactly as it's written here.
-    """
-    assert click.rich_click.USE_RICH_MARKUP is True
-    assert click.rich_click.USE_MARKDOWN is False
-    first_line = help_text.split("\n\n")[0]
-    remaining_paragraphs = help_text.split("\n\n")[1:]
-    _remaining_paragraphs = list(
-        map(lambda t: t.replace("\n", "\n\n"), remaining_paragraphs)
-    )
-    help_text = "".join(
-        [
-            "\b\n",
-            first_line + "%s" % "\n" * 4,
-            "<rem-split>".join(_remaining_paragraphs),
-        ],
-    )
-    return cleandoc(help_text.replace("<rem-split>", "\b" + "\n" * 4))
-
-
-def code(text: str) -> str:
-    return Text(text, style="bold #f08375").markup
-
-
-def code_command(text: str) -> str:
-    commands = text.split(":")
-    code_command = lambda t: Text(t, style="bold #3465a4").markup
-    list(map(code_command, commands))
-    return ":".join(list(map(code_command, commands)))
-
-
-class flag:
-    project = "--project / -p"
-    note = "--note / -n"
-    start = "--start / -s"
-    end = "--end / -e"
-    date = "--date / -d"
-    billable = "--billable / -b"
-    where = "--where / -w"
-    current_week = "--current-week / -cw"
-    destination = "--destination / -d"
-    json = "--json / -j"
-    id = "--id / -i"
-    all = "--all / -a"
-    round = "--round / -r"
-    print = "--print / -p"
-    orient = "--orient / -o"
-    editor = "--editor / -e"
-    confirm = "--confirm / -c"
-    yes = "--yes / -y"
-
-
-_where_clause_help = f"""\
-If the {flag.where} flag is used, command will prompt for input. This prompt will include autocompletions.
-If you want this to run on a single command without prompts, You can instead ignore the {flag.where} flag and write out the where clause after the date.
-If a where clause is provided as the last arg, it must either begin with "WHERE" (case-insensitive), or it must be the string that will immediately proceed the word "WHERE".\
-"""
-
-_current_week_flag_help = f"""\
-Use the {flag.current_week} flag to use week start and end dates.
-Use command {code_command('app:settings:update:general:week-start')} to select whether to use a Monday or Sunday week start.\
-"""
-
-_destination_flag_help = f"""\
-If {flag.destination} is provided, then %s will save to that path.
-If the path provided does not end in expected suffix, then the suffix will be appended.
-If the path already exists, you will be asked to overwrite it or not.
-If the provided path ends in any suffix other than what's expected, an error will raise.\
-"""
-
-_report_fields = f"""\
-Fields:
-- total_report: The total sum of duration over the entire report.
-- total_project: The total sum of duration over the entire report, partitioned by project.
-- total_day: The total sum of duration on each day, partitioned by day.
-- date: Date.
-- project: Project.
-- billable: Billable.
-- timer: The total sum of duration for a project on that day.
-- notes: String aggregate of all the notes for a project on that day. \
-The sum of hours for that note is appended on the end of each note.\
-"""
-
-_date_parser_examples = f"""\
-Example values to pass to the date parser:
-[d][b]Note:[/b] to use the minus operator, it must be escaped to avoid mistaking it for a flag[/d]
-
-| format                     | examples                                                                     |
-|----------------------------|------------------------------------------------------------------------------|
-| relative date              | "today"/"now" [d](same result)[/d], "yesterday", "monday", "2 days ago", "\-2 days" |
-| relative time              | "1 hour 15 min ago", "1.25 hrs ago", "\-1.25hr"                              |
-| time                       | "14:30:00", "2:30 PM"                                                        |
-| date [d](assumes this year)[/d]   | "jan1", "01/01", "01-01"                                                     |
-| full date                  | "2024-01-01"                                                                 |
-
-Use command {code_command('app:test:date-parse')} to test a string against the parser.\
-"""
-
-_confirm_flags = f"""\
-Use flag {flag.confirm} or {flag.yes} to accept all prompts.\
-"""
-
-SYNTAX_KWARGS = dict(
-    lexer="fishshell",
-    line_numbers=True,
-    dedent=True,
-    background_color="#131310",
+# isort: off
+# fmt: off
+from lightlike.__about__ import (
+    __appdir__,
+    __appname_sc__,
+    __config__,
+    __version__
 )
+# isort: on
+# fmt: on
 
 
-general = _reformat_help_text(
-    f"""\b
-[repr.attrib_name]__appname__[/repr.attrib_name][bold red]=[/bold red][repr.attrib_value]{__appname_sc__}[/repr.attrib_value]
-[repr.attrib_name]__version__[/repr.attrib_name][bold red]=[/bold red][repr.attrib_value]{__version__}[/repr.attrib_value]
-[repr.attrib_name]__appdir__[/repr.attrib_name][bold red]=[/bold red][repr.attrib_value]{__appdir__.as_posix()}[/repr.attrib_value]
-[repr.attrib_name]__lock__[/repr.attrib_name][bold red]=[/bold red][repr.attrib_value]{__lock__.as_posix()}[/repr.attrib_value]
-\b\n\
+if LIGHTLIKE_CLI_DEV_USERNAME := getenv("LIGHTLIKE_CLI_DEV_USERNAME"):
+    cli_info = f"""\
+[repr_attrib_name]__appname__[/][b red]=[/][repr_attrib_value]lightlike_cli[/repr_attrib_value]
+[repr_attrib_name]__version__[/][b red]=[/][repr_number]{__version__}[/repr_number]
+[repr_attrib_name]__config__[/][b red]=[/][repr_path]/{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike.toml[/repr_path]
+[repr_attrib_name]__appdir__[/][b red]=[/][repr_path]/{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike-cli[/repr_path]\
+"""
+else:
+    cli_info = f"""\
+[repr_attrib_name]__appname__[/][b red]=[/][repr_attrib_value]{__appname_sc__}[/repr_attrib_value]
+[repr_attrib_name]__version__[/][b red]=[/][repr_number]{__version__}[/repr_number]
+[repr_attrib_name]__config__[/][b red]=[/][repr_path]{__config__}[/repr_path]
+[repr_attrib_name]__appdir__[/][b red]=[/][repr_path]{__appdir__}[/repr_path]\
+"""
+
+
+def general() -> str:
+    return f"""\
+{cli_info}
+
 GENERAL:
-    ▸ {code('ctrl')} + {code('space')} [b]|[/b] {code('tab')} to display commands/autocomplete.
-    ▸ {code('ctrl')} + {code('Q')} [b]|[/b] cmd {code_command('app:exit')} to exit.
-    ▸ [ {code('ctrl')} + ]{'{'} {" [b]|[/b] ".join(
-                [
-                    '%s' % code('F1'),
-                    '%s' % code('F2'),
-                    '%s' % code('F3'),
-                    '%s' % code('F5'),
-                ]
-            )
-        } {'}'} to cycle between autocompleters. ( {" [b]|[/b] ".join(
-                [
-                    '%s = Commands' % code('F1'),
-                    '%s = History' % code('F2'),
-                    '%s = Path' % code('F3'),
-                    '%s = None' % code('F5'),
-                ]
-            )
-        } )
-\b\n\
+    [code]ctrl space[/code] or [code]tab[/code] to display commands/autocomplete.
+    [code]:q[/code] or [code]ctrl q[/code] or type exit to exit repl.
+    [code]:c{{1 | 2 | 3}}[/code] to add/remove completions from the global completer. [code]1[/code]=commands, [code]2[/code]=history, [code]3[/code]=path
+
 HELP:
-    ▸ Add help flag to command/group \[[code.lflag]--help[/code.lflag], [code.sflag]-h[/code.sflag]].
-\b\n\
+    add help option to command/group --help / -h.
+
 SYSTEM COMMANDS:
-    ▸ Type cmd and press {code('escape')} + {code('enter')}.
-    ▸ To enable system prompt, press {code('meta')} + {code('shift')} + {code('1')} and enter cmd.
-    ▸ Built-in system commands: {" [b]|[/b] ".join(
-            [
-                code_command('cd'),
-                code_command('ls'),
-                code_command('tree'),
-            ]
-        )
-    }
-\b\n\
-TIMER IDS:
-    Timer ID's are the sha1 hash of the project, note, and the start timestamp.
-    If you created 2 entries of the same project, note, and start-time, they would have the same ID.
-    If you later edit the project, note, or start fields for a time entry, the ID will not change.
+    any command that's not recognized by top parent commands, will be passed to the shell.
+    system commands can also be invoked by:
+        - typing command and pressing [code]:[/code][code]![/code]
+        - typing command and pressing [code]escape[/code] [code]enter[/code]
+        - pressing [code]meta[/code] [code]shift[/code] [code]1[/code] to enable system prompt
     
-    For any commands that require an ID, you can supply the first 7+ characters and the command will find a matching ID.
-    If more than 1 ID matches the string provided, the command will ask you to provide a longer string.
-\b\n\
+    see app:config:set:general:shell --help / -h to configure what shell is used.
+    path autocompletion is automatic for [code]cd[/code].
+
+TIME ENTRY IDS:
+    time entry ids are the sha1 hash of the project, note, and the start timestamp.
+    if 2 entries were created with the same project, note, and start-time, they'd have the same id.
+    if any fields are later edited, the id will not change.
+    there is currently no way to remove duplicate ids other than directly dropping from the table in BigQuery.
+    for commands requiring an id, supply the first several characters.
+    the command will find the matching id, as long as it is unique.
+    if more than 1 id matches the string provided, use more characters until it is unique.
+
 DATE/TIME FIELDS:
-    Any argument or option that asks for a date or time value will attempt to parse the string provided.
-    If it's unable to parse the string, an error will raise.
-    All dates are relative to today unless explicitly stated in the string.
-    See the help for command {code_command('timer:list:date')} for more details about what kinds of strings work best.
+    arguments/options asking for datetime will attempt to parse the string provided.
+    error will raise if unable to parse.
+    dates are relative to today, unless explicitly stated in the string.\
 """
-)
 
 
-timer_add = _reformat_help_text(
-    f"""
-Retroactively add a time entry.
+def timer_add():
+    return """\
+Insert a new time entry.
 
-The same 4 flags when using {code_command('timer:run')} are available, with an additional flag {flag.end} to supply the time the entry ends.
+--project / -p:
+    set the project for the time entry to this.
+    projects can be searched for by name or description.
+    projects are ordered in created time desc.
+    defaults to [code]no-project[/code].
 
-If {flag.end} is not provided, it will default to {code('now')}.
+--note / -n:
+    set the note for the time entry to this.
+    if --project / -p is used, then autocomplete will include notes for the selected project.
 
-If any of {flag.project} | {flag.start} are not provided, a prompt will call for these values.
+--start / -s:
+    set the entry to start at this time.
+    defaults to -6 minutes (1/10th of an hour).
+    update the default value using app:config:set:general:timer_add_min.
 
-If any of {flag.note} | {flag.billable} are not provided, they will be ignored [d](uses default billable set in config)[/d].
+--end / -e:
+    set the entry to end at this time.
+    defaults to [code]now[/code].
+
+--billable / -b:
+    set the entry as billable or not.
+    if not provided, the default setting for the project is used.
+    set project default billable value when first creating a project
+    with project:create, using --default-billable / -b,
+    or update an existing project's with project:set:default_billable.\
 """
-)
 
 
-timer_add_syntax = Syntax(
-    code="""\
-    $ timer add --project no-project --start "mon 9am" --end "mon 12pm" --note "..." --billable true
+def timer_add_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ timer add --project lightlike-cli
+        $ t a -plightlike-cli
+        
+        $ timer add # defaults to adding an entry under `no-project`, that started 6 minutes ago, ending now.
+        $ t a       # this can be later updated using timer:update
+
+        $ timer add --project lightlike-cli --start jan1@9am --end jan1@1pm --note "…" --billable true
+        $ t a -plightlike-cli -sjan1@9am -ejan1@1pm -n"…" -b1\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
+
+
+def timer_delete() -> str:
+    return """\
+Delete time entries.
+
+--id / -i:
+    ids for entries to edit.
+    repeat flag for multiple entries.
+
+--yank / -y:
+    pull an id from the latest timer:list results.
+    option must be an integer within the range of the cached list.
+    the id of the corresponding row will be passed to the command.
+    this option can be repeated and combined with --id / -i.
+    e.g.
+
+    ```
+        $ timer list --current-week
+
+    | row | id      |   …
+    |-----|---------|   …
+    |   1 | a6c8e8e |   …
+    |   2 | e01812e |   …
+    ```
+
+    --yank 2 [d](or -y2)[/d] would be the same as typing --id e01812e
     
-    $ timer add --project lightlike-cli --start "01-15 12PM" --end "01-15 3PM"
-    """,
-    **SYNTAX_KWARGS,
-)
-
-
-timer_delete = _reformat_help_text(
-    f"""
-Delete time entries by passing one or more timer ID's as args to this command.
+--use-list-timer-list / -u:
+    pass all id's from the most recent timer:list result to this command
+    this option can be repeated and combined with --id / -i or --yank / -y.
 """
-)
 
 
-timer_delete_syntax = Syntax(
-    code="""\
-    $ timer delete b95eb89 22b0140 b5b8e24
-    """,
-    **SYNTAX_KWARGS,
-)
+def timer_delete_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ timer delete --id b95eb89 --id 22b0140 --id b5b8e24
+        $ t d -ib95eb89 -i22b0140 -ib5b8e24
+        
+        $ timer delete --yank 1
+        $ t d -y1
+        
+        $ timer delete --use-last-timer-list
+        $ t d -u\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-timer_edit_entry = _reformat_help_text(
-    f"""
-Edit entries that have already been stopped.
+def timer_edit() -> str:
+    return """\
+Edit completed time entries.
 
-Use the {flag.id} option specify which entries you want to edit.
+--id / -i:
+    ids for entries to edit.
+    repeat flag for multiple entries.
 
-Use options {flag.project} | {flag.note} | {flag.billable} | {flag.start} | {flag.end} | {flag.date}  to select which fields you want to edit.
+--yank / -y:
+    pull an id from the latest timer:list results.
+    option must be an integer within the range of the cached list.
+    the id of the corresponding row will be passed to the command.
+    this option can be repeated and combined with --id / -i.
+    e.g.
 
-For {flag.start} & {flag.end}, only the [b]time value[/b] of the parsed date will be used.
-For {flag.date}, only the [b]date value[/b] of the parsed date will be used.
+    ```
+        $ timer list --current-week
 
-If the option {flag.project} is provided, the option {flag.note} will autocomplete relevant values for that project.
+    | row | id      |   …
+    |-----|---------|   …
+    |   1 | a6c8e8e |   …
+    |   2 | e01812e |   …
+    ```
+
+    --yank 2 [d](or -y2)[/d] would be the same as typing --id e01812e
+    
+--use-list-timer-list / -u:
+    pass all id's from the most recent timer:list result to this command
+    this option can be repeated and combined with --id / -i or --yank / -y.
+
+--project / -p:
+    set the project for all selected entries to this.
+    projects can be searched for by name or description.
+    projects are ordered in created time desc.
+
+--note / -n:
+    set the note for all selected entries to this.
+    if --project / -p is used, then autocomplete will include notes for the selected project.
+
+--billable / -b:
+    set the entry as billable or not.
+
+--start-time / -s / --end-time / -e:
+    set the start/end time for all selected entries to this.
+    only the time value of the parsed datetime will be used.
+    if only one of the 2 are selected, each selected time entry will update 
+    that respective value, and recalculate the total duration,
+    taking any existing paused hours into account.
+
+--date / -d:
+    set the date for all selected entries to this.
+    only the date value of the parsed datetime will be used.
+    the existing start/end times will remain,
+    unless this option is combined with --start-time / -s / --end-time / -e.\
 """
-)
 
 
-timer_edit_entry_syntax = Syntax(
-    code="""\
-    $ timer edit entry --id b95eb89 --billable false --end now
+def timer_edit_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ timer edit --id b95eb89 --id 36c9fe5 --start 3pm --note "…"
+        $ t e -ib95eb89 -i36c9fe5 -s3pm -n"…"
+
+        $ timer edit --use-last-timer-list --note "rewrite task"
+        $ t e -u -n"rewrite task"
+
+        $ timer edit --yank 1 --yank 2 --end now
+        $ t e -y1 -y2 -enow
+        
+        $ timer edit --yank 1 --yank 2 --id 36c9fe5 --date -2d # set 3 entries to 2 days ago
+        $ t e -y1 -y2 -i36c9fe5 -d-2d\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
+
+
+def timer_get_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ timer get 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46
+        
+        $ timer get 36c9fe5
+        
+        $ t g 36c9fe5\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
+
+
+def timer_list() -> str:
+    return """\
+List time entries.
+
+DATE/TIME FIELDS:
+    arguments/options asking for datetime will attempt to parse the string provided.
+    error will raise if unable to parse.
+    dates are relative to today, unless explicitly stated in the string.
+
+    Example values to pass to the date parser:
+    | type             | examples                                                  |
+    |-----------------:|-----------------------------------------------------------|
+    | datetime         | jan1@2pm [d](January 1st current year at 2:00 PM)[/d]            |
+    | date (relative)  | today/now, yesterday, monday, 2 days ago, -2d | "\-2d"    |
+    | time (relative)  | -15m [d](15 minutes ago)[/d], 1.25 hrs ago, -1.25hr | "\-1.25hr" |
+    | date             | jan1, 01/01, 2024-01-01                                   |
+    | time             | 2pm, 14:30:00, 2:30pm                                     |
+
+    [b]Note:[/b] If the date is an argument, the minus operator needs to be escaped.
+    e.g.
+    ```
+    $ command --option -2d
+    $ c -o-2d
+    $ command \-2d # argument
+    $ c \-2d # argument
+    ```
+
+--current-week / -cw:
+--current-month / -cm:
+--current-year / -cy:
+    flags are processed before other date options.
+    configure week start dates with app:config:set:general:week_start
+
+--match-project / -Rp:
+    match a regular expression against project names.
+
+--match-note / -Rn:
+    match a regular expression against entry notes.
     
-    $ timer edit entry -i b95eb89 -i 36c9fe5 -i 2ad3a25 --project lightlike-cli --start 10:00:00
-    
-    $ t e e -i b95eb89 -d "2 days ago" -s 11am -e 2pm
-    """,
-    **SYNTAX_KWARGS,
-)
+--prompt-where / -w:
+    filter results with a where clause.
+    interactive prompt that launches after command runs.
+    prompt includes autocompletions for projects and notes.
+    note autocompletions will only populate for a project if that project name appears in the string.
 
+[bold #34e2e2]WHERE[/]:
+    where clause can also be written as the last argument to this command.
+    it can be a single string, or individual words separated by a space,
+    as long as characters are properly escaped if necessary.
+    it must either begin with the word "WHERE" (case-insensitive),
+    or it must be the string immediately proceeding the word "WHERE".
 
-timer_get = _reformat_help_text(
-    f"""
-Retrives the row for a given time entry ID.
+[b]See[/]:
+    test a string against the parser with app:test:date-parse.
 """
-)
 
 
-timer_get_syntax = Syntax(
-    code="""\
-    $ timer get 36c9fe5
-    
-    $ timer get 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46
-    """,
-    **SYNTAX_KWARGS,
-)
+def timer_list_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ timer list --date jan1
+        $ t l -djan1
+
+        $ timer list --all active is true # where clause as arguments
+        $ t l -a active is true
+        
+        $ timer list --today
+        $ t l -t
+        
+        $ timer list --yesterday --prompt-where # interactive prompt for where clause
+        $ t l -yw
+
+        $ timer list --current-week billable is false
+        $ t l -cw billable is false
+        
+        $ timer list --date -2d --match-note (?i)task.* # case insensitive regex match
+        $ t l -d-2d -Rn (?i)task.*
+
+        $ t l -t -Rp ^(?!demo) # exclude projects containing word "demo"
+        
+        $ timer list --current-month "project = 'lightlike-cli' and note like any ('something%', 'else%')"
+        
+        $ timer list --all time(start) >= \\"18:29:09\\"
+        $ t l -a time(start) >= \\"18:29:09\\"\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-timer_list_date = _reformat_help_text(
-    f"""
-List time entries on a given date.
+def timer_notes_update() -> str:
+    return """\
+Interactively update notes.
 
-{_date_parser_examples}
-
-{_where_clause_help}
-"""
-)
-
-
-timer_list_date_syntax = Syntax(
-    code="""\
-    $ timer list date today
-    
-    $ t l d today
-    
-    $ timer l d yesterday -w   # will prompt for where clause
-    
-    $ timer list date "2 days ago" "where is_billable is false"
-    
-    $ timer list date monday project = \\"lightlike_cli\\" and note like any (\\"something%\\", \\"else%\\")
-    """,
-    **SYNTAX_KWARGS,
-)
-
-
-timer_list_range = _reformat_help_text(
-    f"""
-List time entries on a given date.
-
-{_date_parser_examples}
-
-{_where_clause_help}
-
-{_current_week_flag_help}
-"""
-)
-
-
-timer_list_range_syntax = Syntax(
-    code="""\
-    $ timer list range jan1 jan31 "where project not in ('test', 'demo')"
-    
-    $ timer list range --current-week --where   # will prompt for where clause
-    
-    $ t l r -cw
-    """,
-    **SYNTAX_KWARGS,
-)
-
-
-timer_notes_update = _reformat_help_text(
-    f"""
-Bulk update notes for a project.
-
-Select which notes to replace with {code('space')}. Press {code('enter')} to continue with the selection.
-
+Select which notes to replace with [code]space[/code]. Press [code]enter[/code] to continue with the selection.
 Enter a new note, and all selected notes will be replaced.
-
 There is a lookback window so old notes do not clutter the autocompletions.
-Update how many days to look back with command {code_command('app:settings:update:general:note-history')}.
+Update how many days to look back with app:config:set:general:note_history.\
 """
-)
 
 
-timer_notes_update_syntax = Syntax(
-    code="""\
-    $ timer notes update lightlike-cli
-    """,
-    **SYNTAX_KWARGS,
-)
+def timer_notes_update_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ timer notes update lightlike-cli # interactive
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-timer_pause = _reformat_help_text(
-    f"""
-Pause the [b][u]active[/b][/u] entry.
+def timer_pause() -> str:
+    return """\
+Pause the [b]active[/b] entry.
 
-Also see: command {code_command('timer:run:help')}.
+[b]See[/]:
+    timer:run --help / -h\
 """
-)
 
 
-timer_pause_syntax = Syntax(
-    code="""\
-    $ timer pause
-    """,
-    **SYNTAX_KWARGS,
-)
+def timer_pause_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ timer pause\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-timer_resume = _reformat_help_text(
-    f"""
-Continue a previously paused entry, this paused entry becomes the [b][u]active[/b][/u] entry.
+def timer_resume() -> str:
+    return """\
+Continue a paused entry.
 
-Also see: command {code_command('timer:run:help')}.
+A resumed time entry becomes the [b]active[/b] entry.
+
+[b]See[/]:
+    timer:run --help / -h\
 """
-)
 
 
-timer_resume_syntax = Syntax(
-    code="""\
-    $ timer resume 36c9fe5
+def timer_resume_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ timer resume 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46
+        $ t re 36c9fe5
     
-    $ timer resume 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46
-    """,
-    **SYNTAX_KWARGS,
-)
+        $ timer resume 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46 --force
+        $ t re 36c9fe5 -f\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-timer_run = _reformat_help_text(
-    f"""
+def timer_run() -> str:
+    return """\
 Start a new time entry.
 
-If the {flag.project} flag is not provided, the project will default to {code('no-project')}.
+When a new entry is started, a stopwatch displaying the duration & project appears in the prompt and in the tab title.
+This is the [b]active[/b] entry. Multiple timers may run at once. Only 1 will be displayed in the cursor.
+If a timer runs and there's an [b]active[/b] entry running, the latest becomes the new [b]active[/b] entry.
 
-Create projects with command {code_command('project:create')}.
+--project / -p:
+    project to log time entry under.
+    defaults to [code]no-project[/code].
+    create new projects with project:create.
+    projects can be searched for by name or description.
+    projects are ordered in created time desc.
 
-If the {flag.project} is provided, the {flag.note} flag will autocomplete past notes used for that project.
+--note / -n:
+    note to attach to time entry.
+    if --project / -p is used, then autocomplete will include notes for the selected project.
 
-Use the {flag.billable} flag to flag the entry as billable or not. If not provided, app default is used.
+--billable / -b:
+    set the entry as billable or not.
+    if not provided, the default setting for the project is used.
+    set project default billable value when first creating a project
+    with project:create, using --default-billable / -b,
+    or update an existing project with project:set:default_billable.
 
-Update the default setting for billable with command {code_command('app:settings:update:general:billable')}.
+--start / -s:
+    start the entry at an earlier time.
+    if not provided, the entry starts now.
 
-Use the {flag.start} flag to start the entry at an earlier time. If not provided, the entry starts {code('${now}')}.
-
-When you start a new time entry, a stopwatch displaying the duration appears on the right-hand side of the cursor.
-
-You can have multiple timers running at once, but only 1 will be displayed in the cursor - This is the [b]active[/b] entry.
-
-When you start a new time entry and already have an [b][u]active[/b][/u] entry running, the latest will be displayed in the cursor and becomes the new [b][u]active[/b][/u] one.
-
-Use command {code_command('timer:stop')} to end the [b][u]active[/b][/u] entry. [d](can also use alias {code_command('end')})[/d]
-
-Use command {code_command('timer:pause')} to pause the [b][u]active[/b][/u] entry.
-
-Use command {code_command('timer:resume')} to continue a previously paused entry, this paused entry becomes the [b][u]active[/b][/u] entry.
-
-Use command {code_command('timer:switch')} to rotate through which entry, of all that are currently running, is [b][u]active[/b][/u].
+[b]See[/]:
+    timer:stop - stop the [b]active[/b] entry.
+    timer:pause - pause the [b]active[/b] entry.
+    timer:resume - continue a paused entry, this paused entry becomes the [b]active[/b] entry.
+    timer:switch - pause and switch the [b]active[/b] entry.\
 """
-)
 
 
-timer_run_syntax = Syntax(
-    code="""\
-    $ timer run --project lightlike-cli --note "readme" --start "1 hour ago" --billable False
+def timer_run_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ timer run
+        $ t ru
+
+        $ timer run --project lightlike-cli --note readme --start -1hr --billable False
+        $ t ru -plightlike-cli -nreadme -s-1hr -b0\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
+
+
+def timer_show() -> str:
+    return """\
+Show tables of all local running and paused time entries.
+If there is an active entry, it will be in bold, in the first row.
+Other running entries will be in the following rows.
+If there are paused entries, they will be dimmed, and in the last row(s).
+"""
+
+
+def timer_show_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ timer show
+        $ t sh\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
+
+
+def timer_stop() -> str:
+    return """\
+Stop the [b]active[/b] entry.
+
+[b]See[/]:
+    timer:run --help / -h\
+"""
+
+
+def timer_stop_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ timer stop
+        $ t st
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
+
+
+def timer_switch() -> str:
+    return """\
+Switch the active time entry.
+
+    --force / -u:
+        do not pause the active entry during switch.
+
+    [b]See[/]:
+        timer:run --help / -h\
+"""
+
+
+def timer_switch_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ timer switch
+        $ t s # interactive
+
+        $ timer switch 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46
+        $ t s 36c9fe
     
-    $ t ru -p lightlike-cli -n "command guide"
-    """,
-    **SYNTAX_KWARGS,
-)
+        $ timer switch 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46 --force
+        $ t s 36c9fe -f\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-timer_show = _reformat_help_text(
-    f"""
-Show a table of all running and paused time entries.
+def timer_update() -> str:
+    return """\
+Update the [b]active[/b] time entry.
 
-Any running time entries appear in the top section. The [b][u]active[/b][/u] time entry - if there is one - will always be the first row.
-
-If there are any paused entries, they will be appear in the bottom section, and are dimmed out.
-
-If there are no running or paused entries, a row of null values will appear under active.
+[b]See[/]:
+    timer:edit for making changes to entries that have already stopped.\
 """
-)
 
 
-timer_show_syntax = Syntax(
-    code="""\
-    $ timer show
+def timer_update_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ timer update --project lightlike-cli --start -30m
     
-    $ timer show -j
-    """,
-    **SYNTAX_KWARGS,
-)
+        $ timer update --billable true --note "redefine task"
+        $ t u -b1 -n"redefine task"\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-timer_stop = _reformat_help_text(
-    f"""
-End the [b][u]active[/b][/u] entry. [d](can also use alias {code_command('end')})[/d]
+def project_archive() -> str:
+    return """\
+Archive projects.
 
-Also see: command {code_command('timer:run:help')}.
+When a project is archived, all related time entries are also archived
+and will not appear in results for timer:list or summary commands.
+
+    --yes / -y:
+        accept all prompts.\
 """
-)
 
 
-timer_stop_syntax = Syntax(
-    code="""\
-    $ timer stop
-    """,
-    **SYNTAX_KWARGS,
-)
-
-
-timer_switch = _reformat_help_text(
-    f"""
-Rotate through which entry, of all that are currently running, is the [b][u]active[/b][/u] entry.
-
-Also see: command {code_command('timer:run:help')}.
-"""
-)
-
-
-timer_switch_syntax = Syntax(
-    code="""\
-    $ timer switch
-    """,
-    **SYNTAX_KWARGS,
-)
-
-
-timer_update = _reformat_help_text(
-    f"""
-Make updates to the [b][u]active[/b][/u] time entry.
-
-Note: See command {code_command('timer:edit')} for making changes to entries that have already stopped.
-
-The same 4 flags when using {code_command('timer:run')} are available, and will update the selected values for the [b][u]active[/b][/u] entry.
-"""
-)
-
-
-timer_update_syntax = Syntax(
-    code="""\
-    $ timer update --project lightlike-cli --start "15 min ago"
+def project_archive_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ project archive example-project
+        $ p a example-project
     
-    $ t u -b f -n "redefine task"
-    """,
-    **SYNTAX_KWARGS,
-)
+        # archive multiple
+        $ project archive example-project1 example-project2 example-project3\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-project_archive = _reformat_help_text(
-    f"""
-Archive a project.
-
-When you archive a project, all related time entries are also archived, and will not appear in results for {code_command('timer:list')} or {code_command('report')} commands.
-
-{_confirm_flags}
-"""
-)
-
-
-project_archive_syntax = Syntax(
-    code="""\
-    $ project archive lightlike-cli
-    
-    $ project archive lightlike-cli -c
-    """,
-    **SYNTAX_KWARGS,
-)
-
-
-project_create = _reformat_help_text(
-    f"""
+def project_create() -> str:
+    return """\
 Create a new project.
 
-If the name and description args are not provided, command will prompt you for input.
+For interactive prompt, pass no options.
+The name [code]no-project[/code] is reserved for the default setting.
 
-Name must match regex %s.
-
-The name %s is reserved for the default setting.
+--name / -n:
+    must match regex [code]^\[a-zA-Z0-9-\\_]{3,20}$[/code].\
 """
-    % (code("^[a-zA-Z0-9-\_]{3,20}$"), code("no-project"))
-)
 
 
-project_create_syntax = Syntax(
-    code="""\
-    $ project create
+def project_create_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ project create
     
-    $ project create lightlike-cli "time-tracking repl"
-    
-    $ project create lightlike-cli -nd
-    """,
-    **SYNTAX_KWARGS,
-)
+        $ project create --name lightlike-cli
+        $ p c -nlightlike-cli
+
+        $ project create --name lightlike-cli --description "time-tracking repl" --default-billable true
+        $ p c -nlightlike-cli -d"time-tracking repl" -bt # -b for default-billable flag\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-project_delete = _reformat_help_text(
-    f"""
-Delete a project and all time entries.
+def project_delete() -> str:
+    return """\
+Delete projects and all related time entries.
 
-{_confirm_flags}
+When a project is deleted, all related time entries are also deleted.
+
+--yes / -y:
+    accept all prompts.\
 """
-)
 
 
-project_delete_syntax = Syntax(
-    code="""\
-    $ project delete lightlike-cli
-    
-    $ project delete lightlike-cli -c
-    """,
-    **SYNTAX_KWARGS,
-)
+def project_delete_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ project delete lightlike-cli
+        $ p d lightlike-cli
+
+        # delete multiple
+        $ project delete example-project1 example-project2 example-project3\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-project_list = _reformat_help_text(
-    f"""
+def project_list() -> str:
+    return """\
 List projects.
 
-Use flag {flag.all} to include archived projects.
+--all / -a:
+    include archived projects.\
 """
-)
 
 
-project_list_syntax = Syntax(
-    code="""\
-    $ project list
+def project_list_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ project list
+        $ p l
     
-    $ project list --all
-    """,
-    **SYNTAX_KWARGS,
-)
+        $ project list --all
+        $ p l -a\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-project_unarchive = _reformat_help_text(
-    f"""
-Unarchive a project.
-
-When you unarchive a project, all related time entries are also unarchived, and will appear in results for {code_command('timer:list')} or {code_command('report')} commands.
+def project_set() -> str:
+    return """\
+Set a project's name, description, or default billable setting.\
 """
-)
 
 
-project_unarchive_syntax = Syntax(
-    code="""\
-    $ project unarchive lightlike-cli
-    """,
-    **SYNTAX_KWARGS,
-)
+def project_set_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ project set name lightlike-cli …
+    
+        $ project set description lightlike-cli …
+
+        $ project set default_billable lightlike-cli …\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-project_update = _reformat_help_text(
-    f"""
-Update a projects name or description.
+def project_set_name() -> str:
+    return """\
+Update a project's name.
+
+Name must match regex [code]no-project[/code].
+The name [code]^\[a-zA-Z0-9-\\_]{3,20}$[/code] is reserved for the default setting.\
 """
-)
 
 
-project_update_syntax = Syntax(
-    code="""\
-    $ project update lightlike-cli name
-    
-    $ project update lightlike-cli description
-    """,
-    **SYNTAX_KWARGS,
-)
+def project_set_name_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ project set name lightlike-cli # interactive
+        $ p s n lightlike-cli
+
+        $ project set name lightlike-cli new-name
+        $ p s n lightlike-cli new-name\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-project_update_name = _reformat_help_text(
-    f"""
-Update a projects name.
-
-Name must match regex %s.
-
-The name %s is reserved for the default setting.
+def project_set_default_billable() -> str:
+    return """\
+Update a project's default billable setting.\
 """
-    % (code("^[a-zA-Z0-9-\_]{3,20}$"), code("no-project"))
-)
 
 
-project_update_name_syntax = Syntax(
-    code="""\
-    $ project update lightlike-cli name
-    """,
-    **SYNTAX_KWARGS,
-)
+def project_set_default_billable_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ project set default_billable lightlike-cli true
+        $ p s def lightlike-cli true\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-project_update_description = _reformat_help_text(
-    f"""
-Update a projects description.
+def project_set_description() -> str:
+    return """\
+Add/overwrite project description.\
 """
-)
 
 
-project_update_description_syntax = Syntax(
-    code="""\
-    $ project update lightlike-cli description
-    """,
-    **SYNTAX_KWARGS,
-)
+def project_set_description_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ project set description lightlike-cli # interactive
+
+        $ project set description lightlike-cli "time-tracking repl"
+        $ p s desc lightlike-cli "time-tracking repl"\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-report_csv = _reformat_help_text(
-    f"""
-Creates a report as a CSV.
-This can be saved to a file, or printed to the terminal.
+def project_unarchive() -> str:
+    return """\
+Unarchive projects.
 
-[b][u]At least 1 of the {flag.print} [u]or[/u] {flag.destination} flag must be provided.[/b][/u]
-
-[yellow][b][u]Note: running & paused entries are not included in reports.[/b][/u][/yellow]
-
-{_report_fields}
-
-{_date_parser_examples}
-
-{_destination_flag_help % 'the csv'}
-
-{_where_clause_help}
-
-If the {flag.round} flag is set, totals will round to the nearest 0.25.
-
-{_current_week_flag_help}
+When a project is unarchived, all related time entries are also unarchived
+and will appear in results for timer:list or summary commands.\
 """
-)
 
 
-report_csv_syntax = Syntax(
-    code="""\
-    $ report csv --start 01/01 --end 01/31 --round --print
-    
-    $ report c -s monday -e today --round --print "where is_billable is false"
-    
-    $ r c -cw -p
-    """,
-    **SYNTAX_KWARGS,
-)
+def project_unarchive_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ project unarchive lightlike-cli
+        $ p u lightlike-cli
+
+        # unarchive multiple
+        $ project unarchive example-project1 example-project2 example-project3\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-report_json = _reformat_help_text(
-    f"""
-Creates a report as a JSON.
-This can be saved to a file, or printed to the terminal.
+def summary_csv() -> str:
+    return """\
+Create a summary and save to a csv file, or print to terminal.
 
-[b][u]At least 1 of the {flag.print} [u]or[/u] {flag.destination} flag must be provided.[/b][/u]
+[yellow][b][u]Note: running & paused entries are not included in summaries.[/b][/u][/yellow]
 
-[yellow][b][u]Note: running & paused entries are not included in reports.[/b][/u][/yellow]
+[b]Fields[/]:
+  - total_summary: The total sum of hours over the entire summary.
+  - total_project: The total sum of hours over the entire summary, partitioned by project.
+  - total_day: The total sum of hours on each day, partitioned by day.
+  - date: Date.
+  - project: Project.
+  - billable: Billable.
+  - timer: The total sum of hours for a project on that day.
+  - notes: String aggregate of all notes on that day. Sum of hours appened to the end.
 
-{_report_fields}
+--print / -p:
+    print output to terminal.
+    either this, or --output / -d must be provided.
 
-{_date_parser_examples}
+--output / -d:
+    save the output of the command to this path.
+    either this, or --print / -p must be provided.
 
-{_destination_flag_help % 'the json'}
+--output / -d:
+    save the output of this command to this path.
+    if the path does not have any suffix, then the expected suffix will be appended.
+    if the path with the correct suffix already exists, a prompt will ask whether to overwrite or not.
+    if the path ends in any suffix other than what's expected, an error will raise.
 
-{_where_clause_help}
+--round / -r:
+    round totals to the nearest 0.25.
 
-If the {flag.round} flag is set, totals will round to the nearest 0.25.
+--current-week / -cw:
+--current-month / -cm:
+--current-year / -cy:
+    flags are processed before other date options.
+    configure week start dates with app:config:set:general:week_start.
 
-{_current_week_flag_help}
+--match-project / -Rp:
+    match a regular expression against project names.
 
-The default value for the {flag.orient} flag is {code('records')}. Available options are; columns, index, records, split, table, values.
+--match-note / -Rn:
+    match a regular expression against entry notes.
+
+--prompt-where / -w:
+    filter results with a where clause.
+    interactive prompt that launches after command runs.
+    prompt includes autocompletions for projects and notes.
+    note autocompletions will only populate for a project if that project name appears in the string.
+
+[bold #34e2e2]WHERE[/]:
+    where clause can also be written as the last argument to this command.
+    it can be a single string, or individual words separated by a space,
+    as long as characters are properly escaped if necessary.
+    it must either begin with the word "WHERE" (case-insensitive),
+    or it must be the string immediately proceeding the word "WHERE".\
 """
-)
 
 
-report_json_syntax = Syntax(
-    code="""\
-    $ report json --start "6 days ago" --end today --print
+def summary_csv_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ summary csv --start jan1 --end jan31 --round --print
+        $ s c -s jan1 -e jan31 -r -p
     
-    $ report j -cw -p -d Path/to/save/file.json --orient records -r
-    
-    $ r j -s jan15 -e jan31 -r -p -o index 'where is_billable is false'
-    """,
-    **SYNTAX_KWARGS,
-)
+        $ summary csv --current-week --output path/to/file.csv where billable is false
+        $ s c -cw -o path/to/file.csv where billable is false\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-report_table = _reformat_help_text(
-    f"""
-Creates a report and renders a table in terminal. Optional svg download.
+def summary_json() -> str:
+    return """\
+Create a summary and save to a json file, or print to terminal.
 
-[yellow][b][u]Note: running & paused entries are not included in reports.[/b][/u][/yellow]
+[yellow][b][u]Note: running & paused entries are not included in summaries.[/b][/u][/yellow]
 
-{_report_fields}
+[b]Fields[/]:
+  - total_summary: The total sum of hours over the entire summary.
+  - total_project: The total sum of hours over the entire summary, partitioned by project.
+  - total_day: The total sum of hours on each day, partitioned by day.
+  - date: Date.
+  - project: Project.
+  - billable: Billable.
+  - timer: The total sum of hours for a project on that day.
+  - notes: String aggregate of all notes on that day. Sum of hours appened to the end.
 
-{_date_parser_examples}
+--print / -p:
+    print output to terminal.
+    either this, or --output / -d must be provided.
 
-{_destination_flag_help % 'an svg of the rendered table'}
+--output / -d:
+    save the output of the command to this path.
+    either this, or --print / -p must be provided.
 
-{_where_clause_help}
+--output / -d:
+    save the output of this command to this path.
+    if the path does not have any suffix, then the expected suffix will be appended.
+    if the path with the correct suffix already exists, a prompt will ask whether to overwrite or not.
+    if the path ends in any suffix other than what's expected, an error will raise.
 
-If the {flag.round} flag is set, totals will round to the nearest 0.25.
+--round / -r:
+    round totals to the nearest 0.25.
 
-{_current_week_flag_help}
+--current-week / -cw:
+--current-month / -cm:
+--current-year / -cy:
+    flags are processed before other date options.
+    configure week start dates with app:config:set:general:week_start.
+
+--orient / -o:
+    default is [code]records[/code].
+    available choices are; columns, index, records, split, table, values.
+        split = dict like {"index" -> [index], "columns" -> [columns], "data" -> [values]}
+        records = list like [{column -> value}, … , {column -> value}]
+        index = dict like {index -> {column -> value}}
+        columns = dict like {column -> {index -> value}}
+        values = just the values array
+        table = dict like {"schema": {schema}, "data": {data}}
+
+--match-project / -Rp:
+    match a regular expression against project names.
+
+--match-note / -Rn:
+    match a regular expression against entry notes.
+
+--prompt-where / -w:
+    filter results with a where clause.
+    interactive prompt that launches after command runs.
+    prompt includes autocompletions for projects and notes.
+    note autocompletions will only populate for a project if that project name appears in the string.
+
+[bold #34e2e2]WHERE[/]:
+    where clause can also be written as the last argument to this command.
+    it can be a single string, or individual words separated by a space,
+    as long as characters are properly escaped if necessary.
+    it must either begin with the word "WHERE" (case-insensitive),
+    or it must be the string immediately proceeding the word "WHERE".\
 """
-)
 
 
-report_table_syntax = Syntax(
-    code="""\
-    $ report table --start jan1 --end jan14 --round
+def summary_json_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ summary json --start "6 days ago" --end today --print
+        $ s j -s -6d -e now -p
     
-    $ report t --current-week --destination Path/to/save/file.svg --round "where project = 'lightlike_cli'"
-    
-    $ r t -cw -r
-    """,
-    **SYNTAX_KWARGS,
-)
+        $ summary json --current-week --orient index where billable is false
+        $ s j -cw -o index -w\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-app_dir = _reformat_help_text(
-    f"""
-Launch CLI directory.
+def summary_table() -> str:
+    return """\
+Create a summary and render a table in terminal. Optional svg download.
 
-Default flag is {flag.start}. This launches the app directory with cmd {code("start")}.
+[yellow][b][u]Note: running & paused entries are not included in summaries.[/b][/u][/yellow]
 
-{flag.editor} launches the app directory using the configured editor.
-This can be set with the command {code_command('app:settings:update:general:editor')}.
+[b]Fields[/]:
+  - total_summary: The total sum of hours over the entire summary.
+  - total_project: The total sum of hours over the entire summary, partitioned by project.
+  - total_day: The total sum of hours on each day, partitioned by day.
+  - date: Date.
+  - project: Project.
+  - billable: Billable.
+  - timer: The total sum of hours for a project on that day.
+  - notes: String aggregate of all notes on that day. Sum of hours appened to the end.
+
+--output / -d:
+    save the output of this command to this path.
+    if the path does not have any suffix, then the expected suffix will be appended.
+    if the path with the correct suffix already exists, a prompt will ask whether to overwrite or not.
+    if the path ends in any suffix other than what's expected, an error will raise.
+
+--round / -r:
+    round totals to the nearest 0.25.
+
+--current-week / -cw:
+--current-month / -cm:
+--current-year / -cy:
+    flags are processed before other date options.
+    configure week start dates with app:config:set:general:week_start.
+
+--match-project / -Rp:
+    match a regular expression against project names.
+
+--match-note / -Rn:
+    match a regular expression against entry notes.
+
+--prompt-where / -w:
+    filter results with a where clause.
+    interactive prompt that launches after command runs.
+    prompt includes autocompletions for projects and notes.
+    note autocompletions will only populate for a project if that project name appears in the string.
+
+[bold #34e2e2]WHERE[/]:
+    where clause can also be written as the last argument to this command.
+    it can be a single string, or individual words separated by a space,
+    as long as characters are properly escaped if necessary.
+    it must either begin with the word "WHERE" (case-insensitive),
+    or it must be the string immediately proceeding the word "WHERE".\
 """
-)
 
 
-app_dir_syntax = Syntax(
-    code="""\
-    $ app dev dir
+def summary_table_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ summary table --current-month --round where project = \"lightlike-cli\"
+        $ s t -cm -r where project = \"lightlike-cli\"
     
-    $ app dev dir --editor
-    """,
-    **SYNTAX_KWARGS,
-)
+        $ summary table --current-year --output path/to/file.svg regexp_contains(note, r\\"(?i).*keyword\\")
+        $ s t -cy -o path/to/file.svg regexp_contains(note, r\\"(?i).*keyword\\")
+
+        $ summary table --start -15d --end monday
+        $ s t -s -15d -e mon\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-app_run_bq = _reformat_help_text(
-    f"""
+def app_dir() -> str:
+    return """\
+Open cli directory.
+
+    --start / -s:
+        default option.
+        open app directory with the system command [code]start[/code].
+
+    --editor / -e:
+        open the app directory using the configured text-editor.
+        configure text-editor with app:config:set:general:editor.\
+"""
+
+
+def app_dir_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ app dir
+    
+        $ app dir --editor\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
+
+
+def app_run_bq() -> str:
+    return """\
 Run BigQuery scripts.
 
-Executes all necessary scripts in BigQuery for this CLI to run. Table's are only built if they do not exist.
+Executes all necessary scripts in BigQuery for this cli to run. Table's are only built if they do not exist.\
 """
-)
 
 
-app_run_bq_syntax = Syntax(
-    code="""\
-    $ app dev run-bq
-    """,
-    **SYNTAX_KWARGS,
-)
+def app_run_bq_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ app run-bq\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-app_settings = _reformat_help_text(
-    f"""
-View/Update CLI configuration settings.
+def app_config() -> str:
+    return """\
+View/Update cli configuration settings.
 
-Command {code_command('app:settings:show')} displays settings in a table. The flag {flag.json} can be used to view as a json instead.
+app:config:open:
+    open the config file located in the users home directory using the default text editor.
 
-For command {code_command('app:settings:update')};
-[b]general settings[/b] affect timer functions/flags, logging in (if using a service-account-key), and behaviour of other commands such as the default text-editor to launch.
-[b]query settings[/b] affect the behaviour of the command {code_command('bq:query')}.
+app:config:show:
+    view in config file in terminal.
+    this list does not include everything, only the keys that can be updated through the cli.
+
+app:config:set:
+    [b]general settings[/b]:
+        configure time entry functions
+        login (if auth through a service-account)
+        misc. behaviour (e.g. default text-editor).
+    [b]query settings[/b]:
+        configure behaviour for bq:query.\
 """
-)
 
 
-app_settings_syntax = Syntax(
-    code="""\
-    $ app settings show
+def app_config_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ app config open
+        $ a c o
     
-    $ app settings show --json
+        $ app config show
+        $ a c s
     
-    $ app settings update 
-    """,
-    **SYNTAX_KWARGS,
-)
+        $ app config set
+        $ a c u\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-app_settings_editor = _reformat_help_text(
-    f"""
-Editor should be the full path to the executable, but the regular operating system search path is used for finding the executable.
+def app_config_editor() -> str:
+    return """\
+Editor should be the full path to the executable, but the regular operating system search path is used for finding the executable.\
 """
-)
 
 
-app_settings_editor_syntax = Syntax(
-    code="""\
-    $ app settings update general editor code
+def app_config_editor_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ app config set general editor code
     
-    $ app settings update general editor vim
-    """,
-    **SYNTAX_KWARGS,
-)
+        $ app config set general editor vim\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-app_settings_is_billable = _reformat_help_text(
-    f"""
-Default billable flag used for {code_command('timer')} commands.
-"""
-)
-
-
-app_settings_is_billable_syntax = Syntax(
-    code="""\
-    $ app settings update general is_billable false
-    """,
-    **SYNTAX_KWARGS,
-)
-
-
-app_settings_note_history = _reformat_help_text(
-    f"""
+def app_config_note_history() -> str:
+    return """\
 Days to store note history.
 
-This settings affects how many days to store notes used by {flag.note} flags for autocompletions.
-
-E.g. If days = 30, any notes older than 30 days won't appear in autocompletions.
-
-Default is set to 90 days.
+This settings affects how many days to store notes used by option --note / -n for autocompletions.
+e.g. If days = 30, any notes older than 30 days won't appear in autocompletions.
+Default is set to 90 days.\
 """
-)
 
 
-app_settings_note_history_syntax = Syntax(
-    code="""\
-    $ app settings update general note-history 365
-    """,
-    **SYNTAX_KWARGS,
-)
+def app_config_note_history_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ app config set general note-history 365\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-app_settings_stay_logged_in = _reformat_help_text(
-    f"""
+def app_config_show() -> str:
+    return """\
+Show config file in terminal.
+
+[b]general settings[/b] affect timer functions/options, logging in (if using a service-account-key), and behaviour of other commands such as the default text-editor to launch.
+[b]query settings[/b] affect the behaviour of the bq:query.\
+"""
+
+
+def app_config_show_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ app config show
+        $ a c s
+    
+        $ app config show --json
+        $ a c s -j\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
+
+
+def app_config_stay_logged_in() -> str:
+    return """\
 Save login password.
 
 This setting is only visible if the client is authenticated using a service-account key.
-
-It's not recommended to leave this setting on, as the password and encryped key are stored in the same place.
+It's not recommended to leave this setting on, as the password and encryped key are stored in the same place.\
 """
-)
 
 
-app_settings_stay_logged_in_syntax = Syntax(
-    code="""\
-    $ app settings update general stay_logged_in true
-    """,
-    **SYNTAX_KWARGS,
-)
+def app_config_stay_logged_in_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ app config set general stay_logged_in true\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-app_settings_timezone = _reformat_help_text(
-    f"""
+def app_config_system_command_shell():
+    return """\
+Shell to use when running external commands.
+
+e.g.
+unix: ["sh", "-c"] / ["bash", "-c"]
+windows: ["cmd", "/C"]
+
+When setting value, enclose list in single quotes, and use double quotes for string values.
+"""
+
+
+def app_config_system_command_shell_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        # if setting was set to ["bash", "-c"]
+        # and the command is `ls`
+        # then it will be executed as
+        $ bash -c "ls"
+
+        # example setting config key
+        $ app config set general shell '["bash", "-c"]'
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
+
+
+def app_config_timezone() -> str:
+    return """\
 Timezone used for all date/time conversions.
 
-If you change this value, run command {code_command('app:dev:run-bq')} to recreate procedures in BigQuery using the new timezone.
+If this value is updated, run app:run-bq to rebuild procedures in BigQuery using the new timezone.\
 """
-)
 
 
-app_settings_timezone_syntax = Syntax(
-    code="""\
-    $ app settings update general timezone UTC
-    """,
-    **SYNTAX_KWARGS,
-)
+def app_config_timezone_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ app config set general timezone UTC\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-app_settings_week_start = _reformat_help_text(
-    f"""
-Update week start for {flag.current_week} flags.
+def app_config_week_start() -> str:
+    return """\
+Update week start for option --current-week / -cw.\
 """
-)
 
 
-app_settings_week_start_syntax = Syntax(
-    code="""\
-    $ app settings update week_start Sunday
-    """,
-    **SYNTAX_KWARGS,
-)
+def app_config_week_start_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ app config set week_start Sunday\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-app_settings_hide_table_render = _reformat_help_text(
-    f"""
-If {code_command('save_text')} or {code_command('save_svg')} are enabled, enable/disable table render in console.
+def app_config_hide_table_render() -> str:
+    return """\
+If save_text or save_svg is enabled, enable/disable table render in console.
 
-If {code_command('save_text')} or {code_command('save_svg')} are disabled, this option does not have any affect.
+If save_text or save_svg is disabled, this option does not have any affect.\
 """
-)
 
 
-app_settings_hide_table_render_syntax = Syntax(
-    code="""\
-    $ app settings update query hide_table_render true
-    """,
-    **SYNTAX_KWARGS,
-)
+def app_config_hide_table_render_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ app config set query hide_table_render true\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-app_settings_mouse_support = _reformat_help_text(
-    f"""
-Controls mouse support in command {code_command('bq:query')}.
+def app_config_mouse_support() -> str:
+    return """\
+Controls mouse support in bq:query.\
 """
-)
 
 
-app_settings_mouse_support_syntax = Syntax(
-    code="""\
-    $ app settings update query mouse_support true
-    """,
-    **SYNTAX_KWARGS,
-)
+def app_config_mouse_support_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ app config set query mouse_support true\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-app_settings_save_query_info = _reformat_help_text(
-    f"""
+def app_config_save_query_info() -> str:
+    return """\
 Include query info when saving to file.
 
-This includes:
-- query string
-- resource url
-- elapsed time
-- cache hit/destination
-- statement type
-- slot millis
-- bytes processed/billed
-- row count
-- dml stats
+Query info:
+    - query string
+    - resource url
+    - elapsed time
+    - cache hit/output
+    - statement type
+    - slot millis
+    - bytes processed/billed
+    - row count
+    - dml stats\
 """
-)
 
 
-app_settings_save_query_info_syntax = Syntax(
-    code="""\
-    $ app settings update query save_query_info true
-    """,
-    **SYNTAX_KWARGS,
-)
+def app_config_save_query_info_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ app config set query save_query_info true\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-app_settings_save_svg = _reformat_help_text(
-    f"""
-Queries using command {code_command("bq:query")} will save the rendered result to an {code('.svg')} file in the app directory.
+def app_config_save_svg() -> str:
+    return """\
+Queries using bq:query will save the rendered result to an [code].svg[/code] file in the app directory.\
 """
-)
 
 
-app_settings_save_svg_syntax = Syntax(
-    code="""\
-    $ app settings update query save_svg true
-    """,
-    **SYNTAX_KWARGS,
-)
-app_settings_save_txt = _reformat_help_text(
-    f"""
-Queries using command {code_command("bq:query")} will save the rendered result to a {code('.txt')} file in the app directory.
+def app_config_save_svg_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ app config set query save_svg true\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
+
+
+def app_config_save_txt() -> str:
+    return """\
+Queries using bq:query will save the rendered result to a [code].txt[/code] file in the app directory.\
 """
-)
 
 
-app_settings_save_txt_syntax = Syntax(
-    code="""\
-    $ app settings update query save_txt true
-    """,
-    **SYNTAX_KWARGS,
-)
+def app_config_save_txt_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ app config set query save_txt true\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-app_sync = _reformat_help_text(
-    f"""
+def app_sync() -> str:
+    return """\
 Syncs local files for time entry data, projects, and cache.
 
-These can be found in the app directory using the command {code_command('app:dev:dir')}.
+These can be found in the app directory using the app:dir.
 
-These tables should only ever be altered through the procedures in this CLI.
-If the local files are ever out of sync with BigQuery, or you log in from a new location, you can use this command to re-sync them.
+These tables should only ever be altered through the procedures in this cli.
+If the local files are out of sync with BigQuery, or if logging in from a new location, can use this command to re-sync them.\
 """
-)
 
 
-app_sync_syntax = Syntax(
-    code="""\
-    $ app sync appdata
+def app_sync_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ app sync --appdata
+        $ a s -a
 
-    $ app sync cache
+        $ app sync --cache
+        $ a s -c
 
-    $ app sync appdata cache
-    """,
-    **SYNTAX_KWARGS,
-)
+        $ app sync --appdata --cache
+        $ a s -ac\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )
 
 
-app_test_dateparser = _reformat_help_text(
-    f"""
+def app_test_dateparser() -> str:
+    return """\
 Test the dateparser function.
 
-{_date_parser_examples}
+DATE/TIME FIELDS:
+    arguments/options asking for datetime will attempt to parse the string provided.
+    error will raise if unable to parse.
+    dates are relative to today, unless explicitly stated in the string.
+
+    Example values to pass to the date parser:
+    | type             | examples                                                  |
+    |-----------------:|-----------------------------------------------------------|
+    | datetime         | jan1@2pm [d](January 1st current year at 2:00 PM)[/d]            |
+    | date (relative)  | today/now, yesterday, monday, 2 days ago, -2d | "\-2d"    |
+    | time (relative)  | -15m [d](15 minutes ago)[/d], 1.25 hrs ago, -1.25hr | "\-1.25hr" |
+    | date             | jan1, 01/01, 2024-01-01                                   |
+    | time             | 2pm, 14:30:00, 2:30pm                                     |
+
+    [b]Note:[/b] If the date is an argument, the minus operator needs to be escaped.
+    e.g.
+    ```
+    $ command --option -2d
+    $ c -o-2d
+    $ command \-2d # argument
+    $ c \-2d # argument
+    ```
 """
-)
 
 
-app_test_dateparser_syntax = Syntax(
-    code="""\
-    $ app test date-parse "\-1.35hr"
-    """,
-    **SYNTAX_KWARGS,
-)
+def app_test_dateparser_syntax() -> Syntax:
+    return Syntax(
+        code="""\
+        $ app test date-parse --date -1.35hr\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    )

@@ -1,35 +1,45 @@
+import typing as t
 from threading import Thread, current_thread
-from typing import Any, Callable, Sequence
+from time import sleep
 
 import rich_click as click
 from prompt_toolkit.patch_stdout import patch_stdout
-from rich import get_console
+from rich import print as rprint
 from rich.repr import rich_repr
 from rich.rule import Rule
 
-from lightlike.lib.third_party._rich_format_error import _rich_format_error
+from lightlike.internal import utils
 
-__all__: Sequence[str] = ("spawn",)
+__all__: t.Sequence[str] = ("spawn",)
 
 
 def spawn(
-    ctx: click.Context, fn: Callable, kwargs: dict[str, Any] | None = None
+    ctx: click.RichContext,
+    fn: t.Callable,
+    kwargs: dict[str, t.Any] | None = None,
+    delay: int | None = None,
 ) -> Thread:
     def wrapper(**kwargs) -> None:
         try:
+            if delay and isinstance(delay, int):
+                sleep(delay)
             with ctx:
-                fn(**kwargs) if kwargs else fn()
-        except Exception as e:
+                return fn(**kwargs) if kwargs else fn()
+        except Exception as error:
             with patch_stdout(raw=True):
-                console = get_console()
-                console.print(
-                    Rule(title="[b][red]WARNING", characters="*", style="bold red")
+                rprint(
+                    Rule(
+                        title="[b][red]Error occured in another thread",
+                        characters="- ",
+                        style="bold red",
+                        align="left",
+                    )
                 )
-                console.print(
-                    str(rich_repr(current_thread())).replace("wrapper", repr(fn)),  # type: ignore[call-overload]
-                    justify="center",
+                rprint(
+                    f"{rich_repr(current_thread())}".replace("wrapper", repr(fn))  # type: ignore[call-overload]
                 )
-                _rich_format_error(click.ClickException(f"{e}"))
+
+            utils.notify_and_log_error(error)
 
     thread = Thread(target=wrapper, kwargs=kwargs)
     thread.start()
