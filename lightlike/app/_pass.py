@@ -1,62 +1,70 @@
-from __future__ import annotations
-
-import functools
-from functools import update_wrapper
+import typing as t
+from functools import wraps
 from types import FunctionType
-from typing import Any, Callable, ParamSpec, Sequence
 
 import rich_click as click
 from rich import get_console
 from rich import print as rprint
 from rich_click import make_pass_decorator
 
-from lightlike.app.cache import EntryAppData, EntryIdList, TomlCache
+from lightlike.app.cache import TimeEntryAppData, TimeEntryCache, TimeEntryIdList
 from lightlike.app.client import get_client, get_console
 from lightlike.app.config import AppConfig
+from lightlike.app.dates import now as datetime_now
 from lightlike.app.routines import CliQueryRoutines
 from lightlike.internal import markup
 
-__all__: Sequence[str] = (
+__all__: t.Sequence[str] = (
     "routine",
     "config",
     "cache",
     "appdata",
     "id_list",
-    "console",
     "client",
+    "console",
+    "now",
     "ctx_group",
     "active_time_entry",
-    "confirm_options",
 )
 
 
-P = ParamSpec("P")
+P = t.ParamSpec("P")
 
 routine = make_pass_decorator(CliQueryRoutines, ensure=True)
 config = make_pass_decorator(AppConfig, ensure=False)
-cache = make_pass_decorator(TomlCache, ensure=True)
-appdata = make_pass_decorator(EntryAppData, ensure=True)
-id_list = make_pass_decorator(EntryIdList, ensure=True)
+cache = make_pass_decorator(TimeEntryCache, ensure=True)
+appdata = make_pass_decorator(TimeEntryAppData, ensure=True)
+id_list = make_pass_decorator(TimeEntryIdList, ensure=True)
 
 
-def client(fn: Callable[..., Any]) -> Callable[..., Any]:
-    def new_func(*args: P.args, **kwargs: P.kwargs) -> Any:
+def client(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
+    @wraps(fn)
+    def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
         return fn(get_client(), *args, **kwargs)
 
-    return update_wrapper(new_func, fn)
+    return inner
 
 
-def console(fn: Callable[..., Any]) -> Callable[..., Any]:
-    def new_func(*args: P.args, **kwargs: P.kwargs) -> Any:
+def console(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
+    @wraps(fn)
+    def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
         return fn(get_console(), *args, **kwargs)
 
-    return update_wrapper(new_func, fn)
+    return inner
 
 
-def ctx_group(parents: int = 1) -> Callable[..., Callable[..., Any]]:
-    def decorator(fn: FunctionType) -> Callable[..., Any]:
-        @functools.wraps(fn)
-        def inner(*args: P.args, **kwargs: P.kwargs) -> Any:
+def now(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
+    @wraps(fn)
+    def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
+        return fn(datetime_now(AppConfig().tz), *args, **kwargs)
+
+    return inner
+
+
+def ctx_group(parents: int) -> t.Callable[..., t.Callable[..., t.Any]]:
+    def decorator(fn: FunctionType) -> t.Callable[..., t.Any]:
+        @wraps(fn)
+        def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
             ctx = click.get_current_context()
             ctx_group = [ctx]
             count = parents
@@ -81,36 +89,14 @@ def ctx_group(parents: int = 1) -> Callable[..., Callable[..., Any]]:
     return decorator
 
 
-def active_time_entry(fn: Callable[..., Any]) -> Callable[..., Any]:
+def active_time_entry(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
     @cache
-    @functools.wraps(fn)
-    def inner(cache: TomlCache, *args: P.args, **kwargs: P.kwargs) -> Any:
+    @wraps(fn)
+    def inner(cache: TimeEntryCache, *args: P.args, **kwargs: P.kwargs) -> t.Any:
         if not cache:
-            rprint(markup.dim("There is no active time entry."))
+            rprint(markup.dimmed("There is no active time entry."))
             return None
         else:
             return fn(cache, *args, **kwargs)
-
-    return inner
-
-
-def confirm_options(fn) -> Callable[..., Any]:
-    @click.option(
-        "-c",
-        "--confirm",
-        hidden=True,
-        is_flag=True,
-        help="Accept all prompts",
-    )
-    @click.option(
-        "-y",
-        "--yes",
-        hidden=True,
-        is_flag=True,
-        help="Accept all prompts",
-    )
-    @functools.wraps(fn)
-    def inner(*args: P.args, **kwargs: P.kwargs) -> None:
-        fn(*args, **kwargs)
 
     return inner

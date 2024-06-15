@@ -1,11 +1,13 @@
+# mypy: disable-error-code="func-returns-value"
+
 from __future__ import annotations
 
 import sys
+import typing as t
 from base64 import b64encode
 from hashlib import sha3_256, sha256
 from json import JSONDecodeError, loads
 from os import urandom
-from typing import TYPE_CHECKING, ClassVar, Sequence, cast
 
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC, hashes
@@ -15,6 +17,7 @@ from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
 from prompt_toolkit.validation import Validator
 from rich import get_console
+from rich import print as rprint
 from rich.padding import Padding
 from rich.panel import Panel
 from rich.text import Text
@@ -24,20 +27,18 @@ from lightlike.internal import markup, utils
 from lightlike.internal.enums import CredentialsSource
 from lightlike.lib.third_party import _questionary
 
-if TYPE_CHECKING:
+if t.TYPE_CHECKING:
     from prompt_toolkit.key_binding import KeyPressEvent
-    from rich.console import Console
 
-__all__: Sequence[str] = ("_AuthSession",)
+__all__: t.Sequence[str] = ("_AuthSession",)
 
 
 _Hash = type(sha256(b"_Hash"))
 
 
 class _AuthSession:
-    auth_keybinds: ClassVar[KeyBindings] = KeyBindings()
-    hidden: ClassVar[list[bool]] = [True]
-    console: ClassVar["Console"] = get_console()
+    auth_keybinds: t.ClassVar[KeyBindings] = KeyBindings()
+    hidden: t.ClassVar[list[bool]] = [True]
 
     @staticmethod
     @auth_keybinds.add(Keys.ControlT, eager=True)
@@ -49,7 +50,7 @@ class _AuthSession:
     def _(event: "KeyPressEvent") -> None:
         """Quit and reset all auth settings."""
 
-        with AppConfig().update() as config:
+        with AppConfig().rw() as config:
             config["user"].update(
                 password="null",
                 salt=[],
@@ -81,13 +82,12 @@ class _AuthSession:
     def authenticate(
         self,
         salt: bytes,
-        encrypted_key: bytearray,
+        encrypted_key: bytes,
         password: str | None = None,
         retry: bool = True,
     ) -> bytes:
-        saved_settings = AppConfig().get("user", "password")
-        saved_password = saved_settings if saved_settings != "null" else None
-
+        config_password = AppConfig().get("user", "password")
+        saved_password = config_password if config_password != "null" else None
         stay_logged_in = AppConfig().get("user", "stay_logged_in")
 
         if saved_password and stay_logged_in:
@@ -111,32 +111,32 @@ class _AuthSession:
                     password="null",
                     stay_logged_in=False,
                 )
-                self.console.print(
+                rprint(
                     Panel(
                         Text.assemble(
-                            markup.br("Saved credentials failed."),
-                            "Password input required.\nEnter password.",
+                            markup.br("Saved credentials failed. "),
+                            "Password input required.",
                         )
                     )
                 )
             else:
-                self.console.print(markup.br("Incorrect password."))
+                rprint(markup.br("Incorrect password."))
 
             if retry:
                 return self.authenticate(salt, encrypted_key)
 
         except Exception as e:
-            self.console.print(f"[bright_white on dark_red]{e}.")
+            rprint(f"[bright_white on dark_red]{e}.")
             if saved_password:
                 self._update_user_credentials(
                     password="null",
                     stay_logged_in=False,
                 )
-                self.console.print(
+                rprint(
                     Panel(
                         Text.assemble(
-                            markup.br("Saved credentials failed."),
-                            "Password input required.\nEnter password.",
+                            markup.br("Saved credentials failed. "),
+                            "Password input required.",
                         )
                     )
                 )
@@ -146,65 +146,56 @@ class _AuthSession:
 
         return self.load_bytes(service_account_key)
 
-    @utils._nl_start(after=True, before=True)
-    def prompt_password(self) -> str:
-        # session: PromptSession = PromptSession(
-        #     message="(password) $ ",
-        #     style=AppConfig().prompt_style,
-        #     cursor=AppConfig().cursor_shape,
-        #     key_bindings=self.auth_keybinds,
-        #     is_password=Condition(lambda: self.hidden[0]),
-        #     rprompt="Press ctrl+t to toggle password visibility.",
-        #     validator=Validator.from_callable(
-        #         lambda d: False if not d else True,
-        #         error_message="Input cannot be None.",
-        #     ),
-        #     erase_when_done=True,
-        # )
-        # return session.prompt()
+    def prompt_password(
+        self, message: str = "(password) $ ", newline_breaks: bool = True
+    ) -> str:
+        newline_breaks and utils._nl()
         try:
             while 1:
-                password = self.console.input("(password) $ ", password=True)
+                password = get_console().input(message, password=True)
                 if password != "":
+                    newline_breaks and utils._nl()
                     return password
-
         except (KeyboardInterrupt, EOFError):
-            self.console.print(markup.br("\nAborted"))
+            rprint(markup.br("\nAborted"))
             sys.exit(2)
 
     def prompt_new_password(self) -> tuple[sha3_256, bytes]:
         while 1:
             password = self.prompt_password()
-            if _questionary.confirm(message="Continue with this password?"):
+            reenter_password = self.prompt_password(
+                "(re-enter password) $ ", newline_breaks=False
+            )
+            if reenter_password == password:
                 return sha256(password.encode()), urandom(32)
+            else:
+                rprint(markup.dimmed("Password does not match, please try again."))
 
     def prompt_service_account_key(self) -> str:
-        self.console.print(
-            Padding(
-                Panel.fit(
-                    Text.assemble(
-                        "Copy and paste service-account key. Press ",
-                        markup.code_sequence("esc+enter", "+"),
-                        " to continue.",
-                    )
-                ),
-                (1, 0, 1, 1),
+        panel = Panel.fit(
+            Text.assemble(
+                "Copy and paste service-account key. Press ",
+                markup.code("esc enter"),
+                " to continue.",
             )
         )
+        rprint(Padding(panel, (1, 0, 1, 1)))
 
         session: PromptSession = PromptSession(
             message="(service-account-key) $ ",
             style=AppConfig().prompt_style,
             cursor=AppConfig().cursor_shape,
-            refresh_interval=1,
             multiline=True,
+            refresh_interval=1,
+            erase_when_done=True,
+            key_bindings=self.auth_keybinds,
             is_password=Condition(lambda: self.hidden[0]),
             validator=Validator.from_callable(
                 lambda d: False if not d else True,
                 error_message="Input cannot be None.",
             ),
-            erase_when_done=True,
         )
+
         service_account_key = None
 
         try:
@@ -213,24 +204,24 @@ class _AuthSession:
                 try:
                     key = loads(key_input)
                 except JSONDecodeError:
-                    self.console.print(markup.br("Invalid json."))
+                    rprint(markup.br("Invalid json."))
                     continue
                 else:
                     if (
                         "client_email" not in key.keys()
                         or "token_uri" not in key.keys()
                     ):
-                        self.console.print(
+                        rprint(
                             Text.assemble(
                                 "Invalid service-account json. Missing required key ",
-                                markup.code("client_email"), " or ",  # fmt: skip
+                                markup.code("client_email"), " or ",
                                 markup.code("token_uri"), ".\n",  # fmt: skip
                             )
                         )
                         continue
                     service_account_key = key_input
         except (KeyboardInterrupt, EOFError):
-            self.console.print(markup.br("Aborted"))
+            rprint(markup.br("Aborted"))
             sys.exit(2)
 
         return service_account_key
@@ -241,7 +232,7 @@ class _AuthSession:
         salt: bytes | None = None,
         stay_logged_in: bool | None = None,
     ) -> None:
-        with AppConfig().update() as config:
+        with AppConfig().rw() as config:
             if password:
                 if isinstance(password, str):
                     config["user"].update(
@@ -262,7 +253,7 @@ class _AuthSession:
 
     @staticmethod
     def load_bytes(payload: bytes) -> bytes:
-        return cast(bytes, loads(payload.decode()))
+        return t.cast(bytes, loads(payload.decode()))
 
     def stay_logged_in(self, value: bool) -> None:
         from lightlike.app.client import service_account_key_flow
@@ -271,7 +262,7 @@ class _AuthSession:
             stay_logged_in = AppConfig().get("user", "stay_logged_in")
 
             if not stay_logged_in:
-                self.console.print("Enter current password.")
+                rprint("Enter current password.")
                 current = self.prompt_password()
                 encrypted_key, salt = service_account_key_flow()
 
@@ -285,17 +276,20 @@ class _AuthSession:
                     self._update_user_credentials(
                         password=current, stay_logged_in=value
                     )
-                    utils.print_updated_val(key="stay_logged_in", val=value)
+                    rprint("Set", markup.scope_key("stay_logged_in"), "to", value)
                 except UnboundLocalError:
                     ...
 
             else:
-                self.console.print(markup.dim("Setting is already on."))
+                rprint(
+                    markup.dimmed(f"`stay_logged_in` is already set to `{value}`,"),
+                    markup.dimmed("nothing happened."),
+                )
 
         elif value is False:
             if not AppConfig().get("user", "stay_logged_in"):
-                self.console.print(markup.dim("Setting is already off."))
+                rprint(markup.dimmed("Setting is already off."))
 
             else:
                 self._update_user_credentials(password="null", stay_logged_in=False)
-                utils.print_updated_val(key="stay_logged_in", val=False)
+                rprint("Set", markup.scope_key("stay_logged_in"), "to", False)

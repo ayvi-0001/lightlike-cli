@@ -1,27 +1,29 @@
+# mypy: disable-error-code="import-untyped, func-returns-value"
 from __future__ import annotations
 
 import re
-import threading
 import typing as t
-from contextlib import contextmanager, suppress
-from datetime import datetime
+from contextlib import contextmanager
+from datetime import datetime, timedelta
 from decimal import Decimal
 from functools import cached_property, reduce
-from operator import truth
+from operator import truth, xor
+from threading import Lock
 
-import fasteners  # type: ignore[import-untyped, import-not-found]
 import rich_click as click
 import rtoml
-from more_itertools import first, locate, one, unique_everseen
+from fasteners import ReaderWriterLock
+from more_itertools import first, locate, map_except, one, unique_everseen
+from prompt_toolkit.patch_stdout import patch_stdout
 from rich import box, get_console
+from rich.markup import escape
 from rich.measure import Measurement
-from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
 
 from lightlike import _console
 from lightlike.__about__ import __appname_sc__
-from lightlike.app import _get, render
+from lightlike.app import _get, dates, render
 from lightlike.app.config import AppConfig
 from lightlike.app.routines import CliQueryRoutines
 from lightlike.internal import appdir, markup, utils
@@ -34,17 +36,17 @@ if t.TYPE_CHECKING:
     from google.cloud.bigquery.table import Row
     from rich.console import Console, ConsoleOptions, RenderResult
 
-__all__: t.Sequence[str] = ("TomlCache", "EntryIdList", "EntryAppData")
+__all__: t.Sequence[str] = ("TimeEntryCache", "TimeEntryIdList", "TimeEntryAppData")
 
 
 T = t.TypeVar("T")
 P = t.ParamSpec("P")
 
 
-class TomlCache:
+class TimeEntryCache:
     __slots__: t.ClassVar[t.Sequence[str]] = ("_entries",)
     _path: t.ClassVar[Path] = appdir.CACHE
-    _rw_lock: t.ClassVar["ReaderWriterLock"] = fasteners.ReaderWriterLock()
+    _rw_lock: t.ClassVar[ReaderWriterLock] = ReaderWriterLock()
 
     def __init__(self) -> None:
         with self._rw_lock.read_lock():
@@ -56,151 +58,161 @@ class TomlCache:
     def __rich_console__(
         self, console: "Console", options: "ConsoleOptions"
     ) -> "RenderResult":
-        now = AppConfig().now
+        now: datetime = dates.now(AppConfig().tz)
 
-        table_running_entries = Table(
-            box=box.MARKDOWN,
-            border_style="bold",
-            show_header=True,
-        )
-        reduce(
-            lambda n, c: table_running_entries.add_column(
-                c[0].removeprefix("is_"), **self._map_s_columns(c)
-            ),
-            self.running_entries[0].items(),
-            None,
-        )
-        reduce(
-            lambda n, r: table_running_entries.add_row(
-                *render.map_cell_style(r.values()),
-                style=self._map_rstyle(r),
-            ),
-            self.running_entries,
-            None,
-        )
+        fields = [
+            "id",
+            "start",
+            "timestamp_paused",
+            "project",
+            "note",
+            "billable",
+            "paused",
+            "paused_hours",
+            "hours",
+        ]
 
-        table_paused_entries = Table(
-            box=box.MARKDOWN,
-            border_style="bold",
-            show_header=True,
-        )
-        reduce(
-            lambda n, c: table_paused_entries.add_column(
-                c[0].removeprefix("is_"), **self._map_s_columns(c)
-            ),
-            self.running_entries[0].items(),
-            None,
-        )
+        entries = []
+        for entry in self.running_entries.copy():
+            if not self._ifnull(entry["id"]):
+                continue
 
-        paused_entries = []
-        for entry in self.paused_entries:
-            new_paused_hr = self._add_hours(
-                now,
-                entry.copy()["time_paused"],
-                entry.copy()["paused_hrs"],
+            if self._ifnull(entry["start"]):
+                time_parts_paused = dates.seconds_to_time_parts(
+                    Decimal(entry["paused_hours"] or 0) * 3600
+                )
+                duration = now - entry["start"]
+                paused_hours, paused_minutes, paused_seconds = time_parts_paused
+                duration = duration - timedelta(
+                    hours=paused_hours,
+                    minutes=paused_minutes,
+                    seconds=paused_seconds,
+                )
+                total_seconds = int(duration.total_seconds())
+                hours = round(Decimal(total_seconds / 3600), 4)
+                entry["hours"] = hours
+            else:
+                entry["hours"] = "0"
+
+            entries.append(entry)
+
+        for entry in self.paused_entries.copy():
+            new_paused_hour = self._add_hours(
+                now, entry["timestamp_paused"], entry["paused_hours"]
             )
-            entry["paused_hrs"] = str(round(new_paused_hr, 4))
-            paused_entries.append(entry)
+            time_parts_paused = dates.seconds_to_time_parts(
+                Decimal(new_paused_hour) * 3600
+            )
+            duration = now - entry["start"]
+            paused_hours, paused_minutes, paused_seconds = time_parts_paused
+            duration = duration - timedelta(
+                hours=paused_hours,
+                minutes=paused_minutes,
+                seconds=paused_seconds,
+            )
+            total_seconds = int(duration.total_seconds())
+            hours = round(Decimal(total_seconds / 3600), 4)
+            entry["paused_hours"] = round(new_paused_hour, 4)
+            entry["hours"] = hours or "0"
 
+            entries.append(entry)
+
+        if not entries:
+            console.print(markup.dimmed("No entries found"))
+            return
+
+        if console.width <= 125:
+            console.print_json(data=entries, default=str, indent=4)
+            return
+
+        table = Table(box=box.MARKDOWN, border_style="bold", show_header=True)
         reduce(
-            lambda n, r: table_paused_entries.add_row(
+            lambda n, f: table.add_column(
+                f, **self._map_column_styles(f, get_console().width)
+            ),
+            fields,
+            None,
+        )
+        reduce(
+            lambda n, r: table.add_row(
                 *render.map_cell_style(r.values()),
                 style=self._map_rstyle(r),
             ),
-            paused_entries,
+            entries,
             None,
         )
-
-        table = Table(
-            box=box.MARKDOWN,
-            border_style="bold",
-            show_edge=False,
-            show_header=False,
-        )
-        table.add_row()
-        table.add_row(
-            Rule(
-                title="[b]running",
-                characters="- ",
-                align="left",
-                style="bold",
-            ),
-        )
-        table.add_row(table_running_entries)
-        table.add_row(
-            Rule(
-                title="[b]paused",
-                characters="- ",
-                align="left",
-                style="bold",
-            ),
-        )
-        table.add_row(table_paused_entries)
-
         yield table
 
     def __rich_measure__(
         self, console: Console, options: ConsoleOptions
     ) -> Measurement:
-        return Measurement(100, options.max_width)
+        return Measurement(140, options.max_width)
 
     @contextmanager
-    def update(self) -> t.Generator[TomlCache, t.Any, None]:
+    def rw(self) -> t.Generator[TimeEntryCache, t.Any, None]:
         try:
             with self._rw_lock.read_lock():
                 yield self
         finally:
             with self._rw_lock.write_lock():
-                self._path.write_text(self._to_toml)
+                self._path.write_text(self._serialize)
             with self._rw_lock.read_lock():
                 self._entries = rtoml.load(self._path)
 
     @property
-    def _to_toml(self) -> str:
+    def _serialize(self) -> str:
         return utils._format_toml(self._entries)
 
-    def start_new_active_timer(self) -> None:
-        with self.update():
+    def start_new_active_time_entry(self) -> None:
+        with self.rw():
             self.running_entries.insert(
                 0,
                 {
-                    "project": None,
                     "id": None,
                     "start": None,
+                    "timestamp_paused": None,
+                    "project": None,
                     "note": None,
-                    "is_billable": None,
-                    "is_paused": False,
-                    "time_paused": None,
-                    "paused_hrs": 0,
+                    "billable": None,
+                    "paused": None,
+                    "paused_hours": "0",
                 },
             )
 
-    def switch_active_entry(self, _id) -> None:
-        with self.update():
-            idx = one(self._find_entries(self.running_entries, "id", [_id]))
-            self.running_entries.insert(0, self.running_entries.pop(idx))
+    def switch_active_entry(self, _id, now: datetime, continue_: bool) -> None:
+        if idx := self.index(self.running_entries, "id", [_id]):
+            with self.rw():
+                self.running_entries.insert(0, self.running_entries.pop(one(idx)))
+            if not continue_:
+                self.put_running_entry_on_pause(1, now)
+        else:
+            if not continue_:
+                self.put_active_entry_on_pause(now)
+            self.resume_paused_time_entry(_id, now)
 
     def get_updated_paused_entries(self, now: datetime) -> list[dict[str, t.Any]]:
         updated_paused_entries = []
 
         for entry in self.paused_entries:
             copy = entry.copy()
-            copy["paused_hrs"] = str(
-                self._add_hours(now, entry["time_paused"], entry["paused_hrs"])
+            paused_hours = self._add_hours(
+                now, entry["timestamp_paused"], entry["paused_hours"]
             )
+            copy["paused_hours"] = str(round(paused_hours, 4))
             updated_paused_entries.append(copy)
 
         return updated_paused_entries
 
     def resume_paused_time_entry(self, _id: str, now: datetime) -> None:
-        with self.update():
-            idx = one(self._find_entries(self.paused_entries, "id", [_id]))
+        with self.rw():
+            idx = one(self.index(self.paused_entries, "id", [_id]))
             entry = self.paused_entries[idx]
-            entry["paused_hrs"] = str(
-                self._add_hours(now, entry["time_paused"], entry["paused_hrs"])
+            paused_hours = self._add_hours(
+                now, entry["timestamp_paused"], entry["paused_hours"]
             )
-            entry["is_paused"] = False
-            entry["time_paused"] = None
+            entry["paused_hours"] = str(round(paused_hours, 4))
+            entry["paused"] = False
+            entry["timestamp_paused"] = None
 
             if not self:
                 self.running_entries.pop(0)
@@ -208,166 +220,170 @@ class TomlCache:
             self.running_entries.insert(0, entry)
             self.paused_entries.pop(idx)
 
-    def put_active_entry_on_pause(self, time_paused: datetime) -> None:
-        with self.update():
-            self.active["is_paused"] = True
-            self.active["time_paused"] = time_paused
+    def put_active_entry_on_pause(self, timestamp_paused: datetime) -> None:
+        with self.rw():
+            self.active["paused"] = True
+            self.active["timestamp_paused"] = timestamp_paused
             self.paused_entries.append(self.active.copy())
             if not self.count_running_entries ^ 1:
-                self.project = None  # type: ignore[assignment]
                 self.id = None  # type: ignore[assignment]
                 self.start = None  # type: ignore[assignment]
+                self.timestamp_paused = None  # type: ignore[assignment]
+                self.project = None  # type: ignore[assignment]
                 self.note = None  # type: ignore[assignment]
-                self.is_billable = None  # type: ignore[assignment]
-                self.is_paused = False
-                self.time_paused = None  # type: ignore[assignment]
-                self.paused_hrs = "0"  # type: ignore[assignment]
+                self.billable = None  # type: ignore[assignment]
+                self.paused = False
+                self.paused_hours = "0"  # type: ignore[assignment]
             else:
                 self.running_entries.pop(0)
+
+    def put_running_entry_on_pause(self, idx: int, timestamp_paused: datetime) -> None:
+        with self.rw():
+            entry = self.running_entries.pop(idx)
+            entry["paused"] = True
+            entry["timestamp_paused"] = timestamp_paused
+            self.paused_entries.append(entry)
 
     def _clear_active(self) -> None:
-        with self.update():
+        with self.rw():
             if not self.count_running_entries ^ 1:
-                self.project = None  # type: ignore[assignment]
                 self.id = None  # type: ignore[assignment]
                 self.start = None  # type: ignore[assignment]
+                self.timestamp_paused = None  # type: ignore[assignment]
+                self.project = None  # type: ignore[assignment]
                 self.note = None  # type: ignore[assignment]
-                self.is_billable = None  # type: ignore[assignment]
-                self.is_paused = False
-                self.time_paused = None  # type: ignore[assignment]
-                self.paused_hrs = "0"  # type: ignore[assignment]
+                self.billable = None  # type: ignore[assignment]
+                self.paused = False
+                self.paused_hours = "0"  # type: ignore[assignment]
             else:
                 self.running_entries.pop(0)
 
-    def _find_entries(
+    def index(
         self, entries: list[dict[str, t.Any]], key: str, sequence: t.Sequence[str]
     ) -> t.Iterable[int]:
         predicate = lambda e: (any([e[key].startswith(s) for s in sequence]))
         return list(locate(entries, predicate))
 
-    def _if_any_entries(
+    def exists(
         self, entries: list[dict[str, t.Any]], id_sequence: t.Sequence[str]
     ) -> bool:
-        if self._find_entries(entries, "id", id_sequence):
+        if self.index(entries, "id", id_sequence):
             return True
         return False
 
-    def _get_any_entries(
+    def get(
         self, entries: list[dict[str, t.Any]], key: str, sequence: t.Sequence[str]
     ) -> list[dict[str, t.Any]]:
-        idxs = self._find_entries(entries, key, sequence)
-        matching_entries = (
-            list(map(lambda i: entries[i], idxs)) if idxs is not None else []
-        )
-        return matching_entries
+        idxs = self.index(entries, key, sequence)
+        matching_entries = list(map_except(lambda i: entries[i], idxs, IndexError))
+        return matching_entries or []
 
-    def _remove_entries(
+    def remove(
         self,
         entries: t.Sequence[list[dict[str, t.Any]]],
         key: str,
         sequence: t.Sequence[str],
     ) -> None:
-        with self.update():
+        with self.rw():
             for entry_list in entries:
-                if idxs := self._find_entries(entry_list, key, sequence):
+                if idxs := self.index(entry_list, key, sequence):
                     for idx in idxs:
                         entry_list.pop(idx)
 
     def _add_hours(
-        self, now: datetime, time_paused: datetime, paused_hrs: Decimal
+        self, now: datetime, timestamp_paused: datetime, paused_hours: Decimal
     ) -> Decimal:
-        diff = now - t.cast(datetime, time_paused)
-        prev_paused_sec = Decimal(paused_hrs) * 3600
+        diff = now - t.cast(datetime, timestamp_paused)
+        prev_paused_sec = Decimal(paused_hours) * 3600
         new_paused_sec = Decimal(diff.total_seconds()) + prev_paused_sec
-        new_paused_hr = Decimal(round((new_paused_sec / 3600), 4))
-        return new_paused_hr
+        new_paused_hours = Decimal(new_paused_sec / 3600)
+        return new_paused_hours
 
     def _to_meta(
         self,
         entry: dict[str, t.Any],
         now: datetime,
-        truncate_note: bool = False,
     ) -> str:
-        meta = "project={project}".format(project=entry.get("project"))
-
-        meta += ", is_billable={is_billable}".format(
-            is_billable=entry.get("is_billable")
-        )
+        meta = "{project}".format(project=entry.get("project"))
 
         if _note := self._ifnull(entry["note"]):
-            if truncate_note:
-                note = f"{_note[:30]}..."
-            else:
-                note = _note
-            meta += ", note={note}".format(note=note)
+            meta += ", {note}".format(
+                note=f"{_note[:50]}…" if len(_note) > 50 else _note
+            )
+        else:
+            start = entry.get("start")
+            if start and start != "null":
+                meta += ", start={start_date}{start_time}".format(
+                    start_date=f"{start.date()}-" if start.date() != now.date() else "",
+                    start_time=start.time(),
+                )
 
-        start = entry.get("start")
-        if start and start != "null":
-            meta += ", start={start_date}{start_time}".format(
-                start_date=f"{start.date()}-" if start.date() != now.date() else "",
-                start_time=start.time(),
-            )
-
-        time_paused = entry.get("time_paused")
-        if time_paused and time_paused != "null":
-            meta += ", paused={paused_date}{paused_time}".format(
-                paused_date=(
-                    f"{time_paused.date()}-" if time_paused.date() != now.date() else ""
-                ),
-                paused_time=time_paused.time(),
-            )
-            meta += ", paused_hrs={paused_hrs}".format(
-                paused_hrs=entry["paused_hrs"],
-            )
+        timestamp_paused = entry.get("timestamp_paused")
+        if timestamp_paused and timestamp_paused != "null":
+            meta += ", paused=True"
+        else:
+            meta += ", running=True"
 
         return f"[{meta}]"
 
-    def _validate_toml_cache(self) -> None:
+    def validate(self) -> None:
         try:
-            self._path.touch(exist_ok=True)
-            if not utils._identical_vectors(
-                list(self.active.keys()),
-                list(self.default_entry.keys()),
-            ):
-                with self.update():
+            if self._path.exists():
+                if xor(
+                    self._path.read_text() == "",
+                    not utils._identical_vectors(
+                        list(self.active.keys()),
+                        list(self.default_entry.keys()),
+                    ),
+                ):
+                    with self.rw():
+                        self._entries = self.default
+            else:
+                self._path.touch(exist_ok=True)
+                with self.rw():
                     self._entries = self.default
         except Exception:
-            with self.update():
+            # If any exception occurs, hard reset cache.
+            with self.rw():
                 self._entries = self.default
 
-    def _sync_cache(self) -> None:
+    def sync(self, debug: bool = False) -> None:
         from lightlike.app.routines import CliQueryRoutines
 
         routine = CliQueryRoutines()
-        running_entries_to_cache = routine.select(
+        running_entries_to_cache = routine._select(
             resource=routine.timesheet_id,
             fields=["*"],
-            where=["is_active IS TRUE"],
+            where=["active IS TRUE"],
             order=["timestamp_start"],
         )
-        paused_entries_to_cache = routine.select(
+        paused_entries_to_cache = routine._select(
             resource=routine.timesheet_id,
             fields=["*"],
-            where=["is_paused IS TRUE"],
+            where=["paused IS TRUE"],
             order=["timestamp_start"],
         )
 
-        running_entries = []
-        paused_entries = []
+        running_entries: list[dict[str, t.Any]] = []
+        paused_entries: list[dict[str, t.Any]] = []
+
+        active_index: str | None = self.active["id"] if self else None
 
         for row in list(running_entries_to_cache):
-            running_entries.append(
-                dict(
-                    project=row.project,
-                    id=row.id,
-                    start=AppConfig().in_app_timezone(row.timestamp_start),
-                    note=row.note,
-                    is_billable=row.is_billable,
-                    is_paused=row.is_paused,
-                    time_paused="null",
-                    paused_hrs=str(Decimal(row.paused_hrs or 0)),
-                )
+            entry = dict(
+                id=row.id,
+                start=dates.astimezone(row.timestamp_start, AppConfig().tz),
+                timestamp_paused="null",
+                project=row.project,
+                note=row.note,
+                billable=row.billable,
+                paused=row.paused,
+                paused_hours=str(round(Decimal(row.paused_hours or 0), 4)),
             )
+            if row.id == active_index:
+                running_entries.insert(0, entry)
+            else:
+                running_entries.append(entry)
 
         if not running_entries:
             running_entries = self.default["running"]["entries"]
@@ -375,19 +391,21 @@ class TomlCache:
         for row in list(paused_entries_to_cache):
             paused_entries.append(
                 dict(
-                    project=row.project,
                     id=row.id,
-                    start=AppConfig().in_app_timezone(row.timestamp_start),
+                    start=dates.astimezone(row.timestamp_start, AppConfig().tz),
+                    timestamp_paused=dates.astimezone(
+                        row.timestamp_paused, AppConfig().tz
+                    ),
+                    project=row.project,
                     note=row.note,
-                    is_billable=row.is_billable,
-                    is_paused=row.is_paused,
-                    time_paused=AppConfig().in_app_timezone(row.time_paused),
-                    paused_hrs=str(round(Decimal(row.paused_hrs or 0), 4)),
+                    billable=row.billable,
+                    paused=row.paused,
+                    paused_hours=str(round(Decimal(row.paused_hours or 0), 4)),
                 )
             )
 
         get_console().set_window_title(__appname_sc__)
-        with self.update() as cache:
+        with self.rw() as cache:
             cache.running_entries = running_entries
             cache.paused_entries = paused_entries
 
@@ -397,14 +415,14 @@ class TomlCache:
             "running": {
                 "entries": [
                     {
-                        "project": None,
                         "id": None,
                         "start": None,
+                        "timestamp_paused": None,
+                        "project": None,
                         "note": None,
-                        "is_billable": None,
-                        "is_paused": False,
-                        "time_paused": None,
-                        "paused_hrs": 0,
+                        "billable": None,
+                        "paused": None,
+                        "paused_hours": "0",
                     }
                 ],
             },
@@ -442,7 +460,7 @@ class TomlCache:
         try:
             return self._entries["paused"]["entries"]
         except KeyError:
-            with self.update():
+            with self.rw():
                 self._entries["paused"]["entries"] = []
             return self._entries["paused"]["entries"]
 
@@ -469,10 +487,9 @@ class TomlCache:
     @property
     def start(self) -> datetime:
         start = t.cast(datetime, self._ifnull(self.active["start"]))
-        if start and (start.tzinfo is None or start.tzinfo.utcoffset(start) is None):
-            start = AppConfig().in_app_timezone(start)
-            with self.update() as cache:
-                cache.start = start
+        start = dates.astimezone(start, AppConfig().tz)
+        with self.rw() as cache:
+            cache.start = start
         return start
 
     @start.setter
@@ -488,49 +505,47 @@ class TomlCache:
         self.active["note"] = __val
 
     @property
-    def is_billable(self) -> bool:
-        return t.cast(bool, self._ifnull(self.active["is_billable"]))
+    def billable(self) -> bool:
+        return t.cast(bool, self._ifnull(self.active["billable"]))
 
-    @is_billable.setter
-    def is_billable(self, __val: T) -> None:
-        self.active["is_billable"] = __val
-
-    @property
-    def time_paused(self) -> datetime:
-        time_paused = t.cast(datetime, self._ifnull(self.active["time_paused"]))
-        if time_paused and (
-            time_paused.tzinfo is None
-            or time_paused.tzinfo.utcoffset(time_paused) is None
-        ):
-            time_paused = AppConfig().in_app_timezone(time_paused)
-            with self.update() as cache:
-                cache.time_paused = time_paused
-        return time_paused
-
-    @time_paused.setter
-    def time_paused(self, __val: T) -> None:
-        self.active["time_paused"] = __val
+    @billable.setter
+    def billable(self, __val: T) -> None:
+        self.active["billable"] = __val
 
     @property
-    def is_paused(self) -> bool:
-        return t.cast(bool, self._ifnull(self.active["is_paused"]))
+    def timestamp_paused(self) -> datetime:
+        timestamp_paused = t.cast(
+            datetime, self._ifnull(self.active["timestamp_paused"])
+        )
+        timestamp_paused = dates.astimezone(timestamp_paused, AppConfig().tz)
+        with self.rw() as cache:
+            cache.timestamp_paused = timestamp_paused
+        return timestamp_paused
 
-    @is_paused.setter
-    def is_paused(self, __val: T) -> None:
-        self.active["is_paused"] = __val
+    @timestamp_paused.setter
+    def timestamp_paused(self, __val: T) -> None:
+        self.active["timestamp_paused"] = __val
 
     @property
-    def paused_hrs(self) -> Decimal:
-        return Decimal(self._ifnull(self.active["paused_hrs"]) or 0)
+    def paused(self) -> bool:
+        return t.cast(bool, self._ifnull(self.active["paused"]))
 
-    @paused_hrs.setter
-    def paused_hrs(self, __val: T) -> None:
-        self.active["paused_hrs"] = f"{__val}"
+    @paused.setter
+    def paused(self, __val: T) -> None:
+        self.active["paused"] = __val
+
+    @property
+    def paused_hours(self) -> Decimal:
+        return Decimal(self._ifnull(self.active["paused_hours"]) or 0)
+
+    @paused_hours.setter
+    def paused_hours(self, __val: T) -> None:
+        self.active["paused_hours"] = f"{__val}"
 
     def _map_rstyle(self, row: dict[str, t.Any]) -> str:
         if row == self.running_entries[0]:
             return "bold"
-        elif self._ifnull(row["time_paused"]):
+        elif self._ifnull(row["timestamp_paused"]):
             return "#888888"
         else:
             return ""
@@ -540,101 +555,91 @@ class TomlCache:
         return attr if attr != "null" else None
 
     @staticmethod
-    def _map_s_columns(items: t.Sequence[t.Any]) -> dict[str, t.Any]:
-        _kwargs: dict[str, t.Any] = dict(vertical="top")
+    def _map_column_styles(
+        field: t.Sequence[t.Any], console_width: int
+    ) -> dict[str, t.Any]:
+        _kwargs: dict[str, t.Any] = dict(
+            vertical="top",
+            no_wrap=True,
+        )
 
-        if items[0] == "id":
+        if field in ("project", "note"):
+            _kwargs |= dict(
+                header_style="green",
+                overflow="ellipsis",
+            )
+            if field == "project":
+                _kwargs |= dict(
+                    max_width=20,
+                )
+            elif field == "note":
+                _kwargs |= dict(
+                    max_width=50,
+                    overflow="fold",
+                    no_wrap=False,
+                )
+        elif field == "id":
             _kwargs |= dict(
                 header_style="green",
                 overflow="crop",
                 min_width=7,
                 max_width=7,
             )
-        elif items[0] == "note":
-            _kwargs |= dict(header_style="green")
-            if get_console().width >= 150:
-                _kwargs |= dict(
-                    overflow="fold",
-                    min_width=50,
-                    max_width=50,
-                )
-            elif get_console().width < 150:
-                _kwargs |= dict(
-                    overflow="ellipsis",
-                    no_wrap=True,
-                    min_width=25,
-                    max_width=25,
-                )
-        elif items[0] == "project":
-            _kwargs |= dict(header_style="green")
-            if get_console().width >= 130:
-                _kwargs |= dict(
-                    overflow="fold",
-                    min_width=20,
-                    max_width=20,
-                )
-            elif get_console().width < 130:
-                _kwargs |= dict(
-                    overflow="ellipsis",
-                    no_wrap=True,
-                    min_width=10,
-                    max_width=10,
-                )
-        elif items[0] == "paused_hrs":
+        elif field in ("start", "timestamp_paused"):
             _kwargs |= dict(
-                justify="right",
-                header_style="cyan",
-                overflow="crop",
-                min_width=10,
-                max_width=10,
-            )
-        elif items[0] in ("start", "time_paused", "paused"):
-            _kwargs |= dict(
-                justify="left",
                 header_style="yellow",
+                justify="left",
                 overflow="crop",
                 min_width=19,
-                max_width=19,
+                max_width=25,
             )
-        elif any([n in items[0] for n in ("billable", "paused")]):
+        elif field in ("billable", "paused"):
             _kwargs |= dict(
-                justify="left",
                 header_style="red",
+                justify="left",
             )
-            if get_console().width < 150:
+            if console_width < 150:
                 _kwargs |= dict(
                     overflow="ignore",
                     min_width=1,
                     max_width=1,
                 )
-
+        elif field in ("paused_hours", "hours"):
+            _kwargs |= dict(
+                header_style="cyan",
+                justify="right",
+                overflow="crop",
+                max_width=12,
+            )
         return _kwargs
 
 
-class _EntryIdListSingleton(type):
-    _instances: t.ClassVar[dict[object, _EntryIdListSingleton]] = {}
-    _lock: threading.Lock = threading.Lock()
+not _console.QUIET_START and get_console().log("Validating cache")
+TimeEntryCache().validate()
 
-    def __call__(cls, *args: P.args, **kwargs: P.kwargs) -> _EntryIdListSingleton:
+
+class _Singleton(type):
+    _instances: t.ClassVar[dict[object, _Singleton]] = {}
+    _lock: Lock = Lock()
+
+    def __call__(cls, *args: P.args, **kwargs: P.kwargs) -> _Singleton:
         with cls._lock:
             if cls not in cls._instances:
                 cls._instances[cls] = super(type(cls), cls).__call__(*args, **kwargs)
         return cls._instances[cls]
 
 
-if not _console.QUIET_START:
-    get_console().log("Validating cache")
-
-TomlCache()._validate_toml_cache()
-
-
-class EntryIdList(metaclass=_EntryIdListSingleton):
-    id_pattern: t.Final[re.Pattern] = re.compile("^\w{7,40}$")
+class TimeEntryIdList(metaclass=_Singleton):
+    id_pattern: t.Final[re.Pattern] = re.compile("^\w{,40}$")
 
     @cached_property
     def ids(self) -> list[str]:
         routine = CliQueryRoutines()
-        ids = routine.select(resource=routine.timesheet_id, fields=["id"])
+        ids = routine._select(
+            resource=routine.timesheet_id,
+            order=["timestamp_start DESC"],
+            fields=["id"],
+        )
         return list(map(_get._id, ids))
 
     def clear(self) -> None:
@@ -644,54 +649,67 @@ class EntryIdList(metaclass=_EntryIdListSingleton):
         matching = list(filter(lambda i: i.startswith(input_id), self.ids))
 
         if not self.id_pattern.match(input_id):
-            raise click.ClickException(
+            raise click.UsageError(
                 message=Text.assemble(
                     markup.repr_str(input_id),
-                    " is not a valid ID. ID must match regex ",
-                    markup.code("^\w{7,40}$"),
+                    " is not a valid id. Provided id must match regex ",
+                    markup.code("^\w{,40}$"),
                 ).markup
             )
         elif len(matching) >= 2:
-            raise click.ClickException(
+            raise click.UsageError(
                 message=Text.assemble(
                     "Multiple possible entries starting with ",
                     markup.repr_str(input_id),
-                    "Use a longer string to match ID.",
+                    ". Use a longer string to match id.",
                 ).markup
             )
         elif not matching:
-            raise click.ClickException(
+            raise click.UsageError(
                 message=Text.assemble(
-                    "Cannot find entry ID: ", markup.repr_str(input_id)
+                    "Cannot find entry id: ", markup.repr_str(input_id)
                 ).markup
             )
         else:
             return first(matching)
 
     def reset(self) -> None:
-        with suppress(Exception):
+        try:
             self.clear()
+        except Exception as error:
+            utils._log().error(f"Error resetting session ids: {error}")
         self.ids
 
-    def add(self, input_id: str) -> None:
+    def add(self, input_id: str, debug: bool = False) -> None:
         self.ids.extend([input_id])
 
 
-class EntryAppData:
+class TimeEntryAppData:
     path: t.ClassVar[Path] = appdir.ENTRY_APPDATA
 
-    def update(self, query_job: t.Optional["QueryJob"] = None) -> None:
+    def sync(
+        self,
+        trigger_query_job: t.Optional["QueryJob"] = None,
+        debug: bool = False,
+    ) -> None:
+        console = get_console()
+
+        debug and patch_stdout(raw=True)(console.log)(
+            "[DEBUG]:", "starting app data sync"
+        )
+
         routine = CliQueryRoutines()
-        query_job_projects = routine.select(
+        projects_query = routine._select(
             resource=CliQueryRoutines().projects_id,
             fields=["*"],
         )
 
         appdata: dict[str, t.Any] = {"active": {}, "archived": {}}
-        for row in list(query_job_projects):
+        for row in list(projects_query):
             project = {}
             project["name"] = row.name
             project["description"] = row.description
+            project["default_billable"] = row.default_billable
             project["created"] = row.created
             project["meta"] = self._project_meta(row)
             project["notes"] = []
@@ -700,16 +718,16 @@ class EntryAppData:
             else:
                 appdata["archived"].update({row.name: project})
 
-        if query_job and not query_job.done():
-            query_job.result()  # Wait for timer:run to complete.
+        if trigger_query_job and not trigger_query_job.done():
+            trigger_query_job.result()
 
-        query_job_notes = routine.select(
+        notes_query = routine._select(
             resource=CliQueryRoutines().timesheet_id,
             fields=["project", "note", "timestamp_start"],
             order=["project", "timestamp_start desc"],
         )
 
-        rows = list(query_job_notes)
+        rows = list(notes_query)
 
         try:
             projects = sorted(set(row.project for row in rows))
@@ -720,7 +738,7 @@ class EntryAppData:
                     markup.br("**WARNING**"),
                     markup.red("Incomplete rows found in timesheet table."),
                     markup.red(
-                        "Remove these records before continuing to use this CLI."
+                        "Remove these records before continuing to use this cli."
                     ),
                 ).markup
             )
@@ -728,12 +746,18 @@ class EntryAppData:
         def _map_notes(a: dict[str, t.Any], p: t.Any) -> dict[str, t.Any]:
             nonlocal appdata, rows
             __key = "active" if p in appdata["active"] else "archived"
-            with suppress(Exception):
+            try:
                 appdata[__key][p].update({"notes": self._unique_notes(p, rows)})
+            except Exception as error:
+                utils._log().error(f"Error attempting to map appdata notes: {error}")
             return appdata
 
         reduce(_map_notes, projects, appdata)
         self.path.write_text(rtoml.dumps(appdata), encoding="utf-8")
+
+        debug and patch_stdout(raw=True)(console.log)(
+            "[DEBUG]:", "entry appdata sync complete"
+        )
 
     def _unique_notes(self, project: str, rows: t.Sequence["Row"]) -> list["Row"]:
         return list(unique_everseen(map(_get.note, self._filter_notes(project, rows))))
@@ -745,12 +769,12 @@ class EntryAppData:
         return "".join(
             [
                 "[",
-                f"created={row.created.date()}",
-                f", desc={row.description}" if row.description else "",
-                f", archived={row.archived.date()}" if row.archived else "",
+                escape(f'created="{row.created.date()}"'),
+                escape(f', desc="{row.description}"') if row.description else "",
+                escape(f', archived="{row.archived.date()}"') if row.archived else "",
                 "]",
             ]
         )
 
-
-def never(arg: t.Any) -> t.Never: ...  # type: ignore[empty-body]
+    def load(self) -> dict[str, t.Any]:
+        return rtoml.load(self.path)

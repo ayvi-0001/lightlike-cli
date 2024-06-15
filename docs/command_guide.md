@@ -5,7 +5,7 @@
 - [`general`](#general)
 - [`timer`](#timer)
 - [`project`](#project)
-- [`report`](#report)
+- [`summary`](#summary)
 - [`app`](#app)
 - [`bq`](#bq)
 
@@ -13,7 +13,7 @@
 
 ## `general`
 
-![general](/docs/assets/svg/help.svg )
+![help](/docs/assets/svg/help.svg)
 
 ---
 
@@ -23,70 +23,62 @@
 
 ### `timer:add`
 
-![timer_add](/docs/assets/svg/timer_add.svg )
+![timer_add](/docs/assets/svg/timer_add.svg)
 
 ### `timer:delete`
 
-![timer_delete](/docs/assets/svg/timer_delete.svg )
+![timer_delete](/docs/assets/svg/timer_delete.svg)
 
-### `timer:edit:entry`
+### `timer:edit`
 
-![timer_edit_entry](/docs/assets/svg/timer_edit_entry.svg )
+![timer_edit](/docs/assets/svg/timer_edit.svg)
 
 ### `timer:get`
 
-![timer_get](/docs/assets/svg/timer_get.svg )
+![timer_get](/docs/assets/svg/timer_get.svg)
 
 ### `timer:list`
 
-![timer_list](/docs/assets/svg/timer_list.svg )
-
-### `timer:list:date`
-
-![timer_list_date](/docs/assets/svg/timer_list_date.svg )
-
-### `timer:list:range`
-
-![timer_list_range](/docs/assets/svg/timer_list_range.svg )
+![timer_list](/docs/assets/svg/timer_list.svg)
 
 ### `timer:notes:update`
 
-![timer_notes_update](/docs/assets/svg/timer_notes_update.svg )
+![timer_notes_update](/docs/assets/svg/timer_notes_update.svg)
 
 ### `timer:pause`
 
-![timer_pause](/docs/assets/svg/timer_pause.svg )
+![timer_pause](/docs/assets/svg/timer_pause.svg)
 
 ### `timer:resume`
 
-![timer_resume](/docs/assets/svg/timer_resume.svg )
+![timer_resume](/docs/assets/svg/timer_resume.svg)
 
 ### `timer:run`
 
-![timer_run](/docs/assets/svg/timer_run.svg )
+![timer_run](/docs/assets/svg/timer_run.svg)
 
 ### `timer:show`
 
-![timer_show](/docs/assets/svg/timer_show.svg )
+![timer_show](/docs/assets/svg/timer_show.svg)
 
 ### `timer:stop`
 
-![timer_stop](/docs/assets/svg/timer_stop.svg )
+![timer_stop](/docs/assets/svg/timer_stop.svg)
 
 ### `timer:switch`
 
-![timer_switch](/docs/assets/svg/timer_switch.svg )
+![timer_switch](/docs/assets/svg/timer_switch.svg)
 
 ### `timer:update`
 
-![timer_update](/docs/assets/svg/timer_update.svg )
+![timer_update](/docs/assets/svg/timer_update.svg)
 
 ---
 
 - [`general`](#general)
 - [`timer`](#timer)
 - [`project`](#project)
-- [`report`](#report)
+- [`summary`](#summary)
 - [`app`](#app)
 - [`bq`](#bq)
 
@@ -94,73 +86,77 @@
 
 ## `project`
 
-![project](/docs/assets/svg/project.svg )
+![project](/docs/assets/svg/project.svg)
 
 ### `project:archive`
 
-![project_archive](/docs/assets/svg/project_archive.svg )
+![project_archive](/docs/assets/svg/project_archive.svg)
 
 ### `project:create`
 
-![project_create](/docs/assets/svg/project_create.svg )
+![project_create](/docs/assets/svg/project_create.svg)
 
 ### `project:delete`
 
-![project_delete](/docs/assets/svg/project_delete.svg )
+![project_delete](/docs/assets/svg/project_delete.svg)
 
 ### `project:list`
 
-![project_list](/docs/assets/svg/project_list.svg )
+![project_list](/docs/assets/svg/project_list.svg)
+
+### `project:set`
+
+![project_set](/docs/assets/svg/project_set.svg)
+
+### `project:set:default:billable`
+
+![project_set_default_billable](/docs/assets/svg/project_set_default_billable.svg)
+
+### `project:set:description`
+
+![project_set_description](/docs/assets/svg/project_set_description.svg)
+
+### `project:set:name`
+
+![project_set_name](/docs/assets/svg/project_set_name.svg)
 
 ### `project:unarchive`
 
-![project_unarchive](/docs/assets/svg/project_unarchive.svg )
-
-### `project:update`
-
-![project_update](/docs/assets/svg/project_update.svg )
-
-### `project:update:name`
-
-![project_update_name](/docs/assets/svg/project_update_name.svg )
-
-### `project:update:description`
-
-![project_update_description](/docs/assets/svg/project_update_description.svg )
+![project_unarchive](/docs/assets/svg/project_unarchive.svg)
 
 ---
 
 - [`general`](#general)
 - [`timer`](#timer)
 - [`project`](#project)
-- [`report`](#report)
+- [`summary`](#summary)
 - [`app`](#app)
 - [`bq`](#bq)
 
 ---
 
-## `report`
+## `summary`
 
-![report](/docs/assets/svg/report.svg )
+![summary](/docs/assets/svg/summary.svg)
 
-### `report:csv`
+### `summary:csv`
 
-![report_csv](/docs/assets/svg/report_csv.svg )
+![summary_csv](/docs/assets/svg/summary_csv.svg)
 
-### `report:json`
+### `summary:json`
 
-![report_json](/docs/assets/svg/report_json.svg )
+![summary_json](/docs/assets/svg/summary_json.svg)
 
-### `report:table`
+### `summary:table`
 
-![report_table](/docs/assets/svg/report_table.svg )
+![summary_table](/docs/assets/svg/summary_table.svg)
 
 ---
 
 - [`general`](#general)
 - [`timer`](#timer)
 - [`project`](#project)
-- [`report`](#report)
+- [`summary`](#summary)
 - [`app`](#app)
 - [`bq`](#bq)
 
@@ -168,102 +164,110 @@
 
 ## `app`
 
-![app](/docs/assets/svg/app.svg )
+![app](/docs/assets/svg/app.svg)
 
-### `app:clear`
+### `app:config`
 
-![app_clear](/docs/assets/svg/app_clear.svg )
+![app_config](/docs/assets/svg/app_config.svg)
 
-### `app:dev`
+### `app:config:open`
 
-![app_dev](/docs/assets/svg/app_dev.svg )
+![app_config_open](/docs/assets/svg/app_config_open.svg)
 
-### `app:dev:config`
+### `app:config:show`
 
-![app_dev_config](/docs/assets/svg/app_dev_config.svg )
+![app_config_show](/docs/assets/svg/app_config_show.svg)
 
-### `app:dev:dir`
+### `app:config:set`
 
-![app_dev_dir](/docs/assets/svg/app_dev_dir.svg )
+![app_config_set](/docs/assets/svg/app_config_set.svg)
 
-### `app:dev:run-bq`
+### `app:config:set:query`
 
-![app_dev_run-bq](/docs/assets/svg/app_dev_run-bq.svg )
+![app_config_set_query](/docs/assets/svg/app_config_set_query.svg)
 
-### `app:exit`
+### `app:config:set:general:editor`
 
-![app_exit](/docs/assets/svg/app_exit.svg )
+![app_config_set_general_editor](/docs/assets/svg/app_config_set_general_editor.svg)
 
-### `app:settings`
+### `app:config:set:general:note_history`
 
-![app_settings](/docs/assets/svg/app_settings.svg )
+![app_config_set_general_note_history](/docs/assets/svg/app_config_set_general_note_history.svg)
 
-### `app:settings:show`
+### `app:config:set:general:quiet_start`
 
-![app_settings_show.svg](/docs/assets/svg/app_settings_show.svg )
+![app_config_set_general_quiet_start](/docs/assets/svg/app_config_set_general_quiet_start.svg)
 
-### `app:settings:update:general:editor`
+### `app:config:set:general:stay_logged_in`
 
-![app_settings_update_general_editor](/docs/assets/svg/app_settings_update_general_editor.svg )
+![app_config_set_general_stay_logged_in](/docs/assets/svg/app_config_set_general_stay_logged_in.svg)
 
-### `app:settings:update:general:is_billable`
+### `app:config:set:general:timer:add:min`
 
-![app_settings_update_general_is_billable](/docs/assets/svg/app_settings_update_general_is_billable.svg )
+![app_config_set_general_timer_add_min](/docs/assets/svg/app_config_set_general_timer_add_min.svg)
 
-### `app:settings:update:general:note_history`
+### `app:config:set:general:timezone`
 
-![app_settings_update_general_note_history](/docs/assets/svg/app_settings_update_general_note_history.svg )
+![app_config_set_general_timezone](/docs/assets/svg/app_config_set_general_timezone.svg)
 
-### `app:settings:update:general:stay_logged_in`
+### `app:config:set:general:week_start`
 
-![app_settings_update_general_stay_logged_in](/docs/assets/svg/app_settings_update_general_stay_logged_in.svg )
+![app_config_set_general_week_start](/docs/assets/svg/app_config_set_general_week_start.svg)
 
-### `app:settings:update:general:timezone`
+### `app:config:set:general`
 
-![app_settings_update_general_timezone](/docs/assets/svg/app_settings_update_general_timezone.svg )
+![app_config_set_general](/docs/assets/svg/app_config_set_general.svg)
 
-### `app:settings:update:general:week_start`
+### `app:config:set:query:hide_table_render`
 
-![app_settings_update_general_week_start](/docs/assets/svg/app_settings_update_general_week_start.svg )
+![app_config_set_query_hide_table_render](/docs/assets/svg/app_config_set_query_hide_table_render.svg)
 
-### `app:settings:update:query:hide_table_render`
+### `app:config:set:query:mouse_support`
 
-![app_settings_update_query_hide_table_render](/docs/assets/svg/app_settings_update_query_hide_table_render.svg )
+![app_config_set_query_mouse_support](/docs/assets/svg/app_config_set_query_mouse_support.svg)
 
-### `app:settings:update:query:mouse_support`
+### `app:config:set:query:save_query_info`
 
-![app_settings_update_query_mouse_support](/docs/assets/svg/app_settings_update_query_mouse_support.svg )
+![app_config_set_query_save_query_info](/docs/assets/svg/app_config_set_query_save_query_info.svg)
 
-### `app:settings:update:query:save_query_info`
+### `app:config:set:query:save_svg`
 
-![app_settings_update_query_save_query_info](/docs/assets/svg/app_settings_update_query_save_query_info.svg )
+![app_config_set_query_save_svg](/docs/assets/svg/app_config_set_query_save_svg.svg)
 
-### `app:settings:update:query:save_svg`
+### `app:config:set:query:save_txt`
 
-![app_settings_update_query_save_svg](/docs/assets/svg/app_settings_update_query_save_svg.svg )
+![app_config_set_query_save_txt](/docs/assets/svg/app_config_set_query_save_txt.svg)
 
-### `app:settings:update:query:save_txt`
+### `app:dir`
 
-![app_settings_update_query_save_txt](/docs/assets/svg/app_settings_update_query_save_txt.svg )
+![app_dir](/docs/assets/svg/app_dir.svg)
+
+### `app:run-bq`
+
+![app_run_bq](/docs/assets/svg/app_run_bq.svg)
 
 ### `app:sync`
 
-![app_sync](/docs/assets/svg/app_sync.svg )
+![app_sync](/docs/assets/svg/app_sync.svg)
 
 ### `app:test`
 
-![app_test](/docs/assets/svg/app_test.svg )
+![app_test](/docs/assets/svg/app_test.svg)
+
+### `app:test:date-diff`
+
+![app_test_date_diff](/docs/assets/svg/app_test_date_diff.svg)
 
 ### `app:test:date-parse`
 
-![app_test](/docs/assets/svg/app_test_date-parse.svg )
+![app_test_date_parse](/docs/assets/svg/app_test_date_parse.svg)
 
 ---
 
 - [`general`](#general)
 - [`timer`](#timer)
 - [`project`](#project)
-- [`report`](#report)
+- [`summary`](#summary)
 - [`app`](#app)
 - [`bq`](#bq)
 
@@ -271,40 +275,44 @@
 
 ## `bq`
 
-![bq](/docs/assets/svg/bq.svg )
+![bq](/docs/assets/svg/bq.svg)
 
 ### `bq:init`
 
-![bq_init](assets/svg/bq_init.svg)
+![bq_init](/docs/assets/svg/bq_init.svg)
 
 ### `bq:projects`
 
-![bq_projects](assets/svg/bq_projects.svg)
+![bq_projects](/docs/assets/svg/bq_projects.svg)
 
-### `bq:show`
+### `bq:query`
 
-![bq_show](assets/svg/bq_show.svg)
-
-### `bq:snapshot`
-
-![bq_snapshot](assets/svg/bq_snapshot.svg)
-
-### `bq:snapshot:create`
-
-![bq_snapshot_create](assets/svg/bq_snapshot_create.svg)
-
-### `bq:snapshot:delete`
-
-![bq_snapshot_delete](assets/svg/bq_snapshot_delete.svg)
-
-### `bq:snapshot:list`
-
-![bq_snapshot_list](assets/svg/bq_snapshot_list.svg)
-
-### `bq:snapshot:restore`
-
-![bq_snapshot_restore](assets/svg/bq_snapshot_restore.svg)
+![bq_query](/docs/assets/svg/bq_query.svg)
 
 ### `bq:reset`
 
-![bq_reset](assets/svg/bq_reset.svg)
+![bq_reset](/docs/assets/svg/bq_reset.svg)
+
+### `bq:show`
+
+![bq_show](/docs/assets/svg/bq_show.svg)
+
+### `bq:snapshot`
+
+![bq_snapshot](/docs/assets/svg/bq_snapshot.svg)
+
+### `bq:snapshot:create`
+
+![bq_snapshot_create](/docs/assets/svg/bq_snapshot_create.svg)
+
+### `bq:snapshot:delete`
+
+![bq_snapshot_delete](/docs/assets/svg/bq_snapshot_delete.svg)
+
+### `bq:snapshot:list`
+
+![bq_snapshot_list](/docs/assets/svg/bq_snapshot_list.svg)
+
+### `bq:snapshot:restore`
+
+![bq_snapshot_restore](/docs/assets/svg/bq_snapshot_restore.svg)

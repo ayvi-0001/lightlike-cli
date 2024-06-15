@@ -1,7 +1,8 @@
-from __future__ import annotations
+# mypy: disable-error-code="func-returns-value"
 
+import typing as t
 from datetime import datetime
-from typing import TYPE_CHECKING, ParamSpec, Sequence
+from os import getenv
 
 import rich_click as click
 from prompt_toolkit.lexers import PygmentsLexer
@@ -12,7 +13,6 @@ from rich.filesize import decimal
 from rich.padding import Padding
 from rich.syntax import Syntax
 from rich.table import Table
-from rich.text import Text
 
 from lightlike._console import _CONSOLE_SVG_FORMAT, CONSOLE_CONFIG
 from lightlike.app import _pass, cursor, render
@@ -23,16 +23,14 @@ from lightlike.cmd.query.completers import query_repl_completer
 from lightlike.cmd.query.lexer import BqSqlLexer
 from lightlike.internal import appdir, markup
 
-if TYPE_CHECKING:
+if t.TYPE_CHECKING:
     from google.cloud.bigquery import QueryJob
+    from google.cloud.bigquery.table import RowIterator
     from prompt_toolkit.completion import Completer
 
     from lightlike.app.routines import CliQueryRoutines
 
-__all__: Sequence[str] = ("query_repl", "_build_query_session")
-
-
-P = ParamSpec("P")
+__all__: t.Sequence[str] = ("query_repl", "_build_query_session")
 
 
 @click.group(
@@ -43,15 +41,13 @@ P = ParamSpec("P")
 )
 @_pass.console
 @click.pass_context
-def query_repl(ctx: click.Context, console: Console) -> None:
+def query_repl(ctx: click.RichContext, console: Console) -> None:
     """Start an interactive BQ shell."""
     if ctx.invoked_subcommand is None:
         ctx.invoke(_run_query_repl, console=console)
 
 
 def _run_query_repl(console: Console) -> None:
-    console.clear()
-
     query_settings = AppConfig().get("settings", "query")
     mouse_support: bool = query_settings.get("mouse_support", True)
     save_txt: bool = query_settings.get("save_txt", False)
@@ -59,23 +55,19 @@ def _run_query_repl(console: Console) -> None:
     save_svg: bool = query_settings.get("save_svg", False)
     hide_table_render: bool = query_settings.get("hide_table_render", False)
 
-    render.query_start_render(query_settings)
-
     TS = f"{int(datetime.combine(datetime.today(), datetime.min.time()).timestamp())}"
 
-    if save_txt or save_svg:
-        appdir.QUERIES.mkdir(exist_ok=True)
-        _dest = appdir.QUERIES.joinpath(TS).resolve()
-        _dest.mkdir(exist_ok=True)
-        uri = _dest.as_uri()
-        console.print(f" Queries saved to: [repr.url][link={uri}]{uri}")
+    render.query_start_render(
+        query_config=query_settings,
+        timestamp=TS,
+        print_output_dir=save_txt or save_svg,
+    )
 
     with console.status(markup.status_message("Loading BigQuery Resources")):
         query_session = _build_query_session(
             query_repl_completer(), mouse_support=mouse_support
         )
-
-    routine = CliQueryRoutines()
+        routine = CliQueryRoutines()
 
     while 1:
         try:
@@ -107,7 +99,7 @@ def _build_query_session(completer: "Completer", **prompt_kwargs) -> PromptSessi
         complete_while_typing=True,
         validate_while_typing=True,
         complete_style=CompleteStyle.MULTI_COLUMN,
-        history=appdir.SQL_FILE_HISTORY,
+        history=appdir.SQL_FILE_HISTORY(),
         key_bindings=QUERY_BINDINGS,
         lexer=PygmentsLexer(BqSqlLexer, sync_from_start=True),
         include_default_pygments_style=False,
@@ -148,13 +140,13 @@ def render_query(
         console.log(f"resource_url: [link={resource}][repr.url]{resource}")
         elapsed_time = routine._elapsed_time(query_job)
         console.log(f"elapsed_time: {elapsed_time}")
-        if query_job.cache_hit:
+        if query_job.cache_hit and not getenv("LIGHTLIKE_CLI_DEV"):
             console.log(f"cache_hit: {True}")
             console.log(f"destination: {query_job.destination}")
         _log_statistics(console, query_job)
 
-        row_iterator = query_job.result()
-        total_rows = getattr(row_iterator, "total_rows", None)
+        row_iterator: "RowIterator" = query_job.result()
+        total_rows: int | None = getattr(row_iterator, "total_rows", None)
 
         file_width: int = 0
         table = Table(
@@ -168,11 +160,10 @@ def render_query(
     with console.status(markup.status_message("Running Query")) as status:
         if total_rows:
             console.log(
-                Text.assemble(
-                    markup.repr_attrib_name("total_rows"),
-                    markup.repr_attrib_equal(),
-                    markup.repr_number(total_rows),
-                )
+                markup.repr_attrib_name("total_rows"),
+                markup.repr_attrib_equal(),
+                markup.repr_number(total_rows),
+                sep="",
             )
             status.update(markup.status_message("Query Complete. Building table"))
 
@@ -243,11 +234,10 @@ def render_query(
 
                 if total_rows:
                     _file_console.log(
-                        Text.assemble(
-                            markup.repr_attrib_name("total_rows"),
-                            markup.repr_attrib_equal(),
-                            markup.repr_number(total_rows),
-                        )
+                        markup.repr_attrib_name("total_rows"),
+                        markup.repr_attrib_equal(),
+                        markup.repr_number(total_rows),
+                        sep="",
                     )
 
                 _file_console.export_text(clear=True)
@@ -267,11 +257,12 @@ def render_query(
                 _txt = _query_path.with_suffix(".txt").resolve()
                 console_text = _file_console.export_text(clear=False)
                 _txt.write_text(console_text, encoding="utf-8")
-                console.log(
-                    Text.assemble(
-                        markup.link(_txt.as_posix(), _txt.as_uri()), markup.bold(" ("),  # fmt: skip
-                        markup.repr_number(decimal(_txt.stat().st_size)), markup.bold(")"),  # fmt: skip
-                    )
+                not getenv("LIGHTLIKE_CLI_DEV") and console.log(
+                    markup.link(_txt.as_posix(), _txt.as_uri()),
+                    markup.bold(" ("),
+                    markup.repr_number(decimal(_txt.stat().st_size)),
+                    markup.bold(")"),
+                    sep="",
                 )
 
             if save_svg:
@@ -281,11 +272,12 @@ def render_query(
                     title="", code_format=_CONSOLE_SVG_FORMAT
                 )
                 _svg.write_text(console_svg, encoding="utf-8")
-                console.log(
-                    Text.assemble(
-                        markup.link(_svg.as_posix(), _svg.as_uri()), markup.bold(" ("),  # fmt: skip
-                        markup.repr_number(decimal(_svg.stat().st_size)), markup.bold(")"),  # fmt: skip
-                    )
+                not getenv("LIGHTLIKE_CLI_DEV") and console.log(
+                    markup.link(_svg.as_posix(), _svg.as_uri()),
+                    markup.bold(" ("),
+                    markup.repr_number(decimal(_svg.stat().st_size)),
+                    markup.bold(")"),
+                    sep="",
                 )
 
         elif not total_rows and query_job.statement_type == "SELECT":
@@ -296,56 +288,52 @@ def _log_statistics(console: Console, query_job: "QueryJob") -> None:
     statement_type = getattr(query_job, "statement_type")
     if statement_type:
         console.log(
-            Text.assemble(
-                markup.scope_key("statement_type"),
-                markup.repr_attrib_equal(),
-                markup.repr_str(statement_type),
-            )
+            markup.scope_key("statement_type"),
+            markup.repr_attrib_equal(),
+            markup.repr_str(statement_type),
+            sep="",
         )
 
     slot_millis = getattr(query_job, "slot_millis")
     if slot_millis:
         console.log(
-            Text.assemble(
-                markup.scope_key("slot_millis"),
-                markup.repr_attrib_equal(),
-                markup.repr_number(slot_millis),
-            )
+            markup.scope_key("slot_millis"),
+            markup.repr_attrib_equal(),
+            markup.repr_number(slot_millis),
+            sep="",
         )
 
     total_bytes_processed = getattr(query_job, "total_bytes_processed")
     if total_bytes_processed:
         console.log(
-            Text.assemble(
-                markup.scope_key("total_bytes_processed"),
-                markup.repr_attrib_equal(),
-                markup.repr_number(getattr(query_job, "total_bytes_processed")),
-                markup.scope_key(" | total_bytes_billed"),
-                markup.repr_attrib_equal(),
-                markup.repr_number(getattr(query_job, "total_bytes_billed")),
-            )
+            markup.scope_key("total_bytes_processed"),
+            markup.repr_attrib_equal(),
+            markup.repr_number(getattr(query_job, "total_bytes_processed")),
+            markup.scope_key(" | total_bytes_billed"),
+            markup.repr_attrib_equal(),
+            markup.repr_number(getattr(query_job, "total_bytes_billed")),
+            sep="",
         )
 
     if query_job.dml_stats:
         for execution in query_job.query_plan:
             console.log(
                 # fmt: off
-                Text.assemble(
-                    execution.name,
-                    " (", markup.repr_number(execution.end - execution.start),") slot_ms: ",
-                    markup.repr_number(execution._properties["slotMs"]), " ",
-                    markup.bold(execution.input_stages),
-                    " shuffle_output_bytes: ",
-                    markup.repr_number(execution.shuffle_output_bytes),
-                    " shuffle_output_bytes_spilled: ",
-                    markup.repr_number(execution.shuffle_output_bytes_spilled),
-                    markup.scope_key(" records_read"),
-                    markup.bold(markup.scope_equals("=")),
-                    markup.repr_number(execution.records_read),
-                    markup.scope_key(", records_written"),
-                    markup.bold(markup.scope_equals("=")),
-                    markup.repr_number(execution.records_written),
-                )
+                execution.name,
+                " (", markup.repr_number(execution.end - execution.start),") slot_ms: ",
+                markup.repr_number(execution._properties["slotMs"]), " ",
+                markup.bold(execution.input_stages),
+                " shuffle_output_bytes: ",
+                markup.repr_number(execution.shuffle_output_bytes),
+                " shuffle_output_bytes_spilled: ",
+                markup.repr_number(execution.shuffle_output_bytes_spilled),
+                markup.scope_key(" records_read"),
+                markup.bold(markup.scope_equals("=")),
+                markup.repr_number(execution.records_read),
+                markup.scope_key(", records_written"),
+                markup.bold(markup.scope_equals("=")),
+                markup.repr_number(execution.records_written),
                 # fmt: on
+                sep="",
             )
         console.log(query_job.dml_stats)

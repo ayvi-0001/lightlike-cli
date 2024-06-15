@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Iterable, Sequence
+import typing as t
 
 from prompt_toolkit.auto_suggest import AutoSuggest, Suggestion
 from prompt_toolkit.eventloop.utils import run_in_executor_with_context
@@ -8,14 +8,14 @@ from prompt_toolkit.history import History
 
 from lightlike.internal.utils import _match_str
 
-if TYPE_CHECKING:
+if t.TYPE_CHECKING:
     from prompt_toolkit.buffer import Buffer
     from prompt_toolkit.document import Document
 
-__all__: Sequence[str] = ("_threaded_autosuggest",)
+__all__: t.Sequence[str] = ("threaded_autosuggest",)
 
 
-def _threaded_autosuggest(suggestions: list[str]) -> ThreadedAutoSuggest:
+def threaded_autosuggest(suggestions: list[str]) -> ThreadedAutoSuggest:
     return ThreadedAutoSuggest(ListAutoSuggest(ListHistory(suggestions)))
 
 
@@ -24,7 +24,7 @@ class ListHistory(History):
         super().__init__()
         self._storage = history_strings
 
-    def load_history_strings(self) -> Iterable[str]:
+    def load_history_strings(self) -> t.Iterable[str]:
         yield from self._storage[::-1]
 
     def store_string(self, string: str) -> None:

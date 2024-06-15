@@ -3,6 +3,7 @@ from __future__ import annotations
 import typing as t
 from contextlib import suppress
 from functools import cached_property
+from os import getenv
 
 from prompt_toolkit.completion import (
     Completer,
@@ -115,13 +116,14 @@ class LoopNestedCompleter(Completer):
 
 
 class ResourceCompleter(Completer):
-    __slots__ = ()
-
     def __init__(self) -> None:
         self.project: str = get_client().project
-        self.schemas = list(
-            map(_get.dataset_id, get_client().list_datasets(self.project))
-        )
+        if getenv("LIGHTLIKE_CLI_DEV"):
+            self.schemas = ["lightlike_cli"]
+        else:
+            self.schemas = list(
+                map(_get.dataset_id, get_client().list_datasets(self.project))
+            )
 
     @cached_property
     def schemas(self) -> list[str]:
@@ -147,7 +149,7 @@ class ResourceCompleter(Completer):
         self, document: Document, complete_event: "CompleteEvent"
     ) -> t.Iterable[Completion]:
         word_before_cursor = document.get_word_before_cursor()
-        list_text = document.text.split(" ")
+        args = document.text.split(" ")
 
         if any(map(lambda d: d in document.text, self.typed_schemas)):
             yield from self._from_typed_schemas(document, word_before_cursor)
@@ -157,7 +159,7 @@ class ResourceCompleter(Completer):
                 yield from self._schema_completion(word_before_cursor, schema)
 
         if document.char_before_cursor == ".":
-            yield from self._save_and_yield_schema(list_text, word_before_cursor)
+            yield from self._save_and_yield_schema(args, word_before_cursor)
 
     def _load_tables(self, schema: str) -> None:
         _tables = get_client().list_tables(schema)
@@ -235,7 +237,7 @@ class ResourceCompleter(Completer):
         yield Completion(
             text=schema,
             start_position=-len(word_before_cursor),
-            display_meta=f"SCHEMA:{self.project}",
+            display_meta="DATASET",
             style="fg:#f3aa61",
             selected_style="reverse",
         )

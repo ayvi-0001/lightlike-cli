@@ -14,6 +14,7 @@ __all__: Sequence[str] = (
     "active_project_list",
     "new_project",
     "archived_project",
+    "archived_project_list",
 )
 
 
@@ -83,7 +84,7 @@ class NewProject(Validator):
             )
 
 
-def active_project(ctx: click.Context, param: click.Parameter, value: str) -> str:
+def active_project(ctx: click.RichContext, param: click.Parameter, value: str) -> str:
     if ctx.parent:
         if (
             ctx.parent.info_name == "project"
@@ -94,22 +95,26 @@ def active_project(ctx: click.Context, param: click.Parameter, value: str) -> st
                 message="Cannot alter the default project.",
                 ctx=ctx,
             )
-
-    if value in projects.Active().names or value == "no-project":
-        return value
-
+        elif (
+            ctx.parent.info_name == "timer"
+            and ctx.info_name == "edit"
+            and value is None
+        ):
+            return None
     if value in projects.Archived().names:
         raise click.BadArgumentUsage(
             message="Project is archived. "
             "Unarchive before searching for this project.",
             ctx=ctx,
         )
+    if value in projects.Active().names or value == "no-project":
+        return value
 
     raise click.BadArgumentUsage(message="Project does not exist.", ctx=ctx)
 
 
 def active_project_list(
-    ctx: click.Context, param: click.Parameter, value: Sequence[str]
+    ctx: click.RichContext, param: click.Parameter, value: Sequence[str]
 ) -> Sequence[str]:
     if ctx.parent:
         if (
@@ -138,7 +143,7 @@ def active_project_list(
     )
 
 
-def new_project(ctx: click.Context, param: click.Parameter, value: str) -> str:
+def new_project(ctx: click.RichContext, param: click.Parameter, value: str) -> str:
     if value:
         try:
             NewProject().callback(value)
@@ -149,7 +154,7 @@ def new_project(ctx: click.Context, param: click.Parameter, value: str) -> str:
     return value
 
 
-def archived_project(ctx: click.Context, param: click.Parameter, value: str) -> str:
+def archived_project(ctx: click.RichContext, param: click.Parameter, value: str) -> str:
     if value == "no-project":
         raise click.BadArgumentUsage(
             message="Cannot alter the default project.", ctx=ctx
@@ -158,3 +163,15 @@ def archived_project(ctx: click.Context, param: click.Parameter, value: str) -> 
         return value
     else:
         raise click.BadArgumentUsage(message="Project does not exist.", ctx=ctx)
+
+
+def archived_project_list(
+    ctx: click.RichContext, param: click.Parameter, value: Sequence[str]
+) -> Sequence[str]:
+    if all([name in projects.Archived().names for name in value]):
+        return value
+
+    raise click.BadArgumentUsage(
+        message="One or more selected projects does not exist.",
+        ctx=ctx,
+    )

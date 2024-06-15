@@ -5,10 +5,10 @@ BEGIN
 UPDATE
   ${DATASET.NAME}.${TABLES.TIMESHEET}
 SET
-  is_paused = FALSE,
-  is_active = TRUE,
-  paused_hrs = ROUND(CAST(IFNULL(paused_hrs, 0) + ${DATASET.NAME}.duration(time_resume, time_paused, NULL, NULL, NULL) AS NUMERIC), 4),
-  time_paused = NULL
+  paused = FALSE,
+  active = TRUE,
+  paused_hours = ROUND(SAFE_CAST(SAFE_DIVIDE(TIMESTAMP_DIFF(time_resume, timestamp_paused, SECOND), 3600) + IFNULL(paused_hours, 0) AS NUMERIC), 4),
+  timestamp_paused = NULL
 WHERE
   id = _id;
 

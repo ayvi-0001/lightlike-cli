@@ -1,10 +1,20 @@
 CREATE OR REPLACE PROCEDURE
-  ${DATASET.NAME}.${__name__}(IN name STRING, IN description STRING)
+  ${DATASET.NAME}.${__name__}(IN name STRING, IN description STRING, default_billable BOOL)
 BEGIN
 
 INSERT INTO
-  ${DATASET.NAME}.${TABLES.PROJECTS}(name, description, created)
+  ${DATASET.NAME}.${TABLES.PROJECTS}(
+    name,
+    description,
+    default_billable,
+    created
+  )
 VALUES
-  (name, NULLIF(description, ""), ${DATASET.NAME}.now());
+  (
+    name,
+    NULLIF(description, ""),
+    default_billable,
+    ${DATASET.NAME}.current_datetime()
+  );
 
 END;

@@ -5,7 +5,7 @@ BEGIN
 UPDATE
   ${DATASET.NAME}.${TABLES.PROJECTS}
 SET
-  archived = ${DATASET.NAME}.now()
+  archived = ${DATASET.NAME}.current_datetime()
 WHERE
   name = _name;
 

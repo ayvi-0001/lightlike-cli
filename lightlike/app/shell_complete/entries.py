@@ -1,41 +1,63 @@
-from typing import TYPE_CHECKING, Sequence
+import typing as t
 
 from click.shell_completion import CompletionItem
 
-from lightlike.app.cache import EntryIdList, TomlCache
+from lightlike.app import dates
+from lightlike.app.cache import TimeEntryCache
 from lightlike.app.config import AppConfig
 from lightlike.internal.utils import _match_str
 
-if TYPE_CHECKING:
+if t.TYPE_CHECKING:
+    from datetime import datetime
+
     import rich_click as click
 
-__all__: Sequence[str] = ("paused", "all_ids")
+__all__: t.Sequence[str] = ("paused", "all_")
 
 
 def paused(
-    ctx: "click.Context", param: "click.Parameter", incomplete: str
+    ctx: "click.RichContext",
+    param: "click.Parameter",
+    incomplete: str,
 ) -> list[CompletionItem]:
-    cache = TomlCache()
+    now: "datetime" = dates.now(AppConfig().tz)
+    cache = TimeEntryCache()
     completions = []
-    now = AppConfig().now
 
-    if cache.paused_entries:
-        paused_entries = cache.get_updated_paused_entries(now)
-        for entry in paused_entries:
-            help = cache._to_meta(entry, now, truncate_note=True)
-            if _match_str(incomplete, help) or _match_str(incomplete, entry["id"]):
-                completions.append(CompletionItem(value=entry["id"][:7], help=help))
+    if not ctx.params.get(param.name or ""):
+        if cache.paused_entries:
+            paused_entries = cache.get_updated_paused_entries(now)
+            for entry in paused_entries:
+                help = cache._to_meta(entry, now)
+                if _match_str(incomplete, help) or _match_str(incomplete, entry["id"]):
+                    completions.append(CompletionItem(value=entry["id"], help=help))
 
-        return completions
-
-    return []
+    return completions
 
 
-def all_ids(
-    ctx: "click.Context", param: "click.Parameter", incomplete: str
+def all_(
+    ctx: "click.RichContext",
+    param: "click.Parameter",
+    incomplete: str,
 ) -> list[CompletionItem]:
-    return [
-        CompletionItem(value=_id)
-        for _id in EntryIdList().ids
-        if _match_str(incomplete, _id)
-    ]
+    now: "datetime" = dates.now(AppConfig().tz)
+    cache = TimeEntryCache()
+    completions = []
+
+    if not ctx.params.get(param.name or ""):
+        if cache.paused_entries:
+            paused_entries = cache.get_updated_paused_entries(now)
+            for entry in paused_entries:
+                help = cache._to_meta(entry, now)
+                if _match_str(incomplete, help) or _match_str(incomplete, entry["id"]):
+                    completions.append(CompletionItem(value=entry["id"], help=help))
+
+        if cache.running_entries:
+            for entry in cache.running_entries:
+                if entry["id"] in (cache.id, "null"):
+                    continue
+                help = cache._to_meta(entry, now)
+                if _match_str(incomplete, help) or _match_str(incomplete, entry["id"]):
+                    completions.append(CompletionItem(value=entry["id"], help=help))
+
+    return completions

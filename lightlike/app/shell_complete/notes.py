@@ -1,5 +1,5 @@
+import typing as t
 from pathlib import Path
-from typing import TYPE_CHECKING, ClassVar, Iterator, Sequence
 
 import rtoml
 from click.shell_completion import CompletionItem
@@ -7,20 +7,25 @@ from more_itertools import first
 from prompt_toolkit.application import get_app
 from prompt_toolkit.completion import Completer, Completion
 
-from lightlike.app.cache import TomlCache
+from lightlike.app.cache import TimeEntryCache
 from lightlike.internal import appdir
 from lightlike.internal.utils import _alter_str, _match_str
 
-if TYPE_CHECKING:
+if t.TYPE_CHECKING:
     import rich_click as click
     from prompt_toolkit.completion import CompleteEvent
     from prompt_toolkit.document import Document
 
-__all__: Sequence[str] = ("Notes", "from_param", "from_cache", "from_chained_cmd")
+__all__: t.Sequence[str] = (
+    "Notes",
+    "from_param",
+    "from_cache",
+    "from_chained_cmd",
+)
 
 
 class Notes(Completer):
-    path: ClassVar[Path] = appdir.ENTRY_APPDATA
+    path: t.ClassVar[Path] = appdir.ENTRY_APPDATA
 
     def __init__(self, project: str | None = None) -> None:
         self.project = project
@@ -42,7 +47,7 @@ class Notes(Completer):
 
     def get_completions(
         self, document: "Document", complete_event: "CompleteEvent"
-    ) -> Iterator[Completion]:
+    ) -> t.Iterator[Completion]:
         if self.project:
             matches = filter(
                 lambda o: _match_str(document.text, o),
@@ -56,7 +61,7 @@ class Notes(Completer):
 
 
 def from_param(
-    ctx: "click.Context", param: "click.Parameter", incomplete: str
+    ctx: "click.RichContext", param: "click.Parameter", incomplete: str
 ) -> list[CompletionItem]:
     completer = Notes()
     completions: list[CompletionItem] = []
@@ -90,6 +95,26 @@ def from_param(
                 for note in notes
             ]
         )
+    elif any([option in ctx.protected_args for option in ("-p", "--project")]):
+        opt_idx = 0
+        for idx, opt in enumerate(ctx.protected_args):
+            if opt in ("-p", "--project"):
+                opt_idx = idx
+
+        project = ctx.protected_args[opt_idx + 1]
+        notes = filter(
+            lambda n: _match_str(incomplete, n, strip_quotes=True),
+            completer.get(project),
+        )
+        completions.extend(
+            [
+                CompletionItem(
+                    value=_alter_str(note, add_quotes=True),
+                    help=f"project: {project}",
+                )
+                for note in notes
+            ]
+        )
 
     if not completions:
         return from_cache(ctx, param, incomplete)
@@ -97,12 +122,12 @@ def from_param(
 
 
 def from_cache(
-    ctx: "click.Context", param: "click.Parameter", incomplete: str
+    ctx: "click.RichContext", param: "click.Parameter", incomplete: str
 ) -> list[CompletionItem]:
     completer = Notes()
     completions: list[CompletionItem] = []
 
-    if cache := TomlCache():
+    if cache := TimeEntryCache():
         notes = completer.get(cache.project)
         if notes:
             completions.extend(
@@ -122,7 +147,7 @@ def from_cache(
 
 
 def from_chained_cmd(
-    ctx: "click.Context", param: "click.Parameter", incomplete: str
+    ctx: "click.RichContext", param: "click.Parameter", incomplete: str
 ) -> list[CompletionItem]:
     document = get_app().current_buffer.document
     completions = []

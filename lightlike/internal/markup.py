@@ -5,53 +5,8 @@ from rich.default_styles import DEFAULT_STYLES
 from rich.style import Style
 from rich.text import Text
 
-TextCallable = t.Callable[..., Text]
 
-
-# fmt: off
-code: TextCallable = lambda t: Text(text=f"{t!s}", style="code")
-code_sequence: TextCallable = lambda t, s: Text(s, style="bold").join(Text(f"{t!s}", style="code").split(s))
-code_command: TextCallable = lambda t: Text(text=f"{t!s}", style="code.command")
-code_command_sequence: TextCallable = lambda t, s: Text(s, style="bold").join(Text(f"{t!s}", style="code.command").split(s))
-args: TextCallable = lambda t: Text(text=f"{t!s}", style="args")
-flag_long: TextCallable = lambda t: Text(text=f"{t!s}", style="flag.long")
-flag_short: TextCallable = lambda t: Text(text=f"{t!s}", style="flag.short")
-
-def code_flag(long_flag: str, short_flag: str) -> Text:
-    return Text.assemble(flag_long(long_flag), " / ", flag_short(short_flag))
-
-br: TextCallable = lambda t: Text(text=f"{t!s}", style="bold red")
-dbr: TextCallable = lambda t: Text(text=f"{t!s}", style="dim bold red")
-sdr: TextCallable = lambda t: Text(text=f"{t!s}", style="s dim red")
-bg: TextCallable = lambda t: Text(text=f"{t!s}", style="bold green")
-bu: TextCallable = lambda t: Text(text=f"{t!s}", style="bold underline")
-db: TextCallable = lambda t: Text(text=f"{t!s}", style="dim bold")
-dim: TextCallable = lambda t: Text(text=f"{t!s}", style="dim")
-dimmed: TextCallable = lambda t: Text(text=f"{t!s}", style="#888888")
-repr_attrib_name: TextCallable = lambda t: Text(text=f"{t!s}", style="repr.attrib_name")
-repr_attrib_equal: TextCallable = lambda: Text(text="=", style="repr.attrib_equal")
-repr_attrib_value: TextCallable = lambda t: Text(text=f"{t!s}", style="repr.attrib_value")
-repr_bool_true: TextCallable = lambda t: Text(text=f"{t!s}", style="repr.bool_true")
-repr_bool_false: TextCallable = lambda t: Text(text=f"{t!s}", style="repr.bool_false")
-repr_number: TextCallable = lambda t: Text(text=f"{t!s}", style="repr.number")
-repr_tag_name: TextCallable = lambda t: Text(text=f"{t!s}", style="repr.tag_name")
-repr_tag_start: TextCallable = lambda: Text(text="<", style="repr.tag_start")
-repr_tag_end: TextCallable = lambda: Text(text=">", style="repr.tag_end")
-repr_str: TextCallable = lambda t: Text(text=f'"{t!s}"', style="repr.str")
-url: TextCallable = lambda t: Text(text=f"{t!s}", style="repr.url")
-link: TextCallable = lambda t, l: Text(text=f"{t!s}", style=Style(link=l, underline=True, color="bright_blue", italic=False, bold=False))
-saved: TextCallable = lambda t: Text(text=f"{t!s}", style="saved")
-failure: TextCallable = lambda t: Text(text=f"{t!s}", style="failure")
-log_error: TextCallable = lambda t: Text(text=f"{t!s}", style="log.error")
-iso8601_date: TextCallable = lambda t: Text(text=f"{t!s}", style="iso8601.date")
-iso8601_time: TextCallable = lambda t: Text(text=f"{t!s}", style="iso8601.time")
-scope_key: TextCallable = lambda t: Text(text=f"{t!s}", style="scope.key")
-status_message: TextCallable = lambda t: Text(text=f"{t!s}", style="status.message")
-pygments_keyword: TextCallable = lambda t: Text(text=f"{t!s}", style="#6b90f7")
-# fmt: on
-
-
-def __getattr__(__name: t.Any) -> t.Callable[..., t.Any]:
+def __getattr__(_name: t.Any) -> t.Callable[..., t.Any]:
     def inner(text: Text | str, style: str) -> t.Any:
         if isinstance(text, Text):
             existing_style = text.style
@@ -84,4 +39,30 @@ def __getattr__(__name: t.Any) -> t.Callable[..., t.Any]:
         else:
             return Text(f"{text!s}", style=style)
 
-    return lambda t: inner(t, __name)
+    return lambda t: inner(t, _name)
+
+
+# fmt: off
+bg: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="bold green")
+br: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="bold red")
+sdr: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="s dim red")
+db: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="dim bold")
+dbr: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="dim bold red")
+dim: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="dim")
+dimmed: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="#888888")
+code: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="bold #f08375")
+command: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="bold #3465a4")
+failure: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="failure")
+link: t.Callable[..., Text] = lambda t, l: Text(text=f"{t!s}", style=Style(link=l, underline=True, color="bright_blue", italic=False, bold=False))
+log_error: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="log.error")
+pygments_keyword: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="#6b90f7")
+repr_attrib_equal: t.Callable[..., Text] = lambda: Text(text="=", style="repr_attrib_equal")
+repr_attrib_name: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="repr_attrib_name")
+repr_attrib_value: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="repr_attrib_value")
+repr_number: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="repr_number")
+repr_path: t.Callable[..., Text] = lambda t: Text(text=f'"{t!s}"', style="repr_path")
+repr_str: t.Callable[..., Text] = lambda t: Text(text=f'"{t!s}"', style="repr_str")
+saved: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="saved")
+scope_key: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="scope.key")
+status_message: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="status.message")
+# fmt: on

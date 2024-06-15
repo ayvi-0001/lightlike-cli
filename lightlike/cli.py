@@ -20,125 +20,132 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+# mypy: disable-error-code="import-untyped, func-returns-value"
+
 import sys
-from typing import TYPE_CHECKING, NoReturn, Sequence
+import typing as t
 
-import fasteners  # type: ignore[import-untyped, import-not-found]
 import rich_click as click
-from rich import print as rprint
 from rich.traceback import install
-from rich_click.cli import patch
 
-if TYPE_CHECKING:
-    from lightlike.app.group import AliasedRichGroup
-
-__all__: Sequence[str] = ("lightlike",)
+__all__: t.Sequence[str] = ("lightlike",)
 
 install(suppress=[click])
+
+from rich_click.patch import patch
+
+patch()
 
 from lightlike import _console
 
 _console.reconfigure()
 
-from lightlike.__about__ import __lock__, __version__
+from fasteners import InterProcessLock, try_lock
+
+from lightlike.__about__ import __config__, __lock__, __version__
 from lightlike.app import render
-from lightlike.internal import appdir, markup
+from lightlike.internal import appdir, utils
 
-LOCK = fasteners.InterProcessLock(__lock__)
+LOCK: InterProcessLock = InterProcessLock(__lock__)
+
+if t.TYPE_CHECKING:
+    from lightlike.app.core import LazyAliasedRichGroup
 
 
-def build_cli() -> "AliasedRichGroup":
-    from lightlike.app import shell_complete
+def build_cli() -> "LazyAliasedRichGroup":
+    from functools import partial
+
+    from lightlike.app import dates, shell_complete, shutdown
     from lightlike.app.client import get_client
-    from lightlike.app.group import AliasedRichGroup
+    from lightlike.app.config import AppConfig
+    from lightlike.app.core import RICH_HELP_CONFIG, LazyAliasedRichGroup
     from lightlike.app.prompt import REPL_PROMPT_KWARGS
-    from lightlike.cmd import _help
-    from lightlike.internal import utils
+    from lightlike.cmd import _help, lazy_subcommands
+    from lightlike.lib.third_party import click_repl
 
+    _console.reconfigure(
+        get_datetime=partial(dates.now, tzinfo=AppConfig().tz),
+    )
+
+    console = _console.get_console()
+
+    not _console.QUIET_START and console.log("Authorizing BigQuery Client")
     get_client()
 
     @click.group(
-        cls=AliasedRichGroup,
+        cls=LazyAliasedRichGroup,
         name="lightlike",
+        lazy_subcommands=lazy_subcommands,
         help=_help.general,
         invoke_without_command=True,
         context_settings=dict(
-            color=True,
             allow_extra_args=True,
             ignore_unknown_options=True,
             help_option_names=["-h", "--help"],
         ),
     )
-    @click.rich_config(console=_console.get_console())
+    @click.rich_config(
+        help_config=RICH_HELP_CONFIG,
+        console=console,
+    )
     @click.pass_context
-    def cli(ctx: click.Context) -> None:
+    def cli(ctx: click.RichContext) -> None:
         if ctx.invoked_subcommand is None:
-            if not _console.QUIET_START:
-                _console.get_console().log("Starting REPL")
             ctx.invoke(repl)
-            get_client().close()
-            utils._log().debug("Closed Bigquery client HTTPS connection.")
-            utils._log().debug("Exiting gracefully.")
-            utils._shutdown_log()
+            shutdown()
 
-    @cli.command(name="repl")
+    @cli.command()
     @click.pass_context
     def repl(ctx: click.RichContext) -> None:
-        from lightlike.lib.third_party import click_repl
-
         click_repl.repl(
             ctx=ctx,
             prompt_kwargs=REPL_PROMPT_KWARGS,
-            completer=shell_complete.dynamic._click_completer,
-            dynamic_completer=shell_complete.dynamic._dynamic_completer,
+            completer=shell_complete.click_completer,
+            dynamic_completer=shell_complete.dynamic_completer,
         )
 
     return cli
 
 
-def lightlike(lock: fasteners.InterProcessLock = LOCK) -> None:
+def lightlike(lock: InterProcessLock = LOCK) -> None:
     try:
         _check_lock(lock)
         render.cli_info()
 
         try:
-            appdir.validate(__version__)
+            appdir.validate(__version__, __config__)
         except Exception as error:
-            rprint(markup.br("An error occured:"))
-            rprint(f"{error}")
+            utils.notify_and_log_error(error)
             sys.exit(2)
 
-        cli = build_cli()
+        cli: LazyAliasedRichGroup = build_cli()
 
         from lightlike import cmd
-
-        patch()
 
         for command in [
             cmd.app,
             cmd.bq,
             cmd.project,
-            cmd.report,
+            cmd.summary,
             cmd.timer,
-            cmd.other.help_,
-            cmd.other.calc_,
-            cmd.other.calendar_,
-            cmd.other.cd_,
-            cmd.other.ls_,
-            cmd.other.tree_,
         ]:
             cli.add_command(command)
 
         with lock:
-            cli(prog_name="lightlike")
+            if not _console.QUIET_START:
+                with _console.get_console() as console:
+                    console.log("Starting REPL")
+
+            # If no invoked subcommand, cli is launched through REPL,
+            # Don't show cli name in help/usage contexts.
+            cli(prog_name="lightlike" if len(sys.argv) > 1 else "")
 
     except Exception as error:
-        with _console.get_console() as console:
-            console.print_exception(show_locals=True, width=console.width)
+        utils.notify_and_log_error(error)
 
 
-def _check_lock(lock: fasteners.InterProcessLock) -> None | NoReturn:
-    with fasteners.try_lock(lock) as locked:
+def _check_lock(lock: InterProcessLock) -> None | t.NoReturn:
+    with try_lock(lock) as locked:
         if not locked:
             with _console.get_console() as console:
                 console.rule(
@@ -147,7 +154,7 @@ def _check_lock(lock: fasteners.InterProcessLock) -> None | NoReturn:
                     align="left",
                 )
                 console.print(
-                    "CLI is already running in another interpreter on this machine. "
+                    "Cli is already running in another interpreter on this machine. "
                     "Please close it before attempting to run again.",
                 )
             sys.exit(2)

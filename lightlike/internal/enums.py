@@ -30,12 +30,11 @@ class ClientConfigOptions(_ValueEnum):
 
 
 class ClientInitOptions(_ValueEnum):
-    UPDATE_PROJECT = "Change projects with the current auth [%s]."
-    UPDATE_AUTH = "Switch auth method."
+    UPDATE_PROJECT = "Change projects with current auth [%s]."
+    UPDATE_AUTH = "Switch auth method [current=%s]."
 
 
 class ActiveCompleter(int, Enum):
-    NONE = 0
     CMD = 1
     HISTORY = 2
     PATH = 3

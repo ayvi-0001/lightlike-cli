@@ -22,4 +22,5 @@
 
 from lightlike.cli import lightlike
 
-lightlike()
+if __name__ == "__main__":
+    lightlike()

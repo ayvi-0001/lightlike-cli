@@ -19,63 +19,51 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+
+# This cli uses a modified version of the click-repl repo.
 # Original Repo: https://github.com/click-contrib/click-repl
-# This CLI uses a modified version of the click-repl repo.
 # Changes from original package:
-#   - Add type annotations.
-#   - Replace click objects with rich_click objects.
-#   - Add display_meta param to completion item in autocompletion_functions.
-#   - Remove path/bool/deprecated completion functions.
-#   - Remove internal/external commands.
-#   - Generate param display meta with short option/default/required/multiple.
-#   - Allow completion for hidden commands.
-#   - Do not cancel autocompletion on UNPROCESSED param types.
-#   - Remove called subcommands from chained commands.
-#   - Only display called subcommand completions when parent ctx is chained.
-#   - Show options for chained commands.
-#   - Parameters are called if is_flag is True.
-#   - Account for aliased commands in chained command completions.
+#   - Add types
+#   - Change parameters to called if is_flag is True
+#   - Replace click objects with rich_click objects
+#   - Add display_meta param to completion item in autocompletion_functions
+#   - Remove path/bool/deprecated completion functions
+#   - Remove internal/external commands
+#   - Generate param display meta with short option/default/required/multiple
+#   - Allow completion for hidden commands
+#   - Allow autocompletion on UNPROCESSED param types
+#   - Show options for chained commands
+#   - Only display called subcommand completions when parent ctx is chained
+#   - Remove called subcommands from chained commands
+#   - Account for aliased commands in chained command completions
+
 
 from __future__ import unicode_literals
 
-from typing import TYPE_CHECKING, ClassVar, Generic, Iterable, Sequence, TypeVar, cast
+import typing as t
 
 import rich_click as click
 from click.shell_completion import CompletionItem
 from prompt_toolkit.completion import Completer, Completion
-from prompt_toolkit.patch_stdout import patch_stdout
-from rich import get_console
 
-from lightlike.app.group import AliasedRichGroup
+from lightlike.app.core import AliasedRichGroup
+from lightlike.internal.utils import notify_and_log_error
 
 from .utils import _resolve_context, split_arg_string
 
-if TYPE_CHECKING:
+if t.TYPE_CHECKING:
     from prompt_toolkit.completion import CompleteEvent
     from prompt_toolkit.document import Document
 
-__all__: Sequence[str] = ("ClickCompleter",)
+__all__: t.Sequence[str] = ("ClickCompleter",)
 
 
-# Handle backwards compatibility between Click<=7.0 and >=8.0
-try:
-    from click import shell_completion
-
-    HAS_CLICK_V8 = True
-    AUTO_COMPLETION_PARAM = "shell_complete"
-except (ImportError, ModuleNotFoundError):
-    import click._bashcomplete  # type: ignore[no-redef, import-not-found]
-
-    HAS_CLICK_V8 = False
-    AUTO_COMPLETION_PARAM = "autocompletion"
+RG = t.TypeVar("RG", bound=click.RichGroup)
+RC = t.TypeVar("RC", bound=click.RichContext)
 
 
-RG = TypeVar("RG", bound=click.RichGroup)
-RC = TypeVar("RC", bound=click.RichContext)
-
-
-class ClickCompleter(Completer, Generic[RG, RC]):
-    __slots__: ClassVar[Sequence[str]] = (
+class ClickCompleter(Completer, t.Generic[RG, RC]):
+    __slots__: t.ClassVar[t.Sequence[str]] = (
         "cli",
         "ctx",
         "parsed_args",
@@ -98,18 +86,12 @@ class ClickCompleter(Completer, Generic[RG, RC]):
         incomplete: str,
     ) -> list[Completion]:
         param_choices = []
-
-        if HAS_CLICK_V8:
-            autocompletions = param.shell_complete(autocomplete_ctx, incomplete)
-        else:
-            autocompletions = param.autocompletion(  # type: ignore[attr-defined]
-                autocomplete_ctx, args, incomplete
-            )
+        autocompletions = param.shell_complete(autocomplete_ctx, incomplete)
 
         for autocomplete in autocompletions:
             start_position = -len(incomplete)
 
-            if HAS_CLICK_V8 and isinstance(autocomplete, CompletionItem):
+            if isinstance(autocomplete, CompletionItem):
                 if autocomplete.value:
                     param_choices.append(
                         Completion(
@@ -118,7 +100,6 @@ class ClickCompleter(Completer, Generic[RG, RC]):
                             display_meta=autocomplete.help,
                         )
                     )
-
             elif isinstance(autocomplete, tuple):
                 param_choices.append(
                     Completion(
@@ -127,7 +108,6 @@ class ClickCompleter(Completer, Generic[RG, RC]):
                         display_meta=f"{autocomplete[1]}",
                     )
                 )
-
             else:
                 param_choices.append(
                     Completion(
@@ -144,15 +124,15 @@ class ClickCompleter(Completer, Generic[RG, RC]):
         args: list[str],
         incomplete: str,
     ) -> list[Completion]:
-        if getattr(param, AUTO_COMPLETION_PARAM):
-            return self._get_completion_from_autocompletion_functions(
+        completions = []
+        if getattr(param, "shell_complete"):
+            completions = self._get_completion_from_autocompletion_functions(
                 autocomplete_ctx=autocomplete_ctx,
                 param=param,
                 args=args,
                 incomplete=incomplete,
             )
-
-        return []
+        return completions
 
     def _get_completion_for_cmd_args(
         self,
@@ -185,11 +165,7 @@ class ClickCompleter(Completer, Generic[RG, RC]):
 
                 if len(opts) == 2:
                     if any(opt in current_args for opt in opts):
-                        if param.is_flag:
-                            param_called = False
-                        else:
-                            param_called = True
-
+                        param_called = True if not param.is_flag else False
                     elif opts[1].startswith(incomplete) and not hide:
                         completion = Completion(
                             text=opts[1],
@@ -203,11 +179,7 @@ class ClickCompleter(Completer, Generic[RG, RC]):
                     option = opts[0]
 
                     if option in current_args:
-                        if param.is_flag:
-                            param_called = False
-                        else:
-                            param_called = True
-
+                        param_called = True if not param.is_flag else False
                     elif option.startswith(incomplete) and not hide:
                         completion = Completion(
                             text=f"{option}",
@@ -239,36 +211,32 @@ class ClickCompleter(Completer, Generic[RG, RC]):
 
     def get_completions(
         self, document: "Document", complete_event: "CompleteEvent"
-    ) -> Iterable[Completion]:
-        args = split_arg_string(document.text_before_cursor, posix=False)
-
-        choices = []
-        chained_command_choices = []
-
-        cursor_within_command = (
-            document.text_before_cursor.rstrip() == document.text_before_cursor
-        )
-
-        if args and cursor_within_command:
-            # We've entered some text and no space, give completions for the
-            # current word.
-            incomplete = args.pop()
-        else:
-            # We've not entered anything, either at all or for the current
-            # command, so give all relevant completions for this context.
-            incomplete = ""
-
-        if self.parsed_args != args:
-            self.parsed_args = args
-
-            try:
-                self.parsed_ctx = _resolve_context(args, self.ctx)
-            except Exception:
-                return []  # autocompletion for nonexistent cmd can throw here
-            finally:
-                self.ctx_command = cast(click.RichCommand, self.parsed_ctx.command)
-
+    ) -> t.Iterable[Completion]:
         try:
+            text_before_cursor = document.text_before_cursor
+            args = split_arg_string(text_before_cursor, posix=False)
+
+            choices = []
+            chained_command_choices = []
+            cursor_in_command = text_before_cursor.rstrip() == text_before_cursor
+
+            if args and cursor_in_command:
+                incomplete = args.pop()
+            else:
+                incomplete = ""
+
+            if self.parsed_args != args:
+                self.parsed_args = args
+
+                try:
+                    self.parsed_ctx = _resolve_context(args, self.ctx)
+                except Exception:
+                    yield from []
+                finally:
+                    self.ctx_command = t.cast(
+                        click.RichCommand, self.parsed_ctx.command
+                    )
+
             choices.extend(
                 self._get_completion_for_cmd_args(
                     ctx_command=self.ctx_command,
@@ -282,7 +250,7 @@ class ClickCompleter(Completer, Generic[RG, RC]):
                 incomplete_lower = incomplete.lower()
 
                 for name in self.ctx_command.list_commands(self.parsed_ctx):  # type: ignore[attr-defined]
-                    command = cast(
+                    command = t.cast(
                         click.RichCommand,
                         self.ctx_command.get_command(self.parsed_ctx, name),
                     )
@@ -323,48 +291,28 @@ class ClickCompleter(Completer, Generic[RG, RC]):
                         )
                         choices.append(completion)
 
-        except Exception:
-            with patch_stdout(raw=True):
-                with get_console() as console:
-                    console.print_exception(show_locals=True, width=console.width)
+            if chained_command_choices:
+                # Only show choices for the chained command being called.
+                yield from chained_command_choices
+            else:
+                yield from choices
 
-        if chained_command_choices:
-            # Only show choices for the chained command being called.
-            yield from chained_command_choices
-        else:
-            yield from choices
+        except Exception as error:
+            notify_and_log_error(error)
 
 
 def _display_meta(option: click.Option, short_flag: str | None = None) -> str:
     flag = "[flag]" if option.is_flag else ""
     required = "[req]" if option.required else "[opt]"
     multiple = "[#]" if option.multiple else ""
-
-    default = ""
-    if option.default is True:
-        default = "[default]"
-    elif option.default is False or option.default in ("null", "None"):
-        pass
-    elif option.default is not None:
-        if callable(option.default):
-            default = f"[default={option.default()}]"
-        else:
-            default = f"[default={option.default}]"
-
-    ws = " " if any([flag, required, default]) else ""
-
-    display_meta = (
-        "".join(
-            [
-                flag,
-                multiple,
-                required,
-                default,
-                ws,
-                option.help or "",
-            ]
-        )
-        or ""
+    default = (
+        f"[default={option.default() if callable(option.default) else option.default}]"
+        if option.default is not None and option.show_default
+        else ""
     )
+
+    help_ = option.help() if callable(option.help) else option.help  # type: ignore
+    ws = " " if any([flag, required, default]) else ""
+    display_meta = "".join([flag, multiple, required, default, ws, help_ or ""]) or ""
 
     return f"[{short_flag}]{display_meta}" if short_flag else display_meta

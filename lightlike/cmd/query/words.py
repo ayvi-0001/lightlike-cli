@@ -517,6 +517,7 @@ SQL_KEYWORDS: dict[str, Any] = {
     "TANH": None,
     "THEN": None,
     "TIME": None,
+    "TIMESTAMP": None,
     "TIME_ADD": None,
     "TIME_DIFF": None,
     "TIME_SUB": None,
@@ -557,7 +558,6 @@ SQL_KEYWORDS: dict[str, Any] = {
     "WINDOW": None,
     "WITH": None,
     "WITHIN": None,
-    "__TABLES__": None,
 }
 
 KEYWORD_META: dict[str, str] = {

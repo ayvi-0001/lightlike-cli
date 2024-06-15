@@ -33,7 +33,7 @@ def _typed_dir_and_stem(
     if typed_dir and typed_stem:
         target_dir = Path(typed_dir.group(0)).expanduser()
         if target_dir.exists():
-            with suppress(NotADirectoryError):
+            with suppress(NotADirectoryError, FileNotFoundError):
                 target_stem = typed_stem.group(1).lower()
                 yield from filter(_match_stem(target_stem), iterator(target_dir))
 
@@ -87,7 +87,7 @@ def _path_str_contents(path: Path) -> str:
 
 
 def path(
-    ctx: "click.Context", param: "click.Parameter", incomplete: str
+    ctx: "click.RichContext", param: "click.Parameter", incomplete: str
 ) -> list[CompletionItem] | None:
     if not ctx.resilient_parsing:
         return None
@@ -139,7 +139,6 @@ class PathCompleter(Completer):
             completions.append(
                 Completion(
                     text=value,
-                    # display=f"{value[:30]}..." if len(value) > 30 else value,
                     start_position=start_position,
                     display_meta=_path_str_contents(path),
                 )

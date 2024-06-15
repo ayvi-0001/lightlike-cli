@@ -19,14 +19,14 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from ._completer import ClickCompleter as ClickCompleter  # noqa: F401
-from ._repl import register_repl as register_repl  # noqa: F401
-from ._repl import repl as repl  # noqa: F401
-from .exceptions import CommandLineParserError as CommandLineParserError  # noqa: F401
-from .exceptions import ExitReplException as ExitReplException  # noqa: F401
-from .exceptions import (
-    InternalCommandException as InternalCommandException,
-)  # noqa: F401
-from .utils import exit as exit  # noqa: F401
+from typing import Sequence
 
-__version__ = "0.3.0"
+from lightlike.lib.third_party.click_repl._completer import ClickCompleter
+from lightlike.lib.third_party.click_repl._repl import repl
+from lightlike.lib.third_party.click_repl.utils import exit_repl
+
+__all__: Sequence[str] = ("repl", "exit_repl", "ClickCompleter")
+
+# This cli uses a modified version of the click-repl repo.
+# Original Repo: https://github.com/click-contrib/click-repl
+# Changes from original package are listed at the top of each file.
