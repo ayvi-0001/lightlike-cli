@@ -21,11 +21,11 @@
 
 from typing import Sequence
 
-from lightlike.lib.third_party.click_repl._completer import ClickCompleter
+from lightlike.lib.third_party.click_repl._completer import ReplCompleter
 from lightlike.lib.third_party.click_repl._repl import repl
 from lightlike.lib.third_party.click_repl.utils import exit_repl
 
-__all__: Sequence[str] = ("repl", "exit_repl", "ClickCompleter")
+__all__: Sequence[str] = ("repl", "exit_repl", "ReplCompleter")
 
 # This cli uses a modified version of the click-repl repo.
 # Original Repo: https://github.com/click-contrib/click-repl

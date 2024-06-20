@@ -58,7 +58,11 @@ def build_cli() -> "LazyAliasedRichGroup":
     from lightlike.app import dates, shell_complete, shutdown
     from lightlike.app.client import get_client
     from lightlike.app.config import AppConfig
-    from lightlike.app.core import RICH_HELP_CONFIG, LazyAliasedRichGroup
+    from lightlike.app.core import (
+        RICH_HELP_CONFIG,
+        LazyAliasedRichGroup,
+        _map_click_exception,
+    )
     from lightlike.app.prompt import REPL_PROMPT_KWARGS
     from lightlike.cmd import _help, lazy_subcommands
     from lightlike.lib.third_party import click_repl
@@ -100,8 +104,12 @@ def build_cli() -> "LazyAliasedRichGroup":
         click_repl.repl(
             ctx=ctx,
             prompt_kwargs=REPL_PROMPT_KWARGS,
-            completer=shell_complete.click_completer,
-            dynamic_completer=shell_complete.dynamic_completer,
+            completer_callable=shell_complete.repl_completer,
+            dynamic_completer_callable=shell_complete.dynamic_completer,
+            format_click_exceptions_callable=_map_click_exception,
+            shell_config_callable=lambda: AppConfig().get("system-command", "shell"),
+            pass_unknown_commands_to_shell=True,
+            uncaught_exceptions_callable=utils.notify_and_log_error,
         )
 
     return cli
