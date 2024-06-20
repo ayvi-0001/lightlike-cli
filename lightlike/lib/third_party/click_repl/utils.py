@@ -36,18 +36,18 @@ from shlex import shlex
 
 import rich_click as click
 
-from lightlike.internal import utils
-from lightlike.lib.third_party.click_repl.exceptions import ExitReplException
+from . import utils
+from .exceptions import ExitReplException
 
 __all__: t.Sequence[str] = ("_resolve_context", "split_arg_string", "exit_repl")
 
 
-def _resolve_context(args: list[str], ctx: click.RichContext) -> click.RichContext:
+def _resolve_context(args: list[str], ctx: click.Context) -> click.Context:
     try:
         while args:
             command = ctx.command
 
-            if isinstance(command, click.RichGroup) and not command.chain:
+            if isinstance(command, click.Group) and not command.chain:
                 name, cmd, args = t.cast(
                     tuple[str | None, click.Command | None, list[str]],
                     command.resolve_command(ctx, args),
@@ -57,7 +57,7 @@ def _resolve_context(args: list[str], ctx: click.RichContext) -> click.RichConte
                     return ctx
 
                 ctx = t.cast(
-                    click.RichContext,
+                    click.Context,
                     cmd.make_context(name, args, parent=ctx, resilient_parsing=True),
                 )
                 args = ctx.protected_args + ctx.args

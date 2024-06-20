@@ -152,7 +152,7 @@ WHERE_CLAUSE: t.Final[re.Pattern[str]] = re.compile(
 
 def _parse_click_options(
     flag: bool,
-    args: t.Sequence[str],
+    args: t.Sequence[str] | None,
     console: "Console",
     routine: "CliQueryRoutines",
 ) -> str:
