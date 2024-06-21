@@ -9,13 +9,13 @@ import rich_click as click
 from rich import print as rprint
 from rich.console import Console
 from rich.padding import Padding
+from rich.syntax import Syntax
 
 from lightlike import _console
 from lightlike.app import _pass, dates, render, shell_complete, validate
 from lightlike.app.config import AppConfig
 from lightlike.app.core import FmtRichCommand
 from lightlike.app.prompt import PromptFactory
-from lightlike.cmd import _help
 from lightlike.internal import markup, utils
 
 if t.TYPE_CHECKING:
@@ -146,7 +146,7 @@ where_option = click.option(
     type=click.BOOL,
     help="Interactive prompt for WHERE clause.",
     required=False,
-    default=None,
+    default=False,
     callback=None,
     metavar=None,
     shell_complete=None,
@@ -211,9 +211,23 @@ match_note = click.option(
     cls=FmtRichCommand,
     name="table",
     no_args_is_help=True,
-    help=_help.summary_table,
     short_help="Renders a table in terminal. Optional svg download.",
-    syntax=_help.summary_table_syntax,
+    syntax=Syntax(
+        code="""\
+        $ summary table --current-month --round where project = \"lightlike-cli\"
+        $ s t -cm -r where project = \"lightlike-cli\"
+    
+        $ summary table --current-year --output path/to/file.svg regexp_contains(note, r\\"(?i).*keyword\\")
+        $ s t -cy -o path/to/file.svg regexp_contains(note, r\\"(?i).*keyword\\")
+
+        $ summary table --start -15d --end monday
+        $ s t -s -15d -e mon\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @utils._handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Canceled summary.")),
@@ -264,6 +278,57 @@ def summary_table(
     prompt_where: bool,
     where: t.Sequence[str],
 ) -> None:
+    """
+    Create a summary and render a table in terminal. Optional svg download.
+
+    [yellow][b][u]Note: running & paused entries are not included in summaries.[/b][/u][/yellow]
+
+    [b]Fields[/]:
+    - total_summary: The total sum of hours over the entire summary.
+    - total_project: The total sum of hours over the entire summary, partitioned by project.
+    - total_day: The total sum of hours on each day, partitioned by day.
+    - date: Date.
+    - project: Project.
+    - billable: Billable.
+    - timer: The total sum of hours for a project on that day.
+    - notes: String aggregate of all notes on that day. Sum of hours appened to the end.
+
+    --output / -d:
+        save the output of this command to this path.
+        if the path does not have any suffix, then the expected suffix will be appended.
+        if the path with the correct suffix already exists, a prompt will ask whether to overwrite or not.
+        if the path ends in any suffix other than what's expected, an error will raise.
+
+    --round / -r:
+        round totals to the nearest 0.25.
+
+    --current-week / -cw:
+    --current-month / -cm:
+    --current-year / -cy:
+        flags are processed before other date options.
+        configure week start dates with app:config:set:general:week_start.
+
+    --match-project / -Rp:
+        match a regular expression against project names.
+        regex flavor/engine: ECMAScript (JavaScript)
+
+    --match-note / -Rn:
+        match a regular expression against entry notes.
+        regex flavor/engine: ECMAScript (JavaScript)
+
+    --prompt-where / -w:
+        filter results with a where clause.
+        interactive prompt that launches after command runs.
+        prompt includes autocompletions for projects and notes.
+        note autocompletions will only populate for a project if that project name appears in the string.
+
+    [bold #34e2e2]WHERE[/]:
+        where clause can also be written as the last argument to this command.
+        it can be a single string, or individual words separated by a space,
+        as long as characters are properly escaped if necessary.
+        it must either begin with the word "WHERE" (case-insensitive),
+        or it must be the string immediately proceeding the word "WHERE".
+    """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
@@ -342,9 +407,20 @@ def summary_table(
     cls=FmtRichCommand,
     name="csv",
     no_args_is_help=True,
-    help=_help.summary_csv,
     short_help="Save/Print summary to a csv file.",
-    syntax=_help.summary_csv_syntax,
+    syntax=Syntax(
+        code="""\
+        $ summary csv --start jan1 --end jan31 --round --print
+        $ s c -s jan1 -e jan31 -r -p
+    
+        $ summary csv --current-week --output path/to/file.csv where billable is false
+        $ s c -cw -o path/to/file.csv where billable is false\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @utils._handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Canceled summary.")),
@@ -412,6 +488,65 @@ def summary_csv(
     where: t.Sequence[str],
     quoting: str,
 ) -> None:
+    """
+    Create a summary and save to a csv file, or print to terminal.
+
+    [yellow][b][u]Note: running & paused entries are not included in summaries.[/b][/u][/yellow]
+
+    [b]Fields[/]:
+    - total_summary: The total sum of hours over the entire summary.
+    - total_project: The total sum of hours over the entire summary, partitioned by project.
+    - total_day: The total sum of hours on each day, partitioned by day.
+    - date: Date.
+    - project: Project.
+    - billable: Billable.
+    - timer: The total sum of hours for a project on that day.
+    - notes: String aggregate of all notes on that day. Sum of hours appened to the end.
+
+    --print / -p:
+        print output to terminal.
+        either this, or --output / -d must be provided.
+
+    --output / -d:
+        save the output of the command to this path.
+        either this, or --print / -p must be provided.
+
+    --output / -d:
+        save the output of this command to this path.
+        if the path does not have any suffix, then the expected suffix will be appended.
+        if the path with the correct suffix already exists, a prompt will ask whether to overwrite or not.
+        if the path ends in any suffix other than what's expected, an error will raise.
+
+    --round / -r:
+        round totals to the nearest 0.25.
+
+    --current-week / -cw:
+    --current-month / -cm:
+    --current-year / -cy:
+        flags are processed before other date options.
+        configure week start dates with app:config:set:general:week_start.
+
+    --match-project / -Rp:
+        match a regular expression against project names.
+        regex flavor/engine: ECMAScript (JavaScript)
+
+    --match-note / -Rn:
+        match a regular expression against entry notes.
+        regex flavor/engine: ECMAScript (JavaScript)
+
+    --prompt-where / -w:
+        filter results with a where clause.
+        interactive prompt that launches after command runs.
+        prompt includes autocompletions for projects and notes.
+        note autocompletions will only populate for a project if that project name appears in the string.
+
+    [bold #34e2e2]WHERE[/]:
+        where clause can also be written as the last argument to this command.
+        it can be a single string, or individual words separated by a space,
+        as long as characters are properly escaped if necessary.
+        it must either begin with the word "WHERE" (case-insensitive),
+        or it must be the string immediately proceeding the word "WHERE".
+    """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
@@ -507,9 +642,20 @@ def summary_csv(
     cls=FmtRichCommand,
     name="json",
     no_args_is_help=True,
-    help=_help.summary_json,
     short_help="Save/Print summary to a json file.",
-    syntax=_help.summary_json_syntax,
+    syntax=Syntax(
+        code="""\
+        $ summary json --start "6 days ago" --end today --print
+        $ s j -s -6d -e now -p
+    
+        $ summary json --current-week --orient index where billable is false
+        $ s j -cw -o index -w\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @utils._handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Canceled summary.")),
@@ -577,6 +723,75 @@ def summary_json(
     prompt_where: bool,
     where: t.Sequence[str],
 ) -> None:
+    """
+    Create a summary and save to a json file, or print to terminal.
+
+    [yellow][b][u]Note: running & paused entries are not included in summaries.[/b][/u][/yellow]
+
+    [b]Fields[/]:
+    - total_summary: The total sum of hours over the entire summary.
+    - total_project: The total sum of hours over the entire summary, partitioned by project.
+    - total_day: The total sum of hours on each day, partitioned by day.
+    - date: Date.
+    - project: Project.
+    - billable: Billable.
+    - timer: The total sum of hours for a project on that day.
+    - notes: String aggregate of all notes on that day. Sum of hours appened to the end.
+
+    --print / -p:
+        print output to terminal.
+        either this, or --output / -d must be provided.
+
+    --output / -d:
+        save the output of the command to this path.
+        either this, or --print / -p must be provided.
+
+    --output / -d:
+        save the output of this command to this path.
+        if the path does not have any suffix, then the expected suffix will be appended.
+        if the path with the correct suffix already exists, a prompt will ask whether to overwrite or not.
+        if the path ends in any suffix other than what's expected, an error will raise.
+
+    --round / -r:
+        round totals to the nearest 0.25.
+
+    --current-week / -cw:
+    --current-month / -cm:
+    --current-year / -cy:
+        flags are processed before other date options.
+        configure week start dates with app:config:set:general:week_start.
+
+    --orient / -o:
+        default is [code]records[/code].
+        available choices are; columns, index, records, split, table, values.
+            split = dict like {"index" -> [index], "columns" -> [columns], "data" -> [values]}
+            records = list like [{column -> value}, … , {column -> value}]
+            index = dict like {index -> {column -> value}}
+            columns = dict like {column -> {index -> value}}
+            values = just the values array
+            table = dict like {"schema": {schema}, "data": {data}}
+
+    --match-project / -Rp:
+        match a regular expression against project names.
+        regex flavor/engine: ECMAScript (JavaScript)
+
+    --match-note / -Rn:
+        match a regular expression against entry notes.
+        regex flavor/engine: ECMAScript (JavaScript)
+
+    --prompt-where / -w:
+        filter results with a where clause.
+        interactive prompt that launches after command runs.
+        prompt includes autocompletions for projects and notes.
+        note autocompletions will only populate for a project if that project name appears in the string.
+
+    [bold #34e2e2]WHERE[/]:
+        where clause can also be written as the last argument to this command.
+        it can be a single string, or individual words separated by a space,
+        as long as characters are properly escaped if necessary.
+        it must either begin with the word "WHERE" (case-insensitive),
+        or it must be the string immediately proceeding the word "WHERE".
+    """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 

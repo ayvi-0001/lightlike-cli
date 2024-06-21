@@ -8,7 +8,6 @@ from rich.console import Console
 from lightlike.__about__ import __appdir__, __config__
 from lightlike.app import _pass, dates, validate
 from lightlike.app.core import FmtRichCommand
-from lightlike.cmd import _help
 from lightlike.internal import utils
 
 __all__: t.Sequence[str] = ("date_parse", "date_diff")
@@ -17,9 +16,7 @@ __all__: t.Sequence[str] = ("date_parse", "date_diff")
 @click.command(
     cls=FmtRichCommand,
     name="date-parse",
-    help=_help.app_test_dateparser,
     short_help="Date parser function.",
-    syntax=_help.app_test_dateparser_syntax,
 )
 @utils._handle_keyboard_interrupt()
 @click.option(
@@ -37,6 +34,32 @@ __all__: t.Sequence[str] = ("date_parse", "date_diff")
 )
 @_pass.console
 def date_parse(console: Console, date: str) -> None:
+    """
+    Test the dateparser function.
+
+    DATE/TIME FIELDS:
+        arguments/options asking for datetime will attempt to parse the string provided.
+        error will raise if unable to parse.
+        dates are relative to today, unless explicitly stated in the string.
+
+        Example values to pass to the date parser:
+        | type             | examples                                                  |
+        |-----------------:|-----------------------------------------------------------|
+        | datetime         | jan1@2pm [d](January 1st current year at 2:00 PM)[/d]            |
+        | date (relative)  | today/now, yesterday, monday, 2 days ago, -2d | "\-2d"    |
+        | time (relative)  | -15m [d](15 minutes ago)[/d], 1.25 hrs ago, -1.25hr | "\-1.25hr" |
+        | date             | jan1, 01/01, 2024-01-01                                   |
+        | time             | 2pm, 14:30:00, 2:30pm                                     |
+
+        [b]Note:[/b] If the date is an argument, the minus operator needs to be escaped.
+        e.g.
+        ```
+        $ command --option -2d
+        $ c -o-2d
+        $ command \-2d # argument
+        $ c \-2d # argument
+        ```
+    """
     console.print(date)
 
 

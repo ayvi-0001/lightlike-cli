@@ -181,8 +181,8 @@ class FmtRichCommand(click.RichCommand):
                     (0, 1, 1, 1),
                 )
             )
-        if hasattr(self, "syntax") and callable(self.syntax):
-            syntax = self.syntax()
+        if hasattr(self, "syntax"):
+            syntax = self.syntax() if callable(self.syntax) else self.syntax
             if syntax:
                 formatter.write(Padding(syntax, (0, 1, 1, 1)))
 

@@ -6,6 +6,7 @@ from os import getenv
 import rich_click as click
 from rich import print as rprint
 from rich.console import Console
+from rich.syntax import Syntax
 
 from lightlike.__about__ import __appdir__, __config__
 from lightlike.app import _pass
@@ -13,7 +14,6 @@ from lightlike.app.cache import TimeEntryAppData, TimeEntryCache
 from lightlike.app.client import get_client
 from lightlike.app.config import AppConfig
 from lightlike.app.core import FmtRichCommand, LazyAliasedRichGroup
-from lightlike.cmd import _help
 from lightlike.internal import markup, utils
 
 __all__: t.Sequence[str] = (
@@ -45,20 +45,61 @@ else:
         "set": "lightlike.cmd.app.config.set_",
         "show": "lightlike.cmd.app.config.show",
     },
-    help=_help.app_config,
     short_help=f"Cli config file and settings. {__config}",
-    syntax=_help.app_config_syntax,
+    syntax=Syntax(
+        code="""\
+        $ app config open
+        $ a c o
+    
+        $ app config show
+        $ a c s
+    
+        $ app config set
+        $ a c u\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
-def config() -> None: ...
+def config() -> None:
+    """
+    View/Update cli configuration settings.
+
+    app:config:open:
+        open the config file located in the users home directory using the default text editor.
+
+    app:config:show:
+        view config file in terminal.
+        this list does not include everything, only the keys that can be updated through the cli.
+
+    app:config:set:
+        [b]general settings[/b]:
+            configure time entry functions
+            login (if auth through a service-account)
+            misc. behaviour (e.g. default text-editor).
+        [b]query settings[/b]:
+            configure behaviour for bq:query.
+    """
 
 
 @click.command(
     cls=FmtRichCommand,
     name="dir",
     options_metavar="[LAUNCH OPTION]",
-    help=_help.app_dir,
     short_help=f"Open cli dir: {__appdir}",
-    syntax=_help.app_dir_syntax,
+    syntax=Syntax(
+        code="""\
+        $ app dir
+    
+        $ app dir --editor\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @click.option(
     "--start/--editor",
@@ -76,6 +117,17 @@ def config() -> None: ...
 )
 @_pass.console
 def dir_(console: Console, start: bool) -> None:
+    """
+    Open cli directory.
+
+        --start / -s:
+            default option.
+            open app directory with the system command [code]start[/code].
+
+        --editor / -e:
+            open the app directory using the configured text-editor.
+            configure text-editor with app:config:set:general:editor.
+    """
     uri = __appdir__.as_uri()
     path = __appdir__.as_posix()
 
@@ -91,9 +143,14 @@ def dir_(console: Console, start: bool) -> None:
 @click.command(
     cls=FmtRichCommand,
     name="run-bq",
-    help=_help.app_run_bq,
     short_help="Run BigQuery scripts. Tables only built if missing.",
-    syntax=_help.app_run_bq_syntax,
+    syntax=Syntax(
+        code="$ app run-bq",
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @utils._handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Canceled Build.")),
@@ -115,6 +172,11 @@ def dir_(console: Console, start: bool) -> None:
     shell_complete=None,
 )
 def run_bq(yes: bool) -> None:
+    """
+    Run BigQuery scripts.
+
+    Executes all necessary scripts in BigQuery for this cli to run. Table's are only built if they do not exist.
+    """
     from lightlike.app.client import provision_bigquery_resources
 
     provision_bigquery_resources(client=get_client(), force=True, yes=yes)
@@ -154,9 +216,23 @@ def inspect_console(console: Console) -> None:
 @click.command(
     cls=FmtRichCommand,
     name="sync",
-    help=_help.app_sync,
     short_help="Sync local files.",
-    syntax=_help.app_sync_syntax,
+    syntax=Syntax(
+        code="""\
+        $ app sync --appdata
+        $ a s -a
+
+        $ app sync --cache
+        $ a s -c
+
+        $ app sync --appdata --cache
+        $ a s -ac\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @utils._handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Canceled Sync.")),
@@ -173,6 +249,14 @@ def sync(
     appdata: bool,
     cache: bool,
 ) -> None:
+    """
+    Syncs local files for time entry data, projects, and cache.
+
+    These can be found in the app directory using the app:dir.
+
+    These tables should only ever be altered through the procedures in this cli.
+    If the local files are out of sync with BigQuery, or if logging in from a new location, can use this command to re-sync them.
+    """
     with console.status(markup.status_message("Syncing")) as status:
         if appdata:
             status.update(markup.status_message("Syncing appdata"))
