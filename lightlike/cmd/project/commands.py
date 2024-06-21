@@ -6,13 +6,13 @@ import rich_click as click
 from more_itertools import first
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import print as rprint
+from rich.syntax import Syntax
 from rich.text import Text
 
 from lightlike.__about__ import __appname_sc__
 from lightlike.app import _get, _pass, render, shell_complete, threads, validate
 from lightlike.app.core import AliasedRichGroup, FmtRichCommand
 from lightlike.app.prompt import PromptFactory
-from lightlike.cmd import _help
 from lightlike.internal import markup, utils
 from lightlike.lib.third_party import _questionary
 
@@ -39,9 +39,20 @@ __all__: t.Sequence[str] = (
     cls=FmtRichCommand,
     name="archive",
     no_args_is_help=True,
-    help=_help.project_archive,
     short_help="Archive projects and related time entries.",
-    syntax=_help.project_archive_syntax,
+    syntax=Syntax(
+        code="""\
+        $ project archive example-project
+        $ p a example-project
+    
+        # archive multiple
+        $ project archive example-project1 example-project2 example-project3\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @utils._handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not archive projects.")),
@@ -88,6 +99,15 @@ def archive(
     projects: t.Sequence[str],
     yes: bool,
 ) -> None:
+    """
+    Archive projects.
+
+    When a project is archived, all related time entries are also archived
+    and will not appear in results for timer:list or summary commands.
+
+        --yes / -y:
+            accept all prompts.
+    """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
@@ -186,9 +206,22 @@ def archive(
 @click.command(
     cls=FmtRichCommand,
     name="create",
-    help=_help.project_create,
     short_help="Create a new project.",
-    syntax=_help.project_create_syntax,
+    syntax=Syntax(
+        code="""\
+        $ project create
+    
+        $ project create --name lightlike-cli
+        $ p c -nlightlike-cli
+
+        $ project create --name lightlike-cli --description "time-tracking repl" --default-billable true
+        $ p c -nlightlike-cli -d"time-tracking repl" -bt # -b for default-billable flag\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @utils._handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not create project.")),
@@ -245,6 +278,15 @@ def create(
     description: str,
     default_billable: bool,
 ) -> None:
+    """
+    Create a new project.
+
+    For interactive prompt, pass no options.
+    The name [code]no-project[/code] is reserved for the default setting.
+
+    --name / -n:
+        must match regex [code]^\[a-zA-Z0-9-\\_]{3,20}$[/code].
+    """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
@@ -283,9 +325,20 @@ def create(
     cls=FmtRichCommand,
     name="delete",
     no_args_is_help=True,
-    help=_help.project_delete,
     short_help="Deletes projects and related time entries.",
-    syntax=_help.project_delete_syntax,
+    syntax=Syntax(
+        code="""\
+        $ project delete lightlike-cli
+        $ p d lightlike-cli
+
+        # delete multiple
+        $ project delete example-project1 example-project2 example-project3\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @utils._handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not delete projects.")),
@@ -332,6 +385,14 @@ def delete(
     projects: t.Sequence[str],
     yes: bool,
 ) -> None:
+    """
+    Delete projects and all related time entries.
+
+    When a project is deleted, all related time entries are also deleted.
+
+    --yes / -y:
+        accept all prompts.
+    """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
@@ -402,9 +463,20 @@ def delete(
 @click.command(
     cls=FmtRichCommand,
     name="list",
-    help=_help.project_list,
     short_help="List projects.",
-    syntax=_help.project_list_syntax,
+    syntax=Syntax(
+        code="""\
+        $ project list
+        $ p l
+    
+        $ project list --all
+        $ p l -a\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @click.option(
     "-a",
@@ -457,6 +529,12 @@ def list_(
     match_name: str,
     match_description: str,
 ) -> None:
+    """
+    List projects.
+
+    --all / -a:
+        include archived projects.
+    """
     fields: list[str] = [
         "name",
         "description",
@@ -500,18 +578,41 @@ def list_(
 @click.group(
     cls=AliasedRichGroup,
     name="set",
-    help=_help.project_set,
     short_help="Update a project's name/description/default_billable.",
-    syntax=_help.project_set_syntax,
+    syntax=Syntax(
+        code="""\
+        $ project set name lightlike-cli …
+    
+        $ project set description lightlike-cli …
+
+        $ project set default_billable lightlike-cli …\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
-def set_() -> None: ...
+def set_() -> None:
+    """Set a project's name, description, or default billable setting."""
 
 
 @set_.command(
     cls=FmtRichCommand,
     name="name",
-    help=_help.project_set_name,
-    syntax=_help.project_set_name_syntax,
+    syntax=Syntax(
+        code="""\
+        $ project set name lightlike-cli # interactive
+        $ p s n lightlike-cli
+
+        $ project set name lightlike-cli new-name
+        $ p s n lightlike-cli new-name\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @utils._handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not update project.")),
@@ -554,6 +655,12 @@ def set_project_name(
     project: str,
     name: str,
 ) -> None:
+    """
+    Update a project's name.
+
+    Name must match regex [code]no-project[/code].
+    The name [code]^\[a-zA-Z0-9-\\_]{3,20}$[/code] is reserved for the default setting.
+    """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
@@ -593,8 +700,18 @@ def set_project_name(
 @set_.command(
     cls=FmtRichCommand,
     name="description",
-    help=_help.project_set_description,
-    syntax=_help.project_set_description_syntax,
+    syntax=Syntax(
+        code="""\
+        $ project set description lightlike-cli # interactive
+
+        $ project set description lightlike-cli "time-tracking repl"
+        $ p s desc lightlike-cli "time-tracking repl"\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @utils._handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not update project.")),
@@ -635,6 +752,7 @@ def set_project_description(
     project: str,
     desc: str,
 ) -> None:
+    """Add/overwrite project description."""
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
@@ -682,8 +800,16 @@ def set_project_description(
 @set_.command(
     cls=FmtRichCommand,
     name="default_billable",
-    help=_help.project_set_default_billable,
-    syntax=_help.project_set_default_billable_syntax,
+    syntax=Syntax(
+        code="""\
+        $ project set default_billable lightlike-cli true
+        $ p s def lightlike-cli true\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @utils._handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not update project.")),
@@ -724,6 +850,7 @@ def set_project_default_billable(
     project: str,
     billable: bool,
 ) -> None:
+    """Update a project's default billable setting."""
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
@@ -741,10 +868,21 @@ def set_project_default_billable(
 @click.command(
     cls=FmtRichCommand,
     name="unarchive",
-    help=_help.project_unarchive,
     no_args_is_help=True,
     short_help="Unarchive projects and all hidden time entries.",
-    syntax=_help.project_unarchive_syntax,
+    syntax=Syntax(
+        code="""\
+        $ project unarchive lightlike-cli
+        $ p u lightlike-cli
+
+        # unarchive multiple
+        $ project unarchive example-project1 example-project2 example-project3\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @utils._handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not unarchive project.")),
@@ -772,6 +910,12 @@ def unarchive(
     appdata: "TimeEntryAppData",
     projects: t.Sequence[str],
 ) -> None:
+    """
+    Unarchive projects.
+
+    When a project is unarchived, all related time entries are also unarchived
+    and will appear in results for timer:list or summary commands.
+    """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 

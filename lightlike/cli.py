@@ -64,7 +64,8 @@ def build_cli() -> "LazyAliasedRichGroup":
         _map_click_exception,
     )
     from lightlike.app.prompt import REPL_PROMPT_KWARGS
-    from lightlike.cmd import _help, lazy_subcommands
+    from lightlike.cmd import lazy_subcommands
+    from lightlike.cmd.app.default import general_help
     from lightlike.lib.third_party import click_repl
 
     _console.reconfigure(
@@ -80,7 +81,7 @@ def build_cli() -> "LazyAliasedRichGroup":
         cls=LazyAliasedRichGroup,
         name="lightlike",
         lazy_subcommands=lazy_subcommands,
-        help=_help.general,
+        help=general_help,
         invoke_without_command=True,
         context_settings=dict(
             allow_extra_args=True,

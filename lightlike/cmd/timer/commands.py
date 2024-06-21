@@ -14,6 +14,7 @@ import rich_click as click
 from more_itertools import first, locate, one
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import print as rprint
+from rich.syntax import Syntax
 from rich.text import Text
 
 from lightlike.__about__ import __appname_sc__
@@ -23,7 +24,6 @@ from lightlike.app.config import AppConfig
 from lightlike.app.core import AliasedRichGroup, DynamicHelpOption, FmtRichCommand
 from lightlike.app.prompt import PromptFactory
 from lightlike.app.shell_complete.types import CallableIntRange
-from lightlike.cmd import _help
 from lightlike.internal import appdir, markup, utils
 from lightlike.lib.third_party import _questionary
 
@@ -66,9 +66,23 @@ def default_timer_add(config: AppConfig) -> str:
 @click.command(
     cls=FmtRichCommand,
     name="add",
-    help=_help.timer_add,
     short_help="Insert a time entry.",
-    syntax=_help.timer_add_syntax,
+    syntax=Syntax(
+        code="""\
+        $ timer add --project lightlike-cli
+        $ t a -plightlike-cli
+        
+        $ timer add # defaults to adding an entry under `no-project`, that started 6 minutes ago, ending now.
+        $ t a       # this can be later updated using timer:update
+
+        $ timer add --project lightlike-cli --start jan1@9am --end jan1@1pm --note "…" --billable true
+        $ t a -plightlike-cli -sjan1@9am -ejan1@1pm -n"…" -b1\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @utils._handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not add time entry.")),
@@ -157,6 +171,35 @@ def add(
     note: str,
     billable: bool,
 ) -> None:
+    """
+    Insert a new time entry.
+
+    --project / -p:
+        set the project for the time entry to this.
+        projects can be searched for by name or description.
+        projects are ordered in created time desc.
+        defaults to [code]no-project[/code].
+
+    --note / -n:
+        set the note for the time entry to this.
+        if --project / -p is used, then autocomplete will include notes for the selected project.
+
+    --start / -s:
+        set the entry to start at this time.
+        defaults to -6 minutes (1/10th of an hour).
+        update the default value using app:config:set:general:timer_add_min.
+
+    --end / -e:
+        set the entry to end at this time.
+        defaults to [code]now[/code].
+
+    --billable / -b:
+        set the entry as billable or not.
+        if not provided, the default setting for the project is used.
+        set project default billable value when first creating a project
+        with project:create, using --default-billable / -b,
+        or update an existing project's with project:set:default_billable.
+    """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
@@ -240,8 +283,7 @@ def add(
             date_ctype=["date"],
         )
 
-    console.print("Added record:")
-    console.print(table)
+    console.print("Added record:", table)
 
 
 def yank_flag_help() -> str:
@@ -258,9 +300,23 @@ def yank_flag_help() -> str:
     cls=FmtRichCommand,
     name="delete",
     no_args_is_help=True,
-    help=_help.timer_delete,
     short_help="Delete time entries by id.",
-    syntax=_help.timer_delete_syntax,
+    syntax=Syntax(
+        code="""\
+        $ timer delete --id b95eb89 --id 22b0140 --id b5b8e24
+        $ t d -ib95eb89 -i22b0140 -ib5b8e24
+        
+        $ timer delete --yank 1
+        $ t d -y1
+        
+        $ timer delete --use-last-timer-list
+        $ t d -u\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @click.option(
     "-i",
@@ -322,6 +378,35 @@ def delete(
     use_last_timer_list: list[str],
     yank: list[str],
 ) -> None:
+    """
+    Delete time entries.
+
+    --id / -i:
+        ids for entries to edit.
+        repeat flag for multiple entries.
+
+    --yank / -y:
+        pull an id from the latest timer:list results.
+        option must be an integer within the range of the cached list.
+        the id of the corresponding row will be passed to the command.
+        this option can be repeated and combined with --id / -i.
+        e.g.
+
+        ```
+            $ timer list --current-week
+
+        | row | id      |   …
+        |-----|---------|   …
+        |   1 | a6c8e8e |   …
+        |   2 | e01812e |   …
+        ```
+
+        --yank 2 [d](or -y2)[/d] would be the same as typing --id e01812e
+
+    --use-list-timer-list / -u:
+        pass all id's from the most recent timer:list result to this command
+        this option can be repeated and combined with --id / -i or --yank / -y.
+    """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
@@ -508,9 +593,26 @@ def _match_ids(
 @click.command(
     cls=FmtRichCommand,
     name="edit",
-    help=_help.timer_edit,
     short_help="Edit completed time entries.",
-    syntax=_help.timer_edit_syntax,
+    syntax=Syntax(
+        code="""\
+        $ timer edit --id b95eb89 --id 36c9fe5 --start 3pm --note "…"
+        $ t e -ib95eb89 -i36c9fe5 -s3pm -n"…"
+
+        $ timer edit --use-last-timer-list --note "rewrite task"
+        $ t e -u -n"rewrite task"
+
+        $ timer edit --yank 1 --yank 2 --end now
+        $ t e -y1 -y2 -enow
+        
+        $ timer edit --yank 1 --yank 2 --id 36c9fe5 --date -2d # set 3 entries to 2 days ago
+        $ t e -y1 -y2 -i36c9fe5 -d-2d\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @utils._handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not edit entries.")),
@@ -657,6 +759,60 @@ def edit(
     end_time: datetime,
     date: datetime,
 ) -> None:
+    """
+    Edit completed time entries.
+
+    --id / -i:
+        ids for entries to edit.
+        repeat flag for multiple entries.
+
+    --yank / -y:
+        pull an id from the latest timer:list results.
+        option must be an integer within the range of the cached list.
+        the id of the corresponding row will be passed to the command.
+        this option can be repeated and combined with --id / -i.
+        e.g.
+
+        ```
+            $ timer list --current-week
+
+        | row | id      |   …
+        |-----|---------|   …
+        |   1 | a6c8e8e |   …
+        |   2 | e01812e |   …
+        ```
+
+        --yank 2 [d](or -y2)[/d] would be the same as typing --id e01812e
+
+    --use-list-timer-list / -u:
+        pass all id's from the most recent timer:list result to this command
+        this option can be repeated and combined with --id / -i or --yank / -y.
+
+    --project / -p:
+        set the project for all selected entries to this.
+        projects can be searched for by name or description.
+        projects are ordered in created time desc.
+
+    --note / -n:
+        set the note for all selected entries to this.
+        if --project / -p is used, then autocomplete will include notes for the selected project.
+
+    --billable / -b:
+        set the entry as billable or not.
+
+    --start-time / -s / --end-time / -e:
+        set the start/end time for all selected entries to this.
+        only the time value of the parsed datetime will be used.
+        if only one of the 2 are selected, each selected time entry will update
+        that respective value, and recalculate the total duration,
+        taking any existing paused hours into account.
+
+    --date / -d:
+        set the date for all selected entries to this.
+        only the date value of the parsed datetime will be used.
+        the existing start/end times will remain,
+        unless this option is combined with --start-time / -s / --end-time / -e.
+    """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
@@ -738,11 +894,6 @@ def edit(
             status_renderable=status_renderable,
         )
 
-        console.print(
-            "Updated",
-            "records:" if len(matched_ids) > 1 else "record:",
-        )
-
         original_records = []
         new_records = []
 
@@ -773,7 +924,11 @@ def edit(
             "[DEBUG]:", "new_records:", new_records
         )
 
-        console.print(render.create_table_diff(original_records, new_records))
+        console.print(
+            "Updated",
+            "records:" if len(matched_ids) > 1 else "record:",
+            render.create_table_diff(original_records, new_records),
+        )
         threads.spawn(ctx, appdata.sync, dict(trigger_query_job=query_job, debug=debug))
 
 
@@ -782,7 +937,19 @@ def edit(
     name="get",
     no_args_is_help=True,
     short_help="Retrieve a time entry by id.",
-    syntax=_help.timer_get_syntax,
+    syntax=Syntax(
+        code="""\
+        $ timer get 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46
+        
+        $ timer get 36c9fe5
+        
+        $ t g 36c9fe5\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @click.argument(
     "time_entry_id",
@@ -809,9 +976,39 @@ def get(
 @click.command(
     cls=FmtRichCommand,
     name="list",
-    help=_help.timer_list,
     short_help="List time entries.",
-    syntax=_help.timer_list_syntax,
+    syntax=Syntax(
+        code="""\
+        $ timer list --date jan1
+        $ t l -djan1
+
+        $ timer list --all active is true # where clause as arguments
+        $ t l -a active is true
+        
+        $ timer list --today
+        $ t l -t
+        
+        $ timer list --yesterday --prompt-where # interactive prompt for where clause
+        $ t l -yw
+
+        $ timer list --current-week billable is false
+        $ t l -cw billable is false
+        
+        $ timer list --date -2d --match-note (?i)task.* # case insensitive regex match
+        $ t l -d-2d -Rn (?i)task.*
+
+        $ t l -t -Rp ^(?!demo) # exclude projects containing word "demo"
+        
+        $ timer list --current-month "project = 'lightlike-cli' and note like any ('something%', 'else%')"
+        
+        $ timer list --all time(start) >= \\"18:29:09\\"
+        $ t l -a time(start) >= \\"18:29:09\\"\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
     context_settings=dict(
         allow_extra_args=True,
         allow_interspersed_args=True,
@@ -999,7 +1196,7 @@ def get(
     type=click.BOOL,
     help="Interactive prompt for WHERE clause.",
     required=False,
-    default=None,
+    default=False,
     callback=None,
     metavar=None,
     shell_complete=None,
@@ -1040,7 +1237,7 @@ def get(
     type=click.BOOL,
     help="Don't use query cache. *Deprecated*",
     required=False,
-    default=None,
+    default=False,
     callback=None,
     metavar=None,
     shell_complete=None,
@@ -1084,6 +1281,62 @@ def list_(
     prompt_where: bool,
     where: t.Sequence[str],
 ) -> None:
+    """
+    List time entries.
+
+    DATE/TIME FIELDS:
+        arguments/options asking for datetime will attempt to parse the string provided.
+        error will raise if unable to parse.
+        dates are relative to today, unless explicitly stated in the string.
+
+        Example values to pass to the date parser:
+        | type             | examples                                                  |
+        |-----------------:|-----------------------------------------------------------|
+        | datetime         | jan1@2pm [d](January 1st current year at 2:00 PM)[/d]            |
+        | date (relative)  | today/now, yesterday, monday, 2 days ago, -2d | "\-2d"    |
+        | time (relative)  | -15m [d](15 minutes ago)[/d], 1.25 hrs ago, -1.25hr | "\-1.25hr" |
+        | date             | jan1, 01/01, 2024-01-01                                   |
+        | time             | 2pm, 14:30:00, 2:30pm                                     |
+
+        [b]Note:[/b] If the date is an argument, the minus operator needs to be escaped.
+        e.g.
+        ```
+        $ command --option -2d
+        $ c -o-2d
+        $ command \-2d # argument
+        $ c \-2d # argument
+        ```
+
+    --current-week / -cw:
+    --current-month / -cm:
+    --current-year / -cy:
+        flags are processed before other date options.
+        configure week start dates with app:config:set:general:week_start
+
+    --match-project / -Rp:
+        match a regular expression against project names.
+        regex flavor/engine: ECMAScript (JavaScript)
+
+    --match-note / -Rn:
+        match a regular expression against entry notes.
+        regex flavor/engine: ECMAScript (JavaScript)
+
+    --prompt-where / -w:
+        filter results with a where clause.
+        interactive prompt that launches after command runs.
+        prompt includes autocompletions for projects and notes.
+        note autocompletions will only populate for a project if that project name appears in the string.
+
+    [bold #34e2e2]WHERE[/]:
+        where clause can also be written as the last argument to this command.
+        it can be a single string, or individual words separated by a space,
+        as long as characters are properly escaped if necessary.
+        it must either begin with the word "WHERE" (case-insensitive),
+        or it must be the string immediately proceeding the word "WHERE".
+
+    [b]See[/]:
+        test a string against the parser with app:test:date-parse.
+    """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
@@ -1185,9 +1438,14 @@ def list_(
 
 @click.group(
     cls=AliasedRichGroup,
-    help=_help.timer_notes_update,
     short_help="Manage notes.",
-    syntax=_help.timer_notes_update_syntax,
+    syntax=Syntax(
+        code="$ timer notes update lightlike-cli # interactive",
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 def notes() -> None: ...
 
@@ -1196,9 +1454,14 @@ def notes() -> None: ...
     cls=FmtRichCommand,
     name="update",
     no_args_is_help=True,
-    help=_help.timer_notes_update,
     short_help="Interactively update notes.",
-    syntax=_help.timer_notes_update_syntax,
+    syntax=Syntax(
+        code="$ timer notes update lightlike-cli # interactive",
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @click.argument(
     "project",
@@ -1221,6 +1484,14 @@ def update_notes(
     routine: "CliQueryRoutines",
     project: str,
 ) -> None:
+    """
+    Interactively update notes.
+
+    Select which notes to replace with [code]space[/code]. Press [code]enter[/code] to continue with the selection.
+    Enter a new note, and all selected notes will be replaced.
+    There is a lookback window so old notes do not clutter the autocompletions.
+    Update how many days to look back with app:config:set:general:note_history.
+    """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
@@ -1270,9 +1541,14 @@ def update_notes(
 @click.command(
     cls=FmtRichCommand,
     name="pause",
-    help=_help.timer_pause,
     short_help="Pause active entry.",
-    syntax=_help.timer_pause_syntax,
+    syntax=Syntax(
+        code="$ timer pause",
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @_pass.routine
 @_pass.console
@@ -1284,6 +1560,12 @@ def pause(
     console: "Console",
     routine: "CliQueryRoutines",
 ) -> None:
+    """
+    Pause the [b]active[/b] entry.
+
+    [b]See[/]:
+        timer:run --help / -h
+    """
     routine.pause_time_entry(cache.id, now)
     cache.put_active_entry_on_pause(now)
     console.set_window_title(__appname_sc__)
@@ -1292,9 +1574,20 @@ def pause(
 @click.command(
     cls=FmtRichCommand,
     name="resume",
-    help=_help.timer_resume,
     short_help="Resume a paused time entry.",
-    syntax=_help.timer_resume_syntax,
+    syntax=Syntax(
+        code="""\
+        $ timer resume 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46
+        $ t re 36c9fe5
+    
+        $ timer resume 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46 --force
+        $ t re 36c9fe5 -f\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @utils._handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not resume time entry.")),
@@ -1337,6 +1630,14 @@ def resume(
     entry: str,
     stop_: bool,
 ) -> None:
+    """
+    Continue a paused entry.
+
+    A resumed time entry becomes the [b]active[/b] entry.
+
+    [b]See[/]:
+        timer:run --help / -h
+    """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
@@ -1384,9 +1685,20 @@ def resume(
 @click.command(
     cls=FmtRichCommand,
     name="run",
-    help=_help.timer_run,
     short_help="Start a new time entry.",
-    syntax=_help.timer_run_syntax,
+    syntax=Syntax(
+        code="""\
+        $ timer run
+        $ t ru
+
+        $ timer run --project lightlike-cli --note readme --start -1hr --billable False
+        $ t ru -plightlike-cli -nreadme -s-1hr -b0\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @utils._handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not start time entry.")),
@@ -1479,6 +1791,41 @@ def run(
     note: str,
     pause_active: bool,
 ) -> None:
+    """
+    Start a new time entry.
+
+    When a new entry is started, a stopwatch displaying the duration & project appears in the prompt and in the tab title.
+    This is the [b]active[/b] entry. Multiple timers may run at once. Only 1 will be displayed in the cursor.
+    If a timer runs and there's an [b]active[/b] entry running, the latest becomes the new [b]active[/b] entry.
+
+    --project / -p:
+        project to log time entry under.
+        defaults to [code]no-project[/code].
+        create new projects with project:create.
+        projects can be searched for by name or description.
+        projects are ordered in created time desc.
+
+    --note / -n:
+        note to attach to time entry.
+        if --project / -p is used, then autocomplete will include notes for the selected project.
+
+    --billable / -b:
+        set the entry as billable or not.
+        if not provided, the default setting for the project is used.
+        set project default billable value when first creating a project
+        with project:create, using --default-billable / -b,
+        or update an existing project with project:set:default_billable.
+
+    --start / -s:
+        start the entry at an earlier time.
+        if not provided, the entry starts now.
+
+    [b]See[/]:
+        timer:stop - stop the [b]active[/b] entry.
+        timer:pause - pause the [b]active[/b] entry.
+        timer:resume - continue a paused entry, this paused entry becomes the [b]active[/b] entry.
+        timer:switch - pause and switch the [b]active[/b] entry.
+    """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
@@ -1526,9 +1873,14 @@ def run(
 @click.command(
     cls=FmtRichCommand,
     name="show",
-    help=_help.timer_show,
     short_help="Show local running/paused entries.",
-    syntax=_help.timer_show_syntax,
+    syntax=Syntax(
+        code="$ timer show\n$ t sh",
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @click.option(
     "-j",
@@ -1549,6 +1901,12 @@ def run(
 @_pass.cache
 @_pass.console
 def show(console: "Console", cache: "TimeEntryCache", json_: bool) -> None:
+    """
+    Show tables of all local running and paused time entries.
+    If there is an active entry, it will be in bold, in the first row.
+    Other running entries will be in the following rows.
+    If there are paused entries, they will be dimmed, and in the last row(s).
+    """
     if json_:
         console.print_json(data=cache._entries, default=str, indent=4)
     else:
@@ -1558,9 +1916,14 @@ def show(console: "Console", cache: "TimeEntryCache", json_: bool) -> None:
 @click.command(
     cls=FmtRichCommand,
     name="stop",
-    help=_help.timer_stop,
     short_help="Stop active entry.",
-    syntax=_help.timer_stop_syntax,
+    syntax=Syntax(
+        code="$ timer stop\n$ t st",
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @_pass.routine
 @_pass.console
@@ -1572,6 +1935,12 @@ def stop(
     console: "Console",
     routine: "CliQueryRoutines",
 ) -> None:
+    """
+    Stop the [b]active[/b] entry.
+
+    [b]See[/]:
+        timer:run --help / -h
+    """
     routine.stop_time_entry(cache.id, now)
     cache._clear_active()
     console.set_window_title(__appname_sc__)
@@ -1580,9 +1949,23 @@ def stop(
 @click.command(
     cls=FmtRichCommand,
     name="switch",
-    help=_help.timer_switch,
     short_help="Switch active entry.",
-    syntax=_help.timer_switch_syntax,
+    syntax=Syntax(
+        code="""\
+        $ timer switch
+        $ t s # interactive
+
+        $ timer switch 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46
+        $ t s 36c9fe
+    
+        $ timer switch 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46 --force
+        $ t s 36c9fe -f\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @utils._handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not switch.")),
@@ -1621,6 +2004,15 @@ def switch(
     entry: str | None,
     continue_: bool,
 ) -> None:
+    """
+    Switch the active time entry.
+
+        --force / -u:
+            do not pause the active entry during switch.
+
+        [b]See[/]:
+            timer:run --help / -h
+    """
     entries: list[dict[str, t.Any]] = cache.running_entries + cache.paused_entries
 
     if len(entries) == 1:
@@ -1661,9 +2053,19 @@ def switch(
 @click.command(
     cls=FmtRichCommand,
     name="update",
-    help=_help.timer_update,
     short_help="Update active entry.",
-    syntax=_help.timer_update_syntax,
+    syntax=Syntax(
+        code="""\
+        $ timer update --project lightlike-cli --start -30m
+    
+        $ timer update --billable true --note "redefine task"
+        $ t u -b1 -n"redefine task"\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
 @click.option(
     "-p",
@@ -1752,6 +2154,12 @@ def update(
     note: str | None,
     stop_: bool,
 ) -> None:
+    """
+    Update the [b]active[/b] time entry.
+
+    [b]See[/]:
+        timer:edit for making changes to entries that have already stopped.
+    """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
@@ -1854,7 +2262,7 @@ def update(
                 status_renderable=status_renderable,
             )
 
-        if stop_:
+        if stop_ and cache:
             ctx.invoke(stop)
 
         threads.spawn(
