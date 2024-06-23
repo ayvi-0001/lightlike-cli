@@ -122,7 +122,7 @@ class PromptFactory(PromptSession):
         validator = validate.ExistingProject() if not new else validate.NewProject()
         completer = shell_complete.projects.Active() if not new else None
         bottom_toolbar = lambda: (
-            "Name must match regex ^[a-zA-Z0-9-\_]{3,20}$" if new else None
+            r"Name must match regex ^[a-zA-Z0-9-\\_]{3,20}$" if new else None
         )
         session_pk = dict(
             message=cursor.build(message, hide_rprompt=True),

@@ -1,10 +1,11 @@
 import typing as t
 from gettext import gettext
+from inspect import cleandoc
 
 import rich_click as click
 from click.types import IntParamType, _NumberParamTypeBase
 
-__all__: t.Sequence[str] = ("CallableIntRange",)
+__all__: t.Sequence[str] = ("DynamicHelpOption", "CallableIntRange")
 
 
 class _CallableNumberRangeBase(_NumberParamTypeBase):
@@ -102,3 +103,47 @@ class CallableIntRange(_CallableNumberRangeBase, IntParamType):
             return bound
 
         return bound + dir
+
+
+class DynamicHelpOption(click.Option):
+    def __init__(
+        self,
+        param_decls: t.Optional[t.Sequence[str]] = None,
+        show_default: t.Union[bool, str, None] = None,
+        prompt: t.Union[bool, str] = False,
+        confirmation_prompt: t.Union[bool, str] = False,
+        prompt_required: bool = True,
+        hide_input: bool = False,
+        is_flag: t.Optional[bool] = None,
+        flag_value: t.Optional[t.Any] = None,
+        multiple: bool = False,
+        count: bool = False,
+        allow_from_autoenv: bool = True,
+        type: click.ParamType | t.Any | None = None,
+        help: t.Optional[str] = None,
+        hidden: bool = False,
+        show_choices: bool = True,
+        show_envvar: bool = False,
+        **attrs: t.Any,
+    ) -> None:
+        super().__init__(
+            param_decls,
+            show_default,
+            prompt,
+            confirmation_prompt,
+            prompt_required,
+            hide_input,
+            is_flag,
+            flag_value,
+            multiple,
+            count,
+            allow_from_autoenv,
+            type,
+            None,  # help,
+            hidden,
+            show_choices,
+            show_envvar,
+            **attrs,
+        )
+
+        self.help = cleandoc(help) if help and not callable(help) else help

@@ -162,7 +162,7 @@ def _parse_click_options(
 
             session = _build_query_session(
                 completer=shell_complete.where.completer(
-                    routine.dataset_main, routine.table_timesheet
+                    routine.dataset, routine.table_timesheet
                 ),
             )
             where_clause = session.prompt(

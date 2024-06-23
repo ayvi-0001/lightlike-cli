@@ -78,7 +78,7 @@ def edit_params(
     debug: bool,
 ) -> bool:
     debug and patch_stdout(raw=True)(get_console().log)(
-        "[DEBUG]:", "Edit Params:", params
+        "[DEBUG]", "Edit Params:", params
     )
 
     if ids_to_match:

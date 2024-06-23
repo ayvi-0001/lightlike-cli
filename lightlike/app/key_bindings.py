@@ -87,15 +87,17 @@ def _log_completer_keypress(
 ) -> None:
     from lightlike._console import global_completers
 
+    console = get_console()
+
     if completer in global_completers():
         with patch_stdout(raw=True):
-            get_console().log(
+            console.log(
                 "Registered key press", markup.code("".join(keys)), "-",
                 markup.command(name), "added to completers",  # fmt: skip
             )
     else:
         with patch_stdout(raw=True):
-            get_console().log(
+            console.log(
                 "Registered key press", markup.code("".join(keys)), "-",
                 markup.command(name), "removed from completers",  # fmt: skip
             )
@@ -162,6 +164,22 @@ for bindings in [PROMPT_BINDINGS, QUERY_BINDINGS]:
             buffer.complete_next()
         else:
             buffer.start_completion()
+
+    @bindings.add("[", "A")
+    def _(event: "KeyPressEvent") -> None:
+        event.current_buffer.auto_up()
+
+    @bindings.add("[", "B")
+    def _(event: "KeyPressEvent") -> None:
+        event.current_buffer.auto_down()
+
+    @bindings.add("[", "D")
+    def _(event: "KeyPressEvent") -> None:
+        event.current_buffer.cursor_left()
+
+    @bindings.add("[", "C")
+    def _(event: "KeyPressEvent") -> None:
+        event.current_buffer.cursor_right()
 
 
 @query_handle(Keys.Tab, eager=True)

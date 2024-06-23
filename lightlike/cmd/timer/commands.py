@@ -12,7 +12,6 @@ from operator import truth
 
 import rich_click as click
 from more_itertools import first, locate, one
-from prompt_toolkit.patch_stdout import patch_stdout
 from rich import print as rprint
 from rich.syntax import Syntax
 from rich.text import Text
@@ -21,9 +20,9 @@ from lightlike.__about__ import __appname_sc__
 from lightlike.app import _get, _pass, dates, render, shell_complete, threads, validate
 from lightlike.app.cache import TimeEntryCache
 from lightlike.app.config import AppConfig
-from lightlike.app.core import AliasedRichGroup, DynamicHelpOption, FmtRichCommand
+from lightlike.app.core import AliasedRichGroup, FmtRichCommand
 from lightlike.app.prompt import PromptFactory
-from lightlike.app.shell_complete.types import CallableIntRange
+from lightlike.app.shell_complete.types import CallableIntRange, DynamicHelpOption
 from lightlike.internal import appdir, markup, utils
 from lightlike.lib.third_party import _questionary
 
@@ -222,7 +221,7 @@ def add(
         date_params.start,
         date_params.total_seconds,
     )
-    hours = round(total_seconds / 3600, 4)
+    hours = round(Decimal(total_seconds) / Decimal(3600), 4)
 
     active_projects: dict[str, t.Any]
     try:
@@ -235,8 +234,8 @@ def add(
         active_projects = data["active"]
         project_default_billable = active_projects[project]["default_billable"]
 
-    debug and patch_stdout(raw=True)(console.log)(
-        "[DEBUG]:",
+    debug and console.log(
+        "[DEBUG]",
         "getting projects default billable value:",
         project_default_billable,
     )
@@ -428,7 +427,7 @@ def delete(
             id_list=id_list,
             ids_to_match=ids_to_match,
         )
-        console.print(markup.saved("Matched "), matched_ids, end="")
+        console.print(markup.bg("Matched "), matched_ids, end="")
         non_matched_ids and console.print(
             markup.red("Non-matched "), non_matched_ids, end=""
         )
@@ -436,14 +435,11 @@ def delete(
 
         for id_match in matched_ids:
             if cache.id == id_match:
-                console.print(markup.scope_key("Active entry found."))
                 cache._clear_active()
                 console.set_window_title(__appname_sc__)
             elif cache.exists(cache.running_entries, [id_match]):
-                console.print(markup.scope_key("Running time entry found."))
                 cache.remove([cache.running_entries], "id", [id_match])
             elif cache.exists(cache.paused_entries, [id_match]):
-                console.print(markup.scope_key("Paused time entry found."))
                 cache.remove([cache.paused_entries], "id", [id_match])
 
         query_job: "QueryJob" = routine._delete_time_entry(
@@ -457,6 +453,9 @@ def delete(
         console.print("Deleted time entries")
         threads.spawn(ctx, appdata.sync, dict(trigger_query_job=query_job, debug=debug))
         threads.spawn(ctx, id_list.reset)
+
+        if debug:
+            query_job.result()
 
 
 def _get_entry_edits(
@@ -561,7 +560,7 @@ def _get_entry_edits(
             )
             return None
 
-        hours = round(Decimal(duration.total_seconds() / 3600), 4)
+        hours = round(Decimal(duration.total_seconds()) / Decimal(3600), 4)
         edits["paused_hours"] = None
         edits["hours"] = hours
 
@@ -831,7 +830,7 @@ def edit(
             ctx=ctx, id_list=id_list, ids_to_match=ids_to_match
         )
 
-        console.print(markup.saved("Matched "), matched_ids, end="")
+        console.print(markup.bg("Matched "), matched_ids, end="")
         non_matched_ids and console.print(
             markup.red("Non-matched "), non_matched_ids, end=""
         )
@@ -843,7 +842,7 @@ def edit(
             console.print(markup.br("Error:"), error)
             raise utils.click_exit
 
-        debug and patch_stdout(raw=True)(console.log)("[DEBUG]:", matched_entries)
+        debug and console.log("[DEBUG]", matched_entries)
 
         all_edits: list[dict[str, t.Any]] = []
         for entry_row in matched_entries:
@@ -864,7 +863,7 @@ def edit(
             else:
                 all_edits.append(edits)
 
-        debug and patch_stdout(raw=True)(console.log)("[DEBUG]:", all_edits)
+        debug and console.log("[DEBUG]", all_edits)
 
         status_renderable = Text.assemble(
             markup.status_message(
@@ -917,12 +916,8 @@ def edit(
 
             new_records.append(edits)
 
-        debug and patch_stdout(raw=True)(console.log)(
-            "[DEBUG]:", "original_records:", original_records
-        )
-        debug and patch_stdout(raw=True)(console.log)(
-            "[DEBUG]:", "new_records:", new_records
-        )
+        debug and console.log("[DEBUG]", "original_records:", original_records)
+        debug and console.log("[DEBUG]", "new_records:", new_records)
 
         console.print(
             "Updated",
@@ -1293,8 +1288,8 @@ def list_(
         | type             | examples                                                  |
         |-----------------:|-----------------------------------------------------------|
         | datetime         | jan1@2pm [d](January 1st current year at 2:00 PM)[/d]            |
-        | date (relative)  | today/now, yesterday, monday, 2 days ago, -2d | "\-2d"    |
-        | time (relative)  | -15m [d](15 minutes ago)[/d], 1.25 hrs ago, -1.25hr | "\-1.25hr" |
+        | date (relative)  | today/now, yesterday, monday, 2 days ago, -2d | "\\-2d"    |
+        | time (relative)  | -15m [d](15 minutes ago)[/d], 1.25 hrs ago, -1.25hr | "\\-1.25hr" |
         | date             | jan1, 01/01, 2024-01-01                                   |
         | time             | 2pm, 14:30:00, 2:30pm                                     |
 
@@ -1303,8 +1298,8 @@ def list_(
         ```
         $ command --option -2d
         $ c -o-2d
-        $ command \-2d # argument
-        $ c \-2d # argument
+        $ command \\-2d # argument
+        $ c \\-2d # argument
         ```
 
     --current-week / -cw:
@@ -1553,9 +1548,11 @@ def update_notes(
 @_pass.routine
 @_pass.console
 @_pass.active_time_entry
+@_pass.ctx_group(parents=1)
 @_pass.now
 def pause(
     now: datetime,
+    ctx_group: t.Sequence[click.RichContext],
     cache: "TimeEntryCache",
     console: "Console",
     routine: "CliQueryRoutines",
@@ -1566,9 +1563,17 @@ def pause(
     [b]See[/]:
         timer:run --help / -h
     """
-    routine.pause_time_entry(cache.id, now)
-    cache.put_active_entry_on_pause(now)
+    ctx, parent = ctx_group
+    debug: bool = parent.params.get("debug", False)
+
+    time_entry_id: str = cache.id
+    query_job: "QueryJob" = routine.pause_time_entry(time_entry_id, now)
+    cache.pause_active_entry(now)
     console.set_window_title(__appname_sc__)
+
+    if debug:
+        query_job.result()
+        console.log("[DEBUG]", f"paused entry {time_entry_id}")
 
 
 @click.command(
@@ -1645,29 +1650,32 @@ def resume(
         console.print(markup.dimmed("No paused time entries."))
         return
 
+    query_job: "QueryJob"
+    matched_id: str
     if not entry:
         paused_entries = cache.get_updated_paused_entries(now)
-
-        table: Table = render.map_sequence_to_rich_table(
-            mappings=paused_entries,
-            string_ctype=["project", "note", "id"],
-            bool_ctype=["billable", "paused"],
-            num_ctype=["paused_hours"],
-            datetime_ctype=["timestamp_paused"],
-            time_ctype=["start"],
+        console.print(
+            render.map_sequence_to_rich_table(
+                mappings=paused_entries,
+                string_ctype=["project", "note", "id"],
+                bool_ctype=["billable", "paused"],
+                num_ctype=["paused_hours"],
+                datetime_ctype=["timestamp_paused"],
+                time_ctype=["start"],
+            )
         )
-        console.print(table)
 
         select: str = _questionary.select(
             message="Select an entry to resume",
             choices=list(map(_get._id, paused_entries)),
         )
 
-        cache.resume_paused_time_entry(select, now)
-        routine.resume_time_entry(cache.id, now)
+        matched_id = select
+        cache.resume_paused_entry(matched_id, now)
+        query_job = routine.resume_time_entry(matched_id, now)
     else:
         if len(entry) < 40:
-            matched_id: str = id_list.match_id(entry)
+            matched_id = id_list.match_id(entry)
         else:
             matched_id = entry
 
@@ -1678,8 +1686,12 @@ def resume(
             cache.remove([cache.paused_entries], "id", [matched_id])
             routine.stop_time_entry(matched_id, now)
         else:
-            cache.resume_paused_time_entry(matched_id, now)
-            routine.resume_time_entry(cache.id, now)
+            cache.resume_paused_entry(matched_id, now)
+            query_job = routine.resume_time_entry(matched_id, now)
+
+    if debug:
+        query_job.result()
+        console.log("[DEBUG]", f"resumed entry {matched_id}")
 
 
 @click.command(
@@ -1838,8 +1850,8 @@ def run(
             appdata.sync()
             active_projects = appdata.load()["active"]
         project_default_billable = active_projects[project]["default_billable"]
-        debug and patch_stdout(raw=True)(console.log)(
-            "[DEBUG]:",
+        debug and console.log(
+            "[DEBUG]",
             "getting projects default billable value:",
             project_default_billable,
         )
@@ -1852,7 +1864,7 @@ def run(
 
     if pause_active:
         if cache:
-            cache.put_active_entry_on_pause(start_local)
+            cache.pause_active_entry(start_local)
             routine.pause_time_entry(cache.id, start_local)
         else:
             console.print("No active entry. --pause-active / -P ignored.")
@@ -1865,6 +1877,10 @@ def run(
         cache.note = note if note != "None" else None  # type: ignore[assignment]
         cache.billable = billable or project_default_billable
         cache.start = start_local
+
+    if debug:
+        query_job.result()
+        console.log("[DEBUG]", f"started entry {time_entry_id}")
 
     threads.spawn(ctx, appdata.sync, dict(trigger_query_job=query_job, debug=debug))
     threads.spawn(ctx, id_list.add, dict(input_id=time_entry_id, debug=debug))
@@ -1928,9 +1944,11 @@ def show(console: "Console", cache: "TimeEntryCache", json_: bool) -> None:
 @_pass.routine
 @_pass.console
 @_pass.active_time_entry
+@_pass.ctx_group(parents=1)
 @_pass.now
 def stop(
     now: datetime,
+    ctx_group: t.Sequence[click.RichContext],
     cache: "TimeEntryCache",
     console: "Console",
     routine: "CliQueryRoutines",
@@ -1941,7 +1959,10 @@ def stop(
     [b]See[/]:
         timer:run --help / -h
     """
-    routine.stop_time_entry(cache.id, now)
+    ctx, parent = ctx_group
+    debug: bool = parent.params.get("debug", False)
+
+    routine.stop_time_entry(cache.id, now, wait=debug)
     cache._clear_active()
     console.set_window_title(__appname_sc__)
 
@@ -1987,19 +2008,23 @@ def stop(
     type=click.BOOL,
     help="Active entry continues to run after switching.",
     required=False,
-    default=None,
+    default=False,
     callback=None,
     metavar=None,
     shell_complete=None,
 )
 @_pass.console
+@_pass.id_list
 @_pass.routine
 @_pass.active_time_entry
+@_pass.ctx_group(parents=1)
 @_pass.now
 def switch(
     now: datetime,
+    ctx_group: t.Sequence[click.RichContext],
     cache: "TimeEntryCache",
     routine: "CliQueryRoutines",
+    id_list: "TimeEntryIdList",
     console: "Console",
     entry: str | None,
     continue_: bool,
@@ -2013,6 +2038,9 @@ def switch(
         [b]See[/]:
             timer:run --help / -h
     """
+    ctx, parent = ctx_group
+    debug: bool = parent.params.get("debug", False)
+
     entries: list[dict[str, t.Any]] = cache.running_entries + cache.paused_entries
 
     if len(entries) == 1:
@@ -2041,12 +2069,16 @@ def switch(
             choices=choices,
         )
     else:
-        select = entry
+        select = id_list.match_id(entry)
 
     if cache.index(cache.paused_entries, "id", [select]):
-        routine.resume_time_entry(select, now)
+        routine.resume_time_entry(select, now, wait=debug)
+        debug and console.log("[DEBUG]", f"resuming entry {select}")
 
-    not continue_ and routine.pause_time_entry(cache.id, now)
+    if not continue_:
+        routine.pause_time_entry(cache.id, now, wait=debug)
+        debug and console.log("[DEBUG]", f"pausing entry {cache.id}")
+
     cache.switch_active_entry(select, now, continue_)
 
 
@@ -2170,7 +2202,8 @@ def update(
     edits: dict[str, t.Any] = {}
 
     status_renderable = Text.assemble(
-        markup.status_message("Updating time entry: "), markup.code(cache.id[:7])
+        markup.status_message("Updating time entry: "),
+        markup.code(cache.id[:7]),
     )
 
     with console.status(status_renderable) as status:
@@ -2193,22 +2226,17 @@ def update(
             if start == cache.start:
                 console.print("start is already set to", start, "- skipping update.")
             else:
-                paused_hours, paused_minutes, paused_seconds = (
-                    dates.seconds_to_time_parts(Decimal(cache.paused_hours or 0) * 3600)
-                )
-                duration = (dates.now(AppConfig().tz) - start) - timedelta(
-                    hours=paused_hours,
-                    minutes=paused_minutes,
-                    seconds=paused_seconds,
-                )
-
-                if duration.total_seconds() < 0 or copysign(1, duration.days) == -1:
-                    raise click.BadArgumentUsage(
+                dates.calculate_duration(
+                    start_date=start,
+                    end_date=now,
+                    paused_hours=cache.paused_hours or 0,
+                    raise_if_negative=True,
+                    exception=click.BadArgumentUsage(
                         message="Invalid value for args [START] | [END]. New duration cannot be negative. "
                         f"Existing paused hours = {cache.paused_hours}",
                         ctx=ctx,
-                    )
-
+                    ),
+                )
                 with cache.rw() as cache:
                     cache.start = start
 
@@ -2279,5 +2307,7 @@ def update(
             "billable": copy["billable"],
         }
 
-        diff = render.create_row_diff(original=original_record, new=edits)
-        console.print("Updated record:", diff)
+        console.print(
+            "Updated record:",
+            render.create_row_diff(original=original_record, new=edits),
+        )

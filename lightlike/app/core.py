@@ -2,7 +2,6 @@
 
 import importlib
 import typing as t
-from inspect import cleandoc
 from operator import truth
 from os import getenv
 from types import ModuleType
@@ -35,7 +34,6 @@ __all__: t.Sequence[str] = (
     "FmtRichCommand",
     "AliasedRichGroup",
     "LazyAliasedRichGroup",
-    "DynamicHelpOption",
     "_map_click_exception",
 )
 
@@ -142,11 +140,13 @@ class FmtRichCommand(click.RichCommand):
     def __init__(
         self,
         syntax: t.Optional[t.Callable[..., Syntax]] = None,
+        allow_name_alias: bool = True,
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.syntax = syntax
+        self.allow_name_alias = allow_name_alias
 
     def format_help(self, ctx: RichContext, formatter: RichHelpFormatter) -> None:  # type: ignore[override]
         formatter.console.width = 120
@@ -204,13 +204,15 @@ class AliasedRichGroup(click.RichGroup):
         rv = click.RichGroup.get_command(self, ctx, cmd_name)
         if rv is not None:
             return rv
-        # fmt: off
-        matches = [
-            m for m in self.list_commands(ctx)
-            if m.startswith(cmd_name)
-            and not ((cmd := self.get_command(ctx, m)) and cmd.hidden)
-        ]
-        # fmt: on
+        matches = []
+        for m in self.list_commands(ctx):
+            if m.startswith(cmd_name):
+                command = self.get_command(ctx, m)
+                if hasattr(command, "allow_name_alias"):
+                    if command.allow_name_alias is False and cmd_name != m:
+                        return None
+                if not (command and command.hidden):
+                    matches.append(m)
         if not matches:
             return None
         elif len(matches) == 1:
@@ -290,16 +292,17 @@ class LazyAliasedRichGroup(AliasedRichGroup):
     def get_command(self, ctx: RichContext, cmd_name: str) -> click.RichCommand | None:
         if cmd_name in self.lazy_subcommands:
             return self._lazy_load(cmd_name)
-
         matches = [m for m in self.list_commands(ctx) if m.startswith(cmd_name)]
-        # fmt: on
         if not matches:
-            # return t.cast(click.RichCommand | None, super().get_command(ctx, cmd_name))
             return None
         elif len(matches) == 1 and (match := first(matches)) in self.lazy_subcommands:
-            return self._lazy_load(match)
+            command = self._lazy_load(match)
+            if hasattr(command, "allow_name_alias"):
+                if command.allow_name_alias is False and cmd_name != match:
+                    return None
+            return command
         else:
-            return t.cast(click.RichCommand | None, super().get_command(ctx, cmd_name))
+            return super().get_command(ctx, cmd_name)
 
     def _lazy_load(self, cmd_name: str) -> click.RichCommand | None:
         # lazily loading a command, first get the module name and attribute name
@@ -339,50 +342,6 @@ class LazyAliasedRichGroup(AliasedRichGroup):
                 "a non-command object"
             )
         return cmd_object
-
-
-class DynamicHelpOption(click.Option):
-    def __init__(
-        self,
-        param_decls: t.Optional[t.Sequence[str]] = None,
-        show_default: t.Union[bool, str, None] = None,
-        prompt: t.Union[bool, str] = False,
-        confirmation_prompt: t.Union[bool, str] = False,
-        prompt_required: bool = True,
-        hide_input: bool = False,
-        is_flag: t.Optional[bool] = None,
-        flag_value: t.Optional[t.Any] = None,
-        multiple: bool = False,
-        count: bool = False,
-        allow_from_autoenv: bool = True,
-        type: click.ParamType | t.Any | None = None,
-        help: t.Optional[str] = None,
-        hidden: bool = False,
-        show_choices: bool = True,
-        show_envvar: bool = False,
-        **attrs: t.Any,
-    ) -> None:
-        super().__init__(
-            param_decls,
-            show_default,
-            prompt,
-            confirmation_prompt,
-            prompt_required,
-            hide_input,
-            is_flag,
-            flag_value,
-            multiple,
-            count,
-            allow_from_autoenv,
-            type,
-            None,  # help,
-            hidden,
-            show_choices,
-            show_envvar,
-            **attrs,
-        )
-
-        self.help = cleandoc(help) if help and not callable(help) else help
 
 
 def _cast_text_render(text: str) -> str:

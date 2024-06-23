@@ -101,6 +101,6 @@ def date_diff(
         minutes=paused_minutes,
         seconds=paused_seconds,
     )
-    hours = round(Decimal(duration.total_seconds()) / 3600, 4)
+    hours = round(Decimal(duration.total_seconds()) / Decimal(3600), 4)
     console.print("Duration:", duration)
     console.print("Hours:", hours)

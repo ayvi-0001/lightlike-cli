@@ -62,7 +62,6 @@ repr_attrib_value: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="
 repr_number: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="repr_number")
 repr_path: t.Callable[..., Text] = lambda t: Text(text=f'"{t!s}"', style="repr_path")
 repr_str: t.Callable[..., Text] = lambda t: Text(text=f'"{t!s}"', style="repr_str")
-saved: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="saved")
 scope_key: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="scope.key")
 status_message: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="status.message")
 # fmt: on

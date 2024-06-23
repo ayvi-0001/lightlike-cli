@@ -46,11 +46,11 @@ class _Singleton(type):
 
 class CliQueryRoutines(metaclass=_Singleton):
     _client: t.ClassVar[t.Callable[..., "Client"]] = get_client
-    dataset_main: t.ClassVar[str] = AppConfig().get("bigquery", "dataset")
+    dataset: t.ClassVar[str] = AppConfig().get("bigquery", "dataset")
     table_timesheet: t.ClassVar[str] = AppConfig().get("bigquery", "timesheet")
     table_projects: t.ClassVar[str] = AppConfig().get("bigquery", "projects")
-    timesheet_id: t.ClassVar[str] = f"{dataset_main}.{table_timesheet}"
-    projects_id: t.ClassVar[str] = f"{dataset_main}.{table_projects}"
+    timesheet_id: t.ClassVar[str] = f"{dataset}.{table_timesheet}"
+    projects_id: t.ClassVar[str] = f"{dataset}.{table_projects}"
 
     def _query_and_wait(
         self,
@@ -169,7 +169,7 @@ class CliQueryRoutines(metaclass=_Singleton):
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.start_time_entry(@id, @project, @note, @start_time, @billable);",
+            target=f"CALL {self.dataset}.start_time_entry(@id, @project, @note, @start_time, @billable);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -208,7 +208,7 @@ class CliQueryRoutines(metaclass=_Singleton):
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.add_time_entry(@id, @project, @note, @start_time, @end_time, @billable);",
+            target=f"CALL {self.dataset}.add_time_entry(@id, @project, @note, @start_time, @end_time, @billable);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -264,7 +264,7 @@ class CliQueryRoutines(metaclass=_Singleton):
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.archive_project(@name);",
+            target=f"CALL {self.dataset}.archive_project(@name);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -291,7 +291,7 @@ class CliQueryRoutines(metaclass=_Singleton):
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.archive_time_entries(@name);",
+            target=f"CALL {self.dataset}.archive_time_entries(@name);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -324,7 +324,7 @@ class CliQueryRoutines(metaclass=_Singleton):
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.create_project(@name, @description, @default_billable);",
+            target=f"CALL {self.dataset}.create_project(@name, @description, @default_billable);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -351,7 +351,7 @@ class CliQueryRoutines(metaclass=_Singleton):
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.delete_project(@name);",
+            target=f"CALL {self.dataset}.delete_project(@name);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -380,7 +380,7 @@ class CliQueryRoutines(metaclass=_Singleton):
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.delete_time_entries(@project);",
+            target=f"CALL {self.dataset}.delete_time_entries(@project);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -421,7 +421,7 @@ class CliQueryRoutines(metaclass=_Singleton):
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.update_time_entries(@ids, @project, @note, @billable, @start, @end, @date);",
+            target=f"CALL {self.dataset}.update_time_entries(@ids, @project, @note, @billable, @start, @end, @date);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -450,7 +450,7 @@ class CliQueryRoutines(metaclass=_Singleton):
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.stop_time_entry(@id, @end);",
+            target=f"CALL {self.dataset}.stop_time_entry(@id, @end);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -514,9 +514,9 @@ class CliQueryRoutines(metaclass=_Singleton):
         query = cleandoc(
             f"""
         CREATE SNAPSHOT TABLE
-          {self.dataset_main}.`{name}`
+          {self.dataset}.`{name}`
         CLONE
-          {self.dataset_main}.{self.table_timesheet}
+          {self.timesheet_id}
         """
         )
 
@@ -571,7 +571,7 @@ class CliQueryRoutines(metaclass=_Singleton):
                     UNNEST([STRUCT(SPLIT(REPLACE(kv, '"', ''), ', ') AS arr)])
                 ) AS labels,
               FROM
-                {self.dataset_main}.INFORMATION_SCHEMA.TABLE_OPTIONS
+                {self.dataset}.INFORMATION_SCHEMA.TABLE_OPTIONS
               WHERE
                 table_name = "{snapshot_table}"
                 AND option_name = "labels"
@@ -592,9 +592,9 @@ class CliQueryRoutines(metaclass=_Singleton):
           RAISE USING message = "Snapshot is from an old version and is incompatible with the current timesheet table.";
         ELSE
           CREATE OR REPLACE TABLE
-            `{self.dataset_main}.{self.table_timesheet}`
+            `{self.timesheet_id}`
           CLONE
-            `{self.dataset_main}.{snapshot_table}`;
+            `{self.dataset}.{snapshot_table}`;
         END IF;
         """
         )
@@ -630,14 +630,14 @@ class CliQueryRoutines(metaclass=_Singleton):
               TIMESTAMP_TRUNC(snapshot_time_ms, second) AS snapshot_time_ms,
               expiration_timestamp,
             FROM
-              {self.dataset_main}.INFORMATION_SCHEMA.TABLES
+              {self.dataset}.INFORMATION_SCHEMA.TABLES
             LEFT JOIN
               (
                 SELECT
                   table_name,
                   TIMESTAMP(REGEXP_EXTRACT(option_value, r'TIMESTAMP\s\"(.*)\"')) AS expiration_timestamp
                 FROM
-                    {self.dataset_main}.INFORMATION_SCHEMA.TABLE_OPTIONS
+                    {self.dataset}.INFORMATION_SCHEMA.TABLE_OPTIONS
                 WHERE
                   option_name = "expiration_timestamp"
                   AND option_value NOT IN ('""', "[]")
@@ -662,7 +662,7 @@ class CliQueryRoutines(metaclass=_Singleton):
 
     @property
     def _resume_time_entry(self) -> str:
-        return f"CALL {self.dataset_main}.resume_time_entry(@id, @time_resume);"
+        return f"CALL {self.dataset}.resume_time_entry(@id, @time_resume);"
 
     def resume_time_entry(
         self,
@@ -714,7 +714,7 @@ class CliQueryRoutines(metaclass=_Singleton):
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.unarchive_project(@name);",
+            target=f"CALL {self.dataset}.unarchive_project(@name);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -741,7 +741,7 @@ class CliQueryRoutines(metaclass=_Singleton):
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.unarchive_time_entries(@name);",
+            target=f"CALL {self.dataset}.unarchive_time_entries(@name);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -774,7 +774,7 @@ class CliQueryRoutines(metaclass=_Singleton):
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.update_notes(@new_note, @old_note, @project);",
+            target=f"CALL {self.dataset}.update_notes(@new_note, @old_note, @project);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -805,7 +805,7 @@ class CliQueryRoutines(metaclass=_Singleton):
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.update_project_default_billable(@project, @value);",
+            target=f"CALL {self.dataset}.update_project_default_billable(@project, @value);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -834,7 +834,7 @@ class CliQueryRoutines(metaclass=_Singleton):
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.update_project_description(@name, @desc);",
+            target=f"CALL {self.dataset}.update_project_description(@name, @desc);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -865,7 +865,7 @@ class CliQueryRoutines(metaclass=_Singleton):
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.update_project_name(@name, @new_name);",
+            target=f"CALL {self.dataset}.update_project_name(@name, @new_name);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -896,7 +896,7 @@ class CliQueryRoutines(metaclass=_Singleton):
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.update_time_entry_projects(@name, @new_name);",
+            target=f"CALL {self.dataset}.update_time_entry_projects(@name, @new_name);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -927,7 +927,7 @@ class CliQueryRoutines(metaclass=_Singleton):
         )
 
         return self._query(
-            target=f"CALL {self.dataset_main}.pause_time_entry(@id, @timestamp_paused);",
+            target=f"CALL {self.dataset}.pause_time_entry(@id, @timestamp_paused);",
             job_config=job_config,
             wait=wait,
             render=render,
@@ -982,7 +982,7 @@ class CliQueryRoutines(metaclass=_Singleton):
           billable,
           active,
           paused,
-          ROUND(SAFE_CAST(IF(paused = TRUE, SAFE_DIVIDE(TIMESTAMP_DIFF({self.dataset_main}.current_timestamp(), timestamp_paused, SECOND), 3600), 0) + IFNULL(paused_hours, 0) AS NUMERIC), 4) AS paused_hours,
+          ROUND(SAFE_CAST(IF(paused = TRUE, SAFE_DIVIDE(TIMESTAMP_DIFF({self.dataset}.current_timestamp(), timestamp_paused, SECOND), 3600), 0) + IFNULL(paused_hours, 0) AS NUMERIC), 4) AS paused_hours,
           CASE
             WHEN paused THEN ROUND(SAFE_CAST(SAFE_DIVIDE(TIMESTAMP_DIFF(timestamp_paused, timestamp_start, SECOND), 3600) AS NUMERIC) - IFNULL(paused_hours, 0), 4)
             WHEN active THEN ROUND(SAFE_CAST(SAFE_DIVIDE(TIMESTAMP_DIFF(IFNULL(timestamp_end, lightlike_cli_test.current_timestamp()), timestamp_start, SECOND), 3600) AS NUMERIC) - IFNULL(paused_hours, 0), 4)
@@ -999,7 +999,7 @@ class CliQueryRoutines(metaclass=_Singleton):
             4
           ) AS total,
         FROM
-          {self.dataset_main}.{self.table_timesheet}
+          {self.timesheet_id}
         WHERE
           TRUE
           %s /* date */
@@ -1099,15 +1099,15 @@ class CliQueryRoutines(metaclass=_Singleton):
               CASE %s /* round */
                 WHEN TRUE THEN
                   IF(
-                    {self.dataset_main}.rounding_step(SUM(hours) - FLOOR(SUM(hours))) = 1,
+                    {self.dataset}.rounding_step(SUM(hours) - FLOOR(SUM(hours))) = 1,
                     ROUND(SUM(hours)),
-                    FLOOR(SUM(hours)) + {self.dataset_main}.rounding_step(SUM(hours) - FLOOR(SUM(hours)))
+                    FLOOR(SUM(hours)) + {self.dataset}.rounding_step(SUM(hours) - FLOOR(SUM(hours)))
                   )
                 ELSE
                   SUM(hours)
               END AS hours,
             FROM
-              {self.dataset_main}.{self.table_timesheet}
+              {self.timesheet_id}
             WHERE
               TRUE
               AND NOT archived
@@ -1275,11 +1275,13 @@ class CliQueryRoutines(metaclass=_Singleton):
                 job_id=uuid4(),
                 end_point="page=queryresults",
             )
-        else:
-            return "{base_url}project={project_id}&j=bq:{region}:{job_id}&{end_point}".format(
+
+        return (
+            "{base_url}project={project_id}&j=bq:{region}:{job_id}&{end_point}".format(
                 base_url="https://console.cloud.google.com/bigquery?",
                 project_id=query_job.project,
                 region=query_job.location,
                 job_id=query_job.job_id,
                 end_point="page=queryresults",
             )
+        )

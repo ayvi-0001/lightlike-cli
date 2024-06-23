@@ -4,13 +4,13 @@ import typing as t
 
 import rich_click as click
 from more_itertools import first
-from prompt_toolkit.patch_stdout import patch_stdout
 from rich import print as rprint
 from rich.syntax import Syntax
 from rich.text import Text
 
 from lightlike.__about__ import __appname_sc__
 from lightlike.app import _get, _pass, render, shell_complete, threads, validate
+from lightlike.app.autosuggest import threaded_autosuggest
 from lightlike.app.core import AliasedRichGroup, FmtRichCommand
 from lightlike.app.prompt import PromptFactory
 from lightlike.internal import markup, utils
@@ -278,7 +278,7 @@ def create(
     description: str,
     default_billable: bool,
 ) -> None:
-    """
+    r"""
     Create a new project.
 
     For interactive prompt, pass no options.
@@ -305,8 +305,8 @@ def create(
         ):
             default_billable = True
 
-    debug and patch_stdout(raw=True)(console.log)(
-        "[DEBUG]:", "project default billable set to", default_billable
+    debug and console.log(
+        "[DEBUG]", "project default billable set to", default_billable
     )
 
     routine.create_project(
@@ -539,12 +539,13 @@ def list_(
         "name",
         "description",
         "default_billable",
-        "date(created) as created",
+        "date(created) AS created",
     ]
     if all_:
-        fields.append("date(archived) as archived")
+        fields.append("date(archived) AS archived")
 
     where: list[str] = []
+
     if not all_:
         where.append("archived is null")
     if match_name:
@@ -565,14 +566,14 @@ def list_(
         order=order,
     )
 
-    table = render.map_sequence_to_rich_table(
-        mappings=list(map(lambda r: dict(r.items()), query_job)),
-        string_ctype=["name", "description"],
-        bool_ctype=["default_billable"],
-        date_ctype=["created", "archived"],
+    console.print(
+        render.map_sequence_to_rich_table(
+            mappings=list(map(lambda r: dict(r.items()), query_job)),
+            string_ctype=["name", "description"],
+            bool_ctype=["default_billable"],
+            date_ctype=["created", "archived"],
+        )
     )
-
-    console.print(table)
 
 
 @click.group(
@@ -655,7 +656,7 @@ def set_project_name(
     project: str,
     name: str,
 ) -> None:
-    """
+    r"""
     Update a project's name.
 
     Name must match regex [code]no-project[/code].
@@ -755,8 +756,6 @@ def set_project_description(
     """Add/overwrite project description."""
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
-
-    from lightlike.app.autosuggest import threaded_autosuggest
 
     active_projects: dict[str, t.Any]
     try:
