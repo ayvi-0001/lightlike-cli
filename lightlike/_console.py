@@ -14,15 +14,14 @@ from rich.console import Style, Theme
 from rich.highlighter import RegexHighlighter, _combine_regex
 
 from lightlike.__about__ import __appdir__, __config__
-from lightlike.internal import toml, utils
-from lightlike.internal.enums import ActiveCompleter
+from lightlike.internal import enums, toml, utils
 
 __all__: t.Sequence[str] = (
     "QUIET_START",
     "CONSOLE_CONFIG",
     "Highlighter",
     "reconfigure",
-    "COMPLETER",
+    "ACTIVE_COMPLETERS",
     "global_completers",
     "reconfigure_completer",
     "_CONSOLE_SVG_FORMAT",
@@ -128,16 +127,16 @@ ACTIVE_COMPLETERS: list[int] = []
 def global_completers():
     global ACTIVE_COMPLETERS
     if not ACTIVE_COMPLETERS:
-        ACTIVE_COMPLETERS = [ActiveCompleter.CMD]
+        ACTIVE_COMPLETERS = [enums.ActiveCompleter.CMD]
 
     return ACTIVE_COMPLETERS
 
 
 def reconfigure_completer(
     completer: t.Literal[
-        ActiveCompleter.CMD,
-        ActiveCompleter.HISTORY,
-        ActiveCompleter.PATH,
+        enums.ActiveCompleter.CMD,
+        enums.ActiveCompleter.HISTORY,
+        enums.ActiveCompleter.PATH,
     ]
 ) -> None:
     NEW_COMPLETER = completer

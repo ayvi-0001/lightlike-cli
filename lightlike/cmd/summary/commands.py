@@ -6,7 +6,6 @@ from operator import truth
 from pathlib import Path
 
 import rich_click as click
-from rich import print as rprint
 from rich.console import Console
 from rich.padding import Padding
 from rich.syntax import Syntax

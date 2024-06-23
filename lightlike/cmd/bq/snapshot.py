@@ -87,7 +87,7 @@ def restore(client: "Client", console: "Console", routine: "CliQueryRoutines") -
         snapshots = list(
             filter(
                 lambda t: t.table_type == "SNAPSHOT",
-                client.list_tables(routine.dataset_main),
+                client.list_tables(routine.dataset),
             )
         )
 

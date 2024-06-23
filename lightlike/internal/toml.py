@@ -134,7 +134,6 @@ metavar_sep = "not dim cyan"
 notice = "#32ccfe"
 option = "bold #00ffff" # "bold cyan"
 prompt = "#f0f0ff"
-saved = "#00ff00"
 switch = "bold #00ff00" # "bold green"
 usage = "bold #f0f0ff"
 

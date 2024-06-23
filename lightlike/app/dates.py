@@ -3,6 +3,7 @@
 import typing as t
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 from math import copysign
 
 import rich_click as click
@@ -13,7 +14,6 @@ from lightlike.app.config import AppConfig
 
 if t.TYPE_CHECKING:
     from datetime import _TzInfo
-    from decimal import Decimal
 
     from dateparser import _Settings
 
@@ -30,6 +30,7 @@ __all__: t.Sequence[str] = (
     "combine_new_date_into_start",
     "combine_new_date_into_end",
     "seconds_to_time_parts",
+    "calculate_duration",
 )
 
 
@@ -232,10 +233,44 @@ def combine_new_date_into_end(
     return out_date, out_start, out_end
 
 
-def seconds_to_time_parts(seconds: "Decimal") -> tuple[int, int, int]:
+def seconds_to_time_parts(seconds: Decimal) -> tuple[int, int, int]:
     hours = seconds // 3600
     seconds %= 3600
     minutes = seconds // 60
     seconds = seconds.to_integral_value()
     seconds %= 60
     return int(hours), int(minutes), int(seconds)
+
+
+def calculate_duration(
+    start_date: datetime,
+    end_date: datetime,
+    paused_hours: Decimal | float | None = None,
+    raise_if_negative: bool = False,
+    exception: Exception | None = None,
+) -> Decimal:
+    duration: timedelta = end_date - start_date
+
+    if paused_hours:
+        if isinstance(paused_hours, float):
+            paused_hours = Decimal(paused_hours)
+
+        time_parts_paused = seconds_to_time_parts(Decimal(paused_hours) * 3600)
+        paused_hours, paused_minutes, paused_seconds = time_parts_paused
+        paused_delta: timedelta = timedelta(
+            hours=paused_hours,
+            minutes=paused_minutes,
+            seconds=paused_seconds,
+        )
+        duration = duration - paused_delta
+
+    if duration.total_seconds() < 0 or copysign(1, duration.days) == -1:
+        if raise_if_negative:
+            if exception:
+                raise exception
+            else:
+                raise ValueError(f"Negative duration: {duration.total_seconds()}")
+
+    total_seconds: int = int(duration.total_seconds())
+    hours: Decimal = round(Decimal(total_seconds) / Decimal(3600), 4)
+    return hours

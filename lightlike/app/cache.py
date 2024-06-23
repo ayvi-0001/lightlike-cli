@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 import typing as t
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 from functools import cached_property, reduce
 from operator import truth, xor
@@ -78,21 +78,14 @@ class TimeEntryCache:
                 continue
 
             if self._ifnull(entry["start"]):
-                time_parts_paused = dates.seconds_to_time_parts(
-                    Decimal(entry["paused_hours"] or 0) * 3600
+                hours = dates.calculate_duration(
+                    start_date=entry["start"],
+                    end_date=now,
+                    paused_hours=Decimal(entry["paused_hours"] or 0),
                 )
-                duration = now - entry["start"]
-                paused_hours, paused_minutes, paused_seconds = time_parts_paused
-                duration = duration - timedelta(
-                    hours=paused_hours,
-                    minutes=paused_minutes,
-                    seconds=paused_seconds,
-                )
-                total_seconds = int(duration.total_seconds())
-                hours = round(Decimal(total_seconds / 3600), 4)
                 entry["hours"] = hours
             else:
-                entry["hours"] = "0"
+                entry["hours"] = 0
 
             entries.append(entry)
 
@@ -100,21 +93,14 @@ class TimeEntryCache:
             new_paused_hour = self._add_hours(
                 now, entry["timestamp_paused"], entry["paused_hours"]
             )
-            time_parts_paused = dates.seconds_to_time_parts(
-                Decimal(new_paused_hour) * 3600
+            hours = dates.calculate_duration(
+                start_date=entry["start"],
+                end_date=now,
+                paused_hours=new_paused_hour,
             )
-            duration = now - entry["start"]
-            paused_hours, paused_minutes, paused_seconds = time_parts_paused
-            duration = duration - timedelta(
-                hours=paused_hours,
-                minutes=paused_minutes,
-                seconds=paused_seconds,
-            )
-            total_seconds = int(duration.total_seconds())
-            hours = round(Decimal(total_seconds / 3600), 4)
-            entry["paused_hours"] = round(new_paused_hour, 4)
-            entry["hours"] = hours or "0"
 
+            entry["paused_hours"] = round(new_paused_hour, 4)
+            entry["hours"] = hours or 0
             entries.append(entry)
 
         if not entries:
@@ -136,7 +122,7 @@ class TimeEntryCache:
         reduce(
             lambda n, r: table.add_row(
                 *render.map_cell_style(r.values()),
-                style=self._map_rstyle(r),
+                style=self._map_row_style(r),
             ),
             entries,
             None,
@@ -179,16 +165,21 @@ class TimeEntryCache:
                 },
             )
 
-    def switch_active_entry(self, _id, now: datetime, continue_: bool) -> None:
-        if idx := self.index(self.running_entries, "id", [_id]):
+    def switch_active_entry(
+        self, entry_id: str, now: datetime, continue_: bool
+    ) -> None:
+        if idx := self.index(self.running_entries, "id", [entry_id]):
             with self.rw():
                 self.running_entries.insert(0, self.running_entries.pop(one(idx)))
-            if not continue_:
-                self.put_running_entry_on_pause(1, now)
+                if not continue_:
+                    entry = self.running_entries.pop(idx)
+                    entry["paused"] = True
+                    entry["timestamp_paused"] = now
+                    self.paused_entries.append(entry)
         else:
             if not continue_:
-                self.put_active_entry_on_pause(now)
-            self.resume_paused_time_entry(_id, now)
+                self.pause_active_entry(now)
+            self.resume_paused_entry(entry_id, now)
 
     def get_updated_paused_entries(self, now: datetime) -> list[dict[str, t.Any]]:
         updated_paused_entries = []
@@ -203,7 +194,7 @@ class TimeEntryCache:
 
         return updated_paused_entries
 
-    def resume_paused_time_entry(self, _id: str, now: datetime) -> None:
+    def resume_paused_entry(self, _id: str, now: datetime) -> None:
         with self.rw():
             idx = one(self.index(self.paused_entries, "id", [_id]))
             entry = self.paused_entries[idx]
@@ -220,7 +211,7 @@ class TimeEntryCache:
             self.running_entries.insert(0, entry)
             self.paused_entries.pop(idx)
 
-    def put_active_entry_on_pause(self, timestamp_paused: datetime) -> None:
+    def pause_active_entry(self, timestamp_paused: datetime) -> None:
         with self.rw():
             self.active["paused"] = True
             self.active["timestamp_paused"] = timestamp_paused
@@ -236,13 +227,6 @@ class TimeEntryCache:
                 self.paused_hours = "0"  # type: ignore[assignment]
             else:
                 self.running_entries.pop(0)
-
-    def put_running_entry_on_pause(self, idx: int, timestamp_paused: datetime) -> None:
-        with self.rw():
-            entry = self.running_entries.pop(idx)
-            entry["paused"] = True
-            entry["timestamp_paused"] = timestamp_paused
-            self.paused_entries.append(entry)
 
     def _clear_active(self) -> None:
         with self.rw():
@@ -267,9 +251,7 @@ class TimeEntryCache:
     def exists(
         self, entries: list[dict[str, t.Any]], id_sequence: t.Sequence[str]
     ) -> bool:
-        if self.index(entries, "id", id_sequence):
-            return True
-        return False
+        return True if self.index(entries, "id", id_sequence) else False
 
     def get(
         self, entries: list[dict[str, t.Any]], key: str, sequence: t.Sequence[str]
@@ -296,7 +278,7 @@ class TimeEntryCache:
         diff = now - t.cast(datetime, timestamp_paused)
         prev_paused_sec = Decimal(paused_hours) * 3600
         new_paused_sec = Decimal(diff.total_seconds()) + prev_paused_sec
-        new_paused_hours = Decimal(new_paused_sec / 3600)
+        new_paused_hours = Decimal(new_paused_sec) / Decimal(3600)
         return new_paused_hours
 
     def _to_meta(
@@ -312,19 +294,23 @@ class TimeEntryCache:
             )
         else:
             start = entry.get("start")
-            if start and start != "null":
+            if self._ifnull(start):
                 meta += ", start={start_date}{start_time}".format(
                     start_date=f"{start.date()}-" if start.date() != now.date() else "",
                     start_time=start.time(),
                 )
 
         timestamp_paused = entry.get("timestamp_paused")
-        if timestamp_paused and timestamp_paused != "null":
+        if self._ifnull(timestamp_paused):
             meta += ", paused=True"
         else:
             meta += ", running=True"
 
         return f"[{meta}]"
+
+    def _reset(self) -> None:
+        with self.rw():
+            self._entries = self.default
 
     def validate(self) -> None:
         try:
@@ -336,16 +322,13 @@ class TimeEntryCache:
                         list(self.default_entry.keys()),
                     ),
                 ):
-                    with self.rw():
-                        self._entries = self.default
+                    self._reset()
             else:
                 self._path.touch(exist_ok=True)
-                with self.rw():
-                    self._entries = self.default
+                self._reset()
         except Exception:
             # If any exception occurs, hard reset cache.
-            with self.rw():
-                self._entries = self.default
+            self._reset()
 
     def sync(self, debug: bool = False) -> None:
         from lightlike.app.routines import CliQueryRoutines
@@ -542,7 +525,7 @@ class TimeEntryCache:
     def paused_hours(self, __val: T) -> None:
         self.active["paused_hours"] = f"{__val}"
 
-    def _map_rstyle(self, row: dict[str, t.Any]) -> str:
+    def _map_row_style(self, row: dict[str, t.Any]) -> str:
         if row == self.running_entries[0]:
             return "bold"
         elif self._ifnull(row["timestamp_paused"]):
@@ -630,17 +613,17 @@ class _Singleton(type):
 
 
 class TimeEntryIdList(metaclass=_Singleton):
-    id_pattern: t.Final[re.Pattern] = re.compile("^\w{,40}$")
+    id_pattern: t.Final[re.Pattern] = re.compile(r"^\w{,40}$")
 
     @cached_property
     def ids(self) -> list[str]:
         routine = CliQueryRoutines()
-        ids = routine._select(
+        query_job = routine._select(
             resource=routine.timesheet_id,
             order=["timestamp_start DESC"],
             fields=["id"],
         )
-        return list(map(_get._id, ids))
+        return list(map(_get._id, query_job))
 
     def clear(self) -> None:
         del self.__dict__["ids"]
@@ -653,7 +636,7 @@ class TimeEntryIdList(metaclass=_Singleton):
                 message=Text.assemble(
                     markup.repr_str(input_id),
                     " is not a valid id. Provided id must match regex ",
-                    markup.code("^\w{,40}$"),
+                    markup.code(r"^\w{,40}$"),
                 ).markup
             )
         elif len(matching) >= 2:
@@ -695,7 +678,7 @@ class TimeEntryAppData:
         console = get_console()
 
         debug and patch_stdout(raw=True)(console.log)(
-            "[DEBUG]:", "starting app data sync"
+            "[DEBUG]", "starting app data sync"
         )
 
         routine = CliQueryRoutines()
@@ -756,7 +739,7 @@ class TimeEntryAppData:
         self.path.write_text(rtoml.dumps(appdata), encoding="utf-8")
 
         debug and patch_stdout(raw=True)(console.log)(
-            "[DEBUG]:", "entry appdata sync complete"
+            "[DEBUG]", "entry appdata sync complete"
         )
 
     def _unique_notes(self, project: str, rows: t.Sequence["Row"]) -> list["Row"]:
