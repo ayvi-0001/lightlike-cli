@@ -943,6 +943,8 @@ class CliQueryRoutines(metaclass=_Singleton):
         where: str | None = None,
         match_project: str | None = None,
         match_note: str | None = None,
+        modifiers: str | None = None,
+        regex_engine: t.Literal["ECMAScript", "re2"] | str | None = "ECMAScript",
         limit: int | None = None,
         offset: int | None = None,
         use_query_cache: bool = True,
@@ -963,10 +965,26 @@ class CliQueryRoutines(metaclass=_Singleton):
                 ScalarQueryParameter("where", SqlParameterScalarTypes.STRING, where),
                 ScalarQueryParameter("match_project", SqlParameterScalarTypes.STRING, match_project),
                 ScalarQueryParameter("match_note", SqlParameterScalarTypes.STRING, match_note),
+                ScalarQueryParameter("modifiers", SqlParameterScalarTypes.STRING, modifiers),
                 ScalarQueryParameter("limit", SqlParameterScalarTypes.INT64, limit),
                 ScalarQueryParameter("offset", SqlParameterScalarTypes.INT64, offset),
                 # fmt: on
             ],
+        )
+
+        fmt_match_project = self._format_regular_expression(
+            field="project",
+            expression=match_project,
+            modifiers=modifiers,
+            regex_engine=regex_engine,
+            and_=True,
+        )
+        fmt_match_note = self._format_regular_expression(
+            field="note",
+            expression=match_note,
+            modifiers=modifiers,
+            regex_engine=regex_engine,
+            and_=True,
         )
 
         target = cleandoc(
@@ -1029,8 +1047,8 @@ class CliQueryRoutines(metaclass=_Singleton):
                 f"AND date = \"{date}\"" if date else "",
                 f"AND date BETWEEN \"{start_date}\" AND \"{end_date}\"" if start_date and end_date else "",
                 f"AND {where}" if where else "",
-                f'AND {self.dataset_main}.js_regex_contains(project, r"{match_project}")' if match_project else "",
-                f'AND {self.dataset_main}.js_regex_contains(note, r"{match_note}")' if match_note else "",
+                fmt_match_project,
+                fmt_match_note,
                 f"LIMIT {limit}" if limit else "",
                 f"OFFSET {offset}" if limit and offset else "",
                 # fmt: on
@@ -1055,6 +1073,8 @@ class CliQueryRoutines(metaclass=_Singleton):
         is_file: bool | None = False,
         match_project: str | None = None,
         match_note: str | None = None,
+        modifiers: str | None = None,
+        regex_engine: t.Literal["ECMAScript", "re2"] | str | None = "ECMAScript",
         use_query_cache: bool = True,
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
@@ -1072,10 +1092,24 @@ class CliQueryRoutines(metaclass=_Singleton):
                 ScalarQueryParameter("where", SqlParameterScalarTypes.STRING, where),
                 ScalarQueryParameter("match_project", SqlParameterScalarTypes.STRING, match_project),
                 ScalarQueryParameter("match_note", SqlParameterScalarTypes.STRING, match_note),
+                ScalarQueryParameter("modifiers", SqlParameterScalarTypes.STRING, modifiers),
                 ScalarQueryParameter("round_", SqlParameterScalarTypes.BOOL, round_),
                 ScalarQueryParameter("is_file", SqlParameterScalarTypes.BOOL, is_file),
                 # fmt: on
             ],
+        )
+
+        fmt_match_project = self._format_regular_expression(
+            field="project",
+            expression=match_project,
+            modifiers=modifiers,
+            regex_engine=regex_engine,
+        )
+        fmt_match_note = self._format_regular_expression(
+            field="note",
+            expression=match_note,
+            modifiers=modifiers,
+            regex_engine=regex_engine,
         )
 
         target = cleandoc(
@@ -1135,8 +1169,8 @@ class CliQueryRoutines(metaclass=_Singleton):
                 ", " if is_file else "\\n",
                 round_ or False,
                 f"AND date BETWEEN \"{start_date}\" AND \"{end_date}\"" if start_date and end_date else "",
-                f'AND {self.dataset_main}.js_regex_contains(project, r"{match_project}")' if match_project else "",
-                f'AND {self.dataset_main}.js_regex_contains(note, r"{match_note}")' if match_note else "",
+                fmt_match_project,
+                fmt_match_note,
                 f"AND {where}" if where else "",
                 # fmt: on
             )
@@ -1180,6 +1214,30 @@ class CliQueryRoutines(metaclass=_Singleton):
         return self._query(
             target=query, job_config=job_config, wait=wait, render=render
         )
+
+    def _format_regular_expression(
+        self,
+        field: str,
+        expression: str | None = None,
+        modifiers: str | None = None,
+        and_: bool = False,
+        regex_engine: t.Literal["ECMAScript", "re2"] | str | None = "ECMAScript",
+    ) -> str:
+        match regex_engine:
+            case "ECMAScript":
+                return (
+                    f'{"AND " if and_ else ""}{self.dataset}.js_regex_contains({field}, r"{expression}", "{modifiers}")'
+                    if expression
+                    else ""
+                )
+            case "re2":
+                return (
+                    f'{"AND " if and_ else ""}REGEXP_CONTAINS({field}, r"{expression}")'
+                    if expression
+                    else ""
+                )
+            case _:
+                raise ValueError(f"Unknown regex engine: {regex_engine}")
 
     @property
     def _all_routines_ids(self) -> list[str]:

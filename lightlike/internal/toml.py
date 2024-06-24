@@ -21,7 +21,7 @@ password = ""
 salt = []
 
 [updates]
-"v0.9.0" = false
+"v0.9.1" = false
 
 [settings]
 complete_style = "COLUMN"

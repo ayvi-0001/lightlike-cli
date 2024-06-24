@@ -520,6 +520,32 @@ def delete(
     metavar=None,
     shell_complete=None,
 )
+@click.option(
+    "-M",
+    "--modifiers",
+    show_default=False,
+    multiple=False,
+    type=click.STRING,
+    help="Modifiers to pass to RegExp. (ECMAScript only)",
+    required=False,
+    default="",
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
+@click.option(
+    "-re",
+    "--regex-engine",
+    show_default=True,
+    multiple=False,
+    type=click.Choice(["ECMAScript", "re2"]),
+    help="Regex engine to use.",
+    required=False,
+    default="ECMAScript",
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
 @_pass.routine
 @_pass.console
 def list_(
@@ -528,12 +554,33 @@ def list_(
     all_: bool,
     match_name: str,
     match_description: str,
+    modifiers: str,
+    regex_engine: str,
 ) -> None:
     """
     List projects.
 
     --all / -a:
         include archived projects.
+
+    --match-name / -Rp:
+        match a regular expression against project names.
+
+    --match-description/ -Rd:
+        match a regular expression against project description.
+
+    --modifiers / -M:
+        modifiers to pass to RegExp. (ECMAScript only)
+
+    --regex-engine / -re:
+        which regex engine to use.
+        re2 = google's regular expression library used by all bigquery regex functions.
+        ECMAScript = javascript regex syntax.
+
+        example:
+        re2 does not allow perl operator's such as negative lookaheads, while ECMAScript does.
+        to run a case-insensitive regex match in re2, use the inline modifier [repr.str]"(?i)"[/repr.str],
+        for ECMAScript, use the --modifiers / -M option with [repr.str]"i"[/repr.str]
     """
     fields: list[str] = [
         "name",
@@ -550,11 +597,21 @@ def list_(
         where.append("archived is null")
     if match_name:
         where.append(
-            f'{routine.dataset_main}.js_regex_contains(name, r"{match_name}")',
+            routine._format_regular_expression(
+                field="name",
+                expression=match_name,
+                modifiers=modifiers,
+                regex_engine=regex_engine,
+            )
         )
     if match_description:
         where.append(
-            f'{routine.dataset_main}.js_regex_contains(description, r"{match_description}")',
+            routine._format_regular_expression(
+                field="description",
+                expression=match_description,
+                modifiers=modifiers,
+                regex_engine=regex_engine,
+            )
         )
 
     order: list[str] = ["created desc"]

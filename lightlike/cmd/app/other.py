@@ -26,7 +26,7 @@ import random
 import statistics
 import time
 
-EVAL_GLOBALS: dict[str, ModuleType] = {
+EVAL_GLOBALS = {
     "datetime": datetime,
     "decimal": decimal,
     "fractions": fractions,
@@ -48,7 +48,7 @@ def _eval_help(ctx: click.RichContext, param: click.Parameter, value: str) -> No
     rprint(
         Syntax(
             code="""\
-            EVAL_GLOBALS: dict[str, ModuleType] = {
+            EVAL_GLOBALS = {
                 "decimal": decimal,
                 "fractions": fractions,
                 "math": math,

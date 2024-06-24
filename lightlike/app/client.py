@@ -309,18 +309,14 @@ def provision_bigquery_resources(
                 ▸ is currently updating to a version with breaking changes, and needs to run scripts in BigQuery.
                 ▸ has not ran scripts in BigQuery following an update with breaking changes.
             
-            There may have been modified tables/functions.
-            In every case, there should be no change to the existing data.
-            A snapshot will be created before updates and will expire in 5 days.
-            
             Please run scripts. This prompt will continue until this version update is marked as confirmed.
-            [b][red]![/red] [u]This cli will not work as expected if tables or procedures are not up to date[/u].\
+
+            [b][red]![/red] [u]This cli may not work as expected if tables/procedures are not up to date[/u].\
                 """
             ),
             border_style="bold green",
-            title="CONFIG UPDATE",
+            title="Updates in BigQuery",
             title_align="center",
-            subtitle="Changes in BigQuery",
             subtitle_align="center",
             padding=(1, 1),
         )
@@ -328,8 +324,8 @@ def provision_bigquery_resources(
 
     link = markup.link(escape(build.SCRIPTS.as_posix()), build.SCRIPTS.as_uri())
     confirm_panel = Panel.fit(
-        f"Press {markup.code('y').markup} and {markup.code('enter').markup} "
-        f"to build tables/procedures in BigQuery.\nView scripts in {link.markup}"
+        f"Press {markup.code('y').markup} to run scripts in BigQuery.\n"
+        f"View scripts in {link.markup}"
     )
 
     not (force or yes) and rprint(Padding(confirm_panel, (1, 0, 1, 1)))

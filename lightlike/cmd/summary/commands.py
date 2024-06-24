@@ -204,6 +204,32 @@ match_note = click.option(
     metavar=None,
     shell_complete=None,
 )
+modifiers = click.option(
+    "-M",
+    "--modifiers",
+    show_default=False,
+    multiple=False,
+    type=click.STRING,
+    help="Modifiers to pass to RegExp. (ECMAScript only)",
+    required=False,
+    default="",
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
+regex_engine = click.option(
+    "-re",
+    "--regex-engine",
+    show_default=True,
+    multiple=False,
+    type=click.Choice(["ECMAScript", "re2"]),
+    help="Regex engine to use.",
+    required=False,
+    default="ECMAScript",
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
 
 
 @click.command(
@@ -216,8 +242,13 @@ match_note = click.option(
         $ summary table --current-month --round where project = \"lightlike-cli\"
         $ s t -cm -r where project = \"lightlike-cli\"
     
-        $ summary table --current-year --output path/to/file.svg regexp_contains(note, r\\"(?i).*keyword\\")
-        $ s t -cy -o path/to/file.svg regexp_contains(note, r\\"(?i).*keyword\\")
+        # case insensitive regex match - re2
+        $ summary table --current-year --output path/to/file.svg --regex-engine re2 --match-note (?i)task.*
+        $ s t -cy -o path/to/file.svg -re re2 -Rn (?i)task.*
+        
+        # case insensitive regex match - ECMAScript
+        $ summary table --current-year --output path/to/file.svg --match-note task.* --modifiers ig
+        $ s t -cy -o path/to/file.svg -Rn task.* -Mig
 
         $ summary table --start -15d --end monday
         $ s t -s -15d -e mon\
@@ -228,9 +259,7 @@ match_note = click.option(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Canceled summary.")),
-)
+@utils._handle_keyboard_interrupt()
 @start_option
 @end_option
 @all_option
@@ -240,6 +269,8 @@ match_note = click.option(
 @round_option
 @match_project
 @match_note
+@modifiers
+@regex_engine
 @where_option
 @where_clause
 @click.option(
@@ -272,8 +303,10 @@ def summary_table(
     current_year: bool,
     round_: bool,
     output: Path,
-    match_project: str | None,
-    match_note: str | None,
+    match_project: str,
+    match_note: str,
+    modifiers: str,
+    regex_engine: str,
     prompt_where: bool,
     where: t.Sequence[str],
 ) -> None:
@@ -309,11 +342,22 @@ def summary_table(
 
     --match-project / -Rp:
         match a regular expression against project names.
-        regex flavor/engine: ECMAScript (JavaScript)
 
     --match-note / -Rn:
         match a regular expression against entry notes.
-        regex flavor/engine: ECMAScript (JavaScript)
+
+    --modifiers / -M:
+        modifiers to pass to RegExp. (ECMAScript only)
+
+    --regex-engine / -re:
+        which regex engine to use.
+        re2 = google's regular expression library used by all bigquery regex functions.
+        ECMAScript = javascript regex syntax.
+
+        example:
+        re2 does not allow perl operator's such as negative lookaheads, while ECMAScript does.
+        to run a case-insensitive regex match in re2, use the inline modifier [repr.str]"(?i)"[/repr.str],
+        for ECMAScript, use the --modifiers / -M option with [repr.str]"i"[/repr.str]
 
     --prompt-where / -w:
         filter results with a where clause.
@@ -340,6 +384,8 @@ def summary_table(
             where=where_clause,
             match_project=match_project,
             match_note=match_note,
+            modifiers=modifiers,
+            regex_engine=regex_engine,
             round_=round_,
             is_file=False,
         )
@@ -375,6 +421,8 @@ def summary_table(
             where=where_clause,
             match_project=match_project,
             match_note=match_note,
+            modifiers=modifiers,
+            regex_engine=regex_engine,
             round_=round_,
             is_file=False,
         )
@@ -412,8 +460,13 @@ def summary_table(
         $ summary csv --start jan1 --end jan31 --round --print
         $ s c -s jan1 -e jan31 -r -p
     
-        $ summary csv --current-week --output path/to/file.csv where billable is false
-        $ s c -cw -o path/to/file.csv where billable is false\
+        # case insensitive regex match - re2
+        $ summary csv --current-year --output path/to/file.svg --regex-engine re2 --match-note (?i)task.*
+        $ s c -cy -o path/to/file.svg -re re2 -Rn (?i)task.*
+        
+        # case insensitive regex match - ECMAScript
+        $ summary csv --current-year --output path/to/file.svg --match-note task.* --modifiers ig
+        $ s c -cy -o path/to/file.svg -Rn task.* -Mig\
         """,
         lexer="fishshell",
         dedent=True,
@@ -421,9 +474,7 @@ def summary_table(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Canceled summary.")),
-)
+@utils._handle_keyboard_interrupt()
 @start_option
 @end_option
 @all_option
@@ -434,6 +485,8 @@ def summary_table(
 @print_option
 @match_project
 @match_note
+@modifiers
+@regex_engine
 @where_option
 @where_clause
 @click.option(
@@ -481,11 +534,13 @@ def summary_csv(
     output: Path,
     round_: bool,
     print_: bool,
-    match_project: str | None,
-    match_note: str | None,
+    quoting: str,
+    match_project: str,
+    match_note: str,
+    modifiers: str,
+    regex_engine: str,
     prompt_where: bool,
     where: t.Sequence[str],
-    quoting: str,
 ) -> None:
     """
     Create a summary and save to a csv file, or print to terminal.
@@ -527,11 +582,22 @@ def summary_csv(
 
     --match-project / -Rp:
         match a regular expression against project names.
-        regex flavor/engine: ECMAScript (JavaScript)
 
     --match-note / -Rn:
         match a regular expression against entry notes.
-        regex flavor/engine: ECMAScript (JavaScript)
+
+    --modifiers / -M:
+        modifiers to pass to RegExp. (ECMAScript only)
+
+    --regex-engine / -re:
+        which regex engine to use.
+        re2 = google's regular expression library used by all bigquery regex functions.
+        ECMAScript = javascript regex syntax.
+
+        example:
+        re2 does not allow perl operator's such as negative lookaheads, while ECMAScript does.
+        to run a case-insensitive regex match in re2, use the inline modifier [repr.str]"(?i)"[/repr.str],
+        for ECMAScript, use the --modifiers / -M option with [repr.str]"i"[/repr.str]
 
     --prompt-where / -w:
         filter results with a where clause.
@@ -562,6 +628,8 @@ def summary_csv(
             where=where_clause,
             match_project=match_project,
             match_note=match_note,
+            modifiers=modifiers,
+            regex_engine=regex_engine,
             round_=round_,
             is_file=False,
         )
@@ -597,6 +665,8 @@ def summary_csv(
             where=where_clause,
             match_project=match_project,
             match_note=match_note,
+            modifiers=modifiers,
+            regex_engine=regex_engine,
             round_=round_,
             is_file=True,
         )
@@ -649,6 +719,14 @@ def summary_csv(
     
         $ summary json --current-week --orient index where billable is false
         $ s j -cw -o index -w\
+        
+        # case insensitive regex match - re2
+        $ summary json --current-year --output path/to/file.svg --orient index --regex-engine re2 --match-note (?i)task.*
+        $ s j -cy -o path/to/file.svg -o index -re re2 -Rn (?i)task.*
+        
+        # case insensitive regex match - ECMAScript
+        $ summary json --current-year --output path/to/file.svg --orient index --match-note task.* --modifiers ig
+        $ s j -cy -o path/to/file.svg -o index -Rn task.* -Mig\
         """,
         lexer="fishshell",
         dedent=True,
@@ -656,9 +734,7 @@ def summary_csv(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Canceled summary.")),
-)
+@utils._handle_keyboard_interrupt()
 @start_option
 @end_option
 @all_option
@@ -668,6 +744,8 @@ def summary_csv(
 @round_option
 @match_project
 @match_note
+@modifiers
+@regex_engine
 @where_option
 @where_clause
 @click.option(
@@ -717,8 +795,10 @@ def summary_json(
     round_: bool,
     print_: bool,
     orient: str,
-    match_project: str | None,
-    match_note: str | None,
+    match_project: str,
+    match_note: str,
+    modifiers: str,
+    regex_engine: str,
     prompt_where: bool,
     where: t.Sequence[str],
 ) -> None:
@@ -772,11 +852,22 @@ def summary_json(
 
     --match-project / -Rp:
         match a regular expression against project names.
-        regex flavor/engine: ECMAScript (JavaScript)
 
     --match-note / -Rn:
         match a regular expression against entry notes.
-        regex flavor/engine: ECMAScript (JavaScript)
+
+    --modifiers / -M:
+        modifiers to pass to RegExp. (ECMAScript only)
+
+    --regex-engine / -re:
+        which regex engine to use.
+        re2 = google's regular expression library used by all bigquery regex functions.
+        ECMAScript = javascript regex syntax.
+
+        example:
+        re2 does not allow perl operator's such as negative lookaheads, while ECMAScript does.
+        to run a case-insensitive regex match in re2, use the inline modifier [repr.str]"(?i)"[/repr.str],
+        for ECMAScript, use the --modifiers / -M option with [repr.str]"i"[/repr.str]
 
     --prompt-where / -w:
         filter results with a where clause.
@@ -805,6 +896,8 @@ def summary_json(
             where=where_clause,
             match_project=match_project,
             match_note=match_note,
+            modifiers=modifiers,
+            regex_engine=regex_engine,
             round_=round_,
             is_file=False,
         )
@@ -840,6 +933,8 @@ def summary_json(
             where=where_clause,
             match_project=match_project,
             match_note=match_note,
+            modifiers=modifiers,
+            regex_engine=regex_engine,
             round_=round_,
             is_file=True,
         )

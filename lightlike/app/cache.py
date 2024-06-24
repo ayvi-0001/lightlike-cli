@@ -172,7 +172,7 @@ class TimeEntryCache:
             with self.rw():
                 self.running_entries.insert(0, self.running_entries.pop(one(idx)))
                 if not continue_:
-                    entry = self.running_entries.pop(idx)
+                    entry = self.running_entries.pop(one(idx))
                     entry["paused"] = True
                     entry["timestamp_paused"] = now
                     self.paused_entries.append(entry)
@@ -294,14 +294,14 @@ class TimeEntryCache:
             )
         else:
             start = entry.get("start")
-            if self._ifnull(start):
+            if start and start != "null":
                 meta += ", start={start_date}{start_time}".format(
                     start_date=f"{start.date()}-" if start.date() != now.date() else "",
                     start_time=start.time(),
                 )
 
         timestamp_paused = entry.get("timestamp_paused")
-        if self._ifnull(timestamp_paused):
+        if timestamp_paused and timestamp_paused != "null":
             meta += ", paused=True"
         else:
             meta += ", running=True"
