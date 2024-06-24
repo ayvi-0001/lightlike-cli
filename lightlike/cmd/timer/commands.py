@@ -2,6 +2,7 @@
 
 import re
 import typing as t
+from contextlib import suppress
 from datetime import datetime, timedelta
 from decimal import Decimal
 from hashlib import sha1
@@ -989,8 +990,13 @@ def get(
         $ timer list --current-week billable is false
         $ t l -cw billable is false
         
-        $ timer list --date -2d --match-note (?i)task.* # case insensitive regex match
-        $ t l -d-2d -Rn (?i)task.*
+        # case insensitive regex match - re2
+        $ timer list --date -2d --regex-engine re2 --match-note (?i)task.*
+        $ t l -d-2d -re re2 -Rn (?i)task.*
+        
+        # case insensitive regex match - ECMAScript
+        $ timer list --date -2d --match-note task.* --modifiers ig
+        $ t l -d-2d -Rn task.* -Mig
 
         $ t l -t -Rp ^(?!demo) # exclude projects containing word "demo"
         
@@ -1182,6 +1188,32 @@ def get(
     shell_complete=None,
 )
 @click.option(
+    "-M",
+    "--modifiers",
+    show_default=False,
+    multiple=False,
+    type=click.STRING,
+    help="Modifiers to pass to RegExp. (ECMAScript only)",
+    required=False,
+    default="",
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
+@click.option(
+    "-re",
+    "--regex-engine",
+    show_default=True,
+    multiple=False,
+    type=click.Choice(["ECMAScript", "re2"]),
+    help="Regex engine to use.",
+    required=False,
+    default="ECMAScript",
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
+@click.option(
     "-w",
     "--prompt-where",
     show_default=True,
@@ -1268,8 +1300,10 @@ def list_(
     current_month: bool,
     current_year: bool,
     all_: bool,
-    match_project: str | None,
-    match_note: str | None,
+    match_project: str,
+    match_note: str,
+    modifiers: str,
+    regex_engine: str,
     limit: int | None,
     offset: int | None,
     no_cache: bool,
@@ -1310,11 +1344,22 @@ def list_(
 
     --match-project / -Rp:
         match a regular expression against project names.
-        regex flavor/engine: ECMAScript (JavaScript)
 
     --match-note / -Rn:
         match a regular expression against entry notes.
-        regex flavor/engine: ECMAScript (JavaScript)
+
+    --modifiers / -M:
+        modifiers to pass to RegExp. (ECMAScript only)
+
+    --regex-engine / -re:
+        which regex engine to use.
+        re2 = google's regular expression library used by all bigquery regex functions.
+        ECMAScript = javascript regex syntax.
+
+        example:
+        re2 does not allow perl operator's such as negative lookaheads, while ECMAScript does.
+        to run a case-insensitive regex match in re2, use the inline modifier [repr.str]"(?i)"[/repr.str],
+        for ECMAScript, use the --modifiers / -M option with [repr.str]"i"[/repr.str]
 
     --prompt-where / -w:
         filter results with a where clause.
@@ -1352,6 +1397,8 @@ def list_(
             use_query_cache=not no_cache,
             match_project=match_project,
             match_note=match_note,
+            modifiers=modifiers,
+            regex_engine=regex_engine,
             limit=limit,
             offset=offset,
         )
@@ -1393,6 +1440,8 @@ def list_(
             use_query_cache=not no_cache,
             match_project=match_project,
             match_note=match_note,
+            modifiers=modifiers,
+            regex_engine=regex_engine,
             limit=limit,
             offset=offset,
         )
@@ -1412,6 +1461,8 @@ def list_(
             use_query_cache=not no_cache,
             match_project=match_project,
             match_note=match_note,
+            modifiers=modifiers,
+            regex_engine=regex_engine,
             limit=limit,
             offset=offset,
         )
@@ -1782,6 +1833,21 @@ def resume(
     metavar=None,
     shell_complete=None,
 )
+@click.option(
+    "-S",
+    "--stop-active",
+    show_default=True,
+    is_flag=True,
+    flag_value=True,
+    multiple=False,
+    type=click.BOOL,
+    help="Stop active entry before running a new one.",
+    required=False,
+    default=None,
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
 @_pass.cache
 @_pass.routine
 @_pass.console
@@ -1802,6 +1868,7 @@ def run(
     start: datetime,
     note: str,
     pause_active: bool,
+    stop_active: bool,
 ) -> None:
     """
     Start a new time entry.
@@ -1841,20 +1908,32 @@ def run(
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
+    if stop_active and cache:
+        ctx.invoke(stop)
+
     project_default_billable: bool = False
     if billable is None:
+        projects: dict[str, t.Any]
         active_projects: dict[str, t.Any]
-        try:
-            active_projects = appdata.load()["active"]
-        except KeyError:
+
+        projects = appdata.load()
+        if "active" not in projects:
             appdata.sync()
-            active_projects = appdata.load()["active"]
-        project_default_billable = active_projects[project]["default_billable"]
-        debug and console.log(
-            "[DEBUG]",
-            "getting projects default billable value:",
-            project_default_billable,
-        )
+            projects = appdata.load()
+
+        active_projects = projects["active"]
+        if "default_billable" not in active_projects[project]:
+            appdata.sync()
+            projects = appdata.load()
+            active_projects = projects["active"]
+
+        with suppress(KeyError):
+            project_default_billable = active_projects[project]["default_billable"]
+            debug and console.log(
+                "[DEBUG]",
+                "getting projects default billable value:",
+                project_default_billable,
+            )
 
     start_local: datetime = start or now
     time_entry_id: str = sha1(f"{project}{note}{start_local}".encode()).hexdigest()

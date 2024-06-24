@@ -36,7 +36,7 @@ from shlex import shlex
 
 import rich_click as click
 
-from . import utils
+from lightlike.internal import utils
 from .exceptions import ExitReplException
 
 __all__: t.Sequence[str] = ("_resolve_context", "split_arg_string", "exit_repl")

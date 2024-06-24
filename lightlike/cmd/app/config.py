@@ -128,7 +128,7 @@ class SettingsCommand:
         t.Sequence[tuple[t.Callable[[t.Any | None], t.Any], t.Any]] | None
     ) = None
     context_settings: dict[str, t.Any] | None = None
-    syntax: t.Callable[..., "Syntax"] | None = None
+    syntax: t.Optional["Syntax"] = None
     no_args_is_help: bool = True
 
 

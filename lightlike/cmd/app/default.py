@@ -63,8 +63,8 @@ if LIGHTLIKE_CLI_DEV_USERNAME := getenv("LIGHTLIKE_CLI_DEV_USERNAME"):
     __appdir = f"/{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike-cli"
 else:
     __appname = __appname_sc__
-    __config = __config__
-    __appdir = __appdir__
+    __config = __config__  # type:ignore [assignment]
+    __appdir = __appdir__  # type:ignore [assignment]
 
 
 def general_help() -> str:

@@ -209,7 +209,7 @@ class AliasedRichGroup(click.RichGroup):
             if m.startswith(cmd_name):
                 command = self.get_command(ctx, m)
                 if hasattr(command, "allow_name_alias"):
-                    if command.allow_name_alias is False and cmd_name != m:
+                    if command.allow_name_alias is False and cmd_name != m:  # type: ignore [union-attr]
                         return None
                 if not (command and command.hidden):
                     matches.append(m)
@@ -298,11 +298,11 @@ class LazyAliasedRichGroup(AliasedRichGroup):
         elif len(matches) == 1 and (match := first(matches)) in self.lazy_subcommands:
             command = self._lazy_load(match)
             if hasattr(command, "allow_name_alias"):
-                if command.allow_name_alias is False and cmd_name != match:
+                if command.allow_name_alias is False and cmd_name != match:  # type: ignore [union-attr]
                     return None
             return command
         else:
-            return super().get_command(ctx, cmd_name)
+            return super().get_command(ctx, cmd_name)  # type: ignore[return-value]
 
     def _lazy_load(self, cmd_name: str) -> click.RichCommand | None:
         # lazily loading a command, first get the module name and attribute name
