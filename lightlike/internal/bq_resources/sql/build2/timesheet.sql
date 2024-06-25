@@ -20,9 +20,10 @@ CREATE TABLE IF NOT EXISTS
       paused_hours NUMERIC,
       hours NUMERIC
     )
-  PARTITION BY date
+  PARTITION BY
+    date
   OPTIONS(
-    labels=[("version", "v0-9-0")]
+    labels=[("version", "v0-9-2")]
   );
 
 SET version = (
@@ -98,9 +99,9 @@ THEN
     ${DATASET.NAME}.${TABLES.TIMESHEET};
 
   /* 
-  truncating timestamp and datetime fields to exclude milliseconds
-  rounding hours to 4 decimal places
-  removing `is_` prefix from boolean fields
+  truncate timestamp and datetime fields to exclude milliseconds
+  round hours to 4 decimal places
+  remove `is_` prefix from boolean fields
   add partition on date field
   */
   CREATE OR REPLACE TABLE
@@ -128,11 +129,11 @@ THEN
     ${DATASET.NAME}.${TABLES.TIMESHEET}_pre_v_0_9_0;
 END IF;
 
+END;
+END IF;
+
 ALTER TABLE 
   ${DATASET.NAME}.${TABLES.TIMESHEET}
 SET OPTIONS(
-  labels=[("version", "v0-9-0")]
+  labels=[("version", "v0-9-2")]
 );
-
-END;
-END IF;
