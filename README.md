@@ -100,7 +100,7 @@ cd ~
 virtualenv lightlike_cli
 source lightlike_cli/bin/activate
 
-pip install "lightlike @ git+https://github.com/ayvi-0001/lightlike-cli@v0.9.0"
+pip install "lightlike @ git+https://github.com/ayvi-0001/lightlike-cli@v0.9.1"
 ```
 
 ### Git Bash/Cygwin on Windows
@@ -110,7 +110,7 @@ cd ~
 virtualenv lightlike_cli
 source lightlike_cli/Scripts/activate
 
-pip install "lightlike @ git+https://github.com/ayvi-0001/lightlike-cli@v0.9.0"
+pip install "lightlike @ git+https://github.com/ayvi-0001/lightlike-cli@v0.9.1"
 ```
 
 ### Windows
@@ -120,7 +120,7 @@ cd %USERPROFILE%
 virtualenv lightlike_cli
 lightlike_cli\Scripts\activate
 
-pip install "lightlike @ git+https://github.com/ayvi-0001/lightlike-cli@v0.9.0"
+pip install "lightlike @ git+https://github.com/ayvi-0001/lightlike-cli@v0.9.1"
 ```
 
 As long as you are in the virutal environment, you should now be able to start the REPL by typing the command below:
