@@ -2,6 +2,7 @@ import typing as t
 
 from more_itertools import unique_everseen
 from prompt_toolkit.completion import Completer, Completion
+from prompt_toolkit.formatted_text import FormattedText
 from rich import get_console
 
 from lightlike.internal import appdir
@@ -32,7 +33,8 @@ class HistoryCompleter(Completer):
                     text=match,
                     start_position=start_position,
                     display=self._display(match, console_width),
-                    display_meta="history",
+                    display_meta=FormattedText([("bold #a49db0", "history")]),
+                    style="#a49db0",
                 )
             else:
                 for line in history:
@@ -40,7 +42,8 @@ class HistoryCompleter(Completer):
                         text=line,
                         start_position=start_position,
                         display=self._display(match, console_width),
-                        display_meta="history",
+                        display_meta=FormattedText([("bold #a49db0", "history")]),
+                        style="#a49db0",
                     )
 
     def _display(self, text, console_width) -> str:

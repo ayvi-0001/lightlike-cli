@@ -76,14 +76,19 @@ def _yield_paths(incomplete: str, dir_only: bool = False) -> t.Iterator[Path]:
         )
 
 
-def _path_str_contents(path: Path) -> str:
+def _path_str_contents(path: Path) -> FormattedText:
     contents = []
     if path.is_dir():
         with suppress(PermissionError):
             for sub in path.iterdir():
-                contents.extend([("", sub.name), ("bold ansiblue", " | ")])
+                contents.extend(
+                    [
+                        ("ansibrightcyan", sub.name),
+                        ("bold #000000", " | "),
+                    ]
+                )
 
-    return t.cast(str, FormattedText(contents))
+    return FormattedText(contents)
 
 
 def path(
@@ -106,7 +111,7 @@ def path(
         completions.append(
             CompletionItem(
                 value=value,
-                help=_path_str_contents(path),
+                help=t.cast(str, _path_str_contents(path)),
             )
         )
 
@@ -141,6 +146,7 @@ class PathCompleter(Completer):
                     text=value,
                     start_position=start_position,
                     display_meta=_path_str_contents(path),
+                    style="ansibrightcyan",
                 )
             )
 
