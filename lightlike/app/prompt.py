@@ -1,6 +1,5 @@
 # mypy: disable-error-code="arg-type"
 
-import sys
 import typing as t
 from datetime import datetime
 
@@ -9,26 +8,18 @@ from prompt_toolkit.validation import Validator
 
 from lightlike.app import cursor, dates, shell_complete, validate
 from lightlike.app.config import AppConfig
+from lightlike.app.key_bindings import PROMPT_BINDINGS
 from lightlike.internal import appdir, utils
 
 __all__: t.Sequence[str] = ("PromptFactory", "REPL_PROMPT_KWARGS")
 
-
-if len(sys.argv) == 1:
-    from lightlike.app.key_bindings import PROMPT_BINDINGS
-
-    bindings = PROMPT_BINDINGS
-else:
-    from prompt_toolkit.key_binding import KeyBindings
-
-    bindings = KeyBindings()
 
 REPL_PROMPT_KWARGS = dict(
     message=cursor.build,
     history=appdir.REPL_FILE_HISTORY(),
     style=AppConfig().prompt_style,
     cursor=AppConfig().cursor_shape,
-    key_bindings=bindings,
+    key_bindings=PROMPT_BINDINGS,
     refresh_interval=1,
     complete_in_thread=True,
     complete_while_typing=True,
@@ -58,7 +49,7 @@ class PromptFactory(PromptSession):
         self.complete_while_typing = True
         self.enable_open_in_editor = True
         self.refresh_interval = 1
-        self.key_bindings = bindings
+        self.key_bindings = PROMPT_BINDINGS
 
     @classmethod
     @utils.exit_cmd_on_interrupt()

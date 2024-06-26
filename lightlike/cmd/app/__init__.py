@@ -1,23 +1,27 @@
 import typing as t
+from os import getenv
 
 import rich_click as click
 
 from lightlike.app.core import LazyAliasedRichGroup
 
+lazy_subcommands: dict[str, str] = {
+    "config": "lightlike.cmd.app.commands.config",
+    "dir": "lightlike.cmd.app.commands.dir_",
+    "run-bq": "lightlike.cmd.app.commands.run_bq",
+    "inspect-console": "lightlike.cmd.app.commands.inspect_console",
+    "sync": "lightlike.cmd.app.commands.sync",
+    "test": "lightlike.cmd.app.commands.test",
+}
 
-# Debug param exists but print statements have not been adding to functions yet.
-# They will be added in the next udpate.
+if getenv("LIGHTLIKE_CLI_DEV"):
+    lazy_subcommands["reset-all"] = "lightlike.cmd.app.commands._reset_all"
+
+
 @click.group(
     name="app",
     cls=LazyAliasedRichGroup,
-    lazy_subcommands={
-        "config": "lightlike.cmd.app.commands.config",
-        "dir": "lightlike.cmd.app.commands.dir_",
-        "run-bq": "lightlike.cmd.app.commands.run_bq",
-        "inspect-console": "lightlike.cmd.app.commands.inspect_console",
-        "sync": "lightlike.cmd.app.commands.sync",
-        "test": "lightlike.cmd.app.commands.test",
-    },
+    lazy_subcommands=lazy_subcommands,
     short_help="Cli internal settings & commands.",
 )
 @click.option("-d", "--debug", is_flag=True, hidden=True)

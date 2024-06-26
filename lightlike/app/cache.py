@@ -44,11 +44,12 @@ P = t.ParamSpec("P")
 
 
 class TimeEntryCache:
-    __slots__: t.ClassVar[t.Sequence[str]] = ("_entries",)
-    _path: t.ClassVar[Path] = appdir.CACHE
+    __slots__: t.ClassVar[t.Sequence[str]] = ("_entries", "_path")
     _rw_lock: t.ClassVar[ReaderWriterLock] = ReaderWriterLock()
 
-    def __init__(self) -> None:
+    def __init__(self, path: Path = appdir.CACHE) -> None:
+        self._path = path
+
         with self._rw_lock.read_lock():
             self._entries = rtoml.load(self._path)
 
@@ -171,30 +172,14 @@ class TimeEntryCache:
         if idx := self.index(self.running_entries, "id", [entry_id]):
             with self.rw():
                 self.running_entries.insert(0, self.running_entries.pop(one(idx)))
-                if not continue_:
-                    entry = self.running_entries.pop(one(idx))
-                    entry["paused"] = True
-                    entry["timestamp_paused"] = now
-                    self.paused_entries.append(entry)
+            if not continue_:
+                self.pause_entry(one(idx), now)
         else:
             if not continue_:
-                self.pause_active_entry(now)
-            self.resume_paused_entry(entry_id, now)
+                self.pause_entry(0, now)
+            self.resume_entry(entry_id, now)
 
-    def get_updated_paused_entries(self, now: datetime) -> list[dict[str, t.Any]]:
-        updated_paused_entries = []
-
-        for entry in self.paused_entries:
-            copy = entry.copy()
-            paused_hours = self._add_hours(
-                now, entry["timestamp_paused"], entry["paused_hours"]
-            )
-            copy["paused_hours"] = str(round(paused_hours, 4))
-            updated_paused_entries.append(copy)
-
-        return updated_paused_entries
-
-    def resume_paused_entry(self, _id: str, now: datetime) -> None:
+    def resume_entry(self, _id: str, now: datetime) -> None:
         with self.rw():
             idx = one(self.index(self.paused_entries, "id", [_id]))
             entry = self.paused_entries[idx]
@@ -211,26 +196,33 @@ class TimeEntryCache:
             self.running_entries.insert(0, entry)
             self.paused_entries.pop(idx)
 
-    def pause_active_entry(self, timestamp_paused: datetime) -> None:
-        with self.rw():
-            self.active["paused"] = True
-            self.active["timestamp_paused"] = timestamp_paused
-            self.paused_entries.append(self.active.copy())
-            if not self.count_running_entries ^ 1:
-                self.id = None  # type: ignore[assignment]
-                self.start = None  # type: ignore[assignment]
-                self.timestamp_paused = None  # type: ignore[assignment]
-                self.project = None  # type: ignore[assignment]
-                self.note = None  # type: ignore[assignment]
-                self.billable = None  # type: ignore[assignment]
-                self.paused = False
-                self.paused_hours = "0"  # type: ignore[assignment]
-            else:
-                self.running_entries.pop(0)
+    def pause_entry(self, idx: int, timestamp: datetime) -> None:
+        if idx == 0:
+            with self.rw():
+                self.active["paused"] = True
+                self.active["timestamp_paused"] = timestamp
+                self.paused_entries.append(self.active.copy())
+                if self.count_running_entries == 1:
+                    self.id = None  # type: ignore[assignment]
+                    self.start = None  # type: ignore[assignment]
+                    self.timestamp_paused = None  # type: ignore[assignment]
+                    self.project = None  # type: ignore[assignment]
+                    self.note = None  # type: ignore[assignment]
+                    self.billable = None  # type: ignore[assignment]
+                    self.paused = False
+                    self.paused_hours = "0"  # type: ignore[assignment]
+                else:
+                    self.running_entries.pop(0)
+        else:
+            with self.rw():
+                entry = self.running_entries.pop(idx)
+                entry["paused"] = True
+                entry["timestamp_paused"] = timestamp
+                self.paused_entries.append(entry)
 
     def _clear_active(self) -> None:
         with self.rw():
-            if not self.count_running_entries ^ 1:
+            if self.count_running_entries == 1:
                 self.id = None  # type: ignore[assignment]
                 self.start = None  # type: ignore[assignment]
                 self.timestamp_paused = None  # type: ignore[assignment]
@@ -243,18 +235,26 @@ class TimeEntryCache:
                 self.running_entries.pop(0)
 
     def index(
-        self, entries: list[dict[str, t.Any]], key: str, sequence: t.Sequence[str]
+        self,
+        entries: list[dict[str, t.Any]],
+        key: str,
+        sequence: t.Sequence[str],
     ) -> t.Iterable[int]:
         predicate = lambda e: (any([e[key].startswith(s) for s in sequence]))
         return list(locate(entries, predicate))
 
     def exists(
-        self, entries: list[dict[str, t.Any]], id_sequence: t.Sequence[str]
+        self,
+        entries: list[dict[str, t.Any]],
+        id_sequence: t.Sequence[str],
     ) -> bool:
         return True if self.index(entries, "id", id_sequence) else False
 
     def get(
-        self, entries: list[dict[str, t.Any]], key: str, sequence: t.Sequence[str]
+        self,
+        entries: list[dict[str, t.Any]],
+        key: str,
+        sequence: t.Sequence[str],
     ) -> list[dict[str, t.Any]]:
         idxs = self.index(entries, key, sequence)
         matching_entries = list(map_except(lambda i: entries[i], idxs, IndexError))
@@ -262,7 +262,7 @@ class TimeEntryCache:
 
     def remove(
         self,
-        entries: t.Sequence[list[dict[str, t.Any]]],
+        entries: list[list[dict[str, t.Any]]],
         key: str,
         sequence: t.Sequence[str],
     ) -> None:
@@ -276,10 +276,23 @@ class TimeEntryCache:
         self, now: datetime, timestamp_paused: datetime, paused_hours: Decimal
     ) -> Decimal:
         diff = now - t.cast(datetime, timestamp_paused)
-        prev_paused_sec = Decimal(paused_hours) * 3600
+        prev_paused_sec = Decimal(paused_hours) * Decimal(3600)
         new_paused_sec = Decimal(diff.total_seconds()) + prev_paused_sec
         new_paused_hours = Decimal(new_paused_sec) / Decimal(3600)
         return new_paused_hours
+
+    def get_updated_paused_entries(self, now: datetime) -> list[dict[str, t.Any]]:
+        updated_paused_entries = []
+
+        for entry in self.paused_entries:
+            copy = entry.copy()
+            paused_hours = self._add_hours(
+                now, entry["timestamp_paused"], entry["paused_hours"]
+            )
+            copy["paused_hours"] = str(round(paused_hours, 4))
+            updated_paused_entries.append(copy)
+
+        return updated_paused_entries
 
     def _to_meta(
         self,

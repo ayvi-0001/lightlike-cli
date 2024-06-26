@@ -2,6 +2,7 @@
 
 import importlib
 import typing as t
+import zlib
 from operator import truth
 from os import getenv
 from types import ModuleType
@@ -11,6 +12,7 @@ from more_itertools import first
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import get_console
 from rich.align import Align
+from rich.console import Console
 from rich.markup import render
 from rich.padding import Padding
 from rich.syntax import Syntax
@@ -162,13 +164,11 @@ class FmtRichCommand(click.RichCommand):
         self.format_epilog(ctx, formatter)
 
         if EXPORT_HELP:
-            invoked_subcommand = "".join(
-                c if c.isalnum() else "_" for c in str(ctx.command_path)
-            )
-            formatter.console.save_svg(
-                f"./{invoked_subcommand.replace('lightlike_', '')}.svg",
+            _export_help(
+                console=formatter.console,
+                title="lightlike-cli",
+                command_path=ctx.command_path.replace("lightlike", "").strip(),
                 code_format=_CONSOLE_SVG_FORMAT,
-                clear=True,
             )
 
         formatter.console.width = None  # type: ignore[assignment]
@@ -242,14 +242,11 @@ class AliasedRichGroup(click.RichGroup):
         self.format_epilog(ctx, formatter)
 
         if EXPORT_HELP:
-            invoked_subcommand = (
-                "".join(c if c.isalnum() else "_" for c in str(ctx.command_path))
-                or "help"
-            )
-            formatter.console.save_svg(
-                f"./{invoked_subcommand.replace('lightlike_', '')}.svg",
+            _export_help(
+                console=formatter.console,
+                title="lightlike-cli",
+                command_path=ctx.command_path.replace("lightlike", "").strip(),
                 code_format=_CONSOLE_SVG_FORMAT,
-                clear=True,
             )
 
         formatter.console.width = None  # type: ignore[assignment]
@@ -269,6 +266,25 @@ class AliasedRichGroup(click.RichGroup):
 
     def format_options(self, ctx: RichContext, formatter: click.HelpFormatter) -> None:
         _patch_rich_click._get_rich_options(self, ctx, formatter)  # type: ignore[arg-type]
+
+
+def _export_help(
+    console: Console,
+    title: str,
+    command_path: str,
+    code_format: str,
+) -> None:
+    invoked_subcommand = "".join(c if c.isalnum() else "_" for c in str(command_path))
+    unique_id = f"{title}-%s" % zlib.adler32(
+        invoked_subcommand.encode("utf-8", "ignore")
+    )
+    console.save_svg(
+        path=f"./{invoked_subcommand}.svg",
+        title=title,
+        code_format=code_format,
+        clear=True,
+        unique_id=unique_id,
+    )
 
 
 class LazyAliasedRichGroup(AliasedRichGroup):

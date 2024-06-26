@@ -3,6 +3,7 @@
 import re
 import typing as t
 from contextlib import suppress
+from copy import copy
 from datetime import datetime, timedelta
 from decimal import Decimal
 from hashlib import sha1
@@ -535,7 +536,7 @@ def _get_entry_edits(
         paused_hours = entry_row.paused_hours
         duration = new_end - new_start
         paused_hours, paused_minutes, paused_seconds = dates.seconds_to_time_parts(
-            Decimal(paused_hours or 0) * 3600
+            Decimal(paused_hours or 0) * Decimal(3600)
         )
 
         duration = duration - timedelta(
@@ -1618,8 +1619,8 @@ def pause(
     debug: bool = parent.params.get("debug", False)
 
     time_entry_id: str = cache.id
-    query_job: "QueryJob" = routine.pause_time_entry(time_entry_id, now)
-    cache.pause_active_entry(now)
+    query_job: "QueryJob" = routine.pause_time_entry(time_entry_id, now, wait=debug)
+    cache.pause_entry(0, now)
     console.set_window_title(__appname_sc__)
 
     if debug:
@@ -1722,7 +1723,7 @@ def resume(
         )
 
         matched_id = select
-        cache.resume_paused_entry(matched_id, now)
+        cache.resume_entry(matched_id, now)
         query_job = routine.resume_time_entry(matched_id, now)
     else:
         if len(entry) < 40:
@@ -1737,7 +1738,7 @@ def resume(
             cache.remove([cache.paused_entries], "id", [matched_id])
             routine.stop_time_entry(matched_id, now)
         else:
-            cache.resume_paused_entry(matched_id, now)
+            cache.resume_entry(matched_id, now)
             query_job = routine.resume_time_entry(matched_id, now)
 
     if debug:
@@ -1909,7 +1910,7 @@ def run(
     debug: bool = parent.params.get("debug", False)
 
     if stop_active and cache:
-        ctx.invoke(stop)
+        ctx.invoke(stop, debug)
 
     project_default_billable: bool = False
     if billable is None:
@@ -1943,8 +1944,9 @@ def run(
 
     if pause_active:
         if cache:
-            cache.pause_active_entry(start_local)
-            routine.pause_time_entry(cache.id, start_local)
+            entry_to_pause: str = copy(cache.id)
+            cache.pause_entry(0, start_local)
+            routine.pause_time_entry(entry_to_pause, start_local, wait=debug)
         else:
             console.print("No active entry. --pause-active / -P ignored.")
     elif cache:

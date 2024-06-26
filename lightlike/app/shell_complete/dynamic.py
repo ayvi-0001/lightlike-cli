@@ -83,4 +83,4 @@ def _get_completer(
         elif c in _COMPLETERS:
             _COMPLETERS[c] = None
 
-    return merge_completers([v for k, v in _COMPLETERS.items() if v])
+    return merge_completers([c for c in _COMPLETERS.values() if c])
