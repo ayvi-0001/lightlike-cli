@@ -18,91 +18,91 @@
         font-weight: 700;
     }
 
-    .terminal-936504656-matrix {
+    .lightlike-cli-459801763-matrix {
         font-family: Fira Code, monospace;
         font-size: 20px;
         line-height: 24.4px;
         font-variant-east-asian: full-width;
     }
 
-    .terminal-936504656-title {
+    .lightlike-cli-459801763-title {
         font-size: 18px;
         font-weight: bold;
         font-family: arial;
     }
 
-    .terminal-936504656-r1 { fill: #f0f0ff }
-.terminal-936504656-r2 { fill: #c5c8c6 }
-.terminal-936504656-r3 { fill: #f0f0ff;font-weight: bold }
-.terminal-936504656-r4 { fill: #3465a4;font-weight: bold }
-.terminal-936504656-r5 { fill: #00ffff;font-weight: bold }
-.terminal-936504656-r6 { fill: #00ff00;font-weight: bold }
-.terminal-936504656-r7 { fill: #68a0b3 }
-.terminal-936504656-r8 { fill: #1f5f9c }
-.terminal-936504656-r9 { fill: #68a0b3;font-weight: bold }
+    .lightlike-cli-459801763-r1 { fill: #f0f0ff }
+.lightlike-cli-459801763-r2 { fill: #c5c8c6 }
+.lightlike-cli-459801763-r3 { fill: #f0f0ff;font-weight: bold }
+.lightlike-cli-459801763-r4 { fill: #3465a4;font-weight: bold }
+.lightlike-cli-459801763-r5 { fill: #00ffff;font-weight: bold }
+.lightlike-cli-459801763-r6 { fill: #00ff00;font-weight: bold }
+.lightlike-cli-459801763-r7 { fill: #68a0b3 }
+.lightlike-cli-459801763-r8 { fill: #1f5f9c }
+.lightlike-cli-459801763-r9 { fill: #68a0b3;font-weight: bold }
     </style>
 
     <defs>
-    <clipPath id="terminal-936504656-clip-terminal">
+    <clipPath id="lightlike-cli-459801763-clip-terminal">
     <rect x="0" y="0" width="1463.0" height="340.59999999999997" />
     </clipPath>
-    <clipPath id="terminal-936504656-line-0">
+    <clipPath id="lightlike-cli-459801763-line-0">
     <rect x="0" y="1.5" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-936504656-line-1">
+<clipPath id="lightlike-cli-459801763-line-1">
     <rect x="0" y="25.9" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-936504656-line-2">
+<clipPath id="lightlike-cli-459801763-line-2">
     <rect x="0" y="50.3" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-936504656-line-3">
+<clipPath id="lightlike-cli-459801763-line-3">
     <rect x="0" y="74.7" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-936504656-line-4">
+<clipPath id="lightlike-cli-459801763-line-4">
     <rect x="0" y="99.1" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-936504656-line-5">
+<clipPath id="lightlike-cli-459801763-line-5">
     <rect x="0" y="123.5" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-936504656-line-6">
+<clipPath id="lightlike-cli-459801763-line-6">
     <rect x="0" y="147.9" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-936504656-line-7">
+<clipPath id="lightlike-cli-459801763-line-7">
     <rect x="0" y="172.3" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-936504656-line-8">
+<clipPath id="lightlike-cli-459801763-line-8">
     <rect x="0" y="196.7" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-936504656-line-9">
+<clipPath id="lightlike-cli-459801763-line-9">
     <rect x="0" y="221.1" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-936504656-line-10">
+<clipPath id="lightlike-cli-459801763-line-10">
     <rect x="0" y="245.5" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-936504656-line-11">
+<clipPath id="lightlike-cli-459801763-line-11">
     <rect x="0" y="269.9" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-936504656-line-12">
+<clipPath id="lightlike-cli-459801763-line-12">
     <rect x="0" y="294.3" width="1464" height="24.65"/>
             </clipPath>
     </defs>
     
     
-    <g class="terminal-936504656-matrix">
-    <text class="terminal-936504656-r2" x="1464" y="20" textLength="12.2" clip-path="url(#terminal-936504656-line-0)">
-</text><text class="terminal-936504656-r3" x="12.2" y="44.4" textLength="73.2" clip-path="url(#terminal-936504656-line-1)">Usage:</text><text class="terminal-936504656-r4" x="97.6" y="44.4" textLength="256.2" clip-path="url(#terminal-936504656-line-1)">lightlike&#160;bq&#160;snapshot</text><text class="terminal-936504656-r1" x="366" y="44.4" textLength="12.2" clip-path="url(#terminal-936504656-line-1)">[</text><text class="terminal-936504656-r5" x="378.2" y="44.4" textLength="85.4" clip-path="url(#terminal-936504656-line-1)">OPTIONS</text><text class="terminal-936504656-r1" x="463.6" y="44.4" textLength="24.4" clip-path="url(#terminal-936504656-line-1)">]&#160;</text><text class="terminal-936504656-r5" x="488" y="44.4" textLength="85.4" clip-path="url(#terminal-936504656-line-1)">COMMAND</text><text class="terminal-936504656-r1" x="573.4" y="44.4" textLength="24.4" clip-path="url(#terminal-936504656-line-1)">&#160;[</text><text class="terminal-936504656-r5" x="597.8" y="44.4" textLength="48.8" clip-path="url(#terminal-936504656-line-1)">ARGS</text><text class="terminal-936504656-r1" x="646.6" y="44.4" textLength="48.8" clip-path="url(#terminal-936504656-line-1)">]...</text><text class="terminal-936504656-r2" x="1464" y="44.4" textLength="12.2" clip-path="url(#terminal-936504656-line-1)">
-</text><text class="terminal-936504656-r2" x="1464" y="68.8" textLength="12.2" clip-path="url(#terminal-936504656-line-2)">
-</text><text class="terminal-936504656-r1" x="12.2" y="93.2" textLength="305" clip-path="url(#terminal-936504656-line-3)">Create/restore&#160;snapshots.</text><text class="terminal-936504656-r2" x="1464" y="93.2" textLength="12.2" clip-path="url(#terminal-936504656-line-3)">
-</text><text class="terminal-936504656-r2" x="1464" y="117.6" textLength="12.2" clip-path="url(#terminal-936504656-line-4)">
-</text><text class="terminal-936504656-r1" x="0" y="142" textLength="24.4" clip-path="url(#terminal-936504656-line-5)">╭─</text><text class="terminal-936504656-r3" x="36.6" y="142" textLength="85.4" clip-path="url(#terminal-936504656-line-5)">Options</text><text class="terminal-936504656-r1" x="134.2" y="142" textLength="1305.4" clip-path="url(#terminal-936504656-line-5)">───────────────────────────────────────────────────────────────────────────────────────────────────────────</text><text class="terminal-936504656-r1" x="1439.6" y="142" textLength="24.4" clip-path="url(#terminal-936504656-line-5)">─╮</text><text class="terminal-936504656-r2" x="1464" y="142" textLength="12.2" clip-path="url(#terminal-936504656-line-5)">
-</text><text class="terminal-936504656-r1" x="0" y="166.4" textLength="12.2" clip-path="url(#terminal-936504656-line-6)">│</text><text class="terminal-936504656-r5" x="24.4" y="166.4" textLength="73.2" clip-path="url(#terminal-936504656-line-6)">--help</text><text class="terminal-936504656-r6" x="122" y="166.4" textLength="24.4" clip-path="url(#terminal-936504656-line-6)">-h</text><text class="terminal-936504656-r7" x="170.8" y="166.4" textLength="48.8" clip-path="url(#terminal-936504656-line-6)">FLAG</text><text class="terminal-936504656-r1" x="244" y="166.4" textLength="329.4" clip-path="url(#terminal-936504656-line-6)">Show&#160;this&#160;message&#160;and&#160;exit.</text><text class="terminal-936504656-r1" x="1451.8" y="166.4" textLength="12.2" clip-path="url(#terminal-936504656-line-6)">│</text><text class="terminal-936504656-r2" x="1464" y="166.4" textLength="12.2" clip-path="url(#terminal-936504656-line-6)">
-</text><text class="terminal-936504656-r1" x="0" y="190.8" textLength="1464" clip-path="url(#terminal-936504656-line-7)">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text><text class="terminal-936504656-r2" x="1464" y="190.8" textLength="12.2" clip-path="url(#terminal-936504656-line-7)">
-</text><text class="terminal-936504656-r8" x="0" y="215.2" textLength="24.4" clip-path="url(#terminal-936504656-line-8)">╭─</text><text class="terminal-936504656-r3" x="36.6" y="215.2" textLength="97.6" clip-path="url(#terminal-936504656-line-8)">Commands</text><text class="terminal-936504656-r8" x="146.4" y="215.2" textLength="1293.2" clip-path="url(#terminal-936504656-line-8)">──────────────────────────────────────────────────────────────────────────────────────────────────────────</text><text class="terminal-936504656-r8" x="1439.6" y="215.2" textLength="24.4" clip-path="url(#terminal-936504656-line-8)">─╮</text><text class="terminal-936504656-r2" x="1464" y="215.2" textLength="12.2" clip-path="url(#terminal-936504656-line-8)">
-</text><text class="terminal-936504656-r8" x="0" y="239.6" textLength="12.2" clip-path="url(#terminal-936504656-line-9)">│</text><text class="terminal-936504656-r9" x="24.4" y="239.6" textLength="219.6" clip-path="url(#terminal-936504656-line-9)">create&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-936504656-r1" x="268.4" y="239.6" textLength="1171.2" clip-path="url(#terminal-936504656-line-9)">Create&#160;a&#160;snapshot.&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-936504656-r8" x="1451.8" y="239.6" textLength="12.2" clip-path="url(#terminal-936504656-line-9)">│</text><text class="terminal-936504656-r2" x="1464" y="239.6" textLength="12.2" clip-path="url(#terminal-936504656-line-9)">
-</text><text class="terminal-936504656-r8" x="0" y="264" textLength="12.2" clip-path="url(#terminal-936504656-line-10)">│</text><text class="terminal-936504656-r9" x="24.4" y="264" textLength="219.6" clip-path="url(#terminal-936504656-line-10)">delete&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-936504656-r1" x="268.4" y="264" textLength="1171.2" clip-path="url(#terminal-936504656-line-10)">Drop&#160;a&#160;snapshot.&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-936504656-r8" x="1451.8" y="264" textLength="12.2" clip-path="url(#terminal-936504656-line-10)">│</text><text class="terminal-936504656-r2" x="1464" y="264" textLength="12.2" clip-path="url(#terminal-936504656-line-10)">
-</text><text class="terminal-936504656-r8" x="0" y="288.4" textLength="12.2" clip-path="url(#terminal-936504656-line-11)">│</text><text class="terminal-936504656-r9" x="24.4" y="288.4" textLength="219.6" clip-path="url(#terminal-936504656-line-11)">list&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-936504656-r1" x="268.4" y="288.4" textLength="1171.2" clip-path="url(#terminal-936504656-line-11)">List&#160;current&#160;snapshots.&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-936504656-r8" x="1451.8" y="288.4" textLength="12.2" clip-path="url(#terminal-936504656-line-11)">│</text><text class="terminal-936504656-r2" x="1464" y="288.4" textLength="12.2" clip-path="url(#terminal-936504656-line-11)">
-</text><text class="terminal-936504656-r8" x="0" y="312.8" textLength="12.2" clip-path="url(#terminal-936504656-line-12)">│</text><text class="terminal-936504656-r9" x="24.4" y="312.8" textLength="219.6" clip-path="url(#terminal-936504656-line-12)">restore&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-936504656-r1" x="268.4" y="312.8" textLength="1171.2" clip-path="url(#terminal-936504656-line-12)">Replace&#160;timesheet&#160;table&#160;with&#160;a&#160;snapshot.&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-936504656-r8" x="1451.8" y="312.8" textLength="12.2" clip-path="url(#terminal-936504656-line-12)">│</text><text class="terminal-936504656-r2" x="1464" y="312.8" textLength="12.2" clip-path="url(#terminal-936504656-line-12)">
-</text><text class="terminal-936504656-r8" x="0" y="337.2" textLength="1464" clip-path="url(#terminal-936504656-line-13)">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text><text class="terminal-936504656-r2" x="1464" y="337.2" textLength="12.2" clip-path="url(#terminal-936504656-line-13)">
+    <g class="lightlike-cli-459801763-matrix">
+    <text class="lightlike-cli-459801763-r2" x="1464" y="20" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-0)">
+</text><text class="lightlike-cli-459801763-r3" x="12.2" y="44.4" textLength="73.2" clip-path="url(#lightlike-cli-459801763-line-1)">Usage:</text><text class="lightlike-cli-459801763-r4" x="97.6" y="44.4" textLength="256.2" clip-path="url(#lightlike-cli-459801763-line-1)">lightlike&#160;bq&#160;snapshot</text><text class="lightlike-cli-459801763-r1" x="366" y="44.4" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-1)">[</text><text class="lightlike-cli-459801763-r5" x="378.2" y="44.4" textLength="85.4" clip-path="url(#lightlike-cli-459801763-line-1)">OPTIONS</text><text class="lightlike-cli-459801763-r1" x="463.6" y="44.4" textLength="24.4" clip-path="url(#lightlike-cli-459801763-line-1)">]&#160;</text><text class="lightlike-cli-459801763-r5" x="488" y="44.4" textLength="85.4" clip-path="url(#lightlike-cli-459801763-line-1)">COMMAND</text><text class="lightlike-cli-459801763-r1" x="573.4" y="44.4" textLength="24.4" clip-path="url(#lightlike-cli-459801763-line-1)">&#160;[</text><text class="lightlike-cli-459801763-r5" x="597.8" y="44.4" textLength="48.8" clip-path="url(#lightlike-cli-459801763-line-1)">ARGS</text><text class="lightlike-cli-459801763-r1" x="646.6" y="44.4" textLength="48.8" clip-path="url(#lightlike-cli-459801763-line-1)">]...</text><text class="lightlike-cli-459801763-r2" x="1464" y="44.4" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-1)">
+</text><text class="lightlike-cli-459801763-r2" x="1464" y="68.8" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-2)">
+</text><text class="lightlike-cli-459801763-r1" x="12.2" y="93.2" textLength="305" clip-path="url(#lightlike-cli-459801763-line-3)">Create/restore&#160;snapshots.</text><text class="lightlike-cli-459801763-r2" x="1464" y="93.2" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-3)">
+</text><text class="lightlike-cli-459801763-r2" x="1464" y="117.6" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-4)">
+</text><text class="lightlike-cli-459801763-r1" x="0" y="142" textLength="24.4" clip-path="url(#lightlike-cli-459801763-line-5)">╭─</text><text class="lightlike-cli-459801763-r3" x="36.6" y="142" textLength="85.4" clip-path="url(#lightlike-cli-459801763-line-5)">Options</text><text class="lightlike-cli-459801763-r1" x="134.2" y="142" textLength="1305.4" clip-path="url(#lightlike-cli-459801763-line-5)">───────────────────────────────────────────────────────────────────────────────────────────────────────────</text><text class="lightlike-cli-459801763-r1" x="1439.6" y="142" textLength="24.4" clip-path="url(#lightlike-cli-459801763-line-5)">─╮</text><text class="lightlike-cli-459801763-r2" x="1464" y="142" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-5)">
+</text><text class="lightlike-cli-459801763-r1" x="0" y="166.4" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-6)">│</text><text class="lightlike-cli-459801763-r5" x="24.4" y="166.4" textLength="73.2" clip-path="url(#lightlike-cli-459801763-line-6)">--help</text><text class="lightlike-cli-459801763-r6" x="122" y="166.4" textLength="24.4" clip-path="url(#lightlike-cli-459801763-line-6)">-h</text><text class="lightlike-cli-459801763-r7" x="170.8" y="166.4" textLength="48.8" clip-path="url(#lightlike-cli-459801763-line-6)">FLAG</text><text class="lightlike-cli-459801763-r1" x="244" y="166.4" textLength="329.4" clip-path="url(#lightlike-cli-459801763-line-6)">Show&#160;this&#160;message&#160;and&#160;exit.</text><text class="lightlike-cli-459801763-r1" x="1451.8" y="166.4" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-6)">│</text><text class="lightlike-cli-459801763-r2" x="1464" y="166.4" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-6)">
+</text><text class="lightlike-cli-459801763-r1" x="0" y="190.8" textLength="1464" clip-path="url(#lightlike-cli-459801763-line-7)">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text><text class="lightlike-cli-459801763-r2" x="1464" y="190.8" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-7)">
+</text><text class="lightlike-cli-459801763-r8" x="0" y="215.2" textLength="24.4" clip-path="url(#lightlike-cli-459801763-line-8)">╭─</text><text class="lightlike-cli-459801763-r3" x="36.6" y="215.2" textLength="97.6" clip-path="url(#lightlike-cli-459801763-line-8)">Commands</text><text class="lightlike-cli-459801763-r8" x="146.4" y="215.2" textLength="1293.2" clip-path="url(#lightlike-cli-459801763-line-8)">──────────────────────────────────────────────────────────────────────────────────────────────────────────</text><text class="lightlike-cli-459801763-r8" x="1439.6" y="215.2" textLength="24.4" clip-path="url(#lightlike-cli-459801763-line-8)">─╮</text><text class="lightlike-cli-459801763-r2" x="1464" y="215.2" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-8)">
+</text><text class="lightlike-cli-459801763-r8" x="0" y="239.6" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-9)">│</text><text class="lightlike-cli-459801763-r9" x="24.4" y="239.6" textLength="219.6" clip-path="url(#lightlike-cli-459801763-line-9)">create&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-459801763-r1" x="268.4" y="239.6" textLength="1171.2" clip-path="url(#lightlike-cli-459801763-line-9)">Create&#160;a&#160;snapshot.&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-459801763-r8" x="1451.8" y="239.6" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-9)">│</text><text class="lightlike-cli-459801763-r2" x="1464" y="239.6" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-9)">
+</text><text class="lightlike-cli-459801763-r8" x="0" y="264" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-10)">│</text><text class="lightlike-cli-459801763-r9" x="24.4" y="264" textLength="219.6" clip-path="url(#lightlike-cli-459801763-line-10)">delete&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-459801763-r1" x="268.4" y="264" textLength="1171.2" clip-path="url(#lightlike-cli-459801763-line-10)">Drop&#160;a&#160;snapshot.&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-459801763-r8" x="1451.8" y="264" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-10)">│</text><text class="lightlike-cli-459801763-r2" x="1464" y="264" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-10)">
+</text><text class="lightlike-cli-459801763-r8" x="0" y="288.4" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-11)">│</text><text class="lightlike-cli-459801763-r9" x="24.4" y="288.4" textLength="219.6" clip-path="url(#lightlike-cli-459801763-line-11)">list&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-459801763-r1" x="268.4" y="288.4" textLength="1171.2" clip-path="url(#lightlike-cli-459801763-line-11)">List&#160;current&#160;snapshots.&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-459801763-r8" x="1451.8" y="288.4" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-11)">│</text><text class="lightlike-cli-459801763-r2" x="1464" y="288.4" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-11)">
+</text><text class="lightlike-cli-459801763-r8" x="0" y="312.8" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-12)">│</text><text class="lightlike-cli-459801763-r9" x="24.4" y="312.8" textLength="219.6" clip-path="url(#lightlike-cli-459801763-line-12)">restore&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-459801763-r1" x="268.4" y="312.8" textLength="1171.2" clip-path="url(#lightlike-cli-459801763-line-12)">Replace&#160;timesheet&#160;table&#160;with&#160;a&#160;snapshot.&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-459801763-r8" x="1451.8" y="312.8" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-12)">│</text><text class="lightlike-cli-459801763-r2" x="1464" y="312.8" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-12)">
+</text><text class="lightlike-cli-459801763-r8" x="0" y="337.2" textLength="1464" clip-path="url(#lightlike-cli-459801763-line-13)">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text><text class="lightlike-cli-459801763-r2" x="1464" y="337.2" textLength="12.2" clip-path="url(#lightlike-cli-459801763-line-13)">
 </text>
     </g>
 </svg>

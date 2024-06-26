@@ -18,74 +18,74 @@
         font-weight: 700;
     }
 
-    .terminal-2634849332-matrix {
+    .lightlike-cli-1191577462-matrix {
         font-family: Fira Code, monospace;
         font-size: 20px;
         line-height: 24.4px;
         font-variant-east-asian: full-width;
     }
 
-    .terminal-2634849332-title {
+    .lightlike-cli-1191577462-title {
         font-size: 18px;
         font-weight: bold;
         font-family: arial;
     }
 
-    .terminal-2634849332-r1 { fill: #f0f0ff }
-.terminal-2634849332-r2 { fill: #c5c8c6 }
-.terminal-2634849332-r3 { fill: #f0f0ff;font-weight: bold }
-.terminal-2634849332-r4 { fill: #3465a4;font-weight: bold }
-.terminal-2634849332-r5 { fill: #00ffff;font-weight: bold }
-.terminal-2634849332-r6 { fill: #cc555a }
-.terminal-2634849332-r7 { fill: #00ff00;font-weight: bold }
-.terminal-2634849332-r8 { fill: #68a0b3 }
+    .lightlike-cli-1191577462-r1 { fill: #f0f0ff }
+.lightlike-cli-1191577462-r2 { fill: #c5c8c6 }
+.lightlike-cli-1191577462-r3 { fill: #f0f0ff;font-weight: bold }
+.lightlike-cli-1191577462-r4 { fill: #3465a4;font-weight: bold }
+.lightlike-cli-1191577462-r5 { fill: #00ffff;font-weight: bold }
+.lightlike-cli-1191577462-r6 { fill: #cc555a }
+.lightlike-cli-1191577462-r7 { fill: #00ff00;font-weight: bold }
+.lightlike-cli-1191577462-r8 { fill: #68a0b3 }
     </style>
 
     <defs>
-    <clipPath id="terminal-2634849332-clip-terminal">
+    <clipPath id="lightlike-cli-1191577462-clip-terminal">
     <rect x="0" y="0" width="1463.0" height="243.0" />
     </clipPath>
-    <clipPath id="terminal-2634849332-line-0">
+    <clipPath id="lightlike-cli-1191577462-line-0">
     <rect x="0" y="1.5" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2634849332-line-1">
+<clipPath id="lightlike-cli-1191577462-line-1">
     <rect x="0" y="25.9" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2634849332-line-2">
+<clipPath id="lightlike-cli-1191577462-line-2">
     <rect x="0" y="50.3" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2634849332-line-3">
+<clipPath id="lightlike-cli-1191577462-line-3">
     <rect x="0" y="74.7" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2634849332-line-4">
+<clipPath id="lightlike-cli-1191577462-line-4">
     <rect x="0" y="99.1" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2634849332-line-5">
+<clipPath id="lightlike-cli-1191577462-line-5">
     <rect x="0" y="123.5" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2634849332-line-6">
+<clipPath id="lightlike-cli-1191577462-line-6">
     <rect x="0" y="147.9" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2634849332-line-7">
+<clipPath id="lightlike-cli-1191577462-line-7">
     <rect x="0" y="172.3" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2634849332-line-8">
+<clipPath id="lightlike-cli-1191577462-line-8">
     <rect x="0" y="196.7" width="1464" height="24.65"/>
             </clipPath>
     </defs>
     
     
-    <g class="terminal-2634849332-matrix">
-    <text class="terminal-2634849332-r2" x="1464" y="20" textLength="12.2" clip-path="url(#terminal-2634849332-line-0)">
-</text><text class="terminal-2634849332-r3" x="12.2" y="44.4" textLength="73.2" clip-path="url(#terminal-2634849332-line-1)">Usage:</text><text class="terminal-2634849332-r4" x="97.6" y="44.4" textLength="341.6" clip-path="url(#terminal-2634849332-line-1)">lightlike&#160;bq&#160;snapshot&#160;create</text><text class="terminal-2634849332-r1" x="451.4" y="44.4" textLength="12.2" clip-path="url(#terminal-2634849332-line-1)">[</text><text class="terminal-2634849332-r5" x="463.6" y="44.4" textLength="85.4" clip-path="url(#terminal-2634849332-line-1)">OPTIONS</text><text class="terminal-2634849332-r1" x="549" y="44.4" textLength="12.2" clip-path="url(#terminal-2634849332-line-1)">]</text><text class="terminal-2634849332-r2" x="1464" y="44.4" textLength="12.2" clip-path="url(#terminal-2634849332-line-1)">
-</text><text class="terminal-2634849332-r2" x="1464" y="68.8" textLength="12.2" clip-path="url(#terminal-2634849332-line-2)">
-</text><text class="terminal-2634849332-r1" x="12.2" y="93.2" textLength="219.6" clip-path="url(#terminal-2634849332-line-3)">Create&#160;a&#160;snapshot.</text><text class="terminal-2634849332-r2" x="1464" y="93.2" textLength="12.2" clip-path="url(#terminal-2634849332-line-3)">
-</text><text class="terminal-2634849332-r2" x="1464" y="117.6" textLength="12.2" clip-path="url(#terminal-2634849332-line-4)">
-</text><text class="terminal-2634849332-r1" x="0" y="142" textLength="24.4" clip-path="url(#terminal-2634849332-line-5)">╭─</text><text class="terminal-2634849332-r3" x="36.6" y="142" textLength="85.4" clip-path="url(#terminal-2634849332-line-5)">Options</text><text class="terminal-2634849332-r1" x="134.2" y="142" textLength="1305.4" clip-path="url(#terminal-2634849332-line-5)">───────────────────────────────────────────────────────────────────────────────────────────────────────────</text><text class="terminal-2634849332-r1" x="1439.6" y="142" textLength="24.4" clip-path="url(#terminal-2634849332-line-5)">─╮</text><text class="terminal-2634849332-r2" x="1464" y="142" textLength="12.2" clip-path="url(#terminal-2634849332-line-5)">
-</text><text class="terminal-2634849332-r1" x="0" y="166.4" textLength="12.2" clip-path="url(#terminal-2634849332-line-6)">│</text><text class="terminal-2634849332-r6" x="24.4" y="166.4" textLength="12.2" clip-path="url(#terminal-2634849332-line-6)">*</text><text class="terminal-2634849332-r5" x="61" y="166.4" textLength="73.2" clip-path="url(#terminal-2634849332-line-6)">--name</text><text class="terminal-2634849332-r7" x="353.8" y="166.4" textLength="24.4" clip-path="url(#terminal-2634849332-line-6)">-n</text><text class="terminal-2634849332-r8" x="402.6" y="166.4" textLength="48.8" clip-path="url(#terminal-2634849332-line-6)">TEXT</text><text class="terminal-2634849332-r1" x="475.8" y="166.4" textLength="524.6" clip-path="url(#terminal-2634849332-line-6)">Default&#160;format:&#160;timesheet_%Y-%m-%dT%H_%M_%S</text><text class="terminal-2634849332-r6" x="1012.6" y="166.4" textLength="122" clip-path="url(#terminal-2634849332-line-6)">[required]</text><text class="terminal-2634849332-r1" x="1451.8" y="166.4" textLength="12.2" clip-path="url(#terminal-2634849332-line-6)">│</text><text class="terminal-2634849332-r2" x="1464" y="166.4" textLength="12.2" clip-path="url(#terminal-2634849332-line-6)">
-</text><text class="terminal-2634849332-r1" x="0" y="190.8" textLength="12.2" clip-path="url(#terminal-2634849332-line-7)">│</text><text class="terminal-2634849332-r5" x="61" y="190.8" textLength="268.4" clip-path="url(#terminal-2634849332-line-7)">--expiration_timestamp</text><text class="terminal-2634849332-r7" x="353.8" y="190.8" textLength="24.4" clip-path="url(#terminal-2634849332-line-7)">-e</text><text class="terminal-2634849332-r8" x="402.6" y="190.8" textLength="48.8" clip-path="url(#terminal-2634849332-line-7)">TEXT</text><text class="terminal-2634849332-r1" x="475.8" y="190.8" textLength="524.6" clip-path="url(#terminal-2634849332-line-7)">Set&#160;a&#160;date&#160;for&#160;this&#160;snapshot&#160;to&#160;be&#160;dropped.</text><text class="terminal-2634849332-r1" x="1451.8" y="190.8" textLength="12.2" clip-path="url(#terminal-2634849332-line-7)">│</text><text class="terminal-2634849332-r2" x="1464" y="190.8" textLength="12.2" clip-path="url(#terminal-2634849332-line-7)">
-</text><text class="terminal-2634849332-r1" x="0" y="215.2" textLength="12.2" clip-path="url(#terminal-2634849332-line-8)">│</text><text class="terminal-2634849332-r5" x="61" y="215.2" textLength="73.2" clip-path="url(#terminal-2634849332-line-8)">--help</text><text class="terminal-2634849332-r7" x="353.8" y="215.2" textLength="24.4" clip-path="url(#terminal-2634849332-line-8)">-h</text><text class="terminal-2634849332-r8" x="402.6" y="215.2" textLength="48.8" clip-path="url(#terminal-2634849332-line-8)">FLAG</text><text class="terminal-2634849332-r1" x="475.8" y="215.2" textLength="329.4" clip-path="url(#terminal-2634849332-line-8)">Show&#160;this&#160;message&#160;and&#160;exit.</text><text class="terminal-2634849332-r1" x="1451.8" y="215.2" textLength="12.2" clip-path="url(#terminal-2634849332-line-8)">│</text><text class="terminal-2634849332-r2" x="1464" y="215.2" textLength="12.2" clip-path="url(#terminal-2634849332-line-8)">
-</text><text class="terminal-2634849332-r1" x="0" y="239.6" textLength="1464" clip-path="url(#terminal-2634849332-line-9)">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text><text class="terminal-2634849332-r2" x="1464" y="239.6" textLength="12.2" clip-path="url(#terminal-2634849332-line-9)">
+    <g class="lightlike-cli-1191577462-matrix">
+    <text class="lightlike-cli-1191577462-r2" x="1464" y="20" textLength="12.2" clip-path="url(#lightlike-cli-1191577462-line-0)">
+</text><text class="lightlike-cli-1191577462-r3" x="12.2" y="44.4" textLength="73.2" clip-path="url(#lightlike-cli-1191577462-line-1)">Usage:</text><text class="lightlike-cli-1191577462-r4" x="97.6" y="44.4" textLength="341.6" clip-path="url(#lightlike-cli-1191577462-line-1)">lightlike&#160;bq&#160;snapshot&#160;create</text><text class="lightlike-cli-1191577462-r1" x="451.4" y="44.4" textLength="12.2" clip-path="url(#lightlike-cli-1191577462-line-1)">[</text><text class="lightlike-cli-1191577462-r5" x="463.6" y="44.4" textLength="85.4" clip-path="url(#lightlike-cli-1191577462-line-1)">OPTIONS</text><text class="lightlike-cli-1191577462-r1" x="549" y="44.4" textLength="12.2" clip-path="url(#lightlike-cli-1191577462-line-1)">]</text><text class="lightlike-cli-1191577462-r2" x="1464" y="44.4" textLength="12.2" clip-path="url(#lightlike-cli-1191577462-line-1)">
+</text><text class="lightlike-cli-1191577462-r2" x="1464" y="68.8" textLength="12.2" clip-path="url(#lightlike-cli-1191577462-line-2)">
+</text><text class="lightlike-cli-1191577462-r1" x="12.2" y="93.2" textLength="219.6" clip-path="url(#lightlike-cli-1191577462-line-3)">Create&#160;a&#160;snapshot.</text><text class="lightlike-cli-1191577462-r2" x="1464" y="93.2" textLength="12.2" clip-path="url(#lightlike-cli-1191577462-line-3)">
+</text><text class="lightlike-cli-1191577462-r2" x="1464" y="117.6" textLength="12.2" clip-path="url(#lightlike-cli-1191577462-line-4)">
+</text><text class="lightlike-cli-1191577462-r1" x="0" y="142" textLength="24.4" clip-path="url(#lightlike-cli-1191577462-line-5)">╭─</text><text class="lightlike-cli-1191577462-r3" x="36.6" y="142" textLength="85.4" clip-path="url(#lightlike-cli-1191577462-line-5)">Options</text><text class="lightlike-cli-1191577462-r1" x="134.2" y="142" textLength="1305.4" clip-path="url(#lightlike-cli-1191577462-line-5)">───────────────────────────────────────────────────────────────────────────────────────────────────────────</text><text class="lightlike-cli-1191577462-r1" x="1439.6" y="142" textLength="24.4" clip-path="url(#lightlike-cli-1191577462-line-5)">─╮</text><text class="lightlike-cli-1191577462-r2" x="1464" y="142" textLength="12.2" clip-path="url(#lightlike-cli-1191577462-line-5)">
+</text><text class="lightlike-cli-1191577462-r1" x="0" y="166.4" textLength="12.2" clip-path="url(#lightlike-cli-1191577462-line-6)">│</text><text class="lightlike-cli-1191577462-r6" x="24.4" y="166.4" textLength="12.2" clip-path="url(#lightlike-cli-1191577462-line-6)">*</text><text class="lightlike-cli-1191577462-r5" x="61" y="166.4" textLength="73.2" clip-path="url(#lightlike-cli-1191577462-line-6)">--name</text><text class="lightlike-cli-1191577462-r7" x="353.8" y="166.4" textLength="24.4" clip-path="url(#lightlike-cli-1191577462-line-6)">-n</text><text class="lightlike-cli-1191577462-r8" x="402.6" y="166.4" textLength="48.8" clip-path="url(#lightlike-cli-1191577462-line-6)">TEXT</text><text class="lightlike-cli-1191577462-r1" x="475.8" y="166.4" textLength="524.6" clip-path="url(#lightlike-cli-1191577462-line-6)">Default&#160;format:&#160;timesheet_%Y-%m-%dT%H_%M_%S</text><text class="lightlike-cli-1191577462-r6" x="1012.6" y="166.4" textLength="122" clip-path="url(#lightlike-cli-1191577462-line-6)">[required]</text><text class="lightlike-cli-1191577462-r1" x="1451.8" y="166.4" textLength="12.2" clip-path="url(#lightlike-cli-1191577462-line-6)">│</text><text class="lightlike-cli-1191577462-r2" x="1464" y="166.4" textLength="12.2" clip-path="url(#lightlike-cli-1191577462-line-6)">
+</text><text class="lightlike-cli-1191577462-r1" x="0" y="190.8" textLength="12.2" clip-path="url(#lightlike-cli-1191577462-line-7)">│</text><text class="lightlike-cli-1191577462-r5" x="61" y="190.8" textLength="268.4" clip-path="url(#lightlike-cli-1191577462-line-7)">--expiration_timestamp</text><text class="lightlike-cli-1191577462-r7" x="353.8" y="190.8" textLength="24.4" clip-path="url(#lightlike-cli-1191577462-line-7)">-e</text><text class="lightlike-cli-1191577462-r8" x="402.6" y="190.8" textLength="48.8" clip-path="url(#lightlike-cli-1191577462-line-7)">TEXT</text><text class="lightlike-cli-1191577462-r1" x="475.8" y="190.8" textLength="524.6" clip-path="url(#lightlike-cli-1191577462-line-7)">Set&#160;a&#160;date&#160;for&#160;this&#160;snapshot&#160;to&#160;be&#160;dropped.</text><text class="lightlike-cli-1191577462-r1" x="1451.8" y="190.8" textLength="12.2" clip-path="url(#lightlike-cli-1191577462-line-7)">│</text><text class="lightlike-cli-1191577462-r2" x="1464" y="190.8" textLength="12.2" clip-path="url(#lightlike-cli-1191577462-line-7)">
+</text><text class="lightlike-cli-1191577462-r1" x="0" y="215.2" textLength="12.2" clip-path="url(#lightlike-cli-1191577462-line-8)">│</text><text class="lightlike-cli-1191577462-r5" x="61" y="215.2" textLength="73.2" clip-path="url(#lightlike-cli-1191577462-line-8)">--help</text><text class="lightlike-cli-1191577462-r7" x="353.8" y="215.2" textLength="24.4" clip-path="url(#lightlike-cli-1191577462-line-8)">-h</text><text class="lightlike-cli-1191577462-r8" x="402.6" y="215.2" textLength="48.8" clip-path="url(#lightlike-cli-1191577462-line-8)">FLAG</text><text class="lightlike-cli-1191577462-r1" x="475.8" y="215.2" textLength="329.4" clip-path="url(#lightlike-cli-1191577462-line-8)">Show&#160;this&#160;message&#160;and&#160;exit.</text><text class="lightlike-cli-1191577462-r1" x="1451.8" y="215.2" textLength="12.2" clip-path="url(#lightlike-cli-1191577462-line-8)">│</text><text class="lightlike-cli-1191577462-r2" x="1464" y="215.2" textLength="12.2" clip-path="url(#lightlike-cli-1191577462-line-8)">
+</text><text class="lightlike-cli-1191577462-r1" x="0" y="239.6" textLength="1464" clip-path="url(#lightlike-cli-1191577462-line-9)">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text><text class="lightlike-cli-1191577462-r2" x="1464" y="239.6" textLength="12.2" clip-path="url(#lightlike-cli-1191577462-line-9)">
 </text>
     </g>
 </svg>

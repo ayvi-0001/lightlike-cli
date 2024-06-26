@@ -18,98 +18,98 @@
         font-weight: 700;
     }
 
-    .terminal-4041957743-matrix {
+    .lightlike-cli-3408596169-matrix {
         font-family: Fira Code, monospace;
         font-size: 20px;
         line-height: 24.4px;
         font-variant-east-asian: full-width;
     }
 
-    .terminal-4041957743-title {
+    .lightlike-cli-3408596169-title {
         font-size: 18px;
         font-weight: bold;
         font-family: arial;
     }
 
-    .terminal-4041957743-r1 { fill: #f0f0ff }
-.terminal-4041957743-r2 { fill: #c5c8c6 }
-.terminal-4041957743-r3 { fill: #f0f0ff;font-weight: bold }
-.terminal-4041957743-r4 { fill: #3465a4;font-weight: bold }
-.terminal-4041957743-r5 { fill: #00ffff;font-weight: bold }
-.terminal-4041957743-r6 { fill: #e1e1db;font-weight: bold }
-.terminal-4041957743-r7 { fill: #575753 }
-.terminal-4041957743-r8 { fill: #f8f8f2 }
-.terminal-4041957743-r9 { fill: #66d9ef }
-.terminal-4041957743-r10 { fill: #cc555a }
-.terminal-4041957743-r11 { fill: #68a0b3 }
-.terminal-4041957743-r12 { fill: #00ff00;font-weight: bold }
+    .lightlike-cli-3408596169-r1 { fill: #f0f0ff }
+.lightlike-cli-3408596169-r2 { fill: #c5c8c6 }
+.lightlike-cli-3408596169-r3 { fill: #f0f0ff;font-weight: bold }
+.lightlike-cli-3408596169-r4 { fill: #3465a4;font-weight: bold }
+.lightlike-cli-3408596169-r5 { fill: #00ffff;font-weight: bold }
+.lightlike-cli-3408596169-r6 { fill: #e1e1db;font-weight: bold }
+.lightlike-cli-3408596169-r7 { fill: #575753 }
+.lightlike-cli-3408596169-r8 { fill: #f8f8f2 }
+.lightlike-cli-3408596169-r9 { fill: #66d9ef }
+.lightlike-cli-3408596169-r10 { fill: #cc555a }
+.lightlike-cli-3408596169-r11 { fill: #68a0b3 }
+.lightlike-cli-3408596169-r12 { fill: #00ff00;font-weight: bold }
     </style>
 
     <defs>
-    <clipPath id="terminal-4041957743-clip-terminal">
+    <clipPath id="lightlike-cli-3408596169-clip-terminal">
     <rect x="0" y="0" width="1463.0" height="365.0" />
     </clipPath>
-    <clipPath id="terminal-4041957743-line-0">
+    <clipPath id="lightlike-cli-3408596169-line-0">
     <rect x="0" y="1.5" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-4041957743-line-1">
+<clipPath id="lightlike-cli-3408596169-line-1">
     <rect x="0" y="25.9" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-4041957743-line-2">
+<clipPath id="lightlike-cli-3408596169-line-2">
     <rect x="0" y="50.3" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-4041957743-line-3">
+<clipPath id="lightlike-cli-3408596169-line-3">
     <rect x="0" y="74.7" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-4041957743-line-4">
+<clipPath id="lightlike-cli-3408596169-line-4">
     <rect x="0" y="99.1" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-4041957743-line-5">
+<clipPath id="lightlike-cli-3408596169-line-5">
     <rect x="0" y="123.5" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-4041957743-line-6">
+<clipPath id="lightlike-cli-3408596169-line-6">
     <rect x="0" y="147.9" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-4041957743-line-7">
+<clipPath id="lightlike-cli-3408596169-line-7">
     <rect x="0" y="172.3" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-4041957743-line-8">
+<clipPath id="lightlike-cli-3408596169-line-8">
     <rect x="0" y="196.7" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-4041957743-line-9">
+<clipPath id="lightlike-cli-3408596169-line-9">
     <rect x="0" y="221.1" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-4041957743-line-10">
+<clipPath id="lightlike-cli-3408596169-line-10">
     <rect x="0" y="245.5" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-4041957743-line-11">
+<clipPath id="lightlike-cli-3408596169-line-11">
     <rect x="0" y="269.9" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-4041957743-line-12">
+<clipPath id="lightlike-cli-3408596169-line-12">
     <rect x="0" y="294.3" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-4041957743-line-13">
+<clipPath id="lightlike-cli-3408596169-line-13">
     <rect x="0" y="318.7" width="1464" height="24.65"/>
             </clipPath>
     </defs>
     
-    <rect fill="#131310" x="12.2" y="172.3" width="24.4" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="36.6" y="172.3" width="24.4" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="61" y="172.3" width="24.4" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="85.4" y="172.3" width="36.6" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="122" y="172.3" width="12.2" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="134.2" y="172.3" width="73.2" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="207.4" y="172.3" width="12.2" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="219.6" y="172.3" width="36.6" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="256.2" y="172.3" width="12.2" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="268.4" y="172.3" width="85.4" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="353.8" y="172.3" width="12.2" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="366" y="172.3" width="97.6" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="463.6" y="172.3" width="12.2" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="475.8" y="172.3" width="36.6" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="512.4" y="172.3" width="97.6" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="610" y="172.3" width="841.8" height="24.65" shape-rendering="crispEdges"/>
-    <g class="terminal-4041957743-matrix">
-    <text class="terminal-4041957743-r2" x="1464" y="20" textLength="12.2" clip-path="url(#terminal-4041957743-line-0)">
-</text><text class="terminal-4041957743-r3" x="12.2" y="44.4" textLength="73.2" clip-path="url(#terminal-4041957743-line-1)">Usage:</text><text class="terminal-4041957743-r4" x="97.6" y="44.4" textLength="500.2" clip-path="url(#terminal-4041957743-line-1)">lightlike&#160;app&#160;config&#160;set&#160;general&#160;timezone</text><text class="terminal-4041957743-r1" x="610" y="44.4" textLength="12.2" clip-path="url(#terminal-4041957743-line-1)">[</text><text class="terminal-4041957743-r5" x="622.2" y="44.4" textLength="85.4" clip-path="url(#terminal-4041957743-line-1)">OPTIONS</text><text class="terminal-4041957743-r1" x="707.6" y="44.4" textLength="24.4" clip-path="url(#terminal-4041957743-line-1)">]&#160;</text><text class="terminal-4041957743-r5" x="732" y="44.4" textLength="97.6" clip-path="url(#terminal-4041957743-line-1)">TIMEZONE</text><text class="terminal-4041957743-r2" x="1464" y="44.4" textLength="12.2" clip-path="url(#terminal-4041957743-line-1)">
-</text><text class="terminal-4041957743-r2" x="1464" y="68.8" textLength="12.2" clip-path="url(#terminal-4041957743-line-2)">
-</text><text class="terminal-4041957743-r1" x="12.2" y="93.2" textLength="536.8" clip-path="url(#terminal-4041957743-line-3)">Timezone&#160;used&#160;for&#160;all&#160;date/time&#160;conversions.</text><text class="terminal-4041957743-r2" x="1464" y="93.2" textLength="12.2" clip-path="url(#terminal-4041957743-line-3)">
-</text><text class="terminal-4041957743-r2" x="1464" y="117.6" textLength="12.2" clip-path="url(#terminal-4041957743-line-4)">
-</text><text class="terminal-4041957743-r1" x="12.2" y="142" textLength="366" clip-path="url(#terminal-4041957743-line-5)">If&#160;this&#160;value&#160;is&#160;updated,&#160;run&#160;</text><text class="terminal-4041957743-r4" x="378.2" y="142" textLength="36.6" clip-path="url(#terminal-4041957743-line-5)">app</text><text class="terminal-4041957743-r1" x="414.8" y="142" textLength="12.2" clip-path="url(#terminal-4041957743-line-5)">:</text><text class="terminal-4041957743-r4" x="427" y="142" textLength="36.6" clip-path="url(#terminal-4041957743-line-5)">run</text><text class="terminal-4041957743-r1" x="463.6" y="142" textLength="744.2" clip-path="url(#terminal-4041957743-line-5)">-bq&#160;to&#160;rebuild&#160;procedures&#160;in&#160;BigQuery&#160;using&#160;the&#160;new&#160;timezone.</text><text class="terminal-4041957743-r2" x="1464" y="142" textLength="12.2" clip-path="url(#terminal-4041957743-line-5)">
-</text><text class="terminal-4041957743-r2" x="1464" y="166.4" textLength="12.2" clip-path="url(#terminal-4041957743-line-6)">
-</text><text class="terminal-4041957743-r7" x="36.6" y="190.8" textLength="24.4" clip-path="url(#terminal-4041957743-line-7)">1&#160;</text><text class="terminal-4041957743-r8" x="61" y="190.8" textLength="24.4" clip-path="url(#terminal-4041957743-line-7)">$&#160;</text><text class="terminal-4041957743-r8" x="85.4" y="190.8" textLength="36.6" clip-path="url(#terminal-4041957743-line-7)">app</text><text class="terminal-4041957743-r8" x="134.2" y="190.8" textLength="73.2" clip-path="url(#terminal-4041957743-line-7)">config</text><text class="terminal-4041957743-r9" x="219.6" y="190.8" textLength="36.6" clip-path="url(#terminal-4041957743-line-7)">set</text><text class="terminal-4041957743-r8" x="268.4" y="190.8" textLength="85.4" clip-path="url(#terminal-4041957743-line-7)">general</text><text class="terminal-4041957743-r8" x="366" y="190.8" textLength="97.6" clip-path="url(#terminal-4041957743-line-7)">timezone</text><text class="terminal-4041957743-r8" x="475.8" y="190.8" textLength="36.6" clip-path="url(#terminal-4041957743-line-7)">UTC</text><text class="terminal-4041957743-r2" x="1464" y="190.8" textLength="12.2" clip-path="url(#terminal-4041957743-line-7)">
-</text><text class="terminal-4041957743-r2" x="1464" y="215.2" textLength="12.2" clip-path="url(#terminal-4041957743-line-8)">
-</text><text class="terminal-4041957743-r1" x="0" y="239.6" textLength="24.4" clip-path="url(#terminal-4041957743-line-9)">╭─</text><text class="terminal-4041957743-r3" x="36.6" y="239.6" textLength="109.8" clip-path="url(#terminal-4041957743-line-9)">Arguments</text><text class="terminal-4041957743-r1" x="158.6" y="239.6" textLength="1281" clip-path="url(#terminal-4041957743-line-9)">─────────────────────────────────────────────────────────────────────────────────────────────────────────</text><text class="terminal-4041957743-r1" x="1439.6" y="239.6" textLength="24.4" clip-path="url(#terminal-4041957743-line-9)">─╮</text><text class="terminal-4041957743-r2" x="1464" y="239.6" textLength="12.2" clip-path="url(#terminal-4041957743-line-9)">
-</text><text class="terminal-4041957743-r1" x="0" y="264" textLength="12.2" clip-path="url(#terminal-4041957743-line-10)">│</text><text class="terminal-4041957743-r10" x="24.4" y="264" textLength="12.2" clip-path="url(#terminal-4041957743-line-10)">*</text><text class="terminal-4041957743-r1" x="61" y="264" textLength="97.6" clip-path="url(#terminal-4041957743-line-10)">TIMEZONE</text><text class="terminal-4041957743-r11" x="207.4" y="264" textLength="48.8" clip-path="url(#terminal-4041957743-line-10)">TEXT</text><text class="terminal-4041957743-r10" x="280.6" y="264" textLength="122" clip-path="url(#terminal-4041957743-line-10)">[required]</text><text class="terminal-4041957743-r1" x="1451.8" y="264" textLength="12.2" clip-path="url(#terminal-4041957743-line-10)">│</text><text class="terminal-4041957743-r2" x="1464" y="264" textLength="12.2" clip-path="url(#terminal-4041957743-line-10)">
-</text><text class="terminal-4041957743-r1" x="0" y="288.4" textLength="1464" clip-path="url(#terminal-4041957743-line-11)">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text><text class="terminal-4041957743-r2" x="1464" y="288.4" textLength="12.2" clip-path="url(#terminal-4041957743-line-11)">
-</text><text class="terminal-4041957743-r1" x="0" y="312.8" textLength="24.4" clip-path="url(#terminal-4041957743-line-12)">╭─</text><text class="terminal-4041957743-r3" x="36.6" y="312.8" textLength="85.4" clip-path="url(#terminal-4041957743-line-12)">Options</text><text class="terminal-4041957743-r1" x="134.2" y="312.8" textLength="1305.4" clip-path="url(#terminal-4041957743-line-12)">───────────────────────────────────────────────────────────────────────────────────────────────────────────</text><text class="terminal-4041957743-r1" x="1439.6" y="312.8" textLength="24.4" clip-path="url(#terminal-4041957743-line-12)">─╮</text><text class="terminal-4041957743-r2" x="1464" y="312.8" textLength="12.2" clip-path="url(#terminal-4041957743-line-12)">
-</text><text class="terminal-4041957743-r1" x="0" y="337.2" textLength="12.2" clip-path="url(#terminal-4041957743-line-13)">│</text><text class="terminal-4041957743-r5" x="24.4" y="337.2" textLength="73.2" clip-path="url(#terminal-4041957743-line-13)">--help</text><text class="terminal-4041957743-r12" x="122" y="337.2" textLength="24.4" clip-path="url(#terminal-4041957743-line-13)">-h</text><text class="terminal-4041957743-r11" x="170.8" y="337.2" textLength="48.8" clip-path="url(#terminal-4041957743-line-13)">FLAG</text><text class="terminal-4041957743-r1" x="244" y="337.2" textLength="329.4" clip-path="url(#terminal-4041957743-line-13)">Show&#160;this&#160;message&#160;and&#160;exit.</text><text class="terminal-4041957743-r1" x="1451.8" y="337.2" textLength="12.2" clip-path="url(#terminal-4041957743-line-13)">│</text><text class="terminal-4041957743-r2" x="1464" y="337.2" textLength="12.2" clip-path="url(#terminal-4041957743-line-13)">
-</text><text class="terminal-4041957743-r1" x="0" y="361.6" textLength="1464" clip-path="url(#terminal-4041957743-line-14)">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text><text class="terminal-4041957743-r2" x="1464" y="361.6" textLength="12.2" clip-path="url(#terminal-4041957743-line-14)">
+    <rect fill="#131310" x="12.2" y="172.3" width="24.4" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="36.6" y="172.3" width="24.4" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="61" y="172.3" width="24.4" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="85.4" y="172.3" width="36.6" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="122" y="172.3" width="12.2" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="134.2" y="172.3" width="73.2" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="207.4" y="172.3" width="12.2" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="219.6" y="172.3" width="36.6" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="256.2" y="172.3" width="12.2" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="268.4" y="172.3" width="85.4" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="353.8" y="172.3" width="12.2" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="366" y="172.3" width="97.6" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="463.6" y="172.3" width="12.2" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="475.8" y="172.3" width="36.6" height="24.65" shape-rendering="crispEdges"/><rect fill="#131310" x="512.4" y="172.3" width="939.4" height="24.65" shape-rendering="crispEdges"/>
+    <g class="lightlike-cli-3408596169-matrix">
+    <text class="lightlike-cli-3408596169-r2" x="1464" y="20" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-0)">
+</text><text class="lightlike-cli-3408596169-r3" x="12.2" y="44.4" textLength="73.2" clip-path="url(#lightlike-cli-3408596169-line-1)">Usage:</text><text class="lightlike-cli-3408596169-r4" x="97.6" y="44.4" textLength="500.2" clip-path="url(#lightlike-cli-3408596169-line-1)">lightlike&#160;app&#160;config&#160;set&#160;general&#160;timezone</text><text class="lightlike-cli-3408596169-r1" x="610" y="44.4" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-1)">[</text><text class="lightlike-cli-3408596169-r5" x="622.2" y="44.4" textLength="85.4" clip-path="url(#lightlike-cli-3408596169-line-1)">OPTIONS</text><text class="lightlike-cli-3408596169-r1" x="707.6" y="44.4" textLength="24.4" clip-path="url(#lightlike-cli-3408596169-line-1)">]&#160;</text><text class="lightlike-cli-3408596169-r5" x="732" y="44.4" textLength="97.6" clip-path="url(#lightlike-cli-3408596169-line-1)">TIMEZONE</text><text class="lightlike-cli-3408596169-r2" x="1464" y="44.4" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-1)">
+</text><text class="lightlike-cli-3408596169-r2" x="1464" y="68.8" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-2)">
+</text><text class="lightlike-cli-3408596169-r1" x="12.2" y="93.2" textLength="536.8" clip-path="url(#lightlike-cli-3408596169-line-3)">Timezone&#160;used&#160;for&#160;all&#160;date/time&#160;conversions.</text><text class="lightlike-cli-3408596169-r2" x="1464" y="93.2" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-3)">
+</text><text class="lightlike-cli-3408596169-r2" x="1464" y="117.6" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-4)">
+</text><text class="lightlike-cli-3408596169-r1" x="12.2" y="142" textLength="366" clip-path="url(#lightlike-cli-3408596169-line-5)">If&#160;this&#160;value&#160;is&#160;updated,&#160;run&#160;</text><text class="lightlike-cli-3408596169-r4" x="378.2" y="142" textLength="36.6" clip-path="url(#lightlike-cli-3408596169-line-5)">app</text><text class="lightlike-cli-3408596169-r1" x="414.8" y="142" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-5)">:</text><text class="lightlike-cli-3408596169-r4" x="427" y="142" textLength="36.6" clip-path="url(#lightlike-cli-3408596169-line-5)">run</text><text class="lightlike-cli-3408596169-r1" x="463.6" y="142" textLength="744.2" clip-path="url(#lightlike-cli-3408596169-line-5)">-bq&#160;to&#160;rebuild&#160;procedures&#160;in&#160;BigQuery&#160;using&#160;the&#160;new&#160;timezone.</text><text class="lightlike-cli-3408596169-r2" x="1464" y="142" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-5)">
+</text><text class="lightlike-cli-3408596169-r2" x="1464" y="166.4" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-6)">
+</text><text class="lightlike-cli-3408596169-r7" x="36.6" y="190.8" textLength="24.4" clip-path="url(#lightlike-cli-3408596169-line-7)">1&#160;</text><text class="lightlike-cli-3408596169-r8" x="61" y="190.8" textLength="24.4" clip-path="url(#lightlike-cli-3408596169-line-7)">$&#160;</text><text class="lightlike-cli-3408596169-r8" x="85.4" y="190.8" textLength="36.6" clip-path="url(#lightlike-cli-3408596169-line-7)">app</text><text class="lightlike-cli-3408596169-r8" x="134.2" y="190.8" textLength="73.2" clip-path="url(#lightlike-cli-3408596169-line-7)">config</text><text class="lightlike-cli-3408596169-r9" x="219.6" y="190.8" textLength="36.6" clip-path="url(#lightlike-cli-3408596169-line-7)">set</text><text class="lightlike-cli-3408596169-r8" x="268.4" y="190.8" textLength="85.4" clip-path="url(#lightlike-cli-3408596169-line-7)">general</text><text class="lightlike-cli-3408596169-r8" x="366" y="190.8" textLength="97.6" clip-path="url(#lightlike-cli-3408596169-line-7)">timezone</text><text class="lightlike-cli-3408596169-r8" x="475.8" y="190.8" textLength="36.6" clip-path="url(#lightlike-cli-3408596169-line-7)">UTC</text><text class="lightlike-cli-3408596169-r2" x="1464" y="190.8" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-7)">
+</text><text class="lightlike-cli-3408596169-r2" x="1464" y="215.2" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-8)">
+</text><text class="lightlike-cli-3408596169-r1" x="0" y="239.6" textLength="24.4" clip-path="url(#lightlike-cli-3408596169-line-9)">╭─</text><text class="lightlike-cli-3408596169-r3" x="36.6" y="239.6" textLength="109.8" clip-path="url(#lightlike-cli-3408596169-line-9)">Arguments</text><text class="lightlike-cli-3408596169-r1" x="158.6" y="239.6" textLength="1281" clip-path="url(#lightlike-cli-3408596169-line-9)">─────────────────────────────────────────────────────────────────────────────────────────────────────────</text><text class="lightlike-cli-3408596169-r1" x="1439.6" y="239.6" textLength="24.4" clip-path="url(#lightlike-cli-3408596169-line-9)">─╮</text><text class="lightlike-cli-3408596169-r2" x="1464" y="239.6" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-9)">
+</text><text class="lightlike-cli-3408596169-r1" x="0" y="264" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-10)">│</text><text class="lightlike-cli-3408596169-r10" x="24.4" y="264" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-10)">*</text><text class="lightlike-cli-3408596169-r1" x="61" y="264" textLength="97.6" clip-path="url(#lightlike-cli-3408596169-line-10)">TIMEZONE</text><text class="lightlike-cli-3408596169-r11" x="207.4" y="264" textLength="48.8" clip-path="url(#lightlike-cli-3408596169-line-10)">TEXT</text><text class="lightlike-cli-3408596169-r10" x="280.6" y="264" textLength="122" clip-path="url(#lightlike-cli-3408596169-line-10)">[required]</text><text class="lightlike-cli-3408596169-r1" x="1451.8" y="264" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-10)">│</text><text class="lightlike-cli-3408596169-r2" x="1464" y="264" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-10)">
+</text><text class="lightlike-cli-3408596169-r1" x="0" y="288.4" textLength="1464" clip-path="url(#lightlike-cli-3408596169-line-11)">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text><text class="lightlike-cli-3408596169-r2" x="1464" y="288.4" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-11)">
+</text><text class="lightlike-cli-3408596169-r1" x="0" y="312.8" textLength="24.4" clip-path="url(#lightlike-cli-3408596169-line-12)">╭─</text><text class="lightlike-cli-3408596169-r3" x="36.6" y="312.8" textLength="85.4" clip-path="url(#lightlike-cli-3408596169-line-12)">Options</text><text class="lightlike-cli-3408596169-r1" x="134.2" y="312.8" textLength="1305.4" clip-path="url(#lightlike-cli-3408596169-line-12)">───────────────────────────────────────────────────────────────────────────────────────────────────────────</text><text class="lightlike-cli-3408596169-r1" x="1439.6" y="312.8" textLength="24.4" clip-path="url(#lightlike-cli-3408596169-line-12)">─╮</text><text class="lightlike-cli-3408596169-r2" x="1464" y="312.8" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-12)">
+</text><text class="lightlike-cli-3408596169-r1" x="0" y="337.2" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-13)">│</text><text class="lightlike-cli-3408596169-r5" x="24.4" y="337.2" textLength="73.2" clip-path="url(#lightlike-cli-3408596169-line-13)">--help</text><text class="lightlike-cli-3408596169-r12" x="122" y="337.2" textLength="24.4" clip-path="url(#lightlike-cli-3408596169-line-13)">-h</text><text class="lightlike-cli-3408596169-r11" x="170.8" y="337.2" textLength="48.8" clip-path="url(#lightlike-cli-3408596169-line-13)">FLAG</text><text class="lightlike-cli-3408596169-r1" x="244" y="337.2" textLength="329.4" clip-path="url(#lightlike-cli-3408596169-line-13)">Show&#160;this&#160;message&#160;and&#160;exit.</text><text class="lightlike-cli-3408596169-r1" x="1451.8" y="337.2" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-13)">│</text><text class="lightlike-cli-3408596169-r2" x="1464" y="337.2" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-13)">
+</text><text class="lightlike-cli-3408596169-r1" x="0" y="361.6" textLength="1464" clip-path="url(#lightlike-cli-3408596169-line-14)">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text><text class="lightlike-cli-3408596169-r2" x="1464" y="361.6" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-14)">
 </text>
     </g>
 </svg>
