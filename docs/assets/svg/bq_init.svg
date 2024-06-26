@@ -18,65 +18,65 @@
         font-weight: 700;
     }
 
-    .terminal-126789083-matrix {
+    .lightlike-cli-191496935-matrix {
         font-family: Fira Code, monospace;
         font-size: 20px;
         line-height: 24.4px;
         font-variant-east-asian: full-width;
     }
 
-    .terminal-126789083-title {
+    .lightlike-cli-191496935-title {
         font-size: 18px;
         font-weight: bold;
         font-family: arial;
     }
 
-    .terminal-126789083-r1 { fill: #f0f0ff }
-.terminal-126789083-r2 { fill: #c5c8c6 }
-.terminal-126789083-r3 { fill: #f0f0ff;font-weight: bold }
-.terminal-126789083-r4 { fill: #3465a4;font-weight: bold }
-.terminal-126789083-r5 { fill: #00ffff;font-weight: bold }
-.terminal-126789083-r6 { fill: #00ff00;font-weight: bold }
-.terminal-126789083-r7 { fill: #68a0b3 }
+    .lightlike-cli-191496935-r1 { fill: #f0f0ff }
+.lightlike-cli-191496935-r2 { fill: #c5c8c6 }
+.lightlike-cli-191496935-r3 { fill: #f0f0ff;font-weight: bold }
+.lightlike-cli-191496935-r4 { fill: #3465a4;font-weight: bold }
+.lightlike-cli-191496935-r5 { fill: #00ffff;font-weight: bold }
+.lightlike-cli-191496935-r6 { fill: #00ff00;font-weight: bold }
+.lightlike-cli-191496935-r7 { fill: #68a0b3 }
     </style>
 
     <defs>
-    <clipPath id="terminal-126789083-clip-terminal">
+    <clipPath id="lightlike-cli-191496935-clip-terminal">
     <rect x="0" y="0" width="1463.0" height="194.2" />
     </clipPath>
-    <clipPath id="terminal-126789083-line-0">
+    <clipPath id="lightlike-cli-191496935-line-0">
     <rect x="0" y="1.5" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-126789083-line-1">
+<clipPath id="lightlike-cli-191496935-line-1">
     <rect x="0" y="25.9" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-126789083-line-2">
+<clipPath id="lightlike-cli-191496935-line-2">
     <rect x="0" y="50.3" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-126789083-line-3">
+<clipPath id="lightlike-cli-191496935-line-3">
     <rect x="0" y="74.7" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-126789083-line-4">
+<clipPath id="lightlike-cli-191496935-line-4">
     <rect x="0" y="99.1" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-126789083-line-5">
+<clipPath id="lightlike-cli-191496935-line-5">
     <rect x="0" y="123.5" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-126789083-line-6">
+<clipPath id="lightlike-cli-191496935-line-6">
     <rect x="0" y="147.9" width="1464" height="24.65"/>
             </clipPath>
     </defs>
     
     
-    <g class="terminal-126789083-matrix">
-    <text class="terminal-126789083-r2" x="1464" y="20" textLength="12.2" clip-path="url(#terminal-126789083-line-0)">
-</text><text class="terminal-126789083-r3" x="12.2" y="44.4" textLength="73.2" clip-path="url(#terminal-126789083-line-1)">Usage:</text><text class="terminal-126789083-r4" x="97.6" y="44.4" textLength="207.4" clip-path="url(#terminal-126789083-line-1)">lightlike&#160;bq&#160;init</text><text class="terminal-126789083-r1" x="317.2" y="44.4" textLength="12.2" clip-path="url(#terminal-126789083-line-1)">[</text><text class="terminal-126789083-r5" x="329.4" y="44.4" textLength="85.4" clip-path="url(#terminal-126789083-line-1)">OPTIONS</text><text class="terminal-126789083-r1" x="414.8" y="44.4" textLength="12.2" clip-path="url(#terminal-126789083-line-1)">]</text><text class="terminal-126789083-r2" x="1464" y="44.4" textLength="12.2" clip-path="url(#terminal-126789083-line-1)">
-</text><text class="terminal-126789083-r2" x="1464" y="68.8" textLength="12.2" clip-path="url(#terminal-126789083-line-2)">
-</text><text class="terminal-126789083-r1" x="12.2" y="93.2" textLength="536.8" clip-path="url(#terminal-126789083-line-3)">Change&#160;active&#160;project&#160;or&#160;credentials&#160;source.</text><text class="terminal-126789083-r2" x="1464" y="93.2" textLength="12.2" clip-path="url(#terminal-126789083-line-3)">
-</text><text class="terminal-126789083-r2" x="1464" y="117.6" textLength="12.2" clip-path="url(#terminal-126789083-line-4)">
-</text><text class="terminal-126789083-r1" x="0" y="142" textLength="24.4" clip-path="url(#terminal-126789083-line-5)">╭─</text><text class="terminal-126789083-r3" x="36.6" y="142" textLength="85.4" clip-path="url(#terminal-126789083-line-5)">Options</text><text class="terminal-126789083-r1" x="134.2" y="142" textLength="1305.4" clip-path="url(#terminal-126789083-line-5)">───────────────────────────────────────────────────────────────────────────────────────────────────────────</text><text class="terminal-126789083-r1" x="1439.6" y="142" textLength="24.4" clip-path="url(#terminal-126789083-line-5)">─╮</text><text class="terminal-126789083-r2" x="1464" y="142" textLength="12.2" clip-path="url(#terminal-126789083-line-5)">
-</text><text class="terminal-126789083-r1" x="0" y="166.4" textLength="12.2" clip-path="url(#terminal-126789083-line-6)">│</text><text class="terminal-126789083-r5" x="24.4" y="166.4" textLength="73.2" clip-path="url(#terminal-126789083-line-6)">--help</text><text class="terminal-126789083-r6" x="122" y="166.4" textLength="24.4" clip-path="url(#terminal-126789083-line-6)">-h</text><text class="terminal-126789083-r7" x="170.8" y="166.4" textLength="48.8" clip-path="url(#terminal-126789083-line-6)">FLAG</text><text class="terminal-126789083-r1" x="244" y="166.4" textLength="329.4" clip-path="url(#terminal-126789083-line-6)">Show&#160;this&#160;message&#160;and&#160;exit.</text><text class="terminal-126789083-r1" x="1451.8" y="166.4" textLength="12.2" clip-path="url(#terminal-126789083-line-6)">│</text><text class="terminal-126789083-r2" x="1464" y="166.4" textLength="12.2" clip-path="url(#terminal-126789083-line-6)">
-</text><text class="terminal-126789083-r1" x="0" y="190.8" textLength="1464" clip-path="url(#terminal-126789083-line-7)">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text><text class="terminal-126789083-r2" x="1464" y="190.8" textLength="12.2" clip-path="url(#terminal-126789083-line-7)">
+    <g class="lightlike-cli-191496935-matrix">
+    <text class="lightlike-cli-191496935-r2" x="1464" y="20" textLength="12.2" clip-path="url(#lightlike-cli-191496935-line-0)">
+</text><text class="lightlike-cli-191496935-r3" x="12.2" y="44.4" textLength="73.2" clip-path="url(#lightlike-cli-191496935-line-1)">Usage:</text><text class="lightlike-cli-191496935-r4" x="97.6" y="44.4" textLength="207.4" clip-path="url(#lightlike-cli-191496935-line-1)">lightlike&#160;bq&#160;init</text><text class="lightlike-cli-191496935-r1" x="317.2" y="44.4" textLength="12.2" clip-path="url(#lightlike-cli-191496935-line-1)">[</text><text class="lightlike-cli-191496935-r5" x="329.4" y="44.4" textLength="85.4" clip-path="url(#lightlike-cli-191496935-line-1)">OPTIONS</text><text class="lightlike-cli-191496935-r1" x="414.8" y="44.4" textLength="12.2" clip-path="url(#lightlike-cli-191496935-line-1)">]</text><text class="lightlike-cli-191496935-r2" x="1464" y="44.4" textLength="12.2" clip-path="url(#lightlike-cli-191496935-line-1)">
+</text><text class="lightlike-cli-191496935-r2" x="1464" y="68.8" textLength="12.2" clip-path="url(#lightlike-cli-191496935-line-2)">
+</text><text class="lightlike-cli-191496935-r1" x="12.2" y="93.2" textLength="536.8" clip-path="url(#lightlike-cli-191496935-line-3)">Change&#160;active&#160;project&#160;or&#160;credentials&#160;source.</text><text class="lightlike-cli-191496935-r2" x="1464" y="93.2" textLength="12.2" clip-path="url(#lightlike-cli-191496935-line-3)">
+</text><text class="lightlike-cli-191496935-r2" x="1464" y="117.6" textLength="12.2" clip-path="url(#lightlike-cli-191496935-line-4)">
+</text><text class="lightlike-cli-191496935-r1" x="0" y="142" textLength="24.4" clip-path="url(#lightlike-cli-191496935-line-5)">╭─</text><text class="lightlike-cli-191496935-r3" x="36.6" y="142" textLength="85.4" clip-path="url(#lightlike-cli-191496935-line-5)">Options</text><text class="lightlike-cli-191496935-r1" x="134.2" y="142" textLength="1305.4" clip-path="url(#lightlike-cli-191496935-line-5)">───────────────────────────────────────────────────────────────────────────────────────────────────────────</text><text class="lightlike-cli-191496935-r1" x="1439.6" y="142" textLength="24.4" clip-path="url(#lightlike-cli-191496935-line-5)">─╮</text><text class="lightlike-cli-191496935-r2" x="1464" y="142" textLength="12.2" clip-path="url(#lightlike-cli-191496935-line-5)">
+</text><text class="lightlike-cli-191496935-r1" x="0" y="166.4" textLength="12.2" clip-path="url(#lightlike-cli-191496935-line-6)">│</text><text class="lightlike-cli-191496935-r5" x="24.4" y="166.4" textLength="73.2" clip-path="url(#lightlike-cli-191496935-line-6)">--help</text><text class="lightlike-cli-191496935-r6" x="122" y="166.4" textLength="24.4" clip-path="url(#lightlike-cli-191496935-line-6)">-h</text><text class="lightlike-cli-191496935-r7" x="170.8" y="166.4" textLength="48.8" clip-path="url(#lightlike-cli-191496935-line-6)">FLAG</text><text class="lightlike-cli-191496935-r1" x="244" y="166.4" textLength="329.4" clip-path="url(#lightlike-cli-191496935-line-6)">Show&#160;this&#160;message&#160;and&#160;exit.</text><text class="lightlike-cli-191496935-r1" x="1451.8" y="166.4" textLength="12.2" clip-path="url(#lightlike-cli-191496935-line-6)">│</text><text class="lightlike-cli-191496935-r2" x="1464" y="166.4" textLength="12.2" clip-path="url(#lightlike-cli-191496935-line-6)">
+</text><text class="lightlike-cli-191496935-r1" x="0" y="190.8" textLength="1464" clip-path="url(#lightlike-cli-191496935-line-7)">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text><text class="lightlike-cli-191496935-r2" x="1464" y="190.8" textLength="12.2" clip-path="url(#lightlike-cli-191496935-line-7)">
 </text>
     </g>
 </svg>

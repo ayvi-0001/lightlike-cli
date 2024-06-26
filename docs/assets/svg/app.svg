@@ -18,95 +18,95 @@
         font-weight: 700;
     }
 
-    .terminal-2946772417-matrix {
+    .lightlike-cli-41288002-matrix {
         font-family: Fira Code, monospace;
         font-size: 20px;
         line-height: 24.4px;
         font-variant-east-asian: full-width;
     }
 
-    .terminal-2946772417-title {
+    .lightlike-cli-41288002-title {
         font-size: 18px;
         font-weight: bold;
         font-family: arial;
     }
 
-    .terminal-2946772417-r1 { fill: #f0f0ff }
-.terminal-2946772417-r2 { fill: #c5c8c6 }
-.terminal-2946772417-r3 { fill: #f0f0ff;font-weight: bold }
-.terminal-2946772417-r4 { fill: #3465a4;font-weight: bold }
-.terminal-2946772417-r5 { fill: #00ffff;font-weight: bold }
-.terminal-2946772417-r6 { fill: #00ff00;font-weight: bold }
-.terminal-2946772417-r7 { fill: #68a0b3 }
-.terminal-2946772417-r8 { fill: #1f5f9c }
-.terminal-2946772417-r9 { fill: #68a0b3;font-weight: bold }
+    .lightlike-cli-41288002-r1 { fill: #f0f0ff }
+.lightlike-cli-41288002-r2 { fill: #c5c8c6 }
+.lightlike-cli-41288002-r3 { fill: #f0f0ff;font-weight: bold }
+.lightlike-cli-41288002-r4 { fill: #3465a4;font-weight: bold }
+.lightlike-cli-41288002-r5 { fill: #00ffff;font-weight: bold }
+.lightlike-cli-41288002-r6 { fill: #00ff00;font-weight: bold }
+.lightlike-cli-41288002-r7 { fill: #68a0b3 }
+.lightlike-cli-41288002-r8 { fill: #1f5f9c }
+.lightlike-cli-41288002-r9 { fill: #68a0b3;font-weight: bold }
     </style>
 
     <defs>
-    <clipPath id="terminal-2946772417-clip-terminal">
+    <clipPath id="lightlike-cli-41288002-clip-terminal">
     <rect x="0" y="0" width="1463.0" height="365.0" />
     </clipPath>
-    <clipPath id="terminal-2946772417-line-0">
+    <clipPath id="lightlike-cli-41288002-line-0">
     <rect x="0" y="1.5" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2946772417-line-1">
+<clipPath id="lightlike-cli-41288002-line-1">
     <rect x="0" y="25.9" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2946772417-line-2">
+<clipPath id="lightlike-cli-41288002-line-2">
     <rect x="0" y="50.3" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2946772417-line-3">
+<clipPath id="lightlike-cli-41288002-line-3">
     <rect x="0" y="74.7" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2946772417-line-4">
+<clipPath id="lightlike-cli-41288002-line-4">
     <rect x="0" y="99.1" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2946772417-line-5">
+<clipPath id="lightlike-cli-41288002-line-5">
     <rect x="0" y="123.5" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2946772417-line-6">
+<clipPath id="lightlike-cli-41288002-line-6">
     <rect x="0" y="147.9" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2946772417-line-7">
+<clipPath id="lightlike-cli-41288002-line-7">
     <rect x="0" y="172.3" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2946772417-line-8">
+<clipPath id="lightlike-cli-41288002-line-8">
     <rect x="0" y="196.7" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2946772417-line-9">
+<clipPath id="lightlike-cli-41288002-line-9">
     <rect x="0" y="221.1" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2946772417-line-10">
+<clipPath id="lightlike-cli-41288002-line-10">
     <rect x="0" y="245.5" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2946772417-line-11">
+<clipPath id="lightlike-cli-41288002-line-11">
     <rect x="0" y="269.9" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2946772417-line-12">
+<clipPath id="lightlike-cli-41288002-line-12">
     <rect x="0" y="294.3" width="1464" height="24.65"/>
             </clipPath>
-<clipPath id="terminal-2946772417-line-13">
+<clipPath id="lightlike-cli-41288002-line-13">
     <rect x="0" y="318.7" width="1464" height="24.65"/>
             </clipPath>
     </defs>
     
     
-    <g class="terminal-2946772417-matrix">
-    <text class="terminal-2946772417-r2" x="1464" y="20" textLength="12.2" clip-path="url(#terminal-2946772417-line-0)">
-</text><text class="terminal-2946772417-r3" x="12.2" y="44.4" textLength="73.2" clip-path="url(#terminal-2946772417-line-1)">Usage:</text><text class="terminal-2946772417-r4" x="97.6" y="44.4" textLength="158.6" clip-path="url(#terminal-2946772417-line-1)">lightlike&#160;app</text><text class="terminal-2946772417-r1" x="268.4" y="44.4" textLength="12.2" clip-path="url(#terminal-2946772417-line-1)">[</text><text class="terminal-2946772417-r5" x="280.6" y="44.4" textLength="85.4" clip-path="url(#terminal-2946772417-line-1)">OPTIONS</text><text class="terminal-2946772417-r1" x="366" y="44.4" textLength="24.4" clip-path="url(#terminal-2946772417-line-1)">]&#160;</text><text class="terminal-2946772417-r5" x="390.4" y="44.4" textLength="85.4" clip-path="url(#terminal-2946772417-line-1)">COMMAND</text><text class="terminal-2946772417-r1" x="475.8" y="44.4" textLength="24.4" clip-path="url(#terminal-2946772417-line-1)">&#160;[</text><text class="terminal-2946772417-r5" x="500.2" y="44.4" textLength="48.8" clip-path="url(#terminal-2946772417-line-1)">ARGS</text><text class="terminal-2946772417-r1" x="549" y="44.4" textLength="48.8" clip-path="url(#terminal-2946772417-line-1)">]...</text><text class="terminal-2946772417-r2" x="1464" y="44.4" textLength="12.2" clip-path="url(#terminal-2946772417-line-1)">
-</text><text class="terminal-2946772417-r2" x="1464" y="68.8" textLength="12.2" clip-path="url(#terminal-2946772417-line-2)">
-</text><text class="terminal-2946772417-r1" x="12.2" y="93.2" textLength="402.6" clip-path="url(#terminal-2946772417-line-3)">Cli&#160;internal&#160;settings&#160;&amp;&#160;commands.</text><text class="terminal-2946772417-r2" x="1464" y="93.2" textLength="12.2" clip-path="url(#terminal-2946772417-line-3)">
-</text><text class="terminal-2946772417-r2" x="1464" y="117.6" textLength="12.2" clip-path="url(#terminal-2946772417-line-4)">
-</text><text class="terminal-2946772417-r1" x="0" y="142" textLength="24.4" clip-path="url(#terminal-2946772417-line-5)">╭─</text><text class="terminal-2946772417-r3" x="36.6" y="142" textLength="85.4" clip-path="url(#terminal-2946772417-line-5)">Options</text><text class="terminal-2946772417-r1" x="134.2" y="142" textLength="1305.4" clip-path="url(#terminal-2946772417-line-5)">───────────────────────────────────────────────────────────────────────────────────────────────────────────</text><text class="terminal-2946772417-r1" x="1439.6" y="142" textLength="24.4" clip-path="url(#terminal-2946772417-line-5)">─╮</text><text class="terminal-2946772417-r2" x="1464" y="142" textLength="12.2" clip-path="url(#terminal-2946772417-line-5)">
-</text><text class="terminal-2946772417-r1" x="0" y="166.4" textLength="12.2" clip-path="url(#terminal-2946772417-line-6)">│</text><text class="terminal-2946772417-r5" x="24.4" y="166.4" textLength="73.2" clip-path="url(#terminal-2946772417-line-6)">--help</text><text class="terminal-2946772417-r6" x="122" y="166.4" textLength="24.4" clip-path="url(#terminal-2946772417-line-6)">-h</text><text class="terminal-2946772417-r7" x="170.8" y="166.4" textLength="48.8" clip-path="url(#terminal-2946772417-line-6)">FLAG</text><text class="terminal-2946772417-r1" x="244" y="166.4" textLength="329.4" clip-path="url(#terminal-2946772417-line-6)">Show&#160;this&#160;message&#160;and&#160;exit.</text><text class="terminal-2946772417-r1" x="1451.8" y="166.4" textLength="12.2" clip-path="url(#terminal-2946772417-line-6)">│</text><text class="terminal-2946772417-r2" x="1464" y="166.4" textLength="12.2" clip-path="url(#terminal-2946772417-line-6)">
-</text><text class="terminal-2946772417-r1" x="0" y="190.8" textLength="1464" clip-path="url(#terminal-2946772417-line-7)">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text><text class="terminal-2946772417-r2" x="1464" y="190.8" textLength="12.2" clip-path="url(#terminal-2946772417-line-7)">
-</text><text class="terminal-2946772417-r8" x="0" y="215.2" textLength="24.4" clip-path="url(#terminal-2946772417-line-8)">╭─</text><text class="terminal-2946772417-r3" x="36.6" y="215.2" textLength="97.6" clip-path="url(#terminal-2946772417-line-8)">Commands</text><text class="terminal-2946772417-r8" x="146.4" y="215.2" textLength="1293.2" clip-path="url(#terminal-2946772417-line-8)">──────────────────────────────────────────────────────────────────────────────────────────────────────────</text><text class="terminal-2946772417-r8" x="1439.6" y="215.2" textLength="24.4" clip-path="url(#terminal-2946772417-line-8)">─╮</text><text class="terminal-2946772417-r2" x="1464" y="215.2" textLength="12.2" clip-path="url(#terminal-2946772417-line-8)">
-</text><text class="terminal-2946772417-r8" x="0" y="239.6" textLength="12.2" clip-path="url(#terminal-2946772417-line-9)">│</text><text class="terminal-2946772417-r9" x="24.4" y="239.6" textLength="158.6" clip-path="url(#terminal-2946772417-line-9)">config&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-2946772417-r1" x="207.4" y="239.6" textLength="1232.2" clip-path="url(#terminal-2946772417-line-9)">Cli&#160;config&#160;file&#160;and&#160;settings.&#160;/user/.lightlike.toml&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-2946772417-r8" x="1451.8" y="239.6" textLength="12.2" clip-path="url(#terminal-2946772417-line-9)">│</text><text class="terminal-2946772417-r2" x="1464" y="239.6" textLength="12.2" clip-path="url(#terminal-2946772417-line-9)">
-</text><text class="terminal-2946772417-r8" x="0" y="264" textLength="12.2" clip-path="url(#terminal-2946772417-line-10)">│</text><text class="terminal-2946772417-r9" x="24.4" y="264" textLength="158.6" clip-path="url(#terminal-2946772417-line-10)">dir&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-2946772417-r1" x="207.4" y="264" textLength="1232.2" clip-path="url(#terminal-2946772417-line-10)">Open&#160;cli&#160;dir:&#160;/user/.lightlike-cli&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-2946772417-r8" x="1451.8" y="264" textLength="12.2" clip-path="url(#terminal-2946772417-line-10)">│</text><text class="terminal-2946772417-r2" x="1464" y="264" textLength="12.2" clip-path="url(#terminal-2946772417-line-10)">
-</text><text class="terminal-2946772417-r8" x="0" y="288.4" textLength="12.2" clip-path="url(#terminal-2946772417-line-11)">│</text><text class="terminal-2946772417-r9" x="24.4" y="288.4" textLength="158.6" clip-path="url(#terminal-2946772417-line-11)">run-bq&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-2946772417-r1" x="207.4" y="288.4" textLength="1232.2" clip-path="url(#terminal-2946772417-line-11)">Run&#160;BigQuery&#160;scripts.&#160;Tables&#160;only&#160;built&#160;if&#160;missing.&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-2946772417-r8" x="1451.8" y="288.4" textLength="12.2" clip-path="url(#terminal-2946772417-line-11)">│</text><text class="terminal-2946772417-r2" x="1464" y="288.4" textLength="12.2" clip-path="url(#terminal-2946772417-line-11)">
-</text><text class="terminal-2946772417-r8" x="0" y="312.8" textLength="12.2" clip-path="url(#terminal-2946772417-line-12)">│</text><text class="terminal-2946772417-r9" x="24.4" y="312.8" textLength="158.6" clip-path="url(#terminal-2946772417-line-12)">sync&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-2946772417-r1" x="207.4" y="312.8" textLength="1232.2" clip-path="url(#terminal-2946772417-line-12)">Sync&#160;local&#160;files.&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-2946772417-r8" x="1451.8" y="312.8" textLength="12.2" clip-path="url(#terminal-2946772417-line-12)">│</text><text class="terminal-2946772417-r2" x="1464" y="312.8" textLength="12.2" clip-path="url(#terminal-2946772417-line-12)">
-</text><text class="terminal-2946772417-r8" x="0" y="337.2" textLength="12.2" clip-path="url(#terminal-2946772417-line-13)">│</text><text class="terminal-2946772417-r9" x="24.4" y="337.2" textLength="158.6" clip-path="url(#terminal-2946772417-line-13)">test&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-2946772417-r1" x="207.4" y="337.2" textLength="1232.2" clip-path="url(#terminal-2946772417-line-13)">Test&#160;functions.&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="terminal-2946772417-r8" x="1451.8" y="337.2" textLength="12.2" clip-path="url(#terminal-2946772417-line-13)">│</text><text class="terminal-2946772417-r2" x="1464" y="337.2" textLength="12.2" clip-path="url(#terminal-2946772417-line-13)">
-</text><text class="terminal-2946772417-r8" x="0" y="361.6" textLength="1464" clip-path="url(#terminal-2946772417-line-14)">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text><text class="terminal-2946772417-r2" x="1464" y="361.6" textLength="12.2" clip-path="url(#terminal-2946772417-line-14)">
+    <g class="lightlike-cli-41288002-matrix">
+    <text class="lightlike-cli-41288002-r2" x="1464" y="20" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-0)">
+</text><text class="lightlike-cli-41288002-r3" x="12.2" y="44.4" textLength="73.2" clip-path="url(#lightlike-cli-41288002-line-1)">Usage:</text><text class="lightlike-cli-41288002-r4" x="97.6" y="44.4" textLength="158.6" clip-path="url(#lightlike-cli-41288002-line-1)">lightlike&#160;app</text><text class="lightlike-cli-41288002-r1" x="268.4" y="44.4" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-1)">[</text><text class="lightlike-cli-41288002-r5" x="280.6" y="44.4" textLength="85.4" clip-path="url(#lightlike-cli-41288002-line-1)">OPTIONS</text><text class="lightlike-cli-41288002-r1" x="366" y="44.4" textLength="24.4" clip-path="url(#lightlike-cli-41288002-line-1)">]&#160;</text><text class="lightlike-cli-41288002-r5" x="390.4" y="44.4" textLength="85.4" clip-path="url(#lightlike-cli-41288002-line-1)">COMMAND</text><text class="lightlike-cli-41288002-r1" x="475.8" y="44.4" textLength="24.4" clip-path="url(#lightlike-cli-41288002-line-1)">&#160;[</text><text class="lightlike-cli-41288002-r5" x="500.2" y="44.4" textLength="48.8" clip-path="url(#lightlike-cli-41288002-line-1)">ARGS</text><text class="lightlike-cli-41288002-r1" x="549" y="44.4" textLength="48.8" clip-path="url(#lightlike-cli-41288002-line-1)">]...</text><text class="lightlike-cli-41288002-r2" x="1464" y="44.4" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-1)">
+</text><text class="lightlike-cli-41288002-r2" x="1464" y="68.8" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-2)">
+</text><text class="lightlike-cli-41288002-r1" x="12.2" y="93.2" textLength="402.6" clip-path="url(#lightlike-cli-41288002-line-3)">Cli&#160;internal&#160;settings&#160;&amp;&#160;commands.</text><text class="lightlike-cli-41288002-r2" x="1464" y="93.2" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-3)">
+</text><text class="lightlike-cli-41288002-r2" x="1464" y="117.6" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-4)">
+</text><text class="lightlike-cli-41288002-r1" x="0" y="142" textLength="24.4" clip-path="url(#lightlike-cli-41288002-line-5)">╭─</text><text class="lightlike-cli-41288002-r3" x="36.6" y="142" textLength="85.4" clip-path="url(#lightlike-cli-41288002-line-5)">Options</text><text class="lightlike-cli-41288002-r1" x="134.2" y="142" textLength="1305.4" clip-path="url(#lightlike-cli-41288002-line-5)">───────────────────────────────────────────────────────────────────────────────────────────────────────────</text><text class="lightlike-cli-41288002-r1" x="1439.6" y="142" textLength="24.4" clip-path="url(#lightlike-cli-41288002-line-5)">─╮</text><text class="lightlike-cli-41288002-r2" x="1464" y="142" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-5)">
+</text><text class="lightlike-cli-41288002-r1" x="0" y="166.4" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-6)">│</text><text class="lightlike-cli-41288002-r5" x="24.4" y="166.4" textLength="73.2" clip-path="url(#lightlike-cli-41288002-line-6)">--help</text><text class="lightlike-cli-41288002-r6" x="122" y="166.4" textLength="24.4" clip-path="url(#lightlike-cli-41288002-line-6)">-h</text><text class="lightlike-cli-41288002-r7" x="170.8" y="166.4" textLength="48.8" clip-path="url(#lightlike-cli-41288002-line-6)">FLAG</text><text class="lightlike-cli-41288002-r1" x="244" y="166.4" textLength="329.4" clip-path="url(#lightlike-cli-41288002-line-6)">Show&#160;this&#160;message&#160;and&#160;exit.</text><text class="lightlike-cli-41288002-r1" x="1451.8" y="166.4" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-6)">│</text><text class="lightlike-cli-41288002-r2" x="1464" y="166.4" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-6)">
+</text><text class="lightlike-cli-41288002-r1" x="0" y="190.8" textLength="1464" clip-path="url(#lightlike-cli-41288002-line-7)">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text><text class="lightlike-cli-41288002-r2" x="1464" y="190.8" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-7)">
+</text><text class="lightlike-cli-41288002-r8" x="0" y="215.2" textLength="24.4" clip-path="url(#lightlike-cli-41288002-line-8)">╭─</text><text class="lightlike-cli-41288002-r3" x="36.6" y="215.2" textLength="97.6" clip-path="url(#lightlike-cli-41288002-line-8)">Commands</text><text class="lightlike-cli-41288002-r8" x="146.4" y="215.2" textLength="1293.2" clip-path="url(#lightlike-cli-41288002-line-8)">──────────────────────────────────────────────────────────────────────────────────────────────────────────</text><text class="lightlike-cli-41288002-r8" x="1439.6" y="215.2" textLength="24.4" clip-path="url(#lightlike-cli-41288002-line-8)">─╮</text><text class="lightlike-cli-41288002-r2" x="1464" y="215.2" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-8)">
+</text><text class="lightlike-cli-41288002-r8" x="0" y="239.6" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-9)">│</text><text class="lightlike-cli-41288002-r9" x="24.4" y="239.6" textLength="158.6" clip-path="url(#lightlike-cli-41288002-line-9)">config&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-41288002-r1" x="207.4" y="239.6" textLength="1232.2" clip-path="url(#lightlike-cli-41288002-line-9)">Cli&#160;config&#160;file&#160;and&#160;settings.&#160;/user/.lightlike.toml&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-41288002-r8" x="1451.8" y="239.6" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-9)">│</text><text class="lightlike-cli-41288002-r2" x="1464" y="239.6" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-9)">
+</text><text class="lightlike-cli-41288002-r8" x="0" y="264" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-10)">│</text><text class="lightlike-cli-41288002-r9" x="24.4" y="264" textLength="158.6" clip-path="url(#lightlike-cli-41288002-line-10)">dir&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-41288002-r1" x="207.4" y="264" textLength="1232.2" clip-path="url(#lightlike-cli-41288002-line-10)">Open&#160;cli&#160;dir:&#160;/user/.lightlike-cli&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-41288002-r8" x="1451.8" y="264" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-10)">│</text><text class="lightlike-cli-41288002-r2" x="1464" y="264" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-10)">
+</text><text class="lightlike-cli-41288002-r8" x="0" y="288.4" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-11)">│</text><text class="lightlike-cli-41288002-r9" x="24.4" y="288.4" textLength="158.6" clip-path="url(#lightlike-cli-41288002-line-11)">run-bq&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-41288002-r1" x="207.4" y="288.4" textLength="1232.2" clip-path="url(#lightlike-cli-41288002-line-11)">Run&#160;BigQuery&#160;scripts.&#160;Tables&#160;only&#160;built&#160;if&#160;missing.&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-41288002-r8" x="1451.8" y="288.4" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-11)">│</text><text class="lightlike-cli-41288002-r2" x="1464" y="288.4" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-11)">
+</text><text class="lightlike-cli-41288002-r8" x="0" y="312.8" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-12)">│</text><text class="lightlike-cli-41288002-r9" x="24.4" y="312.8" textLength="158.6" clip-path="url(#lightlike-cli-41288002-line-12)">sync&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-41288002-r1" x="207.4" y="312.8" textLength="1232.2" clip-path="url(#lightlike-cli-41288002-line-12)">Sync&#160;local&#160;files.&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-41288002-r8" x="1451.8" y="312.8" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-12)">│</text><text class="lightlike-cli-41288002-r2" x="1464" y="312.8" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-12)">
+</text><text class="lightlike-cli-41288002-r8" x="0" y="337.2" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-13)">│</text><text class="lightlike-cli-41288002-r9" x="24.4" y="337.2" textLength="158.6" clip-path="url(#lightlike-cli-41288002-line-13)">test&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-41288002-r1" x="207.4" y="337.2" textLength="1232.2" clip-path="url(#lightlike-cli-41288002-line-13)">Test&#160;functions.&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-41288002-r8" x="1451.8" y="337.2" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-13)">│</text><text class="lightlike-cli-41288002-r2" x="1464" y="337.2" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-13)">
+</text><text class="lightlike-cli-41288002-r8" x="0" y="361.6" textLength="1464" clip-path="url(#lightlike-cli-41288002-line-14)">╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</text><text class="lightlike-cli-41288002-r2" x="1464" y="361.6" textLength="12.2" clip-path="url(#lightlike-cli-41288002-line-14)">
 </text>
     </g>
 </svg>
