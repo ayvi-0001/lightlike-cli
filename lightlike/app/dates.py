@@ -255,7 +255,7 @@ def calculate_duration(
         if isinstance(paused_hours, float):
             paused_hours = Decimal(paused_hours)
 
-        time_parts_paused = seconds_to_time_parts(Decimal(paused_hours) * 3600)
+        time_parts_paused = seconds_to_time_parts(Decimal(paused_hours) * Decimal(3600))
         paused_hours, paused_minutes, paused_seconds = time_parts_paused
         paused_delta: timedelta = timedelta(
             hours=paused_hours,

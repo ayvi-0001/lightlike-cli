@@ -14,12 +14,14 @@ from lightlike import _console
 from lightlike.__about__ import (
     __appdir__,
     __appname__,
+    __appname_sc__,
     __config__,
     __latest_release__,
     __lock__,
     __repo__,
+    __version__,
 )
-from lightlike.internal import markup
+from lightlike.internal import markup, toml, update
 
 __all__: t.Sequence[str] = (
     "CACHE",
@@ -29,8 +31,8 @@ __all__: t.Sequence[str] = (
     "REPL_HISTORY",
     "REPL_FILE_HISTORY",
     "QUERIES",
-    "LOGS",
     "TIMER_LIST_CACHE",
+    "LOGS",
     "rmtree",
 )
 
@@ -65,13 +67,6 @@ def rmtree(appdata: Path = __appdir__) -> t.NoReturn:
 
 
 from lightlike.internal import utils
-from lightlike.internal.toml import DEFAULT_CONFIG
-from lightlike.internal.update import (
-    _patch_appdir_lt_v_0_9_0,
-    _patch_cache_lt_v_0_9_0,
-    check_latest_release,
-    extract_version,
-)
 
 
 @interprocess_locked(__appdir__ / "config.lock")
@@ -80,7 +75,7 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
 
     not _console.QUIET_START and console.log("Validating app directory")
 
-    _patch_appdir_lt_v_0_9_0(__appdir__, __config__)
+    update._patch_appdir_lt_v_0_9_0(__appdir__, __config__)
 
     if not __config__.exists():
         console.log(f"{__config__} not found")
@@ -89,22 +84,22 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
     else:
         not _console.QUIET_START and console.log("Checking for updates")
 
-        v_package: tuple[int, int, int] = extract_version(__version__)
+        v_package: tuple[int, int, int] = update.extract_version(__version__)
 
-        check_latest_release(v_package, __repo__, __latest_release__)
+        update.check_latest_release(v_package, __repo__, __latest_release__)
 
         local_config = rtoml.load(__config__)
 
-        v_local = extract_version(local_config["app"]["version"])
+        v_local = update.extract_version(local_config["app"]["version"])
         v_local < v_package and console.log(
             "Updating version: v",
             markup.repr_number(".".join(map(str, v_package))),
             sep="",
         )
-        v_local < (0, 9, 0) and _patch_cache_lt_v_0_9_0(__appdir__)
+        v_local < (0, 9, 0) and update._patch_cache_lt_v_0_9_0(__appdir__)
 
         updated_config = utils.update_dict(
-            original=rtoml.load(DEFAULT_CONFIG),
+            original=rtoml.load(toml.DEFAULT_CONFIG),
             updates=local_config,
             ignore=["cli", "lazy_subcommands"],
         )
@@ -128,11 +123,10 @@ def _initial_build() -> None | t.NoReturn:
         from rich.markdown import Markdown
         from rich.padding import Padding
 
-        from lightlike.__about__ import __appname_sc__, __config__, __version__
         from lightlike.internal.enums import CredentialsSource
         from lightlike.lib.third_party import _questionary
 
-        default_config = rtoml.load(DEFAULT_CONFIG)
+        default_config = rtoml.load(toml.DEFAULT_CONFIG)
 
         license = Markdown(
             markup=cleandoc(

@@ -336,7 +336,7 @@ def provision_bigquery_resources(
         with AppConfig().rw() as config:
             config["bigquery"].update(resources_provisioned=True)
 
-            if updates is not None and any([updates[k] is False for k in updates]):
+            if updates and any([updates[k] is False for k in updates]):
                 for k in updates:
                     config["updates"][k] = True
 

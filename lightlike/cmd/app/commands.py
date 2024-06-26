@@ -14,7 +14,9 @@ from lightlike.app.cache import TimeEntryAppData, TimeEntryCache
 from lightlike.app.client import get_client
 from lightlike.app.config import AppConfig
 from lightlike.app.core import FmtRichCommand, LazyAliasedRichGroup
+from lightlike.app.routines import CliQueryRoutines
 from lightlike.internal import markup, utils
+from lightlike.lib.third_party import _questionary
 
 __all__: t.Sequence[str] = (
     "config",
@@ -264,6 +266,46 @@ def sync(
         if cache:
             status.update(markup.status_message("Syncing cache"))
             _cache.sync()
+
+
+@click.command(
+    cls=FmtRichCommand,
+    name="reset-all",
+    hidden=True,
+    allow_name_alias=False,
+)
+@utils._handle_keyboard_interrupt()
+@click.option("-y", "--yes", is_flag=True, type=click.BOOL, hidden=True)
+@_pass.appdata
+@_pass.cache
+@_pass.routine
+@_pass.console
+def _reset_all(
+    console: Console,
+    routine: CliQueryRoutines,
+    cache: TimeEntryCache,
+    appdata: TimeEntryAppData,
+    yes: bool,
+) -> None:
+    """Delete all timesheet/projects data."""
+    if not yes:
+        if not _questionary.confirm(
+            "This will delete all timesheet and project data. Are you sure?"
+        ):
+            return
+
+    console.print("truncating timesheet")
+    routine._query(f"truncate table {routine.timesheet_id}", wait=True)
+    console.print("truncating projects")
+    routine._query(
+        f'delete from {routine.projects_id} where name != "no-project"',
+        wait=True,
+    )
+    console.print("clearing cache")
+    cache._reset()
+    console.print("syncing local appdata")
+    appdata.sync()
+    console.print("[b][green]done")
 
 
 @click.group(

@@ -20,20 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# fmt: off
 import os
 from pathlib import Path
 from typing import Final, Sequence
 
 __all__: Sequence[str] = (
+    "__appdir__",
     "__appname__",
     "__appname_sc__",
-    "__version__",
-    "__repo__",
-    "__latest_release__",
-    "__appdir__",
     "__config__",
+    "__latest_release__",
     "__lock__",
+    "__repo__",
+    "__version__",
 )
 
 
@@ -42,10 +41,10 @@ def get_app_dir(app_name: str, roaming: bool = True, force_posix: bool = True) -
     # Import from click in this file was causing errors with hatch build,
     # temporarily copying this function here until that issue is resolved.
     import sys
-    
+
     def _posixify(name: str) -> str:
         return "-".join(name.split()).lower()
-    
+
     if sys.platform.startswith("win"):
         key = "APPDATA" if roaming else "LOCALAPPDATA"
         folder = os.environ.get(key)
@@ -63,16 +62,22 @@ def get_app_dir(app_name: str, roaming: bool = True, force_posix: bool = True) -
         _posixify(app_name),
     )
 
-try:
-    env: str | None = os.getenv("LIGHTLIKE_CLI")
-finally:
-    __appname__: Final[str] = "Lightlike CLI%s" % (f" {env}" if env else '')
-    __config: Final[str] = f".lightlike{('_' + env.lower()) if env else ''}.toml"
 
-__appname_sc__: Final[str] = "".join(c if c.isalnum() else "_" for c in __appname__.lower())
-__version__: Final[str] = "v0.9.2"
+def _appdir_filename(env: str | None) -> str:
+    return f"Lightlike CLI%s" % (f" {env}" if env else "")
+
+
+def _config_filename(env: str | None) -> str:
+    return f".lightlike{('_' + env.lower()) if env else ''}.toml"
+
+
+__version__: Final[str] = "v0.9.3"
+
+env: str | None = os.getenv("LIGHTLIKE_CLI")
+__appname__: Final[str] = _appdir_filename(env)
+__appname_sc__: Final[str] = "".join(c if c.isalnum() else "_" for c in __appname__.lower())  # fmt: skip
+__config__: Final[Path] = Path.home() / _config_filename(env)
 __repo__: Final[str] = "https://github.com/ayvi-0001/lightlike-cli"
 __latest_release__: Final[str] = f"{__repo__}/releases/latest"
 __appdir__: Final[Path] = Path(get_app_dir(__appname__, roaming=True))
-__config__: Final[Path] = Path.home() / __config
 __lock__: Final[Path] = __appdir__ / "cli.lock"

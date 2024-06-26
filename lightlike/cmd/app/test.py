@@ -94,7 +94,7 @@ def date_diff(
     paused_hours: float,
 ) -> None:
     duration = date_end - date_start
-    time_parts = dates.seconds_to_time_parts(Decimal(paused_hours or 0) * 3600)
+    time_parts = dates.seconds_to_time_parts(Decimal(paused_hours or 0) * Decimal(3600))
     paused_hours, paused_minutes, paused_seconds = time_parts
     duration = (date_end - date_start) - timedelta(
         hours=paused_hours,

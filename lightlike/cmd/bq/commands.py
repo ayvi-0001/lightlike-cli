@@ -12,7 +12,7 @@ from lightlike.app.client import (
     reconfigure,
 )
 from lightlike.app.config import AppConfig
-from lightlike.app.core import FmtRichCommand, LazyAliasedRichGroup
+from lightlike.app.core import AliasedRichGroup, FmtRichCommand, LazyAliasedRichGroup
 from lightlike.internal import markup, utils
 from lightlike.internal.enums import ClientInitOptions, CredentialsSource
 from lightlike.lib.third_party import _questionary
@@ -179,6 +179,7 @@ def projects(console: "Console") -> None:
 
 
 @click.group(
+    cls=AliasedRichGroup,
     name="reset",
     invoke_without_command=True,
     subcommand_metavar="",

@@ -25,10 +25,10 @@
 import sys
 import typing as t
 
+__all__: t.Sequence[str] = ("lightlike",)
+
 import rich_click as click
 from rich.traceback import install
-
-__all__: t.Sequence[str] = ("lightlike",)
 
 install(suppress=[click])
 

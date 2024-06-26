@@ -5,8 +5,6 @@ import rich_click as click
 from lightlike.app.core import LazyAliasedRichGroup
 
 
-# Debug param exists but print statements have not been adding to functions yet.
-# They will be added in the next udpate.
 @click.group(
     name="bq",
     cls=LazyAliasedRichGroup,

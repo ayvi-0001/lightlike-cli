@@ -2,6 +2,7 @@
 
 import typing as t
 from datetime import datetime, timedelta
+from decimal import Decimal
 from os import getenv
 from pathlib import Path
 
@@ -15,7 +16,6 @@ from lightlike.app.dates import now, seconds_to_time_parts
 
 if t.TYPE_CHECKING:
     from datetime import _TzInfo
-    from decimal import Decimal
 
 
 __all__: t.Sequence[str] = ("build",)
@@ -190,7 +190,7 @@ def _stopwatch(cache: TimeEntryCache) -> str:
 
     global TIMEZONE
     if paused_hours:
-        phr, pmin, psec = seconds_to_time_parts(paused_hours * 3600)
+        phr, pmin, psec = seconds_to_time_parts(paused_hours * Decimal(3600))
         paused_delta: timedelta = timedelta(hours=phr, minutes=pmin, seconds=psec)
         return f" {(now(TIMEZONE) - start) - paused_delta}"
     else:
