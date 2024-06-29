@@ -75,7 +75,7 @@ class CliQueryRoutines(metaclass=_Singleton):
             status_message = status_renderable or markup.status_message("Running query")
             start = perf_counter_ns()
             query_job = self._client().query(query, job_config=job_config)
-            query_job.add_done_callback(_completed)
+            query_job.add_done_callback(_completed)  # type: ignore[no-untyped-call]
 
             if status:
                 try:
@@ -99,7 +99,7 @@ class CliQueryRoutines(metaclass=_Singleton):
 
         else:
             query_job = self._client().query(query, job_config=job_config)
-            query_job.add_done_callback(_completed)
+            query_job.add_done_callback(_completed)  # type: ignore[no-untyped-call]
 
             while query_is_active:
                 sleep(0.0001)
@@ -145,7 +145,7 @@ class CliQueryRoutines(metaclass=_Singleton):
         id: str,
         project: str,
         note: str,
-        start_time,
+        start_time: datetime,
         billable: bool,
         use_query_cache: bool = True,
         use_legacy_sql: bool | None = False,

@@ -33,7 +33,7 @@ def dynamic_completer(
     default_completer: t.Optional["ReplCompleter"] = None,
 ) -> ThreadedCompleter:
     return ThreadedCompleter(
-        DynamicCompleter(lambda: t.cast(Completer, _get_completer(default_completer)))
+        DynamicCompleter(lambda: _get_completer(default_completer))
     )
 
 

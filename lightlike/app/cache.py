@@ -4,10 +4,10 @@ from __future__ import annotations
 import re
 import typing as t
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from functools import cached_property, reduce
-from operator import truth, xor
+from pathlib import Path
 from threading import Lock
 
 import rich_click as click
@@ -29,9 +29,6 @@ from lightlike.app.routines import CliQueryRoutines
 from lightlike.internal import appdir, markup, utils
 
 if t.TYPE_CHECKING:
-    from pathlib import Path
-
-    from fasteners import ReaderWriterLock
     from google.cloud.bigquery import QueryJob
     from google.cloud.bigquery.table import Row
     from rich.console import Console, ConsoleOptions, RenderResult
@@ -275,7 +272,7 @@ class TimeEntryCache:
     def _add_hours(
         self, now: datetime, timestamp_paused: datetime, paused_hours: Decimal
     ) -> Decimal:
-        diff = now - t.cast(datetime, timestamp_paused)
+        diff: timedelta = now - timestamp_paused
         prev_paused_sec = Decimal(paused_hours) * Decimal(3600)
         new_paused_sec = Decimal(diff.total_seconds()) + prev_paused_sec
         new_paused_hours = Decimal(new_paused_sec) / Decimal(3600)
@@ -428,7 +425,7 @@ class TimeEntryCache:
         }
 
     @property
-    def default_entry(self):
+    def default_entry(self) -> t.Any:
         return self.default["running"]["entries"][0]
 
     @property
@@ -626,7 +623,7 @@ class _Singleton(type):
 
 
 class TimeEntryIdList(metaclass=_Singleton):
-    id_pattern: t.Final[re.Pattern] = re.compile(r"^\w{,40}$")
+    id_pattern: t.Final[re.Pattern[str]] = re.compile(r"^\w{,40}$")
 
     @cached_property
     def ids(self) -> list[str]:

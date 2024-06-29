@@ -57,6 +57,18 @@ def cd_(path: Path) -> None:
         rprint(f"{error!r}; {str(path.resolve())!r}")
 
 
+@click.command(
+    name="help",
+    short_help="Show help.",
+    context_settings=dict(help_option_names=[]),
+)
+@_pass.console
+@_pass.ctx_group(parents=1)
+def help_(ctx_group: Sequence[click.RichContext], console: Console) -> None:
+    ctx, parent = ctx_group
+    console.print(parent.get_help())
+
+
 if LIGHTLIKE_CLI_DEV_USERNAME := getenv("LIGHTLIKE_CLI_DEV_USERNAME"):
     __appname = "lightlike_cli"
     __config = f"/{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike.toml"
@@ -106,17 +118,3 @@ DATE/TIME FIELDS:
     error will raise if unable to parse.
     dates are relative to today, unless explicitly stated in the string.
 """
-
-
-@click.command(
-    name="help",
-    short_help="Show help.",
-    context_settings=dict(
-        help_option_names=[],
-    ),
-)
-@_pass.console
-@_pass.ctx_group(parents=1)
-def help_(ctx_group: Sequence[click.RichContext], console: Console) -> None:
-    ctx, parent = ctx_group
-    console.print(parent.get_help())

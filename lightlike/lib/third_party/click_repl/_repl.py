@@ -72,31 +72,22 @@ def repl(
 ) -> None:
     group_ctx: click.Context = ctx
 
-    # Switching to the parent context that has a Group as its command
-    # as a Group acts as a cli for all of its subcommands
     if ctx.parent and not isinstance(ctx.command, click.Group):
-        group_ctx = t.cast(click.Context, ctx.parent)
+        group_ctx = ctx.parent
 
     group: click.Group = t.cast(click.Group, group_ctx.command)
 
-    # An Optional click.Argument in the cli Group, that has no value
-    # will consume the first word from the REPL input, causing issues in
-    # executing the command
-    # So, if there's an empty Optional Argument
     for param in group.params:
         if (
             isinstance(param, click.Argument)
-            and group_ctx.params[param.name] is None  # type: ignore[attr-defined, index]
-            and not param.required  # type: ignore[index]
+            and group_ctx.params[f"{param.name}"] is None
+            and not param.required
         ):
-            raise exceptions.InvalidGroupFormat(
+            raise TypeError(
                 f"{type(group).__name__} '{group.name}' requires value for "
                 f"an optional argument '{param.name}' in REPL mode"
             )
 
-    # Delete the REPL command from those available, as we don't want to allow
-    # nesting REPLs (note: pass `None` to `pop` as we don't want to error if
-    # REPL command already not present for some reason).
     repl_command_name: str | None = ctx.command.name
     if isinstance(group_ctx.command, click.CommandCollection):
         available_commands = {
@@ -120,7 +111,7 @@ def repl(
         else:
             prompt_kwargs.update(completer=repl_completer)
 
-        session: PromptSession = PromptSession(**prompt_kwargs)
+        session: PromptSession[t.Any] = PromptSession(**prompt_kwargs)
 
         def get_command() -> t.Any:
             return session.prompt()
@@ -223,7 +214,7 @@ def _execute_system_command(
 
     for cmd_args in args2cmdline.split("&&"):
         commands = list(map(lambda c: c.strip(), cmd_args.split("|")))
-        processes: list[Popen] = []
+        processes: list[Popen[t.Any]] = []
 
         while commands:
             try:

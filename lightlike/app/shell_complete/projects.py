@@ -42,7 +42,7 @@ class Projects(Completer):
 
     @property
     def projects(self) -> dict[str, t.Any]:
-        return rtoml.load(self.path).get(self.list_, {})
+        return t.cast(dict[str, t.Any], rtoml.load(self.path).get(self.list_, {}))
 
     @property
     def completion_items(self) -> list[CompletionItem]:

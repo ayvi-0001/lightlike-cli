@@ -130,7 +130,7 @@ def _select_credential_source() -> str | None | t.NoReturn:
 
         current_setting = AppConfig().get("client", "credentials_source")
 
-        source = _questionary.select(
+        source: str = _questionary.select(
             message="Select GCP project.",
             choices=choices,
             style=AppConfig().prompt_style,
@@ -168,7 +168,7 @@ def _select_project(client: Client) -> str:
         use_indicator=True,
     )
 
-    project_id = select.split("|")[1].strip()
+    project_id: str = select.split("|")[1].strip()
     return project_id
 
 
@@ -193,9 +193,7 @@ def service_account_key_flow() -> tuple[bytes, bytes]:
         )
         rprint(Padding(panel, (1, 0, 0, 1)))
 
-        hashed_password, salt = t.cast(
-            tuple["_Hash", bytes], auth.prompt_new_password()
-        )
+        hashed_password, salt = auth.prompt_new_password()
         key_derivation: bytes = auth._generate_key(hashed_password.hexdigest(), salt)
 
         utils._nl()
@@ -223,7 +221,7 @@ def _authorize_from_service_account_key() -> Client:
 
     encrypted_key, salt = service_account_key_flow()
 
-    client = Client.from_service_account_info(
+    client: Client = Client.from_service_account_info(  # type:ignore[no-untyped-call]
         _AuthSession().authenticate(salt=salt, encrypted_key=encrypted_key)
     )
 
@@ -330,7 +328,7 @@ def provision_bigquery_resources(
 
     not (force or yes) and rprint(Padding(confirm_panel, (1, 0, 1, 1)))
 
-    def update_config():
+    def update_config() -> None:
         updates = AppConfig().get("updates")
 
         with AppConfig().rw() as config:

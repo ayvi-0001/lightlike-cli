@@ -66,7 +66,7 @@ class WhereClauseCompleter(WordCompleter):
     def get_completions(
         self, document: Document, complete_event: "CompleteEvent"
     ) -> t.Iterable[Completion]:
-        word_before_cursor = utils._alter_str(
+        word_before_cursor: str = utils._alter_str(
             document.get_word_before_cursor(self.WORD),
             strip_parenthesis=True,
             strip_quotes=True,

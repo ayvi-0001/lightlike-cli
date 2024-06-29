@@ -158,6 +158,7 @@ def create_settings_fn(
     @click.pass_context
     def __cmd(
         ctx: click.RichContext,
+        /,
         console: Console,
         *args: P.args,
         **kwargs: P.kwargs,

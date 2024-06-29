@@ -170,9 +170,9 @@ def map_sequence_to_rich_table(
         console_width=console_width,
         no_color=False,
     )
-
+    # fmt: off
     reduce(
-        lambda n, c: table.add_column(c[0], **fn(c), **column_kwargs),
+        lambda n, c: table.add_column(c[0], **fn(c), **column_kwargs), #type: ignore[no-untyped-call]
         first_row.items(),
         None,
     )
@@ -181,6 +181,7 @@ def map_sequence_to_rich_table(
         mappings,
         None,
     )
+    # fmt: on
 
     if not table.row_count:
         rprint(markup.dimmed(message_if_empty or "No results"))
@@ -189,7 +190,7 @@ def map_sequence_to_rich_table(
     return table
 
 
-def map_cell_style(values: "dict_values[str, t.Any]") -> map:
+def map_cell_style(values: "dict_values[str, t.Any]") -> "map":  # type: ignore
     display_values: list[t.Any] = []
     for value in values:
         if not value or value in ("null", "None"):

@@ -98,7 +98,7 @@ class _CallableNumberRangeBase(_NumberParamTypeBase):
 class CallableIntRange(_CallableNumberRangeBase, IntParamType):
     name = "integer range"
 
-    def _clamp(self, bound: int, dir: t.Literal[1, -1], open: bool) -> int:  # type: ignore
+    def _clamp(self, bound: int, dir: t.Literal[1, -1], open: bool) -> int:
         if not open:
             return bound
 

@@ -8,7 +8,7 @@ from rich import print as rprint
 from rich_click import make_pass_decorator
 
 from lightlike.app.cache import TimeEntryAppData, TimeEntryCache, TimeEntryIdList
-from lightlike.app.client import get_client, get_console
+from lightlike.app.client import get_client
 from lightlike.app.config import AppConfig
 from lightlike.app.dates import now as datetime_now
 from lightlike.app.routines import CliQueryRoutines
@@ -27,17 +27,18 @@ __all__: t.Sequence[str] = (
     "active_time_entry",
 )
 
+AnyCallable: t.TypeAlias = t.Callable[..., t.Any]
 
 P = t.ParamSpec("P")
 
-routine = make_pass_decorator(CliQueryRoutines, ensure=True)
-config = make_pass_decorator(AppConfig, ensure=False)
-cache = make_pass_decorator(TimeEntryCache, ensure=True)
-appdata = make_pass_decorator(TimeEntryAppData, ensure=True)
-id_list = make_pass_decorator(TimeEntryIdList, ensure=True)
+routine: AnyCallable = make_pass_decorator(CliQueryRoutines, ensure=True)
+config: AnyCallable = make_pass_decorator(AppConfig, ensure=False)
+cache: AnyCallable = make_pass_decorator(TimeEntryCache, ensure=True)
+appdata: AnyCallable = make_pass_decorator(TimeEntryAppData, ensure=True)
+id_list: AnyCallable = make_pass_decorator(TimeEntryIdList, ensure=True)
 
 
-def client(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
+def client(fn: AnyCallable) -> AnyCallable:
     @wraps(fn)
     def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
         return fn(get_client(), *args, **kwargs)
@@ -45,7 +46,7 @@ def client(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
     return inner
 
 
-def console(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
+def console(fn: AnyCallable) -> AnyCallable:
     @wraps(fn)
     def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
         return fn(get_console(), *args, **kwargs)
@@ -53,7 +54,7 @@ def console(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
     return inner
 
 
-def now(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
+def now(fn: AnyCallable) -> AnyCallable:
     @wraps(fn)
     def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
         return fn(datetime_now(AppConfig().tz), *args, **kwargs)
@@ -61,8 +62,8 @@ def now(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
     return inner
 
 
-def ctx_group(parents: int) -> t.Callable[..., t.Callable[..., t.Any]]:
-    def decorator(fn: FunctionType) -> t.Callable[..., t.Any]:
+def ctx_group(parents: int) -> t.Callable[..., AnyCallable]:
+    def decorator(fn: FunctionType) -> AnyCallable:
         @wraps(fn)
         def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
             ctx = click.get_current_context()
@@ -89,7 +90,7 @@ def ctx_group(parents: int) -> t.Callable[..., t.Callable[..., t.Any]]:
     return decorator
 
 
-def active_time_entry(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
+def active_time_entry(fn: AnyCallable) -> t.Any:
     @cache
     @wraps(fn)
     def inner(cache: TimeEntryCache, *args: P.args, **kwargs: P.kwargs) -> t.Any:

@@ -74,7 +74,7 @@ def _get_rich_options(
                 extra_option_group["options"] = argument_group_options
                 break
         else:
-            extra_option_group = {  # type: ignore[no-redef]
+            extra_option_group = {
                 "name": formatter.config.arguments_panel_title,
                 "options": argument_group_options,
             }

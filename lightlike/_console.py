@@ -10,8 +10,9 @@ import rtoml
 from fasteners import interprocess_locked
 from rich import get_console
 from rich import reconfigure as rich_reconfigure
-from rich.console import Style, Theme
 from rich.highlighter import RegexHighlighter, _combine_regex
+from rich.style import Style
+from rich.theme import Theme
 
 from lightlike.__about__ import __appdir__, __config__
 from lightlike.internal import enums, toml, utils
@@ -31,7 +32,10 @@ __all__: t.Sequence[str] = (
 QUIET_START: bool = False
 
 
-@interprocess_locked(__appdir__ / "config.lock")
+_interprocess_locked: t.Callable[..., t.Any] = interprocess_locked
+
+
+@_interprocess_locked(__appdir__ / "config.lock")  # type: ignore[misc]
 def _set_quiet_start(config: Path) -> None:
     try:
         if config.exists():
@@ -124,7 +128,7 @@ def reconfigure(**kwargs: t.Any) -> None:
 ACTIVE_COMPLETERS: list[int] = []
 
 
-def global_completers():
+def global_completers() -> list[int]:
     global ACTIVE_COMPLETERS
     if not ACTIVE_COMPLETERS:
         ACTIVE_COMPLETERS = [enums.ActiveCompleter.CMD]

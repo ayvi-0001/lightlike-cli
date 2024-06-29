@@ -21,13 +21,13 @@ TYPED_DIR = re.compile(r"^(.*)(?:\\|\/)", flags=re.IGNORECASE)
 TYPED_STEM = re.compile(r"^.*(?:\\|\/)+(.*)$", flags=re.IGNORECASE)
 
 
-def _match_stem(incomplete) -> t.Callable[[Path], bool]:
+def _match_stem(incomplete: str) -> t.Callable[[Path], bool]:
     return lambda p: p.stem.lower().startswith(incomplete.lower())
 
 
 def _typed_dir_and_stem(
-    typed_dir: re.Match | None,
-    typed_stem: re.Match | None,
+    typed_dir: re.Match[str] | None,
+    typed_stem: re.Match[str] | None,
     iterator: t.Callable[..., t.Iterable[Path]],
 ) -> t.Iterator[Path]:
     if typed_dir and typed_stem:

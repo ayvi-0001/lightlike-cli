@@ -1,4 +1,5 @@
 # mypy: disable-error-code="func-returns-value"
+from __future__ import annotations
 
 import logging
 import re
@@ -74,13 +75,13 @@ click_exit: t.NoReturn = t.cast(t.NoReturn, ClickExit(0))
 
 
 class exit_cmd_on_interrupt(ContextDecorator):
-    def __enter__(self):
+    def __enter__(self) -> exit_cmd_on_interrupt:
         try:
             return self
         except (KeyboardInterrupt, EOFError):
-            raise click_exit
+            raise ClickExit
 
-    def __exit__(self, *exc): ...
+    def __exit__(self, *exc: t.Any) -> None: ...
 
 
 def _handle_keyboard_interrupt(
@@ -164,7 +165,7 @@ def _identical_vectors(l1: list[t.Any], l2: list[t.Any]) -> bool:
 
 def pretty_print_exception(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
     @wraps(fn)
-    def inner(*args: P.args, **kwargs: P.kwargs) -> None:
+    def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
         try:
             return fn(*args, **kwargs)
         except Exception:
@@ -188,9 +189,10 @@ def _prerun_autocomplete() -> None:
 
 def _regexp_replace(patterns: t.Mapping[str, str], text: str) -> str:
     mapped: dict[str, str] = dict((re.escape(k), v) for k, v in patterns.items())
-    pattern: re.Pattern = re.compile("|".join(mapped.keys()))
+    pattern: re.Pattern[str] = re.compile("|".join(mapped.keys()))
     escape: t.Callable[..., str] = lambda m: mapped[re.escape(m.group(0))]
-    return pattern.sub(escape, text)
+    replaced: str = pattern.sub(escape, text)
+    return replaced
 
 
 def _format_toml(toml_obj: t.MutableMapping[str, t.Any]) -> str:
@@ -214,15 +216,39 @@ def reduce_keys(
         return default
 
 
+@t.overload
 def _alter_str(
     string: t.Any,
+    split: str,
     strip: bool = False,
-    split: str | None = None,
     lower: bool = False,
     strip_quotes: bool = False,
     strip_parenthesis: bool = False,
     add_quotes: bool = False,
-) -> str:
+) -> list[str]: ...
+
+
+@t.overload
+def _alter_str(
+    string: t.Any,
+    split: None = None,
+    strip: bool = False,
+    lower: bool = False,
+    strip_quotes: bool = False,
+    strip_parenthesis: bool = False,
+    add_quotes: bool = False,
+) -> str: ...
+
+
+def _alter_str(
+    string: t.Any,
+    split: str | None = None,
+    strip: bool = False,
+    lower: bool = False,
+    strip_quotes: bool = False,
+    strip_parenthesis: bool = False,
+    add_quotes: bool = False,
+) -> str | list[str]:
     if not isinstance(string, str):
         string = f"{string}"
 
@@ -238,9 +264,11 @@ def _alter_str(
         string = f'"{string}"'
 
     if split:
-        return string.split(split)
+        new_list: list[str] = string.split(split)
+        return new_list
     else:
-        return string
+        new_string: str = f"{string}"
+        return new_string
 
 
 def _split_and_alter_str(
@@ -317,15 +345,18 @@ def _match_str(
             patterns=replace_patterns, text=string_to_match
         )
 
+    is_matched: bool
     match method:
         case "in":
-            return string_to_check in string_to_match
+            is_matched = string_to_check in string_to_match
         case "startswith":
-            return string_to_match.startswith(string_to_check)
+            is_matched = string_to_match.startswith(string_to_check)
         case "endswith":
-            return string_to_match.endswith(string_to_check)
+            is_matched = string_to_match.endswith(string_to_check)
         case _:
             raise ValueError("Invalid method for string match.")
+
+    return is_matched
 
 
 def ns_time_diff(ns: int) -> float:
