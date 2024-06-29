@@ -1,6 +1,7 @@
 import typing as t
 
 import rich_click as click
+from click.exceptions import Exit as ClickExit
 from rich import print as rprint
 
 from lightlike.app import _get, _pass, dates, render, validate
@@ -100,10 +101,10 @@ def restore(client: "Client", console: "Console", routine: "CliQueryRoutines") -
     except ValueError as e:
         if str(e) == "A list of choices needs to be provided.":
             console.print(markup.dimmed("No snapshots exist"))
-            raise utils.click_exit
+            raise ClickExit
         else:
             console.print(markup.br(e))
-            raise utils.click_exit
+            raise ClickExit
 
     if _questionary.confirm(
         message="This will drop your timesheet table and replace it "
@@ -160,7 +161,7 @@ def delete(client: "Client", console: "Console") -> None:
 
     if not choices:
         console.print(markup.dimmed("No snapshots exist"))
-        raise utils.click_exit
+        raise ClickExit
 
     selection = _questionary.checkbox(
         message="Select snapshots to delete $",

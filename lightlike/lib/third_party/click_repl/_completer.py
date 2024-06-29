@@ -80,7 +80,6 @@ class ReplCompleter(Completer):
         self,
         autocomplete_ctx: click.Context,
         param: click.Parameter,
-        args: list[str],
         incomplete: str,
     ) -> list[Completion]:
         param_choices: list[Completion] = []
@@ -129,7 +128,6 @@ class ReplCompleter(Completer):
             completions = self._get_completion_from_autocompletion_functions(
                 autocomplete_ctx=autocomplete_ctx,
                 param=param,
-                args=args,
                 incomplete=incomplete,
             )
         return completions

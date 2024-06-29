@@ -1,5 +1,6 @@
 # mypy: disable-error-code="func-returns-value, import-untyped"
 
+import logging
 import sys
 import typing as t
 from pathlib import Path
@@ -35,6 +36,7 @@ __all__: t.Sequence[str] = (
     "TIMER_LIST_CACHE",
     "LOGS",
     "rmtree",
+    "_log",
 )
 
 
@@ -56,6 +58,19 @@ TIMER_LIST_CACHE: t.Final[Path] = __appdir__ / "timer_list_cache.json"
 LOGS: t.Final[Path] = __appdir__ / "logs"
 LOGS.mkdir(exist_ok=True)
 # fmt: on
+
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    filename=LOGS / "cli.log",
+    filemode="a",
+    format="[%(asctime)s] {%(pathname)s:%(lineno)d}\n%(levelname)s: %(message)s",
+    datefmt="%m-%d %H:%M:%S",
+)
+
+
+def _log() -> logging.Logger:
+    return logging.getLogger(__appname_sc__)
 
 
 def rmtree(appdata: Path = __appdir__) -> t.NoReturn:

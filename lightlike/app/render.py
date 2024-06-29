@@ -6,6 +6,7 @@ from decimal import Decimal
 from functools import reduce
 from os import getenv
 
+from click.exceptions import Exit as ClickExit
 from more_itertools import one
 from rich import box, get_console
 from rich import print as rprint
@@ -13,7 +14,7 @@ from rich.table import Table
 from rich.text import Text
 
 from lightlike import _console
-from lightlike.internal import appdir, markup, utils
+from lightlike.internal import appdir, markup
 
 if t.TYPE_CHECKING:
     from _collections_abc import dict_values
@@ -157,7 +158,7 @@ def map_sequence_to_rich_table(
         first_row = mappings[0]
     except IndexError:
         rprint(markup.dimmed(message_if_empty or "No results"))
-        raise utils.click_exit
+        raise ClickExit
 
     fn = lambda c: map_column_style(
         items=c,
@@ -185,7 +186,7 @@ def map_sequence_to_rich_table(
 
     if not table.row_count:
         rprint(markup.dimmed(message_if_empty or "No results"))
-        raise utils.click_exit
+        raise ClickExit
 
     return table
 

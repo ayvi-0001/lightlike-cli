@@ -670,7 +670,7 @@ class TimeEntryIdList(metaclass=_Singleton):
         try:
             self.clear()
         except Exception as error:
-            utils._log().error(f"Error resetting session ids: {error}")
+            appdir._log().error(f"Error resetting session ids: {error}")
         self.ids
 
     def add(self, input_id: str, debug: bool = False) -> None:
@@ -742,7 +742,7 @@ class TimeEntryAppData:
             try:
                 appdata[__key][p].update({"notes": self._unique_notes(p, rows)})
             except Exception as error:
-                utils._log().error(f"Error attempting to map appdata notes: {error}")
+                appdir._log().error(f"Error attempting to map appdata notes: {error}")
             return appdata
 
         reduce(_map_notes, projects, appdata)

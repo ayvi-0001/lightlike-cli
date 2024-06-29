@@ -7,13 +7,18 @@ import rtoml
 from rich import get_console
 
 from lightlike.__about__ import __appdir__
-from lightlike.internal import markup, utils
+from lightlike.internal import appdir, markup
 
 __all__: t.Sequence[str] = ("check_latest_release", "extract_version")
 
 
-PKG_EXPR: t.Final[t.Pattern[str]] = re.compile(r"(?:v|)(\d+).(\d+).(\d+)", re.I)
-TAG_EXPR: t.Final[t.Pattern[str]] = re.compile(r"^.*tag/(.*)$", re.I)
+PATTERN_PKG: t.Final[t.Pattern[str]] = re.compile(r"(?:v|)(\d+).(\d+).(\d+)", re.I)
+PATTERN_TAG: t.Final[t.Pattern[str]] = re.compile(r"^.*tag/(.*)$", re.I)
+PATTERN_SEMVER: t.Final[t.Pattern[str]] = re.compile(
+    r"^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)"
+    r"(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?"
+    r"(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$"
+)
 
 
 def get_version_from_release(__latest_release__: str) -> tuple[int, int, int]:
@@ -22,12 +27,12 @@ def get_version_from_release(__latest_release__: str) -> tuple[int, int, int]:
         "X-GitHub-Api-Version": "2022-11-28",
     }
     response = httpx.get(url=__latest_release__, headers=headers)
-    version = TAG_EXPR.search(response.next_request.url.path).group(1)  # type: ignore[union-attr]
+    version = PATTERN_TAG.search(response.next_request.url.path).group(1)  # type: ignore[union-attr]
     return extract_version(version)
 
 
 def extract_version(version_text: str) -> tuple[int, int, int]:
-    major, minor, patch = PKG_EXPR.match(version_text).group(1, 2, 3)  # type: ignore[union-attr]
+    major, minor, patch = PATTERN_PKG.match(version_text).group(1, 2, 3)  # type: ignore[union-attr]
     return int(major), int(minor), int(patch)
 
 
@@ -53,7 +58,7 @@ def check_latest_release(
             )
 
     except Exception as error:
-        utils._log().error(f"Failed to retrieve latest release: {error}")
+        appdir._log().error(f"Failed to retrieve latest release: {error}")
 
 
 def _patch_appdir_lt_v_0_9_0(__appdir__: Path, __config__: Path) -> None:
