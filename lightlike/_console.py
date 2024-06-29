@@ -15,7 +15,7 @@ from rich.style import Style
 from rich.theme import Theme
 
 from lightlike.__about__ import __appdir__, __config__
-from lightlike.internal import enums, toml, utils
+from lightlike.internal import appdir, enums, toml
 
 __all__: t.Sequence[str] = (
     "QUIET_START",
@@ -49,7 +49,7 @@ def _set_quiet_start(config: Path) -> None:
             elif quiet_start is not None:
                 QUIET_START = bool(quiet_start)
     except Exception as error:
-        utils._log().error(f"Failed to configure quiet start: {error}")
+        appdir._log().error(f"Failed to configure quiet start: {error}")
 
 
 _set_quiet_start(__config__)

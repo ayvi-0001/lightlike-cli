@@ -1,7 +1,6 @@
 # mypy: disable-error-code="func-returns-value"
 from __future__ import annotations
 
-import logging
 import re
 import typing as t
 from contextlib import ContextDecorator, suppress
@@ -22,14 +21,7 @@ from rich.console import Console, NewLine
 from lightlike.__about__ import __appdir__, __appname_sc__
 from lightlike.internal import appdir, markup
 
-if t.TYPE_CHECKING:
-    from logging import Logger
-
-
 __all__: t.Sequence[str] = (
-    "_log",
-    "_shutdown_log",
-    "click_exit",
     "exit_cmd_on_interrupt",
     "_handle_keyboard_interrupt",
     "_nl",
@@ -52,26 +44,6 @@ __all__: t.Sequence[str] = (
 
 
 P = t.ParamSpec("P")
-
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    filename=appdir.LOGS / "cli.log",
-    filemode="a",
-    format="[%(asctime)s] {%(pathname)s:%(lineno)d}\n" "%(levelname)s: %(message)s",
-    datefmt="%m-%d %H:%M:%S",
-)
-
-
-def _log() -> "Logger":
-    return logging.getLogger(__appname_sc__)
-
-
-def _shutdown_log() -> None:
-    logging.shutdown()
-
-
-click_exit: t.NoReturn = t.cast(t.NoReturn, ClickExit(0))
 
 
 class exit_cmd_on_interrupt(ContextDecorator):

@@ -8,6 +8,7 @@ from operator import truth
 from pathlib import Path
 
 import rich_click as click
+from click.exceptions import Exit as ClickExit
 from more_itertools import one
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import get_console
@@ -16,7 +17,7 @@ from rich.text import Text
 from lightlike.app.cache import TimeEntryCache
 from lightlike.app.config import AppConfig
 from lightlike.app.dates import parse_date
-from lightlike.internal import appdir, utils
+from lightlike.internal import appdir
 from lightlike.lib.third_party import _questionary
 
 __all__: t.Sequence[str] = (
@@ -150,9 +151,9 @@ def summary_path(
             ):
                 return path.with_suffix(suffix)
             else:
-                raise utils.click_exit
+                raise ClickExit
         except (KeyboardInterrupt, EOFError):
-            raise utils.click_exit
+            raise ClickExit
     else:
         if not path.suffix:
             return path.with_suffix(suffix)

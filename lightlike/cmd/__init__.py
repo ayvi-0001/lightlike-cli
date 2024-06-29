@@ -11,7 +11,7 @@ from lightlike.cmd.bq import bq
 from lightlike.cmd.project import project
 from lightlike.cmd.summary import summary
 from lightlike.cmd.timer import timer
-from lightlike.internal import utils
+from lightlike.internal import appdir
 
 lazy_subcommands: dict[str, str] = AppConfig().get(
     "cli", "lazy_subcommands", default={}
@@ -31,7 +31,7 @@ try:
             )
             sys.path.append(path)
 except Exception as error:
-    utils._log().error(error)
+    appdir._log().error(error)
 
 
 __all__: t.Sequence[str] = (

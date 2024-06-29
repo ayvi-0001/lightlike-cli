@@ -3,6 +3,7 @@
 import typing as t
 
 import rich_click as click
+from click.exceptions import Exit as ClickExit
 from more_itertools import first
 from rich import print as rprint
 from rich.syntax import Syntax
@@ -726,7 +727,7 @@ def set_project_name(
 
     if project == new_name:
         console.print(markup.dimmed("Current name, nothing happened."))
-        raise utils.click_exit
+        raise ClickExit
 
     with console.status(markup.status_message("Updating project")) as status:
         routine.update_project_name(
@@ -836,7 +837,7 @@ def set_project_description(
     )
 
     if not new_desc:
-        raise utils.click_exit
+        raise ClickExit
 
     if current_desc == new_desc:
         console.print(markup.dimmed("Current description, nothing happened."))

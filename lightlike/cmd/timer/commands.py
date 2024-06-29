@@ -13,6 +13,7 @@ from math import copysign
 from operator import truth
 
 import rich_click as click
+from click.exceptions import Exit as ClickExit
 from more_itertools import first, locate, one
 from rich import print as rprint
 from rich.syntax import Syntax
@@ -842,7 +843,7 @@ def edit(
             matched_entries: "QueryJob" = routine._get_time_entries(matched_ids)
         except Exception as error:
             console.print(markup.br("Error:"), error)
-            raise utils.click_exit
+            raise ClickExit
 
         debug and console.log("[DEBUG]", matched_entries)
 
@@ -2126,7 +2127,7 @@ def switch(
 
     if len(entries) == 1:
         console.print(markup.dimmed("Nothing to switch."))
-        raise utils.click_exit
+        raise ClickExit
 
     select: str
     if not entry:

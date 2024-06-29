@@ -40,12 +40,12 @@ import typing as t
 from subprocess import PIPE, STDOUT, Popen, list2cmdline
 
 import rich_click as click
+from click.exceptions import Exit as ClickExit
 from more_itertools import first, last
 from prompt_toolkit import PromptSession
 from prompt_toolkit.application import get_app
 from prompt_toolkit.completion import Completer
 
-from . import exceptions
 from ._completer import ReplCompleter
 from .utils import split_arg_string
 
@@ -131,12 +131,8 @@ def repl(
             else:
                 break
 
-        try:
-            args: list[str] = split_arg_string(command)
-            if not args:
-                continue
-
-        except exceptions.CommandLineParserError:
+        args: list[str] = split_arg_string(command)
+        if not args:
             continue
 
         try:
@@ -149,7 +145,7 @@ def repl(
                 group_ctx.protected_args = old_protected_args
 
         except click.UsageError as e1:
-            if _unknown_cli_command(error=e1) and pass_unknown_commands_to_shell:
+            if _is_unknown_command(error=e1) and pass_unknown_commands_to_shell:
                 try:
                     _execute_system_command(args, shell_config_callable)
                 except Exception as e3:
@@ -166,10 +162,10 @@ def repl(
         ) as e4:
             _show_click_exception(e4, format_click_exceptions_callable)
 
-        except (exceptions.ClickExit, SystemExit):
+        except (ClickExit, SystemExit):
             pass
 
-        except exceptions.ExitReplException:
+        except ExitReplException:
             break
 
         except Exception as e5:
@@ -192,7 +188,7 @@ def _show_click_exception(
         error.show()
 
 
-def _unknown_cli_command(error: click.UsageError) -> bool:
+def _is_unknown_command(error: click.UsageError) -> bool:
     usage_ctx: click.Context | None = error.ctx
     return (
         usage_ctx is not None
@@ -258,3 +254,17 @@ def _execute_system_command(
             continue
 
         last(processes).wait()
+
+
+class InternalCommandException(Exception): ...
+
+
+class ExitReplException(InternalCommandException): ...
+
+
+def _exit_internal() -> t.NoReturn:
+    raise ExitReplException()
+
+
+def exit_repl() -> t.NoReturn:
+    _exit_internal()

@@ -31,15 +31,13 @@
 #   - Rename exit -> exit_repl
 
 
+import logging
 import typing as t
 from shlex import shlex
 
 import rich_click as click
 
-from lightlike.internal import utils
-from lightlike.lib.third_party.click_repl.exceptions import ExitReplException
-
-__all__: t.Sequence[str] = ("_resolve_context", "split_arg_string", "exit_repl")
+__all__: t.Sequence[str] = ("_resolve_context", "split_arg_string")
 
 
 def _resolve_context(args: list[str], ctx: click.Context) -> click.Context:
@@ -48,33 +46,27 @@ def _resolve_context(args: list[str], ctx: click.Context) -> click.Context:
             command = ctx.command
 
             if isinstance(command, click.Group) and not command.chain:
-                name, cmd, args = t.cast(
-                    tuple[str | None, click.Command | None, list[str]],
-                    command.resolve_command(ctx, args),
-                )
+                name, cmd, args = command.resolve_command(ctx, args)
 
                 if cmd is None:
                     return ctx
 
-                ctx = t.cast(
-                    click.Context,
-                    cmd.make_context(name, args, parent=ctx, resilient_parsing=True),
-                )
+                ctx = cmd.make_context(name, args, parent=ctx, resilient_parsing=True)
                 args = ctx.protected_args + ctx.args
             else:
                 break
     except Exception as error:
         if "No such command" not in f"{error}":
-            utils._log().error(f"Failed to resolve context: {error}")
+            logging.error(f"Failed to resolve context: {error}")
 
     return ctx
 
 
-def split_arg_string(string: str, posix=True) -> list[str]:
-    lex = shlex(string, posix=posix)
+def split_arg_string(string: str, posix: bool = True) -> list[str]:
+    lex: shlex = shlex(string, posix=posix)
     lex.whitespace_split = True
     lex.commenters = ""
-    out = []
+    out: list[str] = []
 
     try:
         for token in lex:
@@ -86,11 +78,3 @@ def split_arg_string(string: str, posix=True) -> list[str]:
         out.append(lex.token)
 
     return out
-
-
-def _exit_internal() -> t.NoReturn:
-    raise ExitReplException()
-
-
-def exit_repl() -> t.NoReturn:
-    _exit_internal()
