@@ -46,7 +46,7 @@ class HistoryCompleter(Completer):
                         style="#a49db0",
                     )
 
-    def _display(self, text, console_width) -> str:
+    def _display(self, text: str, console_width: int) -> str:
         half_console_width = int(console_width / 2)
         return (
             f"{text[:half_console_width]}…" if len(text) > half_console_width else text

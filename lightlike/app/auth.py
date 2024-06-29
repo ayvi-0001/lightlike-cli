@@ -10,7 +10,10 @@ from json import JSONDecodeError, loads
 from os import urandom
 
 from cryptography.fernet import Fernet, InvalidToken
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC, hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import (  # type: ignore[attr-defined] # fmt: skip
+    PBKDF2HMAC,
+    hashes,
+)
 from prompt_toolkit import PromptSession
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.key_binding import KeyBindings
@@ -25,7 +28,6 @@ from rich.text import Text
 from lightlike.app.config import AppConfig
 from lightlike.internal import markup, utils
 from lightlike.internal.enums import CredentialsSource
-from lightlike.lib.third_party import _questionary
 
 if t.TYPE_CHECKING:
     from prompt_toolkit.key_binding import KeyPressEvent
@@ -97,7 +99,7 @@ class _AuthSession:
             if not password:
                 password = self.prompt_password()
 
-            password = sha256(password.encode()).hexdigest()  # type: ignore[union-attr]
+            password = sha256(password.encode()).hexdigest()
 
         try:
             service_account_key = self.decrypt(
@@ -181,7 +183,7 @@ class _AuthSession:
         )
         rprint(Padding(panel, (1, 0, 1, 1)))
 
-        session: PromptSession = PromptSession(
+        session: PromptSession[str] = PromptSession(
             message="(service-account-key) $ ",
             style=AppConfig().prompt_style,
             cursor=AppConfig().cursor_shape,
@@ -228,7 +230,7 @@ class _AuthSession:
 
     def _update_user_credentials(
         self,
-        password: str | sha3_256 | list | None = None,
+        password: str | sha3_256 | None = None,
         salt: bytes | None = None,
         stay_logged_in: bool | None = None,
     ) -> None:

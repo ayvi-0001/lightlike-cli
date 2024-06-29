@@ -14,12 +14,12 @@ __all__: t.Sequence[str] = ("spawn",)
 
 
 def spawn(
-    ctx: click.RichContext,
-    fn: t.Callable,
+    ctx: click.Context,
+    fn: t.Callable[..., t.Any],
     kwargs: dict[str, t.Any] | None = None,
     delay: int | None = None,
 ) -> Thread:
-    def wrapper(**kwargs) -> None:
+    def wrapper(**kwargs) -> t.Any:
         try:
             if delay and isinstance(delay, int):
                 sleep(delay)
@@ -35,12 +35,12 @@ def spawn(
                         align="left",
                     )
                 )
-                rprint(
-                    f"{rich_repr(current_thread())}".replace("wrapper", repr(fn))  # type: ignore[call-overload]
-                )
+                thread_repr: str = f"{rich_repr(current_thread())}"  # type: ignore[call-overload]
+                thread_repr.replace("wrapper", f"{fn!r}")
+                rprint(thread_repr)
 
             utils.notify_and_log_error(error)
 
-    thread = Thread(target=wrapper, kwargs=kwargs)
+    thread: Thread = Thread(target=wrapper, kwargs=kwargs)
     thread.start()
     return thread

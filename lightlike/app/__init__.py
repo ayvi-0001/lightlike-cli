@@ -9,7 +9,7 @@ def shutdown() -> t.NoReturn:
     from lightlike.app.client import get_client
     from lightlike.internal import utils
 
-    get_client().close()
+    get_client().close()  # type:ignore[no-untyped-call]
     utils._log().debug("Closed Bigquery client HTTPS connection.")
     utils._log().debug("Exiting gracefully.")
     utils._shutdown_log()

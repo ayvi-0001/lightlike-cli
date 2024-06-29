@@ -7,6 +7,7 @@ from pathlib import Path
 import rtoml
 from fasteners import interprocess_locked
 from prompt_toolkit.history import FileHistory, ThreadedHistory
+from rich import get_console
 from rich import print as rprint
 from rich.text import Text
 
@@ -68,10 +69,12 @@ def rmtree(appdata: Path = __appdir__) -> t.NoReturn:
 
 from lightlike.internal import utils
 
+_interprocess_locked: t.Callable[..., t.Any] = interprocess_locked
 
-@interprocess_locked(__appdir__ / "config.lock")
+
+@_interprocess_locked(__appdir__ / "config.lock")  # type:ignore[misc]
 def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
-    console = _console.get_console()
+    console = get_console()
 
     not _console.QUIET_START and console.log("Validating app directory")
 
@@ -112,7 +115,7 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
 def _initial_build() -> None | t.NoReturn:
     try:
         _console.reconfigure()
-        console = _console.get_console()
+        console = get_console()
 
         import getpass
         import os
@@ -219,7 +222,7 @@ def _initial_build() -> None | t.NoReturn:
         else:
             from tzlocal.unix import _get_localzone_name
 
-            default_timezone = _get_localzone_name()
+            default_timezone = _get_localzone_name()  # type: ignore[no-untyped-call]
 
         if default_timezone is None:
             console.log(markup.log_error("Could not determine timezone"))

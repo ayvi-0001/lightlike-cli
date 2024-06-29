@@ -93,7 +93,7 @@ def _run_query_repl(console: Console) -> None:
 def _build_query_session(
     completer: "Completer", **prompt_kwargs
 ) -> PromptSession[t.Any]:
-    return PromptSession(
+    session: PromptSession[str] = PromptSession(
         style=AppConfig().prompt_style,
         refresh_interval=1,
         completer=completer,
@@ -109,6 +109,7 @@ def _build_query_session(
         multiline=True,
         **prompt_kwargs,
     )
+    return session
 
 
 def render_query(

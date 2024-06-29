@@ -184,7 +184,7 @@ class ResourceCompleter(Completer):
                             word_before_cursor, schema, table
                         )
                     if table in self.fields:
-                        stripped_word_before_cur = _alter_str(
+                        stripped_word_before_cur: str = _alter_str(
                             word_before_cursor, strip_parenthesis=True
                         )
                         for field in self.fields[table]:

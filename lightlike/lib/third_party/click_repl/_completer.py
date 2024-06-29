@@ -232,7 +232,7 @@ class ReplCompleter(Completer):
                 except Exception:
                     yield from []
                 finally:
-                    self.ctx_command = t.cast(click.Command, self.parsed_ctx.command)
+                    self.ctx_command = self.parsed_ctx.command
 
             choices.extend(
                 self._get_completion_for_cmd_args(
@@ -246,7 +246,7 @@ class ReplCompleter(Completer):
             if isinstance(self.ctx_command, click.Group):
                 incomplete_lower: str = incomplete.lower()
 
-                for name in self.ctx_command.list_commands(self.parsed_ctx):  # type: ignore[attr-defined]
+                for name in self.ctx_command.list_commands(self.parsed_ctx):
                     command = t.cast(
                         click.Command,
                         self.ctx_command.get_command(self.parsed_ctx, name),

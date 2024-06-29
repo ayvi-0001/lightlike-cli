@@ -1,6 +1,5 @@
 import typing as t
 from datetime import datetime
-from types import ModuleType
 
 import rich_click as click
 from rich import box, get_console
@@ -96,7 +95,7 @@ def _eval_help(ctx: click.RichContext, param: click.Parameter, value: str) -> No
 )
 @click.argument("args", nargs=-1, type=click.STRING)
 def eval_(args: list[str]) -> None:
-    def _execute_eval(args) -> None:
+    def _execute_eval(args: t.Sequence[str]) -> None:
         global EVAL_GLOBALS
         global EVAL_LOCALS
         try:
