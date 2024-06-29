@@ -3,7 +3,7 @@
 import typing as t
 from datetime import datetime
 
-from prompt_toolkit.shortcuts import CompleteStyle, PromptSession
+from prompt_toolkit.shortcuts import PromptSession
 from prompt_toolkit.validation import Validator
 
 from lightlike.app import cursor, dates, shell_complete, validate
@@ -14,31 +14,7 @@ from lightlike.internal import appdir, utils
 if t.TYPE_CHECKING:
     from lightlike.app.shell_complete.notes import Notes
 
-__all__: t.Sequence[str] = ("PromptFactory", "REPL_PROMPT_KWARGS")
-
-
-REPL_PROMPT_KWARGS = dict(
-    message=cursor.build,
-    history=appdir.REPL_FILE_HISTORY(),
-    style=AppConfig().prompt_style,
-    cursor=AppConfig().cursor_shape,
-    key_bindings=PROMPT_BINDINGS,
-    refresh_interval=1,
-    complete_in_thread=True,
-    complete_while_typing=True,
-    validate_while_typing=True,
-    enable_system_prompt=True,
-    enable_open_in_editor=True,
-    reserve_space_for_menu=AppConfig().get(
-        "settings",
-        "reserve_space_for_menu",
-        default=7,
-    ),
-    complete_style=t.cast(
-        CompleteStyle,
-        AppConfig().get("settings", "complete_style", default="COLUMN"),
-    ),
-)
+__all__: t.Sequence[str] = ("PromptFactory",)
 
 
 T = t.TypeVar("T", bound="PromptFactory")
