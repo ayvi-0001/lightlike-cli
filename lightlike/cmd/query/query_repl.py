@@ -17,9 +17,9 @@ from rich.table import Table
 from lightlike._console import _CONSOLE_SVG_FORMAT, CONSOLE_CONFIG
 from lightlike.app import _pass, cursor, render
 from lightlike.app.config import AppConfig
-from lightlike.app.key_bindings import QUERY_BINDINGS
 from lightlike.app.routines import CliQueryRoutines
 from lightlike.cmd.query.completers import query_repl_completer
+from lightlike.cmd.query.key_bindings import QUERY_BINDINGS
 from lightlike.cmd.query.lexer import BqSqlLexer
 from lightlike.internal import appdir, markup
 
@@ -90,7 +90,9 @@ def _run_query_repl(console: Console) -> None:
             )
 
 
-def _build_query_session(completer: "Completer", **prompt_kwargs) -> PromptSession:
+def _build_query_session(
+    completer: "Completer", **prompt_kwargs
+) -> PromptSession[t.Any]:
     return PromptSession(
         style=AppConfig().prompt_style,
         refresh_interval=1,
