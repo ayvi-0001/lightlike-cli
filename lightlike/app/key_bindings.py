@@ -14,24 +14,19 @@ from lightlike.app.config import AppConfig
 from lightlike.internal import markup, utils
 from lightlike.internal.enums import ActiveCompleter
 
-if t.TYPE_CHECKING:
-    from prompt_toolkit.key_binding import KeyPressEvent
-
 __all__: t.Sequence[str] = ("PROMPT_BINDINGS", "QUERY_BINDINGS")
 
 
 PROMPT_BINDINGS = KeyBindings()
 prompt_handle = PROMPT_BINDINGS.add
 
-QUERY_BINDINGS = KeyBindings()
-query_handle = QUERY_BINDINGS.add
 
 keybinds = AppConfig().get("keybinds")
 
 
 def _create_kb_system_command_fn(name: str) -> t.Callable[..., t.Any]:
     @utils._nl_start(before=True)
-    async def _system_command(event: "KeyPressEvent") -> None:
+    async def _system_command(event: KeyPressEvent) -> None:
         buffer = event.app.current_buffer
         cmd = buffer.document.text
 
@@ -57,7 +52,7 @@ def _create_kb_system_command_fn(name: str) -> t.Callable[..., t.Any]:
 
 def _create_kb_exit_fn(name: str) -> t.Callable[..., t.Any]:
     @utils._nl_start(before=True)
-    def _exit(event: "KeyPressEvent") -> None:
+    def _exit(event: KeyPressEvent) -> None:
         from lightlike.app import shutdown
 
         shutdown()
@@ -105,7 +100,7 @@ def _log_completer_keypress(
 
 keys_commands = keybinds["completers"]["commands"]  # fmt: skip
 @prompt_handle(*keys_commands)
-def _(event: "KeyPressEvent") -> None:
+def _(event: KeyPressEvent) -> None:
     reconfigure_completer(completer=ActiveCompleter.CMD)
     _log_completer_keypress(
         keys_commands,
@@ -116,7 +111,7 @@ def _(event: "KeyPressEvent") -> None:
 
 keys_history = keybinds["completers"]["history"]  # fmt: skip
 @prompt_handle(*keys_history)
-def _(event: "KeyPressEvent") -> None:
+def _(event: KeyPressEvent) -> None:
     reconfigure_completer(completer=ActiveCompleter.HISTORY)
     _log_completer_keypress(
         keys_history,
@@ -127,7 +122,7 @@ def _(event: "KeyPressEvent") -> None:
 
 keys_path = keybinds["completers"]["path"]  # fmt: skip
 @prompt_handle(*keys_path)
-def _(event: "KeyPressEvent") -> None:
+def _(event: KeyPressEvent) -> None:
     reconfigure_completer(completer=ActiveCompleter.PATH)
     _log_completer_keypress(
         keys_path,
@@ -144,57 +139,42 @@ def is_complete_state() -> bool:
     return truth(get_app().current_buffer.complete_state)
 
 
-for bindings in [PROMPT_BINDINGS, QUERY_BINDINGS]:
-
-    @bindings.add(Keys.Escape, eager=True, filter=is_complete_state)
-    def _(event: "KeyPressEvent") -> None:
-        buffer = event.app.current_buffer
-        state = buffer.complete_state
-        if state:
-            if state.current_completion:
-                buffer.apply_completion(state.current_completion)
-                buffer.cancel_completion()
-            else:
-                buffer.cancel_completion()
-
-    @bindings.add(Keys.ControlSpace)
-    def _(event: "KeyPressEvent") -> None:
-        buffer = event.app.current_buffer
-        if buffer.complete_state:
-            buffer.complete_next()
-        else:
-            buffer.start_completion()
-
-    @bindings.add("[", "A")
-    def _(event: "KeyPressEvent") -> None:
-        event.current_buffer.auto_up()
-
-    @bindings.add("[", "B")
-    def _(event: "KeyPressEvent") -> None:
-        event.current_buffer.auto_down()
-
-    @bindings.add("[", "D")
-    def _(event: "KeyPressEvent") -> None:
-        event.current_buffer.cursor_left()
-
-    @bindings.add("[", "C")
-    def _(event: "KeyPressEvent") -> None:
-        event.current_buffer.cursor_right()
-
-
-@query_handle(Keys.Tab, eager=True)
-def _(event: "KeyPressEvent") -> None:
+@prompt_handle(Keys.Escape, eager=True, filter=is_complete_state)
+def _(event: KeyPressEvent) -> None:
     buffer = event.app.current_buffer
-    document = buffer.document
+    state = buffer.complete_state
+    if state:
+        if state.current_completion:
+            buffer.apply_completion(state.current_completion)
+            buffer.cancel_completion()
+        else:
+            buffer.cancel_completion()
 
-    if document.cursor_position_col == 0 and document.cursor_position_row == 0:
-        buffer.start_completion()
-    elif not document.get_word_under_cursor(WORD=True):
-        buffer.insert_text("  ")
-    elif buffer.complete_state:
+
+@prompt_handle(Keys.ControlSpace)
+def _(event: KeyPressEvent) -> None:
+    buffer = event.app.current_buffer
+    if buffer.complete_state:
         buffer.complete_next()
+    else:
+        buffer.start_completion()
 
 
-@query_handle(Keys.ControlQ)
-def _(event: "KeyPressEvent") -> None:
-    raise KeyboardInterrupt  # query_repl fn will return to main REPL.
+@prompt_handle("[", "A")
+def _(event: KeyPressEvent) -> None:
+    event.current_buffer.auto_up()
+
+
+@prompt_handle("[", "B")
+def _(event: KeyPressEvent) -> None:
+    event.current_buffer.auto_down()
+
+
+@prompt_handle("[", "D")
+def _(event: KeyPressEvent) -> None:
+    event.current_buffer.cursor_left()
+
+
+@prompt_handle("[", "C")
+def _(event: KeyPressEvent) -> None:
+    event.current_buffer.cursor_right()
