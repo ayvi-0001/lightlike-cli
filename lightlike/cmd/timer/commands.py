@@ -284,6 +284,9 @@ def add(
             time_ctype=["start", "end"],
             date_ctype=["date"],
         )
+        if not table.row_count:
+            rprint(markup.dimmed("No results"))
+            raise ClickExit
 
     console.print("Added record:", table)
 
@@ -1470,7 +1473,8 @@ def list_(
         )
 
     rows: list[dict[str, t.Any]] = list(map(lambda r: dict(r.items()), query_job))
-    table = render.map_sequence_to_rich_table(
+
+    table: Table = render.map_sequence_to_rich_table(
         mappings=rows,
         string_ctype=["project", "note", "id"],
         bool_ctype=["billable", "active", "paused"],
@@ -1478,6 +1482,10 @@ def list_(
         time_ctype=["start", "end"],
         date_ctype=["date"],
     )
+    if not table.row_count:
+        rprint(markup.dimmed("No results"))
+        raise ClickExit
+
     appdir.TIMER_LIST_CACHE.write_text(
         dumps({idx: row.get("id") for idx, row in enumerate(rows)})
     )
@@ -1707,16 +1715,19 @@ def resume(
     matched_id: str
     if not entry:
         paused_entries = cache.get_updated_paused_entries(now)
-        console.print(
-            render.map_sequence_to_rich_table(
-                mappings=paused_entries,
-                string_ctype=["project", "note", "id"],
-                bool_ctype=["billable", "paused"],
-                num_ctype=["paused_hours"],
-                datetime_ctype=["timestamp_paused"],
-                time_ctype=["start"],
-            )
+        table: Table = render.map_sequence_to_rich_table(
+            mappings=paused_entries,
+            string_ctype=["project", "note", "id"],
+            bool_ctype=["billable", "paused"],
+            num_ctype=["paused_hours"],
+            datetime_ctype=["timestamp_paused"],
+            time_ctype=["start"],
         )
+        if not table.row_count:
+            rprint(markup.dimmed("No results"))
+            raise ClickExit
+
+        console.print(table)
 
         select: str = _questionary.select(
             message="Select an entry to resume",
@@ -2131,7 +2142,7 @@ def switch(
 
     select: str
     if not entry:
-        table: "Table" = render.map_sequence_to_rich_table(
+        table: Table = render.map_sequence_to_rich_table(
             mappings=entries,
             string_ctype=["project", "note", "id"],
             bool_ctype=["billable", "paused"],
@@ -2139,6 +2150,10 @@ def switch(
             datetime_ctype=["timestamp_paused"],
             time_ctype=["start"],
         )
+        if not table.row_count:
+            rprint(markup.dimmed("No results"))
+            raise ClickExit
+
         console.print(table)
 
         choices: list[str] = list(

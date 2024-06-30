@@ -6,9 +6,12 @@ from operator import truth
 from pathlib import Path
 
 import rich_click as click
+from click.exceptions import Exit as ClickExit
+from rich import print as rprint
 from rich.console import Console
 from rich.padding import Padding
 from rich.syntax import Syntax
+from rich.table import Table
 
 from lightlike import _console
 from lightlike.app import _pass, dates, render, shell_complete, validate
@@ -427,7 +430,7 @@ def summary_table(
             is_file=False,
         )
 
-    table = render.map_sequence_to_rich_table(
+    table: Table = render.map_sequence_to_rich_table(
         mappings=list(map(lambda r: dict(r.items()), query_job)),
         string_ctype=["project", "notes"],
         bool_ctype=["billable"],
@@ -436,6 +439,9 @@ def summary_table(
         time_ctype=["start", "end"],
         date_ctype=["date"],
     )
+    if not table.row_count:
+        rprint(markup.dimmed("No results"))
+        raise ClickExit
 
     with Console(record=True, style=_console.CONSOLE_CONFIG.style) as console:
         console.print(Padding(table, (1, 0, 0, 0)))
