@@ -89,7 +89,6 @@ def query_start_render(
     timestamp: str,
     print_output_dir: bool = False,
 ) -> None:
-
     table = Table(
         show_edge=False,
         show_header=False,

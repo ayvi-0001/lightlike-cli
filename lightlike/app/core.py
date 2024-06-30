@@ -1,25 +1,40 @@
 # mypy: disable-error-code="override"
 
 import importlib
+import re
 import typing as t
 import zlib
+from inspect import cleandoc
 from operator import truth
 from os import getenv
 from types import ModuleType
 
 import rich_click as click
+from click import Command
+from click.types import _NumberRangeBase
 from more_itertools import first
 from prompt_toolkit.patch_stdout import patch_stdout
-from rich import get_console
+from rich import box, get_console
 from rich.align import Align
-from rich.console import Console
+from rich.columns import Columns
+from rich.console import Console, NewLine, group
+from rich.highlighter import RegexHighlighter
+from rich.markdown import Markdown
 from rich.markup import render
 from rich.padding import Padding
+from rich.panel import Panel
 from rich.syntax import Syntax
+from rich.table import Table
+from rich.text import Text
 from rich_click.rich_context import RichContext
 from rich_click.rich_help_configuration import RichHelpConfiguration
 from rich_click.rich_help_formatter import RichHelpFormatter
-from rich_click.rich_help_rendering import rich_format_error
+from rich_click.rich_help_rendering import (
+    _make_rich_rext,
+    _resolve_groups,
+    get_rich_commands,
+    rich_format_error,
+)
 
 from lightlike.__about__ import __appname__, __repo__
 from lightlike._console import (
@@ -29,7 +44,6 @@ from lightlike._console import (
     GROUP_LAST_COMMANDS,
     GROUP_MID_COMMANDS,
 )
-from lightlike.lib.third_party import _patch_rich_click
 
 __all__: t.Sequence[str] = (
     "RICH_HELP_CONFIG",
@@ -177,7 +191,7 @@ class FmtRichCommand(click.RichCommand):
         if self.help:
             formatter.write(
                 Padding(
-                    Align(_patch_rich_click._get_help_text(self, formatter), pad=False),
+                    Align(_get_help_text(self, formatter), pad=False),
                     (0, 1, 1, 1),
                 )
             )
@@ -187,7 +201,7 @@ class FmtRichCommand(click.RichCommand):
                 formatter.write(Padding(syntax, (0, 1, 1, 1)))
 
     def format_options(self, ctx: RichContext, formatter: click.HelpFormatter) -> None:
-        _patch_rich_click._get_rich_options(self, ctx, formatter)  # type: ignore[arg-type]
+        _get_rich_options(self, ctx, formatter)  # type: ignore[arg-type]
 
 
 class AliasedRichGroup(click.RichGroup):
@@ -238,7 +252,7 @@ class AliasedRichGroup(click.RichGroup):
         self.format_usage(ctx, formatter)
         self.format_help_text(ctx, formatter)
         self.format_options(ctx, formatter)
-        _patch_rich_click._get_rich_commands(self, ctx, formatter)
+        get_rich_commands(self, ctx, formatter)
         self.format_epilog(ctx, formatter)
 
         if EXPORT_HELP:
@@ -255,7 +269,7 @@ class AliasedRichGroup(click.RichGroup):
         if self.help:
             formatter.write(
                 Padding(
-                    Align(_patch_rich_click._get_help_text(self, formatter), pad=False),
+                    Align(_get_help_text(self, formatter), pad=False),
                     (0, 1, 1, 1),
                 )
             )
@@ -265,7 +279,7 @@ class AliasedRichGroup(click.RichGroup):
                 formatter.write(Padding(syntax, (0, 1, 1, 1)))
 
     def format_options(self, ctx: RichContext, formatter: click.HelpFormatter) -> None:
-        _patch_rich_click._get_rich_options(self, ctx, formatter)  # type: ignore[arg-type]
+        _get_rich_options(self, ctx, formatter)  # type: ignore[arg-type]
 
 
 def _export_help(
@@ -449,3 +463,316 @@ def _map_click_exception(e: click.ClickException) -> None:
                     click.ClickException(message="Unknown Error."),
                     rich_help_formatter,
                 )
+
+
+# Patch rich_click helper functions to fit repl.
+
+def _get_rich_options(
+    obj: click.RichCommand, ctx: click.RichContext, formatter: RichHelpFormatter
+) -> None:
+    option_groups = _resolve_groups(
+        ctx=ctx, groups=formatter.config.option_groups, group_attribute="options"
+    )
+    argument_group_options = []
+
+    for param in obj.get_params(ctx):
+        if (
+            isinstance(param, click.Argument) and not formatter.config.show_arguments
+        ) or param.name == "debug":
+            continue
+
+        for option_group in option_groups:
+            if any(
+                [
+                    opt in (option_group.get("options") or [])
+                    for opt in param.opts  # fmt: skip
+                ]
+            ):
+                break
+        else:
+            if (
+                isinstance(param, click.Argument)
+                and formatter.config.group_arguments_options
+            ):
+                argument_group_options.append(param.opts[0])
+            else:
+                list_of_option_groups = option_groups[-1]["options"]
+                list_of_option_groups.append(param.opts[0])
+
+    if len(argument_group_options) > 0:
+        for grp in option_groups:
+            if (
+                grp.get("name", "")  # fmt: skip
+                == formatter.config.arguments_panel_title
+                and not grp.get("options")
+            ):
+                extra_option_group = grp.copy()
+                extra_option_group["options"] = argument_group_options
+                break
+        else:
+            extra_option_group = {
+                "name": formatter.config.arguments_panel_title,
+                "options": argument_group_options,
+            }
+        option_groups.insert(len(option_groups) - 1, extra_option_group)
+
+    for option_group in option_groups:
+        options_rows = []
+        for opt in option_group.get("options") or []:
+            for param in obj.get_params(ctx):
+                if any([opt in param.opts]):
+                    break
+            else:
+                continue
+
+            opt_long_strs = []
+            opt_short_strs = []
+            for idx, opt in enumerate(param.opts):
+                opt_str = opt
+                try:
+                    opt_str += "/" + param.secondary_opts[idx]
+                except IndexError:
+                    pass
+
+                if isinstance(param, click.Argument):
+                    opt_long_strs.append(opt_str.upper())
+                elif "--" in opt:
+                    opt_long_strs.append(opt_str)
+                else:
+                    opt_short_strs.append(opt_str)
+
+            metavar = Text(style=formatter.config.style_metavar, overflow="fold")
+            metavar_str = param.make_metavar()
+
+            assert isinstance(param, click.Option) or isinstance(param, click.Argument)
+
+            if (
+                isinstance(param, click.Argument)
+                and param.name
+                and re.match(rf"\[?{param.name.upper()}]?", metavar_str)
+            ):
+                metavar_str = param.type.name.upper()
+
+            if getattr(param, "is_flag", None):
+                metavar.append("FLAG")
+            else:
+                metavar.append(metavar_str)
+
+            if (
+                (
+                    isinstance(param.type, _NumberRangeBase)
+                    or param.type.name.endswith("range")
+                )
+                and isinstance(param, click.Option)
+                and not (
+                    param.count and param.type.min == 0 and param.type.max is None  # type: ignore[attr-defined]
+                )
+            ):
+                range_str = param.type._describe_range()  # type: ignore[attr-defined]
+                if range_str:
+                    metavar.append(formatter.config.range_string.format(range_str))
+
+            required: t.Union[Text, str] = ""
+            if param.required:
+                required = Text(
+                    formatter.config.required_short_string,
+                    style=formatter.config.style_required_short,
+                )
+
+            class MetavarHighlighter(RegexHighlighter):
+                highlights = [
+                    r"^(?P<metavar_sep>(\[|<))",
+                    r"(?P<metavar_sep>\|)",
+                    r"(?P<metavar_sep>(\]|>)$)",
+                ]
+
+            metavar_highlighter = MetavarHighlighter()
+
+            rows = [
+                required,
+                formatter.highlighter(formatter.highlighter(",".join(opt_long_strs))),
+                formatter.highlighter(formatter.highlighter(",".join(opt_short_strs))),
+                metavar_highlighter(metavar),
+                _get_option_help(param, ctx, formatter),
+            ]
+
+            options_rows.append(rows)
+
+        if len(options_rows) > 0:
+            t_styles = {
+                "show_lines": formatter.config.style_options_table_show_lines,
+                "leading": formatter.config.style_options_table_leading,
+                "box": formatter.config.style_options_table_box,
+                "border_style": formatter.config.style_options_table_border_style,
+                "row_styles": formatter.config.style_options_table_row_styles,
+                "pad_edge": formatter.config.style_options_table_pad_edge,
+                "padding": formatter.config.style_options_table_padding,
+            }
+            if isinstance(formatter.config.style_options_table_box, str):
+                t_styles["box"] = getattr(box, t_styles.pop("box"), None)  # type: ignore[arg-type]
+            t_styles.update(option_group.get("table_styles", {}))
+
+            options_table = Table(
+                highlight=True,
+                show_header=False,
+                style="#f0f0ff",
+                expand=True,
+                **t_styles,  # type: ignore[arg-type]
+            )
+            if all([x[0] == "" for x in options_rows]):
+                options_rows = [x[1:] for x in options_rows]
+            for row in options_rows:
+                options_table.add_row(*row)
+
+            kw: t.Dict[str, t.Any] = {
+                "border_style": formatter.config.style_options_panel_border,
+                "title": option_group.get("name", formatter.config.options_panel_title),
+                "title_align": formatter.config.align_options_panel,
+            }
+
+            if isinstance(formatter.config.style_options_panel_box, str):
+                box_style = getattr(box, formatter.config.style_options_panel_box, None)
+            else:
+                box_style = formatter.config.style_options_panel_box
+
+            if box_style:
+                kw["box"] = box_style
+
+            kw.update(option_group.get("panel_styles", {}))
+            formatter.write(Panel(options_table, **kw))
+
+
+def _get_option_help(
+    param: t.Union[click.Argument, click.Option],
+    ctx: click.RichContext,
+    formatter: RichHelpFormatter,
+) -> Columns:
+    config = formatter.config
+    items: list[Markdown | Text] = []
+    envvar = getattr(param, "envvar", None)
+
+    if envvar is None:
+        if (
+            getattr(param, "allow_from_autoenv", None)
+            and getattr(ctx, "auto_envvar_prefix", None) is not None
+            and param.name is not None
+        ):
+            envvar = f"{ctx.auto_envvar_prefix}_{param.name.upper()}"
+    if envvar is not None:
+        envvar = ", ".join(envvar) if isinstance(envvar, list) else envvar
+
+    if (
+        getattr(param, "show_envvar", None)
+        and config.option_envvar_first
+        and envvar is not None
+    ):
+        items.append(
+            Text(config.envvar_string.format(envvar), style=config.style_option_envvar),
+        )
+
+    help_text: str = ""
+    if hasattr(param, "help"):
+        if callable(param.help):
+            help_text = f"{param.help()}"
+        else:
+            help_text = f"{param.help or ''}"
+
+    if help_text:
+        paragraphs = help_text.split("\n\n")
+        rich_text = _make_rich_rext(
+            "\n".join(paragraphs).strip(),
+            config.style_option_help,
+            formatter,
+        )
+        items.append(rich_text)
+
+    if config.append_metavars_help and param.name:
+        metavar_str = param.make_metavar()
+        if isinstance(param, click.Argument) and re.match(
+            rf"\[?{param.name.upper()}]?", metavar_str
+        ):
+            metavar_str = param.type.name.upper()
+        if isinstance(param, click.Argument) or (
+            metavar_str != "BOOLEAN" and not param.is_flag
+        ):
+            metavar_str = metavar_str.replace("[", "").replace("]", "")
+            items.append(
+                Text(
+                    config.append_metavars_help_string.format(metavar_str),
+                    style=config.style_metavar_append,
+                    overflow="fold",
+                )
+            )
+
+    if (
+        getattr(param, "show_envvar", None)
+        and not config.option_envvar_first
+        and envvar is not None
+    ):
+        items.append(
+            Text(
+                config.envvar_string.format(envvar),
+                style=config.style_option_envvar,
+            )
+        )
+
+    if not hasattr(param, "show_default"):
+        parse_default = False
+    else:
+        show_default_is_str = isinstance(param.show_default, str)
+        parse_default = bool(
+            show_default_is_str
+            or (param.default is not None and (param.show_default or ctx.show_default))
+        )
+
+    if parse_default:
+        help_record = param.get_help_record(ctx)
+        if help_record:
+            default_str_match = re.search(
+                r"\[(?:.+; )?default: (.*)\]", help_record[-1]
+            )
+            if default_str_match:
+                default_str = default_str_match.group(1).replace("; required", "")
+                items.append(
+                    Text(
+                        config.default_string.format(default_str),
+                        style=config.style_option_default,
+                    )
+                )
+
+    if param.required:
+        items.append(
+            Text(
+                config.required_long_string,
+                style=config.style_required_long,
+            )
+        )
+
+    return Columns(items)
+
+
+@group()
+def _get_help_text(
+    obj: t.Union[Command, click.RichGroup], formatter: RichHelpFormatter
+) -> t.Iterable[t.Union[Markdown, Text, NewLine, Padding]]:
+    config = formatter.config
+
+    if obj.deprecated:
+        yield Text(config.deprecated_string, style=config.style_deprecated)
+
+    if hasattr(obj, "help"):
+        if callable(obj.help):
+            help_text = cleandoc(obj.help())
+        else:
+            help_text = cleandoc(obj.help or "")
+
+    lines = help_text.split("\n")
+
+    if len(lines) > 0:
+        if not config.use_markdown:
+            lines = [x.replace("\n", " ") for x in lines]
+            remaining_lines = "\n".join(lines)
+        else:
+            remaining_lines = "\n\n".join(lines)
+
+        yield _make_rich_rext(remaining_lines, config.style_helptext, formatter)
