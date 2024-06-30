@@ -2,7 +2,9 @@ import typing as t
 from inspect import cleandoc
 
 import rich_click as click
+from click.exceptions import Exit as ClickExit
 from rich import print as rprint
+from rich.table import Table
 
 from lightlike.app import _pass, render
 from lightlike.app.client import (
@@ -170,11 +172,15 @@ def show(console: "Console") -> None:
 def projects(console: "Console") -> None:
     """List available projects."""
     projects: t.Sequence["Project"] = list(get_client().list_projects())
-    table = render.map_sequence_to_rich_table(
+    table: Table = render.map_sequence_to_rich_table(
         mappings=[vars(p) for p in projects],
         string_ctype=["project_id", "friendly_name"],
         num_ctype=["numeric_id"],
     )
+    if not table.row_count:
+        rprint(markup.dimmed("No results"))
+        raise ClickExit
+
     console.print(table)
 
 

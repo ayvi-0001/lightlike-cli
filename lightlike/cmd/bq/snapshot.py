@@ -3,6 +3,7 @@ import typing as t
 import rich_click as click
 from click.exceptions import Exit as ClickExit
 from rich import print as rprint
+from rich.table import Table
 
 from lightlike.app import _get, _pass, dates, render, validate
 from lightlike.app.config import AppConfig
@@ -128,11 +129,14 @@ def restore(client: "Client", console: "Console", routine: "CliQueryRoutines") -
 @_pass.console
 def list_(console: "Console", routine: "CliQueryRoutines") -> None:
     """List current snapshots."""
-    table = render.map_sequence_to_rich_table(
+    table: Table = render.map_sequence_to_rich_table(
         mappings=list(map(lambda r: dict(r.items()), routine._list_snapshots())),
         string_ctype=["table_name", "notes"],
         datetime_ctype=["creation_time", "snapshot_time_ms", "expiration_timestamp"],
     )
+    if not table.row_count:
+        rprint(markup.dimmed("No results"))
+        raise ClickExit
     console.print(table)
 
 

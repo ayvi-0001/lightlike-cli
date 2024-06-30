@@ -1,12 +1,12 @@
 # mypy: disable-error-code="func-returns-value"
 
 import typing as t
+from contextlib import suppress
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from functools import reduce
 from os import getenv
 
-from click.exceptions import Exit as ClickExit
 from more_itertools import one
 from rich import box, get_console
 from rich import print as rprint
@@ -17,7 +17,7 @@ from lightlike import _console
 from lightlike.internal import appdir, markup
 
 if t.TYPE_CHECKING:
-    from _collections_abc import dict_values
+    from _collections_abc import dict_items, dict_values
 
 
 __all__: t.Sequence[str] = (
@@ -142,7 +142,6 @@ def map_sequence_to_rich_table(
     row_kwargs: t.Mapping[str, t.Any] = {},
     table_kwargs: t.Mapping[str, t.Any] = {},
     column_kwargs: t.Mapping[str, t.Any] = {},
-    message_if_empty: str | None = None,
 ) -> Table:
     default = {
         "box": box.MARKDOWN,
@@ -154,11 +153,15 @@ def map_sequence_to_rich_table(
     table: Table = Table(**default)  # type: ignore[arg-type]
     console_width: int = get_console().width
 
-    try:
+    first_row: dict[str, t.Any] | None = None
+
+    with suppress(IndexError):
         first_row = mappings[0]
-    except IndexError:
-        rprint(markup.dimmed(message_if_empty or "No results"))
-        raise ClickExit
+
+    if first_row is None:
+        items = t.cast("dict_items[str, t.Any]", ())
+    else:
+        items = first_row.items()
 
     fn = lambda c: map_column_style(
         items=c,
@@ -174,7 +177,7 @@ def map_sequence_to_rich_table(
     # fmt: off
     reduce(
         lambda n, c: table.add_column(c[0], **fn(c), **column_kwargs), #type: ignore[no-untyped-call]
-        first_row.items(),
+        items,
         None,
     )
     reduce(
@@ -183,11 +186,6 @@ def map_sequence_to_rich_table(
         None,
     )
     # fmt: on
-
-    if not table.row_count:
-        rprint(markup.dimmed(message_if_empty or "No results"))
-        raise ClickExit
-
     return table
 
 

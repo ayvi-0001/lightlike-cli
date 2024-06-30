@@ -7,6 +7,7 @@ from click.exceptions import Exit as ClickExit
 from more_itertools import first
 from rich import print as rprint
 from rich.syntax import Syntax
+from rich.table import Table
 from rich.text import Text
 
 from lightlike.__about__ import __appname_sc__
@@ -137,21 +138,20 @@ def archive(
                     "End these entries before trying to archive this project.",
                     "\nMatching entries:",
                 )
-                console.print(
-                    render.map_sequence_to_rich_table(
-                        mappings=matching_entries,
-                        string_ctype=["id", "project", "note"],
-                        bool_ctype=["billable", "paused"],
-                        num_ctype=[
-                            "total_summary",
-                            "total_project",
-                            "total_day",
-                            "hours",
-                        ],
-                        datetime_ctype=["timestamp_paused"],
-                        time_ctype=["start"],
-                    )
+                table: Table = render.map_sequence_to_rich_table(
+                    mappings=matching_entries,
+                    string_ctype=["id", "project", "note"],
+                    bool_ctype=["billable", "paused"],
+                    num_ctype=[
+                        "total_summary",
+                        "total_project",
+                        "total_day",
+                        "hours",
+                    ],
+                    datetime_ctype=["timestamp_paused"],
+                    time_ctype=["start"],
                 )
+                console.print(table)
                 status.start()
                 continue
 
@@ -624,14 +624,16 @@ def list_(
         order=order,
     )
 
-    console.print(
-        render.map_sequence_to_rich_table(
-            mappings=list(map(lambda r: dict(r.items()), query_job)),
-            string_ctype=["name", "description"],
-            bool_ctype=["default_billable"],
-            date_ctype=["created", "archived"],
-        )
+    table: Table = render.map_sequence_to_rich_table(
+        mappings=list(map(lambda r: dict(r.items()), query_job)),
+        string_ctype=["name", "description"],
+        bool_ctype=["default_billable"],
+        date_ctype=["created", "archived"],
     )
+    if not table.row_count:
+        rprint(markup.dimmed("No results"))
+        raise ClickExit
+    console.print(table)
 
 
 @click.group(
