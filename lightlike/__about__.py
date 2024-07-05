@@ -71,7 +71,7 @@ def _config_filename(env: str | None) -> str:
     return f".lightlike{('_' + env.lower()) if env else ''}.toml"
 
 
-__version__: Final[str] = "v0.10.0.alpha.0"
+__version__: Final[str] = "v0.10.0.alpha.1"
 
 env: str | None = os.getenv("LIGHTLIKE_CLI")
 __appname__: Final[str] = _appdir_filename(env)
