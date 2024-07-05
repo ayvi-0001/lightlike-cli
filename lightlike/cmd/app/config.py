@@ -4,8 +4,8 @@ import typing as t
 from dataclasses import dataclass
 
 import click
+import pytz
 from more_itertools import nth, one
-from pytz import all_timezones, timezone
 from rich import print as rprint
 from rich.console import Console
 from rich.syntax import Syntax
@@ -258,11 +258,9 @@ system_command_shell = SettingsCommand(
 
 
 def timezone_setting_callback(_locals: dict[str, t.Any]) -> None:
-    from pytz import timezone
-
     import lightlike.app.cursor
 
-    tz = timezone(_locals["kwargs"].get("timezone"))
+    tz = pytz.timezone(_locals["kwargs"].get("timezone"))
     lightlike.app.cursor.TIMEZONE = tz
 
     with AppConfig().rw() as config:
@@ -280,7 +278,9 @@ timezone = SettingsCommand(
         "timezone",
         type=click.STRING,
         callback=validate.callbacks._timezone,
-        shell_complete=lambda c, p, i: [t for t in all_timezones if i in t.lower()],
+        shell_complete=lambda c, p, i: [
+            t for t in pytz.all_timezones if i in t.lower()
+        ],
     ),
     help="""
     Timezone used for all date/time conversions.

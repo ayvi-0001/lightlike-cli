@@ -3,6 +3,7 @@
 import logging
 import sys
 import typing as t
+from datetime import datetime
 from pathlib import Path
 
 import rtoml
@@ -10,6 +11,7 @@ from fasteners import interprocess_locked
 from prompt_toolkit.history import FileHistory, ThreadedHistory
 from rich import get_console
 from rich import print as rprint
+from rich.console import Console
 from rich.text import Text
 
 from lightlike import _console
@@ -23,7 +25,7 @@ from lightlike.__about__ import (
     __repo__,
     __version__,
 )
-from lightlike.internal import constant, markup, update
+from lightlike.internal import constant, markup, update, utils
 
 __all__: t.Sequence[str] = (
     "CACHE",
@@ -37,6 +39,7 @@ __all__: t.Sequence[str] = (
     "LOGS",
     "rmtree",
     "_log",
+    "console_log_error",
 )
 
 
@@ -82,8 +85,6 @@ def rmtree(appdata: Path = __appdir__) -> t.NoReturn:
     sys.exit(1)
 
 
-from lightlike.internal import utils
-
 _interprocess_locked: t.Callable[..., t.Any] = interprocess_locked
 
 
@@ -125,6 +126,37 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
         __config__.write_text(utils._format_toml(updated_config))
 
     return None
+
+
+def console_log_error(error: Exception, notify: bool, patch_stdout: bool) -> None:
+    error_logs: Path = LOGS / "errors"
+    error_logs.mkdir(exist_ok=True)
+    timestamp: str = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
+    file_name: str = f"{error.__class__.__name__}_{timestamp}.log"
+    error_log: Path = error_logs / file_name
+
+    with Console(record=True, width=200) as console:
+        console.begin_capture()
+        console.print_exception(show_locals=True, width=console.width)
+        console.save_text(f"{error_log!s}", clear=True)
+        console.end_capture()
+
+    if notify:
+        notice: str = (
+            f"\n[b][red]Encountered an unexpected error:[/] {error!r}."
+            "\nIf you'd like to create an issue for this, you can submit @ "
+            "[repr.url]https://github.com/ayvi-0001/lightlike-cli/issues/new[/repr.url]."
+            "\nPlease include any relevant info in the traceback found at:"
+            f"\n[repr.url]{error_log.as_uri()}[/repr.url]\n"
+        )
+        if patch_stdout:
+            from prompt_toolkit.patch_stdout import patch_stdout as _patch_stdout
+
+            with _patch_stdout(raw=True):
+
+                rprint(notice)
+        else:
+            rprint(notice)
 
 
 def _initial_build() -> None | t.NoReturn:

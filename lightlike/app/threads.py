@@ -8,7 +8,7 @@ from rich import print as rprint
 from rich.repr import rich_repr
 from rich.rule import Rule
 
-from lightlike.internal import utils
+from lightlike.internal.appdir import console_log_error
 
 __all__: t.Sequence[str] = ("spawn",)
 
@@ -38,8 +38,7 @@ def spawn(
                 thread_repr: str = f"{rich_repr(current_thread())}"  # type: ignore[call-overload]
                 thread_repr.replace("wrapper", f"{fn!r}")
                 rprint(thread_repr)
-
-            utils.notify_and_log_error(error)
+                console_log_error(error, notify=True, patch_stdout=False)
 
     thread: Thread = Thread(target=wrapper, kwargs=kwargs)
     thread.start()
