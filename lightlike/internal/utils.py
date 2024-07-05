@@ -5,7 +5,6 @@ import os
 import re
 import typing as t
 from contextlib import ContextDecorator, suppress
-from datetime import datetime
 from functools import reduce, wraps
 from operator import getitem
 from pathlib import Path
@@ -18,10 +17,10 @@ from prompt_toolkit.application import get_app, in_terminal
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import get_console
 from rich import print as rprint
-from rich.console import Console, NewLine
+from rich.console import NewLine
 
 from lightlike.__about__ import __appdir__, __appname_sc__
-from lightlike.internal import appdir, markup
+from lightlike.internal import markup
 
 __all__: t.Sequence[str] = (
     "exit_cmd_on_interrupt",
@@ -31,7 +30,6 @@ __all__: t.Sequence[str] = (
     "_nl_start",
     "_get_local_timezone_string",
     "_get_config_if_exists",
-    "notify_and_log_error",
     "_identical_vectors",
     "pretty_print_exception",
     "_prerun_autocomplete",
@@ -128,29 +126,6 @@ def _get_config_if_exists(
         config: dict[str, t.Any] = rtoml.load(config_path)
         return config
     return default
-
-
-def notify_and_log_error(error: Exception) -> None:
-    error_logs = appdir.LOGS / "errors"
-    error_logs.mkdir(exist_ok=True)
-    timestamp = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
-    file_name = f"{error.__class__.__name__}_{timestamp}.log"
-    error_log = error_logs / file_name
-
-    with Console(record=True, width=200) as console:
-        console.begin_capture()
-        console.print_exception(show_locals=True, width=console.width)
-        console.save_text(f"{error_log!s}", clear=True)
-        console.end_capture()
-
-    with patch_stdout(raw=True):
-        rprint(
-            f"\n[b][red]Encountered an unexpected error:[/] {error!r}."
-            "\nIf you'd like to create an issue for this, you can submit @ "
-            "[repr.url]https://github.com/ayvi-0001/lightlike-cli/issues/new[/repr.url]."
-            "\nPlease include any relevant info in the traceback found at:"
-            f"\n[repr.url]{error_log.as_uri()}[/repr.url]\n",
-        )
 
 
 def _identical_vectors(l1: list[t.Any], l2: list[t.Any]) -> bool:

@@ -42,7 +42,7 @@ _console.reconfigure()
 from lightlike.__about__ import __config__, __lock__, __version__
 from lightlike.app import render
 from lightlike.app.core import LazyAliasedGroup
-from lightlike.internal import appdir, utils
+from lightlike.internal import appdir
 
 __all__: t.Sequence[str] = ("lightlike",)
 
@@ -85,7 +85,7 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
         try:
             appdir.validate(__version__, __config__)
         except Exception as error:
-            utils.notify_and_log_error(error)
+            appdir.console_log_error(error, notify=True, patch_stdout=True)
             sys.exit(2)
 
         from prompt_toolkit.shortcuts import CompleteStyle
@@ -97,11 +97,8 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
         from lightlike.app.key_bindings import PROMPT_BINDINGS
         from lightlike.cmd.app.default import general_help
 
-        _console.reconfigure(
-            get_datetime=partial(
-                dates.now, tzinfo=timezone(AppConfig().get("settings", "timezone"))
-            ),
-        )
+        tzinfo = timezone(AppConfig().get("settings", "timezone"))
+        _console.reconfigure(get_datetime=partial(dates.now, tzinfo=tzinfo))
 
         console = get_console()
 
@@ -111,7 +108,6 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
         get_client()
 
         prompt_kwargs: dict[str, t.Any] = {}
-
         prompt_kwargs.update(
             message=cursor.build,
             history=appdir.REPL_FILE_HISTORY(),
@@ -142,7 +138,9 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
             format_click_exceptions_callable=_format_click_exception,
             shell_config_callable=lambda: AppConfig().get("system-command", "shell"),
             pass_unknown_commands_to_shell=True,
-            uncaught_exceptions_callable=utils.notify_and_log_error,
+            uncaught_exceptions_callable=partial(
+                appdir.console_log_error, notify=True, patch_stdout=True
+            ),
         )
 
         cli: LazyAliasedGroup = build_cli(
@@ -169,7 +167,7 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
             cli(prog_name=name if len(sys.argv) > 1 else "")
 
     except Exception as error:
-        utils.notify_and_log_error(error)
+        appdir.console_log_error(error, notify=True, patch_stdout=True)
 
 
 def _check_lock(lock: InterProcessLock) -> None | t.NoReturn:
