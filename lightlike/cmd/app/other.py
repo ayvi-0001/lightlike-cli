@@ -1,7 +1,8 @@
 import typing as t
 from datetime import datetime
 
-import rich_click as click
+import click
+from pytz import timezone
 from rich import box, get_console
 from rich import print as rprint
 from rich.align import Align
@@ -12,7 +13,7 @@ from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
-from lightlike.app.core import FmtRichCommand
+from lightlike.app.core import FormattedCommand
 
 __all__: t.Sequence[str] = ("eval", "calendar")
 
@@ -38,7 +39,7 @@ EVAL_GLOBALS = {
 EVAL_LOCALS: dict[str, t.Any] = {}
 
 
-def _eval_help(ctx: click.RichContext, param: click.Parameter, value: str) -> None:
+def _eval_help(ctx: click.Context, param: click.Parameter, value: str) -> None:
     if not value or ctx.resilient_parsing:
         return
 
@@ -81,7 +82,7 @@ def _eval_help(ctx: click.RichContext, param: click.Parameter, value: str) -> No
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="eval",
     hidden=True,
 )
@@ -120,7 +121,7 @@ def eval_(args: list[str]) -> None:
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="calendar",
     hidden=True,
     allow_name_alias=False,
@@ -137,7 +138,7 @@ def calendar(year: int) -> None:
     from lightlike.app import dates
     from lightlike.app.config import AppConfig
 
-    today = dates.now(AppConfig().tz)
+    today = dates.now(timezone(AppConfig().get("settings", "timezone")))
     year = int(year)
     cal = calendar.Calendar()
     today_tuple = today.day, today.month, today.year
@@ -178,7 +179,7 @@ def calendar(year: int) -> None:
 # from lightlike.internal import markup, utils
 
 # @click.command(
-#     cls=FmtRichCommand,
+#     cls=FormattedCommand,
 #     name="ls",
 #     hidden=True,
 #     context_settings=dict(
@@ -253,7 +254,7 @@ def calendar(year: int) -> None:
 
 
 # @click.command(
-#     cls=FmtRichCommand,
+#     cls=FormattedCommand,
 #     name="tree",
 #     hidden=True,
 #     context_settings=dict(

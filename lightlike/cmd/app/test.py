@@ -2,19 +2,19 @@ import typing as t
 from datetime import datetime, timedelta
 from decimal import Decimal
 
-import rich_click as click
+import click
 from rich.console import Console
 
 from lightlike.__about__ import __appdir__, __config__
 from lightlike.app import _pass, dates, validate
-from lightlike.app.core import FmtRichCommand
+from lightlike.app.core import FormattedCommand
 from lightlike.internal import utils
 
 __all__: t.Sequence[str] = ("date_parse", "date_diff")
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="date-parse",
     short_help="Date parser function.",
 )
@@ -64,7 +64,7 @@ def date_parse(console: Console, date: str) -> None:
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="date-diff",
     short_help="Diff between 2 times.",
     no_args_is_help=True,

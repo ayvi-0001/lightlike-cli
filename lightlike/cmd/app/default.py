@@ -4,13 +4,13 @@ from os import getenv
 from pathlib import Path
 from typing import Sequence
 
-import rich_click as click
+import click
 from rich import print as rprint
 from rich.console import Console
 
 from lightlike.__about__ import __appdir__, __appname_sc__, __config__, __version__
 from lightlike.app import _pass, shell_complete
-from lightlike.app.core import FmtRichCommand
+from lightlike.app.core import FormattedCommand
 
 __all__: t.Sequence[str] = ("help_", "exit_", "cd_")
 
@@ -19,7 +19,7 @@ P = t.ParamSpec("P")
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="exit",
     hidden="true",
     short_help="Exit REPL.",
@@ -31,13 +31,13 @@ P = t.ParamSpec("P")
 )
 def exit_() -> None:
     """Exit REPL."""
-    from lightlike.lib.third_party import click_repl
+    from lightlike.app._repl import exit_repl
 
-    click_repl.exit_repl()
+    exit_repl()
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="cd",
     hidden=True,
     context_settings=dict(
@@ -64,7 +64,7 @@ def cd_(path: Path) -> None:
 )
 @_pass.console
 @_pass.ctx_group(parents=1)
-def help_(ctx_group: Sequence[click.RichContext], console: Console) -> None:
+def help_(ctx_group: Sequence[click.Context], console: Console) -> None:
     ctx, parent = ctx_group
     console.print(parent.get_help())
 

@@ -8,6 +8,7 @@ from pathlib import Path
 
 from prompt_toolkit.application import get_app
 from prompt_toolkit.formatted_text import fragment_list_width
+from pytz import timezone
 from rich import get_console
 
 from lightlike.app.cache import TimeEntryCache
@@ -26,7 +27,7 @@ HOSTNAME: str = AppConfig().get("user", "host")
 GCP_PROJECT: str = AppConfig().get("client", "active_project")
 BRANCH: str = AppConfig().get("git", "branch")
 PATH: str = AppConfig().get("git", "path")
-TIMEZONE: "_TzInfo" = AppConfig().tz
+TIMEZONE: "_TzInfo" = timezone(AppConfig().get("settings", "timezone"))
 
 
 def build(message: str | None = None, hide_rprompt: bool = False) -> str:
@@ -211,7 +212,7 @@ def _extend_entry_counter(
     entry_counter: str,
 ) -> None:
     global TIMEZONE
-    ts = "[%s]" % now(TIMEZONE).strftime("%H:%M:%S")
+    ts = "[%s]" % now(TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
 
     if entry_counter:
         padding = " " * (

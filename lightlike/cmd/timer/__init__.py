@@ -1,13 +1,13 @@
 import typing as t
 
-import rich_click as click
+import click
 
-from lightlike.app.core import LazyAliasedRichGroup
+from lightlike.app.core import LazyAliasedGroup
 
 
 @click.group(
     name="timer",
-    cls=LazyAliasedRichGroup,
+    cls=LazyAliasedGroup,
     lazy_subcommands={
         "add": "lightlike.cmd.timer.commands.add",
         "delete": "lightlike.cmd.timer.commands.delete",

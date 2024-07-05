@@ -1,6 +1,5 @@
 import typing as t
 
-import rich_click as click
 from prompt_toolkit.completion import (
     Completer,
     DynamicCompleter,
@@ -13,10 +12,7 @@ from lightlike.app.shell_complete.history import HistoryCompleter
 from lightlike.app.shell_complete.path import PathCompleter
 from lightlike.internal.enums import ActiveCompleter
 
-if t.TYPE_CHECKING:
-    from lightlike.lib.third_party.click_repl import ReplCompleter
-
-__all__: t.Sequence[str] = ("dynamic_completer", "repl_completer")
+__all__: t.Sequence[str] = ("dynamic_completer",)
 
 
 CMD_COMPLETER: Completer | None = None
@@ -30,25 +26,15 @@ _COMPLETERS: t.MutableMapping[ActiveCompleter, Completer | None] = {
 
 
 def dynamic_completer(
-    default_completer: t.Optional["ReplCompleter"] = None,
+    default_completer: t.Optional[Completer] = None,
 ) -> ThreadedCompleter:
     return ThreadedCompleter(
         DynamicCompleter(lambda: _get_completer(default_completer))
     )
 
 
-def repl_completer(
-    cli: click.Group,
-    ctx: click.Context,
-    uncaught_exceptions_callable: t.Callable[[Exception], object] | None = None,
-) -> "ReplCompleter":
-    from lightlike.lib.third_party.click_repl._completer import ReplCompleter
-
-    return ReplCompleter(cli, ctx, uncaught_exceptions_callable)
-
-
 def _get_completer(
-    default_completer: t.Optional["ReplCompleter"] = None,
+    default_completer: t.Optional[Completer] = None,
 ) -> Completer:
     global _COMPLETERS
     for c in [
@@ -63,7 +49,7 @@ def _get_completer(
                     if not _COMPLETERS[ActiveCompleter.CMD]:
                         global CMD_COMPLETER
                         if not CMD_COMPLETER:
-                            CMD_COMPLETER = t.cast(Completer, default_completer)
+                            CMD_COMPLETER = default_completer
                         _COMPLETERS[ActiveCompleter.CMD] = CMD_COMPLETER
 
                 case ActiveCompleter.HISTORY:

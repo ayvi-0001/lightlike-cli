@@ -2,7 +2,7 @@
 
 import typing as t
 
-import rich_click as click
+import click
 from click.exceptions import Exit as ClickExit
 from more_itertools import first
 from rich import print as rprint
@@ -11,12 +11,19 @@ from rich.table import Table
 from rich.text import Text
 
 from lightlike.__about__ import __appname_sc__
-from lightlike.app import _get, _pass, render, shell_complete, threads, validate
+from lightlike.app import (
+    _get,
+    _pass,
+    _questionary,
+    render,
+    shell_complete,
+    threads,
+    validate,
+)
 from lightlike.app.autosuggest import threaded_autosuggest
-from lightlike.app.core import AliasedRichGroup, FmtRichCommand
+from lightlike.app.core import AliasedGroup, FormattedCommand
 from lightlike.app.prompt import PromptFactory
 from lightlike.internal import markup, utils
-from lightlike.lib.third_party import _questionary
 
 if t.TYPE_CHECKING:
     from rich.console import Console
@@ -38,7 +45,7 @@ __all__: t.Sequence[str] = (
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="archive",
     no_args_is_help=True,
     short_help="Archive projects and related time entries.",
@@ -93,7 +100,7 @@ __all__: t.Sequence[str] = (
 @_pass.console
 @_pass.ctx_group(parents=1)
 def archive(
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     console: "Console",
     routine: "CliQueryRoutines",
     appdata: "TimeEntryAppData",
@@ -205,7 +212,7 @@ def archive(
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="create",
     short_help="Create a new project.",
     syntax=Syntax(
@@ -271,7 +278,7 @@ def archive(
 @_pass.console
 @_pass.ctx_group(parents=1)
 def create(
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     console: "Console",
     routine: "CliQueryRoutines",
     appdata: "TimeEntryAppData",
@@ -323,7 +330,7 @@ def create(
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="delete",
     no_args_is_help=True,
     short_help="Deletes projects and related time entries.",
@@ -378,7 +385,7 @@ def create(
 @_pass.console
 @_pass.ctx_group(parents=1)
 def delete(
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     console: "Console",
     routine: "CliQueryRoutines",
     appdata: "TimeEntryAppData",
@@ -462,7 +469,7 @@ def delete(
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="list",
     short_help="List projects.",
     syntax=Syntax(
@@ -637,7 +644,7 @@ def list_(
 
 
 @click.group(
-    cls=AliasedRichGroup,
+    cls=AliasedGroup,
     name="set",
     short_help="Update a project's name/description/default_billable.",
     syntax=Syntax(
@@ -659,7 +666,7 @@ def set_() -> None:
 
 
 @set_.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="name",
     syntax=Syntax(
         code="""\
@@ -708,7 +715,7 @@ def set_() -> None:
 @_pass.console
 @_pass.ctx_group(parents=1)
 def set_project_name(
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     console: "Console",
     routine: "CliQueryRoutines",
     appdata: "TimeEntryAppData",
@@ -759,7 +766,7 @@ def set_project_name(
 
 
 @set_.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="description",
     syntax=Syntax(
         code="""\
@@ -806,7 +813,7 @@ def set_project_name(
 @_pass.console
 @_pass.ctx_group(parents=1)
 def set_project_description(
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     console: "Console",
     routine: "CliQueryRoutines",
     appdata: "TimeEntryAppData",
@@ -857,7 +864,7 @@ def set_project_description(
 
 
 @set_.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="default_billable",
     syntax=Syntax(
         code="""\
@@ -902,7 +909,7 @@ def set_project_description(
 @_pass.console
 @_pass.ctx_group(parents=1)
 def set_project_default_billable(
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     console: "Console",
     routine: "CliQueryRoutines",
     appdata: "TimeEntryAppData",
@@ -925,7 +932,7 @@ def set_project_default_billable(
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="unarchive",
     no_args_is_help=True,
     short_help="Unarchive projects and all hidden time entries.",
@@ -963,7 +970,7 @@ def set_project_default_billable(
 @_pass.console
 @_pass.ctx_group(parents=1)
 def unarchive(
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     console: "Console",
     routine: "CliQueryRoutines",
     appdata: "TimeEntryAppData",

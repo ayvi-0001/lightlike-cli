@@ -1,57 +1,26 @@
-# Copyright (c) 2014-2015 Markus Unterwaditzer & contributors.
-# Copyright (c) 2016-2026 Asif Saif Uddin & contributors.
+from __future__ import annotations
 
-# Permission is hereby granted, free of charge, to any person obtaining a copy of
-# this software and associated documentation files (the "Software"), to deal in
-# the Software without restriction, including without limitation the rights to
-# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-# of the Software, and to permit persons to whom the Software is furnished to do
-# so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
-
-# This cli uses a modified version of the click-repl repo.
-# Original Repo: https://github.com/click-contrib/click-repl
-# Changes from original package:
-#   - Add types
-#   - Change parameters to called if is_flag is True
-#   - Add display_meta param to completion item in autocompletion_functions
-#   - Remove path/bool/deprecated completion functions
-#   - Remove internal/external commands
-#   - Generate param display meta with short option/default/required/multiple
-#   - Allow completion for hidden commands
-#   - Allow autocompletion on UNPROCESSED param types
-#   - Show options for chained/aliased commands
-#   - Only display called subcommand completions when parent ctx is chained
-#   - Add callable param for uncaught exceptions
-#   - Renamed to ReplCompleter
-
-
-from __future__ import unicode_literals
-
+import logging
 import typing as t
+from shlex import shlex
 
-import rich_click as click
+import click
 from click.shell_completion import CompletionItem
 from prompt_toolkit.completion import Completer, Completion
-
-from .utils import _resolve_context, split_arg_string
 
 if t.TYPE_CHECKING:
     from prompt_toolkit.completion import CompleteEvent
     from prompt_toolkit.document import Document
 
-__all__: t.Sequence[str] = ("ReplCompleter",)
+__all__: t.Sequence[str] = ("ReplCompleter", "repl")
+
+
+def repl(
+    cli: click.Group,
+    ctx: click.Context,
+    uncaught_exceptions_callable: t.Callable[[Exception], object] | None = None,
+) -> ReplCompleter:
+    return ReplCompleter(cli, ctx, uncaught_exceptions_callable)
 
 
 class ReplCompleter(Completer):
@@ -313,3 +282,40 @@ def _display_meta(option: click.Option, short_flag: str | None = None) -> str:
     display_meta: str = "".join([flag, multiple, required, default, ws, help_ or ""]) or ""
     # fmt: on
     return f"[{short_flag}]{display_meta}" if short_flag else display_meta
+
+
+def _resolve_context(args: list[str], ctx: click.Context) -> click.Context:
+    try:
+        while args:
+            command = ctx.command
+
+            if isinstance(command, click.Group) and not command.chain:
+                name, cmd, args = command.resolve_command(ctx, args)
+
+                if cmd is None:
+                    return ctx
+
+                ctx = cmd.make_context(name, args, parent=ctx, resilient_parsing=True)
+                args = ctx.protected_args + ctx.args
+            else:
+                break
+    except Exception as error:
+        if "No such command" not in f"{error}":
+            logging.error(f"Failed to resolve context: {error}")
+
+    return ctx
+
+
+def split_arg_string(string: str, posix: bool = True) -> list[str]:
+    lex: shlex = shlex(string, posix=posix)
+    lex.whitespace_split = True
+    lex.commenters = ""
+    out: list[str] = []
+
+    try:
+        for token in lex:
+            out.append(token)
+    except ValueError:
+        out.append(lex.token)
+
+    return out

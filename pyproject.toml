@@ -50,7 +50,6 @@ dependencies = [
   "regex==2023.12.25",
   "requests>=2.32.0",
   "rich==13.7.1",
-  "rich-click==1.8.2",
   "rsa==4.9",
   "rtoml==0.10.0",
   "six==1.16.0",

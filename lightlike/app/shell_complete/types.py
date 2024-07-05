@@ -2,7 +2,7 @@ import typing as t
 from gettext import gettext
 from inspect import cleandoc
 
-import rich_click as click
+import click
 from click.types import IntParamType, _NumberParamTypeBase
 
 __all__: t.Sequence[str] = ("DynamicHelpOption", "CallableIntRange")

@@ -2,7 +2,7 @@ import typing as t
 from threading import Thread, current_thread
 from time import sleep
 
-import rich_click as click
+import click
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import print as rprint
 from rich.repr import rich_repr
@@ -19,7 +19,7 @@ def spawn(
     kwargs: dict[str, t.Any] | None = None,
     delay: int | None = None,
 ) -> Thread:
-    def wrapper(**kwargs) -> t.Any:
+    def wrapper(**kwargs: dict[str, t.Any]) -> t.Any:
         try:
             if delay and isinstance(delay, int):
                 sleep(delay)

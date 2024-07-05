@@ -5,7 +5,7 @@ from datetime import datetime
 from operator import truth
 from pathlib import Path
 
-import rich_click as click
+import click
 from click.exceptions import Exit as ClickExit
 from rich import print as rprint
 from rich.console import Console
@@ -16,9 +16,10 @@ from rich.table import Table
 from lightlike import _console
 from lightlike.app import _pass, dates, render, shell_complete, validate
 from lightlike.app.config import AppConfig
-from lightlike.app.core import FmtRichCommand
+from lightlike.app.core import FormattedCommand
 from lightlike.app.prompt import PromptFactory
 from lightlike.internal import markup, utils
+from lightlike.internal.constant import _CONSOLE_SVG_FORMAT
 
 if t.TYPE_CHECKING:
     from pandas import DataFrame
@@ -236,7 +237,7 @@ regex_engine = click.option(
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="table",
     no_args_is_help=True,
     short_help="Renders a table in terminal. Optional svg download.",
@@ -295,7 +296,7 @@ regex_engine = click.option(
 @_pass.now
 def summary_table(
     now: datetime,
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     console: Console,
     routine: "CliQueryRoutines",
     start: datetime,
@@ -452,12 +453,12 @@ def summary_table(
             resolved: Path = output.resolve()
             uri = resolved.as_uri()
             path = resolved.as_posix()
-            console.save_svg(path, code_format=_console._CONSOLE_SVG_FORMAT)
+            console.save_svg(path, code_format=_CONSOLE_SVG_FORMAT)
             console.print("Saved to", markup.link(path, uri))
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="csv",
     no_args_is_help=True,
     short_help="Save/Print summary to a csv file.",
@@ -528,7 +529,7 @@ def summary_table(
 @_pass.now
 def summary_csv(
     now: datetime,
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     console: Console,
     routine: "CliQueryRoutines",
     start: datetime,
@@ -714,7 +715,7 @@ def summary_csv(
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="json",
     no_args_is_help=True,
     short_help="Save/Print summary to a json file.",
@@ -788,7 +789,7 @@ def summary_csv(
 @_pass.now
 def summary_json(
     now: datetime,
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     console: Console,
     routine: "CliQueryRoutines",
     start: datetime,

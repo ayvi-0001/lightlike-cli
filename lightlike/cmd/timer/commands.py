@@ -12,7 +12,7 @@ from json import dumps, loads
 from math import copysign
 from operator import truth
 
-import rich_click as click
+import click
 from click.exceptions import Exit as ClickExit
 from more_itertools import first, locate, one
 from rich import print as rprint
@@ -20,14 +20,22 @@ from rich.syntax import Syntax
 from rich.text import Text
 
 from lightlike.__about__ import __appname_sc__
-from lightlike.app import _get, _pass, dates, render, shell_complete, threads, validate
+from lightlike.app import (
+    _get,
+    _pass,
+    _questionary,
+    dates,
+    render,
+    shell_complete,
+    threads,
+    validate,
+)
 from lightlike.app.cache import TimeEntryCache
 from lightlike.app.config import AppConfig
-from lightlike.app.core import AliasedRichGroup, FmtRichCommand
+from lightlike.app.core import AliasedGroup, FormattedCommand
 from lightlike.app.prompt import PromptFactory
 from lightlike.app.shell_complete.types import CallableIntRange, DynamicHelpOption
 from lightlike.internal import appdir, markup, utils
-from lightlike.lib.third_party import _questionary
 
 if t.TYPE_CHECKING:
     from google.cloud.bigquery import QueryJob
@@ -66,7 +74,7 @@ def default_timer_add(config: AppConfig) -> str:
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="add",
     short_help="Insert a time entry.",
     syntax=Syntax(
@@ -162,7 +170,7 @@ def default_timer_add(config: AppConfig) -> str:
 @_pass.now
 def add(
     now: datetime,
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     id_list: "TimeEntryIdList",
     appdata: "TimeEntryAppData",
     console: "Console",
@@ -302,7 +310,7 @@ def yank_flag_help() -> str:
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="delete",
     no_args_is_help=True,
     short_help="Delete time entries by id.",
@@ -373,7 +381,7 @@ def yank_flag_help() -> str:
 @_pass.id_list
 @_pass.ctx_group(parents=1)
 def delete(
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     id_list: "TimeEntryIdList",
     console: "Console",
     cache: "TimeEntryCache",
@@ -574,7 +582,7 @@ def _get_entry_edits(
 
 
 def _match_ids(
-    ctx: click.RichContext,
+    ctx: click.Context,
     id_list: "TimeEntryIdList",
     ids_to_match: list[str],
 ) -> t.Sequence[list[str]]:
@@ -596,7 +604,7 @@ def _match_ids(
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="edit",
     short_help="Edit completed time entries.",
     syntax=Syntax(
@@ -749,7 +757,7 @@ def _match_ids(
 @_pass.id_list
 @_pass.ctx_group(parents=1)
 def edit(
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     id_list: "TimeEntryIdList",
     appdata: "TimeEntryAppData",
     console: "Console",
@@ -930,11 +938,15 @@ def edit(
             "records:" if len(matched_ids) > 1 else "record:",
             render.create_table_diff(original_records, new_records),
         )
-        threads.spawn(ctx, appdata.sync, dict(trigger_query_job=query_job, debug=debug))
+        threads.spawn(
+            ctx,
+            appdata.sync,
+            dict(trigger_query_job=query_job, debug=debug),
+        )
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="get",
     no_args_is_help=True,
     short_help="Retrieve a time entry by id.",
@@ -975,7 +987,7 @@ def get(
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="list",
     short_help="List time entries.",
     syntax=Syntax(
@@ -1292,7 +1304,7 @@ def get(
 @_pass.now
 def list_(
     now: datetime,
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     routine: "CliQueryRoutines",
     console: "Console",
     date: datetime | None,
@@ -1493,7 +1505,7 @@ def list_(
 
 
 @click.group(
-    cls=AliasedRichGroup,
+    cls=AliasedGroup,
     short_help="Manage notes.",
     syntax=Syntax(
         code="$ timer notes update lightlike-cli # interactive",
@@ -1507,7 +1519,7 @@ def notes() -> None: ...
 
 
 @notes.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="update",
     no_args_is_help=True,
     short_help="Interactively update notes.",
@@ -1534,7 +1546,7 @@ def notes() -> None: ...
 @_pass.appdata
 @_pass.ctx_group(parents=1)
 def update_notes(
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     appdata: "TimeEntryAppData",
     console: "Console",
     routine: "CliQueryRoutines",
@@ -1595,7 +1607,7 @@ def update_notes(
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="pause",
     short_help="Pause active entry.",
     syntax=Syntax(
@@ -1613,7 +1625,7 @@ def update_notes(
 @_pass.now
 def pause(
     now: datetime,
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     cache: "TimeEntryCache",
     console: "Console",
     routine: "CliQueryRoutines",
@@ -1638,7 +1650,7 @@ def pause(
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="resume",
     short_help="Resume a paused time entry.",
     syntax=Syntax(
@@ -1688,7 +1700,7 @@ def pause(
 @_pass.now
 def resume(
     now: datetime,
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     id_list: "TimeEntryIdList",
     console: "Console",
     cache: "TimeEntryCache",
@@ -1759,7 +1771,7 @@ def resume(
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="run",
     short_help="Start a new time entry.",
     syntax=Syntax(
@@ -1870,7 +1882,7 @@ def resume(
 @_pass.now
 def run(
     now: datetime,
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     id_list: "TimeEntryIdList",
     appdata: "TimeEntryAppData",
     console: "Console",
@@ -1980,7 +1992,7 @@ def run(
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="show",
     short_help="Show local running/paused entries.",
     syntax=Syntax(
@@ -2023,7 +2035,7 @@ def show(console: "Console", cache: "TimeEntryCache", json_: bool) -> None:
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="stop",
     short_help="Stop active entry.",
     syntax=Syntax(
@@ -2041,7 +2053,7 @@ def show(console: "Console", cache: "TimeEntryCache", json_: bool) -> None:
 @_pass.now
 def stop(
     now: datetime,
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     cache: "TimeEntryCache",
     console: "Console",
     routine: "CliQueryRoutines",
@@ -2061,7 +2073,7 @@ def stop(
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="switch",
     short_help="Switch active entry.",
     syntax=Syntax(
@@ -2114,7 +2126,7 @@ def stop(
 @_pass.now
 def switch(
     now: datetime,
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     cache: "TimeEntryCache",
     routine: "CliQueryRoutines",
     id_list: "TimeEntryIdList",
@@ -2180,7 +2192,7 @@ def switch(
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="update",
     short_help="Update active entry.",
     syntax=Syntax(
@@ -2272,7 +2284,7 @@ def switch(
 @_pass.now
 def update(
     now: datetime,
-    ctx_group: t.Sequence[click.RichContext],
+    ctx_group: t.Sequence[click.Context],
     appdata: "TimeEntryAppData",
     console: "Console",
     cache: "TimeEntryCache",
@@ -2371,7 +2383,9 @@ def update(
 
             edits["project"] = project
 
-        if not any([k in edits for k in ["project", "note", "billable", "start"]]):
+        if not any(
+            filter(lambda k: k in edits, ["project", "note", "billable", "start"])
+        ):
             console.print(markup.dimmed("No valid fields to update, nothing happened."))
             return
         else:

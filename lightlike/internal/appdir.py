@@ -23,7 +23,7 @@ from lightlike.__about__ import (
     __repo__,
     __version__,
 )
-from lightlike.internal import markup, toml, update
+from lightlike.internal import constant, markup, update
 
 __all__: t.Sequence[str] = (
     "CACHE",
@@ -117,7 +117,7 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
         v_local < (0, 9, 0) and update._patch_cache_lt_v_0_9_0(__appdir__)
 
         updated_config = utils.update_dict(
-            original=rtoml.load(toml.DEFAULT_CONFIG),
+            original=rtoml.load(constant.DEFAULT_CONFIG),
             updates=local_config,
             ignore=["cli", "lazy_subcommands"],
         )
@@ -141,10 +141,10 @@ def _initial_build() -> None | t.NoReturn:
         from rich.markdown import Markdown
         from rich.padding import Padding
 
+        from lightlike.app import _questionary
         from lightlike.internal.enums import CredentialsSource
-        from lightlike.lib.third_party import _questionary
 
-        default_config = rtoml.load(toml.DEFAULT_CONFIG)
+        default_config = rtoml.load(constant.DEFAULT_CONFIG)
 
         license = Markdown(
             markup=cleandoc(
@@ -230,15 +230,7 @@ def _initial_build() -> None | t.NoReturn:
 
         from pytz import all_timezones
 
-        if os.name == "nt":
-            from tzlocal import get_localzone_name
-
-            default_timezone = get_localzone_name()
-        else:
-            from tzlocal.unix import _get_localzone_name
-
-            default_timezone = _get_localzone_name()  # type: ignore[no-untyped-call]
-
+        default_timezone = utils._get_local_timezone_string()
         if default_timezone is None:
             console.log(markup.log_error("Could not determine timezone"))
             default_timezone = "UTC"

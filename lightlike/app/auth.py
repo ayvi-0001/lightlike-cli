@@ -1,7 +1,5 @@
 # mypy: disable-error-code="func-returns-value"
 
-from __future__ import annotations
-
 import sys
 import typing as t
 from base64 import b64encode
@@ -32,20 +30,40 @@ from lightlike.internal.enums import CredentialsSource
 if t.TYPE_CHECKING:
     from prompt_toolkit.key_binding import KeyPressEvent
 
-__all__: t.Sequence[str] = ("_AuthSession",)
+
+__all__: t.Sequence[str] = ("_Auth", "AuthPromptSession")
 
 
-_Hash = type(sha256(b"_Hash"))
+class _Auth:
+    def encrypt(self, __key: bytes, __val: str) -> bytes:
+        return Fernet(__key).encrypt(__val.encode())
+
+    def decrypt(self, __key: bytes, encrypted: bytes) -> bytes:
+        return Fernet(__key).decrypt(encrypted)
+
+    def _generate_key(self, password: str, salt: bytes) -> bytes:
+        hashed = PBKDF2HMAC(
+            algorithm=hashes.SHA256(),
+            iterations=100000,
+            length=32,
+            salt=salt,
+        )
+        key_derivation: bytes = hashed.derive(password.encode())
+        return b64encode(key_derivation)
+
+    @staticmethod
+    def load_json_bytes(payload: bytes) -> bytes:
+        return t.cast(bytes, loads(payload.decode()))
 
 
-class _AuthSession:
+class AuthPromptSession:
     auth_keybinds: t.ClassVar[KeyBindings] = KeyBindings()
     hidden: t.ClassVar[list[bool]] = [True]
 
     @staticmethod
     @auth_keybinds.add(Keys.ControlT, eager=True)
     def _(event: "KeyPressEvent") -> None:
-        _AuthSession.hidden[0] = not _AuthSession.hidden[0]
+        AuthPromptSession.hidden[0] = not AuthPromptSession.hidden[0]
 
     @staticmethod
     @auth_keybinds.add(Keys.ControlQ, eager=True)
@@ -65,22 +83,6 @@ class _AuthSession:
             )
         sys.exit(0)
 
-    def encrypt(self, __key: bytes, __val: str) -> bytes:
-        return Fernet(__key).encrypt(__val.encode())
-
-    def decrypt(self, __key: bytes, encrypted: bytes) -> bytes:
-        return Fernet(__key).decrypt(encrypted)
-
-    def _generate_key(self, password: str, salt: bytes) -> bytes:
-        hashed = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            iterations=100000,
-            length=32,
-            salt=salt,
-        )
-        key_derivation = hashed.derive(password.encode())
-        return b64encode(key_derivation)
-
     def authenticate(
         self,
         salt: bytes,
@@ -88,6 +90,8 @@ class _AuthSession:
         password: str | None = None,
         retry: bool = True,
     ) -> bytes:
+        auth = _Auth()
+
         config_password = AppConfig().get("user", "password")
         saved_password = config_password if config_password != "null" else None
         stay_logged_in = AppConfig().get("user", "stay_logged_in")
@@ -102,14 +106,14 @@ class _AuthSession:
             password = sha256(password.encode()).hexdigest()
 
         try:
-            service_account_key = self.decrypt(
-                self._generate_key(str(password), bytes(salt)),
+            service_account_key = auth.decrypt(
+                auth._generate_key(str(password), bytes(salt)),
                 bytes(encrypted_key),
             )
 
         except InvalidToken:
             if saved_password:
-                self._update_user_credentials(
+                AppConfig()._update_user_credentials(
                     password="null",
                     stay_logged_in=False,
                 )
@@ -130,7 +134,7 @@ class _AuthSession:
         except Exception as e:
             rprint(f"[bright_white on dark_red]{e}.")
             if saved_password:
-                self._update_user_credentials(
+                AppConfig()._update_user_credentials(
                     password="null",
                     stay_logged_in=False,
                 )
@@ -146,7 +150,7 @@ class _AuthSession:
             if retry:
                 return self.authenticate(salt, encrypted_key)
 
-        return self.load_bytes(service_account_key)
+        return auth.load_json_bytes(service_account_key)
 
     def prompt_password(
         self, message: str = "(password) $ ", newline_breaks: bool = True
@@ -166,7 +170,8 @@ class _AuthSession:
         while 1:
             password = self.prompt_password()
             reenter_password = self.prompt_password(
-                "(re-enter password) $ ", newline_breaks=False
+                message="(re-enter password) $ ",
+                newline_breaks=False,
             )
             if reenter_password == password:
                 return sha256(password.encode()), urandom(32)
@@ -209,15 +214,19 @@ class _AuthSession:
                     rprint(markup.br("Invalid json."))
                     continue
                 else:
-                    if (
-                        "client_email" not in key.keys()
-                        or "token_uri" not in key.keys()
-                    ):
+                    if "client_email" not in key.keys():
                         rprint(
                             Text.assemble(
                                 "Invalid service-account json. Missing required key ",
-                                markup.code("client_email"), " or ",
-                                markup.code("token_uri"), ".\n",  # fmt: skip
+                                markup.code("client_email"),
+                            )
+                        )
+                        continue
+                    if "token_uri" not in key.keys():
+                        rprint(
+                            Text.assemble(
+                                "Invalid service-account json. Missing required key ",
+                                markup.code("token_uri"),
                             )
                         )
                         continue
@@ -227,71 +236,3 @@ class _AuthSession:
             sys.exit(2)
 
         return service_account_key
-
-    def _update_user_credentials(
-        self,
-        password: str | sha3_256 | None = None,
-        salt: bytes | None = None,
-        stay_logged_in: bool | None = None,
-    ) -> None:
-        with AppConfig().rw() as config:
-            if password:
-                if isinstance(password, str):
-                    config["user"].update(
-                        password=sha256(password.encode()).hexdigest(),
-                    )
-
-                elif isinstance(password, _Hash):
-                    config["user"].update(
-                        password=password.hexdigest(),
-                    )
-
-            if password == "null":
-                config["user"].update(password="")
-            if salt:
-                config["user"].update(salt=salt)
-            if stay_logged_in is not None:
-                config["user"].update(stay_logged_in=stay_logged_in)
-
-    @staticmethod
-    def load_bytes(payload: bytes) -> bytes:
-        return t.cast(bytes, loads(payload.decode()))
-
-    def stay_logged_in(self, value: bool) -> None:
-        from lightlike.app.client import service_account_key_flow
-
-        if value is True:
-            stay_logged_in = AppConfig().get("user", "stay_logged_in")
-
-            if not stay_logged_in:
-                rprint("Enter current password.")
-                current = self.prompt_password()
-                encrypted_key, salt = service_account_key_flow()
-
-                try:
-                    self.authenticate(
-                        salt=salt,
-                        encrypted_key=encrypted_key,
-                        password=current,
-                        retry=False,
-                    )
-                    self._update_user_credentials(
-                        password=current, stay_logged_in=value
-                    )
-                    rprint("Set", markup.scope_key("stay_logged_in"), "to", value)
-                except UnboundLocalError:
-                    ...
-
-            else:
-                rprint(
-                    markup.dimmed(f"`stay_logged_in` is already set to `{value}`,"),
-                    markup.dimmed("nothing happened."),
-                )
-
-        elif value is False:
-            if not AppConfig().get("user", "stay_logged_in"):
-                rprint(markup.dimmed("Setting is already off."))
-
-            else:
-                self._update_user_credentials(password="null", stay_logged_in=False)
-                rprint("Set", markup.scope_key("stay_logged_in"), "to", False)

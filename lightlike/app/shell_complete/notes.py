@@ -1,6 +1,7 @@
 import typing as t
 from pathlib import Path
 
+import click
 import rtoml
 from click.shell_completion import CompletionItem
 from more_itertools import first
@@ -12,7 +13,6 @@ from lightlike.internal import appdir
 from lightlike.internal.utils import _alter_str, _match_str
 
 if t.TYPE_CHECKING:
-    import rich_click as click
     from prompt_toolkit.completion import CompleteEvent
     from prompt_toolkit.document import Document
 
@@ -61,7 +61,7 @@ class Notes(Completer):
 
 
 def from_param(
-    ctx: "click.RichContext", param: "click.Parameter", incomplete: str
+    ctx: click.Context, param: click.Parameter, incomplete: str
 ) -> list[CompletionItem]:
     completer = Notes()
     completions: list[CompletionItem] = []
@@ -122,7 +122,7 @@ def from_param(
 
 
 def from_cache(
-    ctx: "click.RichContext", param: "click.Parameter", incomplete: str
+    ctx: click.Context, param: click.Parameter, incomplete: str
 ) -> list[CompletionItem]:
     completer = Notes()
     completions: list[CompletionItem] = []
@@ -147,7 +147,7 @@ def from_cache(
 
 
 def from_chained_cmd(
-    ctx: "click.RichContext", param: "click.Parameter", incomplete: str
+    ctx: click.Context, param: click.Parameter, incomplete: str
 ) -> list[CompletionItem]:
     document = get_app().current_buffer.document
     completions = []

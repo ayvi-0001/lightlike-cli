@@ -6,7 +6,7 @@ from inspect import classify_class_attrs, cleandoc
 from os import getenv
 from time import perf_counter_ns, sleep, time
 
-import rich_click as click
+import click
 from google.cloud.bigquery import QueryJob, QueryJobConfig
 from google.cloud.bigquery.query import (
     ArrayQueryParameter,

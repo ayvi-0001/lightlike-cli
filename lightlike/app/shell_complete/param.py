@@ -1,7 +1,7 @@
 import ast
 import typing as t
 
-import rich_click as click
+import click
 from click.shell_completion import CompletionItem
 
 from lightlike.internal import utils
@@ -18,7 +18,7 @@ class Param:
 
     def bool(
         self,
-        ctx: click.RichContext,
+        ctx: click.Context,
         param: click.Parameter,
         incomplete: str,
     ) -> t.Sequence[CompletionItem]:
@@ -40,7 +40,7 @@ class Param:
 
     def string(
         self,
-        ctx: click.RichContext,
+        ctx: click.Context,
         param: click.Parameter,
         incomplete: str,
     ) -> t.Sequence[str | None]:

@@ -15,7 +15,7 @@ from rich.style import Style
 from rich.theme import Theme
 
 from lightlike.__about__ import __appdir__, __config__
-from lightlike.internal import appdir, enums, toml
+from lightlike.internal import appdir, constant, enums
 
 __all__: t.Sequence[str] = (
     "QUIET_START",
@@ -25,7 +25,6 @@ __all__: t.Sequence[str] = (
     "ACTIVE_COMPLETERS",
     "global_completers",
     "reconfigure_completer",
-    "_CONSOLE_SVG_FORMAT",
 )
 
 
@@ -64,7 +63,7 @@ class ConsoleConfig:
         self.theme = Theme(**self.config["theme"])
 
 
-CONSOLE_CONFIG = ConsoleConfig(rtoml.loads(toml.CONSOLE))
+CONSOLE_CONFIG = ConsoleConfig(rtoml.loads(constant.CONSOLE))
 
 GROUP_FIRST_COMMANDS = r"(?P<command>((app|bq|project|summary|timer))):\w+"
 GROUP_MID_COMMANDS = (
@@ -153,55 +152,3 @@ def reconfigure_completer(
         active_completers.pop(active_completers.index(NEW_COMPLETER))
 
     ACTIVE_COMPLETERS = active_completers
-
-
-_CONSOLE_SVG_FORMAT = """\
-<svg class="rich-terminal" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">
-    <style>
-
-    @font-face {{
-        font-family: "Fira Code";
-        src: local("FiraCode-Regular"),
-                url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff2/FiraCode-Regular.woff2") format("woff2"),
-                url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff/FiraCode-Regular.woff") format("woff");
-        font-style: normal;
-        font-weight: 400;
-    }}
-    @font-face {{
-        font-family: "Fira Code";
-        src: local("FiraCode-Bold"),
-                url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff2/FiraCode-Bold.woff2") format("woff2"),
-                url("https://cdnjs.cloudflare.com/ajax/libs/firacode/6.2.0/woff/FiraCode-Bold.woff") format("woff");
-        font-style: bold;
-        font-weight: 700;
-    }}
-
-    .{unique_id}-matrix {{
-        font-family: Fira Code, monospace;
-        font-size: {char_height}px;
-        line-height: {line_height}px;
-        font-variant-east-asian: full-width;
-    }}
-
-    .{unique_id}-title {{
-        font-size: 18px;
-        font-weight: bold;
-        font-family: arial;
-    }}
-
-    {styles}
-    </style>
-
-    <defs>
-    <clipPath id="{unique_id}-clip-terminal">
-    <rect x="0" y="0" width="{terminal_width}" height="{terminal_height}" />
-    </clipPath>
-    {lines}
-    </defs>
-    
-    {backgrounds}
-    <g class="{unique_id}-matrix">
-    {matrix}
-    </g>
-</svg>
-"""

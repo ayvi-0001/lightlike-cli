@@ -13,9 +13,9 @@ from rich.padding import Padding
 from rich.panel import Panel
 from rich.progress import Progress, TaskID
 
+from lightlike.app import _questionary
 from lightlike.internal import markup
 from lightlike.internal.utils import _regexp_replace
-from lightlike.lib.third_party import _questionary
 
 __all__: t.Sequence[str] = ("run", "SCRIPTS")
 

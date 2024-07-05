@@ -1,13 +1,13 @@
 import typing as t
 
-import rich_click as click
+import click
 
-from lightlike.app.core import LazyAliasedRichGroup
+from lightlike.app.core import LazyAliasedGroup
 
 
 @click.group(
     name="project",
-    cls=LazyAliasedRichGroup,
+    cls=LazyAliasedGroup,
     lazy_subcommands={
         "archive": "lightlike.cmd.project.commands.archive",
         "create": "lightlike.cmd.project.commands.create",

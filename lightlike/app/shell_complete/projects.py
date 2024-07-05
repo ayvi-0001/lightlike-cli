@@ -1,6 +1,7 @@
 import typing as t
 from pathlib import Path
 
+import click
 import rtoml
 from click.shell_completion import CompletionItem
 from prompt_toolkit.completion import Completer, Completion
@@ -9,7 +10,6 @@ from lightlike.internal import appdir
 from lightlike.internal.utils import _match_str, _print_message_and_clear_buffer
 
 if t.TYPE_CHECKING:
-    import rich_click as click
     from prompt_toolkit.completion import CompleteEvent
     from prompt_toolkit.document import Document
 
@@ -101,8 +101,8 @@ def _matches_name_or_help(incomplete: str, item: CompletionItem) -> bool:
 
 def _item_not_in_parent_args(
     item: CompletionItem,
-    ctx: "click.RichContext",
-    param: "click.Parameter",
+    ctx: click.Context,
+    param: click.Parameter,
     exclude_default: bool = False,
 ) -> bool:
     assert ctx.parent
@@ -124,9 +124,7 @@ def _sorted_by_created(completions: list[CompletionItem]) -> list[CompletionItem
 
 
 def from_argument(
-    ctx: "click.RichContext",
-    param: "click.Parameter",
-    incomplete: str,
+    ctx: click.Context, param: click.Parameter, incomplete: str
 ) -> list[CompletionItem]:
     assert param.param_type_name == "argument"
     assert ctx.parent
@@ -170,9 +168,7 @@ def from_argument(
 
 
 def from_option(
-    ctx: "click.RichContext",
-    param: "click.Parameter",
-    incomplete: str,
+    ctx: click.Context, param: click.Parameter, incomplete: str
 ) -> list[CompletionItem]:
     assert param.param_type_name == "option"
 
@@ -205,8 +201,8 @@ def from_option(
 
 
 def from_chained_cmd(
-    ctx: "click.RichContext",
-    param: "click.Parameter",
+    ctx: click.Context,
+    param: click.Parameter,
     incomplete: str,
 ) -> list[CompletionItem]:
     def _match(item: CompletionItem) -> CompletionItem | None:

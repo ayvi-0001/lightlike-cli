@@ -1,9 +1,9 @@
 import typing as t
 from os import getenv
 
-import rich_click as click
+import click
 
-from lightlike.app.core import LazyAliasedRichGroup
+from lightlike.app.core import LazyAliasedGroup
 
 lazy_subcommands: dict[str, str] = {
     "config": "lightlike.cmd.app.commands.config",
@@ -20,7 +20,7 @@ if getenv("LIGHTLIKE_CLI_DEV"):
 
 @click.group(
     name="app",
-    cls=LazyAliasedRichGroup,
+    cls=LazyAliasedGroup,
     lazy_subcommands=lazy_subcommands,
     short_help="Cli internal settings & commands.",
 )

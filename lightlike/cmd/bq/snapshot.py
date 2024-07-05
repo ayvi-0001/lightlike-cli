@@ -1,15 +1,15 @@
 import typing as t
 
-import rich_click as click
+import click
 from click.exceptions import Exit as ClickExit
+from pytz import timezone
 from rich import print as rprint
 from rich.table import Table
 
-from lightlike.app import _get, _pass, dates, render, validate
+from lightlike.app import _get, _pass, _questionary, dates, render, validate
 from lightlike.app.config import AppConfig
-from lightlike.app.core import FmtRichCommand
+from lightlike.app.core import FormattedCommand
 from lightlike.internal import markup, utils
-from lightlike.lib.third_party import _questionary
 
 if t.TYPE_CHECKING:
     from datetime import datetime
@@ -23,7 +23,7 @@ __all__: t.Sequence[str] = ("snapshots",)
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="create",
     no_args_is_help=True,
     short_help="Create a snapshot.",
@@ -43,7 +43,7 @@ __all__: t.Sequence[str] = ("snapshots",)
     callback=None,
     metavar=None,
     shell_complete=lambda c, p, i: [
-        f"timesheet_{dates.now(AppConfig().tz).strftime('%Y-%m-%dT%H_%M_%S')}"
+        f"timesheet_{dates.now(timezone(AppConfig().get('settings', 'timezone'))).strftime('%Y-%m-%dT%H_%M_%S')}"
     ],
 )
 @click.option(
@@ -73,7 +73,7 @@ def create(
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="restore",
     short_help="Replace timesheet table with a snapshot.",
 )
@@ -121,7 +121,7 @@ def restore(client: "Client", console: "Console", routine: "CliQueryRoutines") -
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="list",
     short_help="List current snapshots.",
 )
@@ -141,7 +141,7 @@ def list_(console: "Console", routine: "CliQueryRoutines") -> None:
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="delete",
     short_help="Drop a snapshot.",
 )

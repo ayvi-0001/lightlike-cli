@@ -11,11 +11,12 @@ from operator import truth, xor
 from pathlib import Path
 from threading import Lock
 
-import rich_click as click
+import click
 import rtoml
 from fasteners import ReaderWriterLock
 from more_itertools import first, locate, map_except, one, unique_everseen
 from prompt_toolkit.patch_stdout import patch_stdout
+from pytz import timezone
 from rich import box, get_console
 from rich.markup import escape
 from rich.measure import Measurement
@@ -57,7 +58,7 @@ class TimeEntryCache:
     def __rich_console__(
         self, console: "Console", options: "ConsoleOptions"
     ) -> "RenderResult":
-        now: datetime = dates.now(AppConfig().tz)
+        now: datetime = dates.now(timezone(AppConfig().get("settings", "timezone")))
 
         fields = [
             "id",
@@ -366,7 +367,10 @@ class TimeEntryCache:
         for row in list(running_entries_to_cache):
             entry = dict(
                 id=row.id,
-                start=dates.astimezone(row.timestamp_start, AppConfig().tz),
+                start=dates.astimezone(
+                    row.timestamp_start,
+                    timezone(AppConfig().get("settings", "timezone")),
+                ),
                 timestamp_paused="null",
                 project=row.project,
                 note=row.note,
@@ -386,9 +390,13 @@ class TimeEntryCache:
             paused_entries.append(
                 dict(
                     id=row.id,
-                    start=dates.astimezone(row.timestamp_start, AppConfig().tz),
+                    start=dates.astimezone(
+                        row.timestamp_start,
+                        timezone(AppConfig().get("settings", "timezone")),
+                    ),
                     timestamp_paused=dates.astimezone(
-                        row.timestamp_paused, AppConfig().tz
+                        row.timestamp_paused,
+                        timezone(AppConfig().get("settings", "timezone")),
                     ),
                     project=row.project,
                     note=row.note,
@@ -481,7 +489,9 @@ class TimeEntryCache:
     @property
     def start(self) -> datetime:
         start = t.cast(datetime, self._ifnull(self.active["start"]))
-        start = dates.astimezone(start, AppConfig().tz)
+        start = dates.astimezone(
+            start, timezone(AppConfig().get("settings", "timezone"))
+        )
         with self.rw() as cache:
             cache.start = start
         return start
@@ -511,7 +521,9 @@ class TimeEntryCache:
         timestamp_paused = t.cast(
             datetime, self._ifnull(self.active["timestamp_paused"])
         )
-        timestamp_paused = dates.astimezone(timestamp_paused, AppConfig().tz)
+        timestamp_paused = dates.astimezone(
+            timestamp_paused, timezone(AppConfig().get("settings", "timezone"))
+        )
         with self.rw() as cache:
             cache.timestamp_paused = timestamp_paused
         return timestamp_paused
@@ -676,6 +688,17 @@ class TimeEntryIdList(metaclass=_Singleton):
 
     def add(self, input_id: str, debug: bool = False) -> None:
         self.ids.extend([input_id])
+        debug and patch_stdout(raw=True)(get_console().log)(
+            "[DEBUG]", f"Added id {input_id} to id list."
+        )
+
+    def remove(self, input_ids: list[str], debug: bool = False) -> None:
+        for input_id in input_ids:
+            idx: int = self.ids.index(input_id)
+            self.ids.pop(idx)
+            debug and patch_stdout(raw=True)(get_console().log)(
+                f"Removed id {input_id} at index {idx} from id list."
+            )
 
 
 class TimeEntryAppData:

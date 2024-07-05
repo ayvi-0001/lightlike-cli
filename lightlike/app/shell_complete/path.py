@@ -3,14 +3,16 @@ import typing as t
 from contextlib import suppress
 from pathlib import Path
 
+import click
 from click.shell_completion import CompletionItem
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.formatted_text import FormattedText
 
+from lightlike._console import global_completers
+from lightlike.internal.enums import ActiveCompleter
 from lightlike.internal.utils import _alter_str
 
 if t.TYPE_CHECKING:
-    import rich_click as click
     from prompt_toolkit.completion import CompleteEvent
     from prompt_toolkit.document import Document
 
@@ -92,17 +94,19 @@ def _path_str_contents(path: Path) -> FormattedText:
 
 
 def path(
-    ctx: "click.RichContext", param: "click.Parameter", incomplete: str
+    ctx: click.Context, param: click.Parameter, incomplete: str
 ) -> list[CompletionItem] | None:
+    completions: list[CompletionItem] = []
     if not ctx.resilient_parsing:
         return None
+
+    if ActiveCompleter.PATH in global_completers():
+        return completions
 
     if isinstance(ctx.obj, dict):
         dir_only = ctx.obj.get("dir_only", False)
     else:
         dir_only = False
-
-    completions = []
     for path in _yield_paths(_alter_str(incomplete, strip_quotes=True), dir_only):
         value = path.expanduser().as_posix()
         if " " in value:

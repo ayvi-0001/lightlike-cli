@@ -7,6 +7,7 @@ from pathlib import Path
 
 from google.auth.exceptions import DefaultCredentialsError
 from google.cloud.bigquery import Client
+from pytz import timezone
 from rich import get_console
 from rich import print as rprint
 from rich.markup import escape
@@ -15,15 +16,13 @@ from rich.panel import Panel
 from rich.text import Text
 
 from lightlike import _console
-from lightlike.app.auth import _AuthSession
+from lightlike.app import _questionary
+from lightlike.app.auth import AuthPromptSession, _Auth
 from lightlike.app.config import AppConfig
 from lightlike.internal import markup, utils
 from lightlike.internal.enums import CredentialsSource
-from lightlike.lib.third_party import _questionary
 
 if t.TYPE_CHECKING:
-    from hashlib import _Hash
-
     from google.cloud.bigquery.client import Project
 
 
@@ -114,7 +113,7 @@ def authorize_client() -> Client:
         else:
             rprint(markup.failure(f"Auth failed: {error}"))
             if credentials_source == CredentialsSource.from_service_account_key:
-                _AuthSession()._update_user_credentials(
+                AppConfig()._update_user_credentials(
                     password="null", stay_logged_in=False
                 )
 
@@ -179,7 +178,7 @@ def service_account_key_flow() -> tuple[bytes, bytes]:
     if not (encrypted_key and salt):
         global_console_log("Initializing new service-account config")
 
-        auth: _AuthSession = _AuthSession()
+        auth: _Auth = _Auth()
 
         panel: Panel = Panel.fit(
             Text.assemble(
@@ -193,20 +192,20 @@ def service_account_key_flow() -> tuple[bytes, bytes]:
         )
         rprint(Padding(panel, (1, 0, 0, 1)))
 
-        hashed_password, salt = auth.prompt_new_password()
+        hashed_password, salt = AuthPromptSession().prompt_new_password()
         key_derivation: bytes = auth._generate_key(hashed_password.hexdigest(), salt)
 
         utils._nl()
         if _questionary.confirm(message="Stay logged in?"):
-            auth._update_user_credentials(
+            AppConfig()._update_user_credentials(
                 password=hashed_password,
                 stay_logged_in=True,
             )
 
-        service_account: str = auth.prompt_service_account_key()
+        service_account: str = AuthPromptSession().prompt_service_account_key()
         encrypted_key = auth.encrypt(key_derivation, service_account)
 
-        auth._update_user_credentials(salt=salt)
+        AppConfig()._update_user_credentials(salt=salt)
         with AppConfig().rw() as config:
             config["client"].update(service_account_key=encrypted_key)
 
@@ -222,7 +221,7 @@ def _authorize_from_service_account_key() -> Client:
     encrypted_key, salt = service_account_key_flow()
 
     client: Client = Client.from_service_account_info(  # type:ignore[no-untyped-call]
-        _AuthSession().authenticate(salt=salt, encrypted_key=encrypted_key)
+        AuthPromptSession().authenticate(salt=salt, encrypted_key=encrypted_key)
     )
 
     with AppConfig().rw() as config:
@@ -343,7 +342,7 @@ def provision_bigquery_resources(
         "${DATASET.NAME}": mapping["dataset"],
         "${TABLES.TIMESHEET}": mapping["timesheet"],
         "${TABLES.PROJECTS}": mapping["projects"],
-        "${TIMEZONE}": f"{AppConfig().tz}",
+        "${TIMEZONE}": f"{timezone(AppConfig().get('settings', 'timezone'))}",
     }
 
     if force:
@@ -413,7 +412,7 @@ def update_routine_diff(client: Client) -> None:
                     "${DATASET.NAME}": mapping["dataset"],
                     "${TABLES.TIMESHEET}": mapping["timesheet"],
                     "${TABLES.PROJECTS}": mapping["projects"],
-                    "${TIMEZONE}": f"{AppConfig().tz}",
+                    "${TIMEZONE}": f"{timezone(AppConfig().get('settings', 'timezone'))}",
                 }
                 console.log("Creating missing procedures")
 

@@ -1,12 +1,12 @@
 import typing as t
 from inspect import cleandoc
 
-import rich_click as click
+import click
 from click.exceptions import Exit as ClickExit
 from rich import print as rprint
 from rich.table import Table
 
-from lightlike.app import _pass, render
+from lightlike.app import _pass, _questionary, render
 from lightlike.app.client import (
     _select_credential_source,
     _select_project,
@@ -14,10 +14,9 @@ from lightlike.app.client import (
     reconfigure,
 )
 from lightlike.app.config import AppConfig
-from lightlike.app.core import AliasedRichGroup, FmtRichCommand, LazyAliasedRichGroup
+from lightlike.app.core import AliasedGroup, FormattedCommand, LazyAliasedGroup
 from lightlike.internal import markup, utils
 from lightlike.internal.enums import ClientInitOptions, CredentialsSource
-from lightlike.lib.third_party import _questionary
 
 if t.TYPE_CHECKING:
     from google.cloud.bigquery.client import Project
@@ -35,7 +34,7 @@ __all__: t.Sequence[str] = (
 
 @click.group(
     name="snapshot",
-    cls=LazyAliasedRichGroup,
+    cls=LazyAliasedGroup,
     lazy_subcommands={
         "create": "lightlike.cmd.bq.snapshot.create",
         "delete": "lightlike.cmd.bq.snapshot.delete",
@@ -50,7 +49,7 @@ def snapshot(debug: bool) -> None:
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="query",
     short_help="Start an interactive BQ shell.",
 )
@@ -63,7 +62,7 @@ def query(console: "Console") -> None:
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="init",
     short_help="Change active project or credentials source.",
 )
@@ -134,7 +133,7 @@ def init(console: "Console") -> None:
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="show",
     short_help="Show the current credentials object.",
 )
@@ -164,7 +163,7 @@ def show(console: "Console") -> None:
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="projects",
     short_help="List available projects.",
 )
@@ -185,7 +184,7 @@ def projects(console: "Console") -> None:
 
 
 @click.group(
-    cls=AliasedRichGroup,
+    cls=AliasedGroup,
     name="reset",
     invoke_without_command=True,
     subcommand_metavar="",
@@ -196,7 +195,7 @@ def projects(console: "Console") -> None:
 )
 @_pass.console
 @click.pass_context
-def reset(ctx: click.RichContext, console: "Console") -> bool:
+def reset(ctx: click.Context, console: "Console") -> bool:
     """Reset auth and all client settings."""
     if ctx.invoked_subcommand is None:
         console.print(
