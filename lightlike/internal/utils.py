@@ -11,8 +11,8 @@ from pathlib import Path
 from time import perf_counter_ns
 from types import FunctionType
 
+import click
 import rtoml
-from click.exceptions import Exit as ClickExit
 from prompt_toolkit.application import get_app, in_terminal
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import get_console
@@ -53,7 +53,7 @@ class exit_cmd_on_interrupt(ContextDecorator):
         try:
             return self
         except (KeyboardInterrupt, EOFError):
-            raise ClickExit
+            raise click.exceptions.Exit
 
     def __exit__(self, *exc: t.Any) -> None: ...
 
