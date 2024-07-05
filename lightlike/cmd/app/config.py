@@ -3,9 +3,9 @@
 import typing as t
 from dataclasses import dataclass
 
-import rich_click as click
+import click
 from more_itertools import nth, one
-from pytz import all_timezones
+from pytz import all_timezones, timezone
 from rich import print as rprint
 from rich.console import Console
 from rich.syntax import Syntax
@@ -14,7 +14,7 @@ from lightlike.__about__ import __appdir__, __config__
 from lightlike.app import _pass, shell_complete, threads, validate
 from lightlike.app.cache import TimeEntryAppData
 from lightlike.app.config import AppConfig
-from lightlike.app.core import AliasedRichGroup, FmtRichCommand
+from lightlike.app.core import AliasedGroup, FormattedCommand
 from lightlike.internal import markup, utils
 from lightlike.internal.enums import CredentialsSource
 
@@ -25,7 +25,7 @@ P = t.ParamSpec("P")
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="open",
     short_help="Open config using the default text editor.",
     syntax=Syntax(
@@ -54,7 +54,7 @@ def open_(console: Console) -> None:
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="show",
     short_help="Show config values.",
     syntax=Syntax(
@@ -85,7 +85,7 @@ def show(console: Console) -> None:
 
 
 @click.group(
-    cls=AliasedRichGroup,
+    cls=AliasedGroup,
     name="set",
     short_help="Set config values.",
 )
@@ -97,7 +97,7 @@ def set_() -> None:
 
 
 @set_.group(
-    cls=AliasedRichGroup,
+    cls=AliasedGroup,
     name="general",
     chain=True,
     short_help="General cli settings.",
@@ -107,7 +107,7 @@ def update_general_settings() -> None:
 
 
 @set_.group(
-    cls=AliasedRichGroup,
+    cls=AliasedGroup,
     name="query",
     chain=True,
     short_help="bq:query settings.",
@@ -120,7 +120,7 @@ def update_query_settings() -> None:
 class SettingsCommand:
     name: str
     config_keys: list[str]
-    argument: t.Callable[[click.RichCommand], click.RichCommand]
+    argument: t.Callable[[click.Command], click.Command]
     help: t.Callable[..., str] | str | None = None
     short_help: t.Callable[..., str] | str | None = None
     callback_fn: t.Callable[..., t.Any] | None = None
@@ -141,9 +141,9 @@ value_arg = click.argument(
 
 def create_settings_fn(
     cmd: SettingsCommand, config_keys: t.Sequence[str]
-) -> click.RichCommand:
+) -> click.Command:
     @click.command(
-        cls=FmtRichCommand,
+        cls=FormattedCommand,
         name=cmd.name,
         no_args_is_help=cmd.no_args_is_help,
         help=cmd.help or cmd.short_help,
@@ -157,7 +157,7 @@ def create_settings_fn(
     @_pass.console
     @click.pass_context
     def __cmd(
-        ctx: click.RichContext,
+        ctx: click.Context,
         /,
         console: Console,
         *args: P.args,
@@ -263,9 +263,10 @@ def timezone_setting_callback(_locals: dict[str, t.Any]) -> None:
     import lightlike.app.cursor
 
     tz = timezone(_locals["kwargs"].get("timezone"))
-
     lightlike.app.cursor.TIMEZONE = tz
-    AppConfig().tz = tz
+
+    with AppConfig().rw() as config:
+        config["settings"].update(timezone=tz)
 
     rprint(
         "[b]You will also need to run app:run-bq to",
@@ -278,7 +279,7 @@ timezone = SettingsCommand(
     argument=click.argument(
         "timezone",
         type=click.STRING,
-        callback=validate.callbacks.timezone,
+        callback=validate.callbacks._timezone,
         shell_complete=lambda c, p, i: [t for t in all_timezones if i in t.lower()],
     ),
     help="""
@@ -346,15 +347,18 @@ editor = SettingsCommand(
 )
 
 
-for cmd in [
-    note_history,
-    timezone,
-    editor,
-    week_start,
-    quiet_start,
-    timer_add_min,
-    system_command_shell,
-]:
+for cmd in t.cast(
+    list[SettingsCommand],
+    [
+        note_history,
+        timezone,
+        editor,
+        week_start,
+        quiet_start,
+        timer_add_min,
+        system_command_shell,
+    ],
+):
     __cmd = create_settings_fn(cmd=cmd, config_keys=cmd.config_keys)
     update_general_settings.add_command(__cmd)
 
@@ -467,7 +471,7 @@ if (
 ):
 
     @update_general_settings.command(
-        cls=FmtRichCommand,
+        cls=FormattedCommand,
         name="stay_logged_in",
         no_args_is_help=True,
         help="""
@@ -490,6 +494,43 @@ if (
     )
     @value_arg
     def stay_logged_in(value: bool) -> None:
-        from lightlike.app.auth import _AuthSession
+        from lightlike.app.auth import AuthPromptSession
+        from lightlike.app.client import service_account_key_flow
 
-        _AuthSession().stay_logged_in(value)
+        if value is True:
+            stay_logged_in = AppConfig().get("user", "stay_logged_in")
+
+            if not stay_logged_in:
+                rprint("Enter current password.")
+                current = AuthPromptSession().prompt_password()
+                encrypted_key, salt = service_account_key_flow()
+
+                try:
+                    AuthPromptSession().authenticate(
+                        salt=salt,
+                        encrypted_key=encrypted_key,
+                        password=current,
+                        retry=False,
+                    )
+                    AppConfig()._update_user_credentials(
+                        password=current, stay_logged_in=value
+                    )
+                    rprint("Set", markup.scope_key("stay_logged_in"), "to", value)
+                except UnboundLocalError:
+                    ...
+
+            else:
+                rprint(
+                    markup.dimmed(f"`stay_logged_in` is already set to `{value}`,"),
+                    markup.dimmed("nothing happened."),
+                )
+
+        elif value is False:
+            if not AppConfig().get("user", "stay_logged_in"):
+                rprint(markup.dimmed("Setting is already off."))
+
+            else:
+                AppConfig()._update_user_credentials(
+                    password="null", stay_logged_in=False
+                )
+                rprint("Set", markup.scope_key("stay_logged_in"), "to", False)

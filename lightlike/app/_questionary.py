@@ -30,9 +30,9 @@ from lightlike.__about__ import __config__
 if not __config__.exists():
     import rtoml
 
-    from lightlike.internal import toml
+    from lightlike.internal import constant
 
-    PROMPT_CONFIG = rtoml.load(toml.PROMPT)
+    PROMPT_CONFIG = rtoml.load(constant.PROMPT)
 else:
     from lightlike.app.config import AppConfig
 
@@ -45,17 +45,17 @@ else:
 def checkbox(
     message: str,
     choices: t.Sequence[t.Union[str, Choice, dict[str, t.Any]]],
-    default: t.Optional[str] = None,
+    default: str | None = None,
     validate: t.Callable[[list[str]], t.Union[bool, str]] = lambda a: True,
     qmark: str = "?",
-    pointer: t.Optional[str] = "▸",
-    style: t.Optional[Style] = Style.from_dict(PROMPT_CONFIG["style"]),
+    pointer: str = "▸",
+    style: Style | None = Style.from_dict(PROMPT_CONFIG["style"]),
     cursor: CursorShape = getattr(CursorShape, PROMPT_CONFIG["cursor-shape"]),
-    initial_choice: t.Optional[t.Union[str, Choice, dict[str, t.Any]]] = None,
+    initial_choice: str | Choice | dict[str, t.Any] | None = None,
     use_arrow_keys: bool = True,
     use_jk_keys: bool = True,
     use_emacs_keys: bool = True,
-    instruction: t.Optional[str] = None,
+    instruction: str | None = None,
     **kwargs: t.Any,
 ) -> t.Any:
     question: Question = _checkbox(
@@ -82,13 +82,13 @@ def autocomplete(
     choices: list[str],
     default: str = "",
     qmark: str = "?",
-    completer: t.Optional[Completer] = None,
-    meta_information: t.Optional[dict[str, t.Any]] = None,
+    completer: Completer | None = None,
+    meta_information: dict[str, t.Any] | None = None,
     ignore_case: bool = True,
     match_middle: bool = True,
     complete_style: CompleteStyle = CompleteStyle.COLUMN,
     validate: t.Any = None,
-    style: t.Optional[Style] = Style.from_dict(PROMPT_CONFIG["style"]),
+    style: Style | None = Style.from_dict(PROMPT_CONFIG["style"]),
     cursor: CursorShape = getattr(CursorShape, PROMPT_CONFIG["cursor-shape"]),
     **kwargs: t.Any,
 ) -> t.Any:
@@ -114,10 +114,10 @@ def confirm(
     message: str,
     default: bool = True,
     qmark: str = "?",
-    style: t.Optional[Style] = Style.from_dict(PROMPT_CONFIG["style"]),
+    style: Style | None = Style.from_dict(PROMPT_CONFIG["style"]),
     cursor: CursorShape = getattr(CursorShape, PROMPT_CONFIG["cursor-shape"]),
     auto_enter: bool = True,
-    instruction: t.Optional[str] = None,
+    instruction: str | None = None,
     **kwargs: t.Any,
 ) -> t.Any:
     question: Question = _confirm(
@@ -134,8 +134,8 @@ def confirm(
 
 
 def press_any_key_to_continue(
-    message: t.Optional[str] = None,
-    style: t.Optional[Style] = Style.from_dict(PROMPT_CONFIG["style"]),
+    message: str | None = None,
+    style: Style | None = Style.from_dict(PROMPT_CONFIG["style"]),
     cursor: CursorShape = getattr(CursorShape, PROMPT_CONFIG["cursor-shape"]),
     **kwargs: t.Any,
 ) -> t.Any:
@@ -151,10 +151,10 @@ def press_any_key_to_continue(
 def select(
     message: str,
     choices: t.Sequence[t.Union[str, Choice, dict[str, t.Any]]],
-    default: t.Optional[t.Union[str, Choice, dict[str, t.Any]]] = None,
+    default: str | Choice | dict[str, t.Any] | None = None,
     qmark: str = "?",
-    pointer: t.Optional[str] = "▸",
-    style: t.Optional[Style] = Style.from_dict(PROMPT_CONFIG["style"]),
+    pointer: str = "▸",
+    style: Style | None = Style.from_dict(PROMPT_CONFIG["style"]),
     cursor: CursorShape = getattr(CursorShape, PROMPT_CONFIG["cursor-shape"]),
     use_shortcuts: bool = False,
     use_arrow_keys: bool = True,
@@ -162,7 +162,7 @@ def select(
     use_jk_keys: bool = True,
     use_emacs_keys: bool = True,
     show_selected: bool = False,
-    instruction: t.Optional[str] = None,
+    instruction: str | None = None,
     **kwargs: t.Any,
 ) -> t.Any:
     question: Question = _select(
@@ -190,11 +190,11 @@ def text(
     default: str = "",
     validate: t.Any = None,
     qmark: str = "?",
-    style: t.Optional[Style] = Style.from_dict(PROMPT_CONFIG["style"]),
+    style: Style | None = Style.from_dict(PROMPT_CONFIG["style"]),
     cursor: CursorShape = getattr(CursorShape, PROMPT_CONFIG["cursor-shape"]),
     multiline: bool = False,
-    instruction: t.Optional[str] = None,
-    lexer: t.Optional[Lexer] = None,
+    instruction: str | None = None,
+    lexer: Lexer | None = None,
     **kwargs: t.Any,
 ) -> t.Any:
     question: Question = _text(

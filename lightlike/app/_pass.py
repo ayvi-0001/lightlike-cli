@@ -2,10 +2,10 @@ import typing as t
 from functools import wraps
 from types import FunctionType
 
-import rich_click as click
+import click
+from pytz import timezone
 from rich import get_console
 from rich import print as rprint
-from rich_click import make_pass_decorator
 
 from lightlike.app.cache import TimeEntryAppData, TimeEntryCache, TimeEntryIdList
 from lightlike.app.client import get_client
@@ -31,11 +31,11 @@ AnyCallable: t.TypeAlias = t.Callable[..., t.Any]
 
 P = t.ParamSpec("P")
 
-routine: AnyCallable = make_pass_decorator(CliQueryRoutines, ensure=True)
-config: AnyCallable = make_pass_decorator(AppConfig, ensure=False)
-cache: AnyCallable = make_pass_decorator(TimeEntryCache, ensure=True)
-appdata: AnyCallable = make_pass_decorator(TimeEntryAppData, ensure=True)
-id_list: AnyCallable = make_pass_decorator(TimeEntryIdList, ensure=True)
+routine: AnyCallable = click.make_pass_decorator(CliQueryRoutines, ensure=True)
+config: AnyCallable = click.make_pass_decorator(AppConfig, ensure=False)
+cache: AnyCallable = click.make_pass_decorator(TimeEntryCache, ensure=True)
+appdata: AnyCallable = click.make_pass_decorator(TimeEntryAppData, ensure=True)
+id_list: AnyCallable = click.make_pass_decorator(TimeEntryIdList, ensure=True)
 
 
 def client(fn: AnyCallable) -> AnyCallable:
@@ -57,7 +57,11 @@ def console(fn: AnyCallable) -> AnyCallable:
 def now(fn: AnyCallable) -> AnyCallable:
     @wraps(fn)
     def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
-        return fn(datetime_now(AppConfig().tz), *args, **kwargs)
+        return fn(
+            datetime_now(timezone(AppConfig().get("settings", "timezone"))),
+            *args,
+            **kwargs,
+        )
 
     return inner
 

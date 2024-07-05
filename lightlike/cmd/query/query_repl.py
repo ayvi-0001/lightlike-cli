@@ -4,7 +4,7 @@ import typing as t
 from datetime import datetime
 from os import getenv
 
-import rich_click as click
+import click
 from prompt_toolkit.lexers import PygmentsLexer
 from prompt_toolkit.shortcuts import CompleteStyle, PromptSession
 from rich import box, get_console
@@ -14,7 +14,7 @@ from rich.padding import Padding
 from rich.syntax import Syntax
 from rich.table import Table
 
-from lightlike._console import _CONSOLE_SVG_FORMAT, CONSOLE_CONFIG
+from lightlike._console import CONSOLE_CONFIG
 from lightlike.app import _pass, cursor, render
 from lightlike.app.config import AppConfig
 from lightlike.app.routines import CliQueryRoutines
@@ -22,6 +22,7 @@ from lightlike.cmd.query.completers import query_repl_completer
 from lightlike.cmd.query.key_bindings import QUERY_BINDINGS
 from lightlike.cmd.query.lexer import BqSqlLexer
 from lightlike.internal import appdir, markup
+from lightlike.internal.constant import _CONSOLE_SVG_FORMAT
 
 if t.TYPE_CHECKING:
     from google.cloud.bigquery import QueryJob
@@ -41,7 +42,7 @@ __all__: t.Sequence[str] = ("query_repl", "_build_query_session")
 )
 @_pass.console
 @click.pass_context
-def query_repl(ctx: click.RichContext, console: Console) -> None:
+def query_repl(ctx: click.Context, console: Console) -> None:
     """Start an interactive BQ shell."""
     if ctx.invoked_subcommand is None:
         ctx.invoke(_run_query_repl, console=console)
@@ -65,7 +66,8 @@ def _run_query_repl(console: Console) -> None:
 
     with console.status(markup.status_message("Loading BigQuery Resources")):
         query_session = _build_query_session(
-            query_repl_completer(), mouse_support=mouse_support
+            completer=query_repl_completer(),
+            mouse_support=mouse_support,
         )
         routine = CliQueryRoutines()
 
@@ -91,7 +93,7 @@ def _run_query_repl(console: Console) -> None:
 
 
 def _build_query_session(
-    completer: "Completer", **prompt_kwargs
+    completer: "Completer", **prompt_kwargs: t.Any
 ) -> PromptSession[t.Any]:
     session: PromptSession[str] = PromptSession(
         style=AppConfig().prompt_style,

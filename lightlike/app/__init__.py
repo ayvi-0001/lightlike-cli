@@ -1,11 +1,9 @@
+import logging
+import sys
 import typing as t
-
-__all__: t.Sequence[str] = ("shutdown",)
 
 
 def shutdown() -> t.NoReturn:
-    import logging
-    import sys
 
     from lightlike.app.client import get_client
     from lightlike.internal import appdir

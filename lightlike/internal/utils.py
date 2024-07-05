@@ -1,12 +1,14 @@
 # mypy: disable-error-code="func-returns-value"
 from __future__ import annotations
 
+import os
 import re
 import typing as t
 from contextlib import ContextDecorator, suppress
 from datetime import datetime
 from functools import reduce, wraps
 from operator import getitem
+from pathlib import Path
 from time import perf_counter_ns
 from types import FunctionType
 
@@ -27,6 +29,8 @@ __all__: t.Sequence[str] = (
     "_nl",
     "_nl_async",
     "_nl_start",
+    "_get_local_timezone_string",
+    "_get_config_if_exists",
     "notify_and_log_error",
     "_identical_vectors",
     "pretty_print_exception",
@@ -102,6 +106,28 @@ def _nl_start(
         return inner
 
     return decorator
+
+
+def _get_local_timezone_string(default: str | None = None) -> str | None:
+    if os.name == "nt":
+        from tzlocal import get_localzone_name
+
+        default_timezone = get_localzone_name()
+    else:
+        from tzlocal.unix import _get_localzone_name
+
+        default_timezone = _get_localzone_name()  # type: ignore[no-untyped-call]
+
+    return default_timezone or default
+
+
+def _get_config_if_exists(
+    config_path: Path, default: dict[str, t.Any]
+) -> dict[str, t.Any]:
+    if config_path.exists():
+        config: dict[str, t.Any] = rtoml.load(config_path)
+        return config
+    return default
 
 
 def notify_and_log_error(error: Exception) -> None:

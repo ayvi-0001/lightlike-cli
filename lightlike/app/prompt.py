@@ -1,10 +1,9 @@
-# mypy: disable-error-code="arg-type"
-
 import typing as t
 from datetime import datetime
 
 from prompt_toolkit.shortcuts import PromptSession
 from prompt_toolkit.validation import Validator
+from pytz import timezone
 
 from lightlike.app import cursor, dates, shell_complete, validate
 from lightlike.app.config import AppConfig
@@ -21,7 +20,7 @@ T = t.TypeVar("T", bound="PromptFactory")
 
 
 class PromptFactory(PromptSession[t.Any]):
-    def __init__(self, **prompt_kwargs) -> None:
+    def __init__(self, **prompt_kwargs: t.Any) -> None:
         super().__init__(**prompt_kwargs)
         self.style = AppConfig().prompt_style
         self.history = appdir.REPL_FILE_HISTORY()
@@ -36,7 +35,7 @@ class PromptFactory(PromptSession[t.Any]):
     @classmethod
     @utils.exit_cmd_on_interrupt()
     def _prompt(
-        cls: type[T], message: str, pre_run: bool = False, **prompt_kwargs
+        cls: type[T], message: str, pre_run: bool = False, **prompt_kwargs: t.Any
     ) -> t.Any:
         prompt: t.Any = cls().prompt(
             message=cursor.build(message),
@@ -47,7 +46,11 @@ class PromptFactory(PromptSession[t.Any]):
 
     @classmethod
     @utils.exit_cmd_on_interrupt()
-    def prompt_date(cls: type[T], message: str, **prompt_kwargs) -> datetime:
+    def prompt_date(
+        cls: type[T],
+        message: str,
+        **prompt_kwargs: t.Any,
+    ) -> datetime:
         from calendar import day_name, month_name
 
         from lightlike.app.autosuggest import ThreadedAutoSuggest, threaded_autosuggest
@@ -66,14 +69,19 @@ class PromptFactory(PromptSession[t.Any]):
             ),
         )
         session_pk.update(**prompt_kwargs)
-        date = session.prompt(**session_pk)
-        parsed_date = dates.parse_date(date, tzinfo=AppConfig().tz)
+        date = session.prompt(**session_pk)  # type: ignore[arg-type]
+        parsed_date = dates.parse_date(
+            date, tzinfo=timezone(AppConfig().get("settings", "timezone"))
+        )
         return parsed_date
 
     @classmethod
     @utils.exit_cmd_on_interrupt()
     def prompt_note(
-        cls: type[T], project: str, message: str = "(note)", **prompt_kwargs
+        cls: type[T],
+        project: str,
+        message: str = "(note)",
+        **prompt_kwargs: t.Any,
     ) -> str:
         session: T = cls()
         session_pk: dict[str, str | t.Callable[..., None] | "Notes" | "Validator"] = (
@@ -89,13 +97,16 @@ class PromptFactory(PromptSession[t.Any]):
             )
         )
         session_pk.update(**prompt_kwargs)
-        note: str = session.prompt(**session_pk)
+        note: str = session.prompt(**session_pk)  # type: ignore[arg-type]
         return note
 
     @classmethod
     @utils.exit_cmd_on_interrupt()
     def prompt_project(
-        cls: type[T], message: str = "(project)", new: bool = False, **prompt_kwargs
+        cls: type[T],
+        message: str = "(project)",
+        new: bool = False,
+        **prompt_kwargs: t.Any,
     ) -> str:
         session: T = cls()
         validator = validate.ExistingProject() if not new else validate.NewProject()
@@ -111,5 +122,5 @@ class PromptFactory(PromptSession[t.Any]):
             bottom_toolbar=bottom_toolbar,
         )
         session_pk.update(**prompt_kwargs)
-        project: str = session.prompt(**session_pk)
+        project: str = session.prompt(**session_pk)  # type: ignore[arg-type]
         return project

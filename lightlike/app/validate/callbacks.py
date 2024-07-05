@@ -7,21 +7,22 @@ from json import loads
 from operator import truth
 from pathlib import Path
 
-import rich_click as click
+import click
 from click.exceptions import Exit as ClickExit
 from more_itertools import one
 from prompt_toolkit.patch_stdout import patch_stdout
+from pytz import timezone
 from rich import get_console
 from rich.text import Text
 
+from lightlike.app import _questionary
 from lightlike.app.cache import TimeEntryCache
 from lightlike.app.config import AppConfig
 from lightlike.app.dates import parse_date
 from lightlike.internal import appdir
-from lightlike.lib.third_party import _questionary
 
 __all__: t.Sequence[str] = (
-    "timezone",
+    "_timezone",
     "weekstart",
     "datetime_parsed",
     "edit_params",
@@ -34,7 +35,7 @@ __all__: t.Sequence[str] = (
 )
 
 
-def timezone(ctx: click.RichContext, param: click.Parameter, value: str) -> str:
+def _timezone(ctx: click.Context, param: click.Parameter, value: str) -> str:
     from pytz import all_timezones
 
     if value not in all_timezones:
@@ -45,7 +46,7 @@ def timezone(ctx: click.RichContext, param: click.Parameter, value: str) -> str:
     return value
 
 
-def weekstart(ctx: click.RichContext, param: click.Parameter, value: str) -> int:
+def weekstart(ctx: click.Context, param: click.Parameter, value: str) -> int:
     match value:
         case "Sunday":
             isoweekday = 0
@@ -61,19 +62,20 @@ def weekstart(ctx: click.RichContext, param: click.Parameter, value: str) -> int
 
 
 def datetime_parsed(
-    ctx: click.RichContext, param: click.Parameter, value: str
+    ctx: click.Context, param: click.Parameter, value: str
 ) -> datetime | None:
     if not value and not ctx.resilient_parsing:
         return None
 
     if value:
-        return parse_date(value, tzinfo=AppConfig().tz)
+        tzinfo = timezone(AppConfig().get("settings", "timezone"))
+        return parse_date(date=value, tzinfo=tzinfo)
 
     return None
 
 
 def edit_params(
-    ctx: click.RichContext,
+    ctx: click.Context,
     params: dict[str, t.Any],
     ids_to_match: list[str],
     debug: bool,
@@ -103,7 +105,7 @@ def edit_params(
 
 
 def non_running_entry(
-    ctx: click.RichContext, param: click.Parameter, id_sequence: t.Sequence[str]
+    ctx: click.Context, param: click.Parameter, id_sequence: t.Sequence[str]
 ) -> t.Sequence[str] | t.NoReturn:
     cache = TimeEntryCache()
     if cache.exists(cache.running_entries, id_sequence):
@@ -128,9 +130,7 @@ def non_running_entry(
     return id_sequence
 
 
-def summary_path(
-    ctx: click.RichContext, param: click.Parameter, value: str
-) -> Path | None:
+def summary_path(ctx: click.Context, param: click.Parameter, value: str) -> Path | None:
     if not value or ctx.resilient_parsing:
         return None
     if not param.metavar:
@@ -164,7 +164,7 @@ def summary_path(
 def print_or_output(
     output: bool = False,
     print_: bool = False,
-    ctx: click.RichContext | None = None,
+    ctx: click.Context | None = None,
 ) -> bool:
     if not any([output, print_]):
         raise click.UsageError(
@@ -179,7 +179,7 @@ def current_time_period_flags(
     current_month: bool | None,
     current_year: bool | None,
     previous_week: bool | None,
-    ctx: click.RichContext | None = None,
+    ctx: click.Context | None = None,
 ) -> bool:
     params = filter(
         truth,
@@ -196,7 +196,7 @@ def current_time_period_flags(
 
 
 def timer_list_cache_exists(
-    ctx: click.RichContext, param: click.Parameter, value: t.Any
+    ctx: click.Context, param: click.Parameter, value: t.Any
 ) -> t.Any:
     if value:
         if appdir.TIMER_LIST_CACHE.exists():
@@ -207,7 +207,7 @@ def timer_list_cache_exists(
 
 
 def timer_list_cache_idx(
-    ctx: click.RichContext, param: click.Parameter, values: t.Sequence[int]
+    ctx: click.Context, param: click.Parameter, values: t.Sequence[int]
 ) -> list[str] | None:
     if not values and not ctx.resilient_parsing:
         return None

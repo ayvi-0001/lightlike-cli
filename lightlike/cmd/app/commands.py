@@ -3,20 +3,19 @@
 import typing as t
 from os import getenv
 
-import rich_click as click
+import click
 from rich import print as rprint
 from rich.console import Console
 from rich.syntax import Syntax
 
 from lightlike.__about__ import __appdir__, __config__
-from lightlike.app import _pass
+from lightlike.app import _pass, _questionary
 from lightlike.app.cache import TimeEntryAppData, TimeEntryCache
 from lightlike.app.client import get_client
 from lightlike.app.config import AppConfig
-from lightlike.app.core import FmtRichCommand, LazyAliasedRichGroup
+from lightlike.app.core import FormattedCommand, LazyAliasedGroup
 from lightlike.app.routines import CliQueryRoutines
 from lightlike.internal import markup, utils
-from lightlike.lib.third_party import _questionary
 
 __all__: t.Sequence[str] = (
     "config",
@@ -41,7 +40,7 @@ else:
 
 @click.group(
     name="config",
-    cls=LazyAliasedRichGroup,
+    cls=LazyAliasedGroup,
     lazy_subcommands={
         "open": "lightlike.cmd.app.config.open_",
         "set": "lightlike.cmd.app.config.set_",
@@ -87,7 +86,7 @@ def config() -> None:
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="dir",
     options_metavar="[LAUNCH OPTION]",
     short_help=f"Open cli dir: {__appdir}",
@@ -143,7 +142,7 @@ def dir_(console: Console, start: bool) -> None:
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="run-bq",
     short_help="Run BigQuery scripts. Tables only built if missing.",
     syntax=Syntax(
@@ -185,7 +184,7 @@ def run_bq(yes: bool) -> None:
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="show-console",
     hidden=True,
     short_help="Inspect global console.",
@@ -216,7 +215,7 @@ def inspect_console(console: Console) -> None:
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="sync",
     short_help="Sync local files.",
     syntax=Syntax(
@@ -269,7 +268,7 @@ def sync(
 
 
 @click.command(
-    cls=FmtRichCommand,
+    cls=FormattedCommand,
     name="reset-all",
     hidden=True,
     allow_name_alias=False,
@@ -310,7 +309,7 @@ def _reset_all(
 
 @click.group(
     name="test",
-    cls=LazyAliasedRichGroup,
+    cls=LazyAliasedGroup,
     lazy_subcommands={
         "date-parse": "lightlike.cmd.app.test.date_parse",
         "date-diff": "lightlike.cmd.app.test.date_diff",

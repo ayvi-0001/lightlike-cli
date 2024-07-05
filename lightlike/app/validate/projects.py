@@ -1,7 +1,7 @@
 import re
 from typing import Sequence
 
-import rich_click as click
+import click
 from prompt_toolkit.document import Document
 from prompt_toolkit.validation import ValidationError, Validator
 
@@ -84,7 +84,7 @@ class NewProject(Validator):
             )
 
 
-def active_project(ctx: click.RichContext, param: click.Parameter, value: str) -> str:
+def active_project(ctx: click.Context, param: click.Parameter, value: str) -> str:
     if ctx.parent:
         if (
             ctx.parent.info_name == "project"
@@ -114,7 +114,7 @@ def active_project(ctx: click.RichContext, param: click.Parameter, value: str) -
 
 
 def active_project_list(
-    ctx: click.RichContext, param: click.Parameter, value: Sequence[str]
+    ctx: click.Context, param: click.Parameter, value: Sequence[str]
 ) -> Sequence[str]:
     if ctx.parent:
         if (
@@ -143,7 +143,7 @@ def active_project_list(
     )
 
 
-def new_project(ctx: click.RichContext, param: click.Parameter, value: str) -> str:
+def new_project(ctx: click.Context, param: click.Parameter, value: str) -> str:
     if value:
         try:
             NewProject().callback(value)
@@ -154,7 +154,7 @@ def new_project(ctx: click.RichContext, param: click.Parameter, value: str) -> s
     return value
 
 
-def archived_project(ctx: click.RichContext, param: click.Parameter, value: str) -> str:
+def archived_project(ctx: click.Context, param: click.Parameter, value: str) -> str:
     if value == "no-project":
         raise click.BadArgumentUsage(
             message="Cannot alter the default project.", ctx=ctx
@@ -166,7 +166,7 @@ def archived_project(ctx: click.RichContext, param: click.Parameter, value: str)
 
 
 def archived_project_list(
-    ctx: click.RichContext, param: click.Parameter, value: Sequence[str]
+    ctx: click.Context, param: click.Parameter, value: Sequence[str]
 ) -> Sequence[str]:
     if all([name in projects.Archived().names for name in value]):
         return value

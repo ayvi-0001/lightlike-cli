@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from math import copysign
 
-import rich_click as click
+import click
 from dateparser import parse
 from rich.text import Text
 

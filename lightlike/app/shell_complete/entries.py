@@ -1,6 +1,8 @@
 import typing as t
 
+import click
 from click.shell_completion import CompletionItem
+from pytz import timezone
 
 from lightlike.app import dates
 from lightlike.app.cache import TimeEntryCache
@@ -10,17 +12,14 @@ from lightlike.internal.utils import _match_str
 if t.TYPE_CHECKING:
     from datetime import datetime
 
-    import rich_click as click
 
 __all__: t.Sequence[str] = ("paused", "all_")
 
 
 def paused(
-    ctx: "click.RichContext",
-    param: "click.Parameter",
-    incomplete: str,
+    ctx: click.Context, param: click.Parameter, incomplete: str
 ) -> list[CompletionItem]:
-    now: "datetime" = dates.now(AppConfig().tz)
+    now: "datetime" = dates.now(timezone(AppConfig().get("settings", "timezone")))
     cache = TimeEntryCache()
     completions = []
 
@@ -36,11 +35,9 @@ def paused(
 
 
 def all_(
-    ctx: "click.RichContext",
-    param: "click.Parameter",
-    incomplete: str,
+    ctx: click.Context, param: click.Parameter, incomplete: str
 ) -> list[CompletionItem]:
-    now: "datetime" = dates.now(AppConfig().tz)
+    now: "datetime" = dates.now(timezone(AppConfig().get("settings", "timezone")))
     cache = TimeEntryCache()
     completions = []
 

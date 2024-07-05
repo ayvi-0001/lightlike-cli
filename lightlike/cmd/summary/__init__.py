@@ -1,13 +1,13 @@
 import typing as t
 
-import rich_click as click
+import click
 
-from lightlike.app.core import LazyAliasedRichGroup
+from lightlike.app.core import LazyAliasedGroup
 
 
 @click.group(
     name="summary",
-    cls=LazyAliasedRichGroup,
+    cls=LazyAliasedGroup,
     lazy_subcommands={
         "table": "lightlike.cmd.summary.commands.summary_table",
         "csv": "lightlike.cmd.summary.commands.summary_csv",
