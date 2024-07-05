@@ -2,7 +2,6 @@ import typing as t
 from inspect import cleandoc
 
 import click
-from click.exceptions import Exit as ClickExit
 from rich import print as rprint
 from rich.table import Table
 
@@ -178,7 +177,7 @@ def projects(console: "Console") -> None:
     )
     if not table.row_count:
         rprint(markup.dimmed("No results"))
-        raise ClickExit
+        raise click.exceptions.Exit
 
     console.print(table)
 

@@ -8,7 +8,6 @@ from operator import truth
 from pathlib import Path
 
 import click
-from click.exceptions import Exit as ClickExit
 from more_itertools import one
 from prompt_toolkit.patch_stdout import patch_stdout
 from pytz import timezone
@@ -151,9 +150,9 @@ def summary_path(ctx: click.Context, param: click.Parameter, value: str) -> Path
             ):
                 return path.with_suffix(suffix)
             else:
-                raise ClickExit
+                raise click.exceptions.Exit
         except (KeyboardInterrupt, EOFError):
-            raise ClickExit
+            raise click.exceptions.Exit
     else:
         if not path.suffix:
             return path.with_suffix(suffix)

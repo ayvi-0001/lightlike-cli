@@ -3,7 +3,6 @@
 import typing as t
 
 import click
-from click.exceptions import Exit as ClickExit
 from more_itertools import first
 from rich import print as rprint
 from rich.syntax import Syntax
@@ -639,7 +638,7 @@ def list_(
     )
     if not table.row_count:
         rprint(markup.dimmed("No results"))
-        raise ClickExit
+        raise click.exceptions.Exit
     console.print(table)
 
 
@@ -736,7 +735,7 @@ def set_project_name(
 
     if project == new_name:
         console.print(markup.dimmed("Current name, nothing happened."))
-        raise ClickExit
+        raise click.exceptions.Exit
 
     with console.status(markup.status_message("Updating project")) as status:
         routine.update_project_name(
@@ -846,7 +845,7 @@ def set_project_description(
     )
 
     if not new_desc:
-        raise ClickExit
+        raise click.exceptions.Exit
 
     if current_desc == new_desc:
         console.print(markup.dimmed("Current description, nothing happened."))

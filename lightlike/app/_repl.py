@@ -4,7 +4,6 @@ from shlex import shlex
 from subprocess import PIPE, STDOUT, Popen, list2cmdline
 
 import click
-from click.exceptions import Exit as ClickExit
 from more_itertools import first, last
 from prompt_toolkit import PromptSession
 from prompt_toolkit.application import get_app
@@ -71,7 +70,7 @@ def repl(
                 _show_click_exception(e1, format_click_exceptions_callable)
         except click.ClickException as e4:
             _show_click_exception(e4, format_click_exceptions_callable)
-        except (ClickExit, SystemExit):
+        except (click.exceptions.Exit, SystemExit):
             pass
         except ExitRepl:
             break

@@ -6,7 +6,6 @@ from operator import truth
 from pathlib import Path
 
 import click
-from click.exceptions import Exit as ClickExit
 from rich import print as rprint
 from rich.console import Console
 from rich.padding import Padding
@@ -442,7 +441,7 @@ def summary_table(
     )
     if not table.row_count:
         rprint(markup.dimmed("No results"))
-        raise ClickExit
+        raise click.exceptions.Exit
 
     with Console(record=True, style=_console.CONSOLE_CONFIG.style) as console:
         console.print(Padding(table, (1, 0, 0, 0)))

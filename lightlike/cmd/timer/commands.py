@@ -13,7 +13,6 @@ from math import copysign
 from operator import truth
 
 import click
-from click.exceptions import Exit as ClickExit
 from more_itertools import first, locate, one
 from rich import print as rprint
 from rich.syntax import Syntax
@@ -294,7 +293,7 @@ def add(
         )
         if not table.row_count:
             rprint(markup.dimmed("No results"))
-            raise ClickExit
+            raise click.exceptions.Exit
 
     console.print("Added record:", table)
 
@@ -854,7 +853,7 @@ def edit(
             matched_entries: "QueryJob" = routine._get_time_entries(matched_ids)
         except Exception as error:
             console.print(markup.br("Error:"), error)
-            raise ClickExit
+            raise click.exceptions.Exit
 
         debug and console.log("[DEBUG]", matched_entries)
 
@@ -1496,7 +1495,7 @@ def list_(
     )
     if not table.row_count:
         rprint(markup.dimmed("No results"))
-        raise ClickExit
+        raise click.exceptions.Exit
 
     appdir.TIMER_LIST_CACHE.write_text(
         dumps({idx: row.get("id") for idx, row in enumerate(rows)})
@@ -1737,7 +1736,7 @@ def resume(
         )
         if not table.row_count:
             rprint(markup.dimmed("No results"))
-            raise ClickExit
+            raise click.exceptions.Exit
 
         console.print(table)
 
@@ -2150,7 +2149,7 @@ def switch(
 
     if len(entries) == 1:
         console.print(markup.dimmed("Nothing to switch."))
-        raise ClickExit
+        raise click.exceptions.Exit
 
     select: str
     if not entry:
@@ -2164,7 +2163,7 @@ def switch(
         )
         if not table.row_count:
             rprint(markup.dimmed("No results"))
-            raise ClickExit
+            raise click.exceptions.Exit
 
         console.print(table)
 
