@@ -1,3 +1,4 @@
+import sys
 import typing as t
 from operator import truth
 
@@ -54,7 +55,7 @@ def _(event: KeyPressEvent) -> None:
 
 @query_handle(Keys.ControlQ)
 def _(event: KeyPressEvent) -> None:
-    event.app.exit()
+    sys.exit(0)
 
 
 @query_handle("[", "A")

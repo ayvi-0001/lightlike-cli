@@ -39,7 +39,7 @@ __all__: t.Sequence[str] = (
 )
 
 
-T = t.TypeVar("T", covariant=True)
+T = t.TypeVar("T")
 P = t.ParamSpec("P")
 
 
@@ -47,9 +47,9 @@ P = t.ParamSpec("P")
 def _get_maybe_callable(
     obj: t.Any,
     attr: str,
-    cast: t.Generic[T],
-    default: t.Generic[T],
-    apply: t.Sequence[t.Callable[..., t.Any | T]] | None = None,
+    cast: type[T],
+    default: T,
+    apply: t.Sequence[t.Callable[..., T]] | None = None,
 ) -> T: ...
 
 
@@ -57,26 +57,25 @@ def _get_maybe_callable(
 def _get_maybe_callable(
     obj: t.Any,
     attr: str,
-    cast: t.Generic[T],
+    cast: type[T],
     default: t.Literal[None] = None,
-    apply: t.Sequence[t.Callable[..., t.Any | T]] | None = None,
+    apply: t.Sequence[t.Callable[..., T]] | None = None,
 ) -> T | None: ...
 
 
 def _get_maybe_callable(
     obj: t.Any,
     attr: str,
-    cast: t.Generic[T],
+    cast: type[T],
     default: T | None = None,
-    apply: t.Sequence[t.Callable[..., t.Any | T]] | None = None,
+    apply: t.Sequence[t.Callable[..., T]] | None = None,
 ) -> T | None:
     _attr: T | None = None
-    if hasattr(obj, attr):
-        source: t.Any = getattr(obj, attr)
-        if callable(source):
-            _attr = source()
-        else:
-            _attr = source
+    source: T | None = getattr(obj, attr, None)
+    if callable(source):
+        _attr = source()
+    else:
+        _attr = source
 
     if apply and _attr:
         for fn in apply:
@@ -86,12 +85,10 @@ def _get_maybe_callable(
         return _attr
     else:
         if default:
-            if isinstance(default, type(cast)):
+            if isinstance(default, cast):
                 return default
             else:
-                raise TypeError(
-                    f"Default is not of type T@{type(cast)}",
-                )
+                raise TypeError(f"Default is not of type T@{cast}")
         else:
             return _attr
 
@@ -130,9 +127,11 @@ class AliasedGroup(click.Group):
         for m in self.list_commands(ctx):
             if m.startswith(cmd_name):
                 command = self.get_command(ctx, m)
-                if hasattr(command, "allow_name_alias"):
-                    if command.allow_name_alias is False and cmd_name != m:  # type: ignore [union-attr]
-                        return None
+                if (
+                    getattr(command, "allow_name_alias", None) is False
+                    and cmd_name != m
+                ):
+                    return None
                 if not (command and command.hidden):
                     matches.append(m)
         if not matches:
@@ -179,9 +178,11 @@ class LazyAliasedGroup(AliasedGroup):
             return None
         elif len(matches) == 1 and (match := first(matches)) in self.lazy_subcommands:
             command = self._lazy_load(match)
-            if hasattr(command, "allow_name_alias"):
-                if command.allow_name_alias is False and cmd_name != match:  # type: ignore [union-attr]
-                    return None
+            if (
+                getattr(command, "allow_name_alias", None) is False
+                and cmd_name != match
+            ):
+                return None
             return command
         else:
             return super().get_command(ctx, cmd_name)
@@ -269,13 +270,10 @@ def _format_click_exception(exception: click.ClickException) -> None:
 
         console.print(
             "[b][red]Error:",
-            repl_highlighter(
+            ReplHighlighter()(
                 render(exception.format_message(), style=CONSOLE_CONFIG.style)
             ),
         )
-
-
-repl_highlighter = ReplHighlighter()
 
 
 def format_help(
@@ -350,7 +348,7 @@ def _group_help(
 
     lines = help_text.split("\n")
     if lines:
-        yield repl_highlighter(
+        yield ReplHighlighter()(
             render(cleandoc("\n".join(map(lambda l: l.replace("\n", " "), lines))))
         )
 
@@ -399,7 +397,7 @@ def _group_commands(
                 continue
             else:
                 help_text = cmd.short_help or cmd.help or ""
-                table.add_row(command, "", repl_highlighter(help_text))
+                table.add_row(command, "", ReplHighlighter()(help_text))
 
     if table.row_count != 0:
         yield rich.console.NewLine()
@@ -467,9 +465,8 @@ def _group_options(
             ):
                 metavar_str = param.type.name.upper()
 
-            if hasattr(param, "is_flag"):
-                if param.is_flag:
-                    metavar.append("FLAG")
+            if getattr(param, "is_flag", False):
+                metavar.append("FLAG")
             else:
                 metavar.append(metavar_str)
 
@@ -491,14 +488,12 @@ def _group_options(
             if param.required:
                 required = Text("*", style="red")
 
-            metavar_highlighter = MetavarHighlighter()
-
             rows.append(
                 [
                     required,
-                    repl_highlighter(repl_highlighter(",".join(opt_long_strs))),
-                    repl_highlighter(repl_highlighter(",".join(opt_short_strs))),
-                    metavar_highlighter(metavar),
+                    ReplHighlighter()(ReplHighlighter()(",".join(opt_long_strs))),
+                    ReplHighlighter()(ReplHighlighter()(",".join(opt_short_strs))),
+                    MetavarHighlighter()(metavar),
                     _get_option_help(param, ctx),
                 ]
             )
@@ -543,7 +538,7 @@ def _(param: click.Argument, ctx: click.Context) -> Columns:
     )
 
     if help_text:
-        text = repl_highlighter(Text(help_text, style="#f0f0ff"))
+        text = ReplHighlighter()(Text(help_text, style="#f0f0ff"))
         items.append(text)
 
     if param.default or ctx.show_default:
@@ -585,7 +580,7 @@ def _(param: click.Option, ctx: click.Context) -> Columns:
     )
 
     if help_text:
-        text = repl_highlighter(Text(help_text.strip(), style="#f0f0ff"))
+        text = ReplHighlighter()(Text(help_text.strip(), style="#f0f0ff"))
         items.append(text)
 
     if param.default or ctx.show_default:

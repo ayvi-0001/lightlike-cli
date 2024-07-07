@@ -111,7 +111,7 @@ class AuthPromptSession:
                 bytes(encrypted_key),
             )
 
-        except InvalidToken:
+        except Exception as error:
             if saved_password:
                 AppConfig()._update_user_credentials(
                     password="null",
@@ -125,27 +125,12 @@ class AuthPromptSession:
                         )
                     )
                 )
+
+            if type(error) == InvalidToken:
+                if not saved_password:
+                    rprint(markup.br("Incorrect password."))
             else:
-                rprint(markup.br("Incorrect password."))
-
-            if retry:
-                return self.authenticate(salt, encrypted_key)
-
-        except Exception as e:
-            rprint(f"[bright_white on dark_red]{e}.")
-            if saved_password:
-                AppConfig()._update_user_credentials(
-                    password="null",
-                    stay_logged_in=False,
-                )
-                rprint(
-                    Panel(
-                        Text.assemble(
-                            markup.br("Saved credentials failed. "),
-                            "Password input required.",
-                        )
-                    )
-                )
+                rprint(f"[bright_white on dark_red]{error!r} {error!s}.")
 
             if retry:
                 return self.authenticate(salt, encrypted_key)
@@ -153,14 +138,14 @@ class AuthPromptSession:
         return auth.load_json_bytes(service_account_key)
 
     def prompt_password(
-        self, message: str = "(password) $ ", newline_breaks: bool = True
+        self, message: str = "(password) $ ", add_newline_breaks: bool = True
     ) -> str:
-        newline_breaks and utils._nl()
+        add_newline_breaks and utils._nl()
         try:
             while 1:
                 password = get_console().input(message, password=True)
                 if password != "":
-                    newline_breaks and utils._nl()
+                    add_newline_breaks and utils._nl()
                     return password
         except (KeyboardInterrupt, EOFError):
             rprint(markup.br("\nAborted"))
@@ -171,7 +156,7 @@ class AuthPromptSession:
             password = self.prompt_password()
             reenter_password = self.prompt_password(
                 message="(re-enter password) $ ",
-                newline_breaks=False,
+                add_newline_breaks=False,
             )
             if reenter_password == password:
                 return sha256(password.encode()), urandom(32)
@@ -216,18 +201,14 @@ class AuthPromptSession:
                 else:
                     if "client_email" not in key.keys():
                         rprint(
-                            Text.assemble(
-                                "Invalid service-account json. Missing required key ",
-                                markup.code("client_email"),
-                            )
+                            "Invalid service-account json. Missing required key",
+                            markup.code("client_email"),
                         )
                         continue
                     if "token_uri" not in key.keys():
                         rprint(
-                            Text.assemble(
-                                "Invalid service-account json. Missing required key ",
-                                markup.code("token_uri"),
-                            )
+                            "Invalid service-account json. Missing required key",
+                            markup.code("token_uri"),
                         )
                         continue
                     service_account_key = key_input

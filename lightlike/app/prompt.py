@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import typing as t
 from datetime import datetime
 
@@ -6,12 +8,10 @@ from prompt_toolkit.validation import Validator
 from pytz import timezone
 
 from lightlike.app import cursor, dates, shell_complete, validate
+from lightlike.app.autosuggest import threaded_autosuggest
 from lightlike.app.config import AppConfig
 from lightlike.app.key_bindings import PROMPT_BINDINGS
 from lightlike.internal import appdir, utils
-
-if t.TYPE_CHECKING:
-    from lightlike.app.shell_complete.notes import Notes
 
 __all__: t.Sequence[str] = ("PromptFactory",)
 
@@ -39,6 +39,8 @@ class PromptFactory(PromptSession[t.Any]):
     ) -> t.Any:
         prompt: t.Any = cls().prompt(
             message=cursor.build(message),
+            bottom_toolbar=cursor.bottom_toolbar,
+            rprompt=cursor.rprompt,
             pre_run=utils._prerun_autocomplete if pre_run else None,
             **prompt_kwargs,
         )
@@ -53,15 +55,15 @@ class PromptFactory(PromptSession[t.Any]):
     ) -> datetime:
         from calendar import day_name, month_name
 
-        from lightlike.app.autosuggest import ThreadedAutoSuggest, threaded_autosuggest
-
         session: T = cls()
         suggestions: list[str] = ["yesterday", "today", "now"]
         suggestions.extend(month_name)
         suggestions.extend(day_name)
 
-        session_pk: dict[str, str | ThreadedAutoSuggest | Validator] = dict(
+        session_pk: dict[str, t.Any] = dict(
             message=cursor.build(message),
+            bottom_toolbar=cursor.bottom_toolbar,
+            rprompt=cursor.rprompt,
             auto_suggest=threaded_autosuggest(suggestions),
             validator=Validator.from_callable(
                 lambda d: False if not d else True,
@@ -69,7 +71,7 @@ class PromptFactory(PromptSession[t.Any]):
             ),
         )
         session_pk.update(**prompt_kwargs)
-        date = session.prompt(**session_pk)  # type: ignore[arg-type]
+        date = session.prompt(**session_pk)
         parsed_date = dates.parse_date(
             date, tzinfo=timezone(AppConfig().get("settings", "timezone"))
         )
@@ -84,20 +86,19 @@ class PromptFactory(PromptSession[t.Any]):
         **prompt_kwargs: t.Any,
     ) -> str:
         session: T = cls()
-        session_pk: dict[str, str | t.Callable[..., None] | "Notes" | "Validator"] = (
-            dict(
-                message=cursor.build(message, hide_rprompt=True),
-                pre_run=utils._prerun_autocomplete,
-                completer=shell_complete.notes.Notes(project),
-                rprompt=f"Project: {project}",
-                validator=Validator.from_callable(
-                    lambda d: False if not d else True,
-                    error_message="Input cannot be None.",
-                ),
-            )
+        session_pk: dict[str, t.Any] = dict(
+            message=cursor.build(message),
+            bottom_toolbar=cursor.bottom_toolbar,
+            rprompt=cursor.rprompt,
+            pre_run=utils._prerun_autocomplete,
+            completer=shell_complete.notes.Notes(project),
+            validator=Validator.from_callable(
+                lambda d: False if not d else True,
+                error_message="Input cannot be None.",
+            ),
         )
         session_pk.update(**prompt_kwargs)
-        note: str = session.prompt(**session_pk)  # type: ignore[arg-type]
+        note: str = session.prompt(**session_pk)
         return note
 
     @classmethod
@@ -109,17 +110,13 @@ class PromptFactory(PromptSession[t.Any]):
         **prompt_kwargs: t.Any,
     ) -> str:
         session: T = cls()
-        validator = validate.ExistingProject() if not new else validate.NewProject()
-        completer = shell_complete.projects.Active() if not new else None
-        bottom_toolbar = lambda: (
-            r"Name must match regex ^[a-zA-Z0-9-\\_]{3,20}$" if new else None
-        )
         session_pk = dict(
-            message=cursor.build(message, hide_rprompt=True),
+            message=cursor.build(message),
+            bottom_toolbar=cursor.bottom_toolbar,
+            rprompt=cursor.rprompt,
             pre_run=utils._prerun_autocomplete,
-            completer=completer,
-            validator=validator,
-            bottom_toolbar=bottom_toolbar,
+            completer=shell_complete.projects.Active() if not new else None,
+            validator=validate.ExistingProject() if not new else validate.NewProject(),
         )
         session_pk.update(**prompt_kwargs)
         project: str = session.prompt(**session_pk)  # type: ignore[arg-type]

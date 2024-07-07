@@ -447,7 +447,10 @@ class TimeEntryCache:
 
     @property
     def running_entries(self) -> list[dict[str, t.Any]]:
-        return self._entries["running"]["entries"]
+        return t.cast(
+            list[dict[str, t.Any]],
+            self._entries["running"]["entries"],
+        )
 
     @running_entries.setter
     def running_entries(self, __val: T) -> None:
@@ -460,11 +463,17 @@ class TimeEntryCache:
     @property
     def paused_entries(self) -> list[dict[str, t.Any]]:
         try:
-            return self._entries["paused"]["entries"]
+            return t.cast(
+                list[dict[str, t.Any]],
+                self._entries["paused"]["entries"],
+            )
         except KeyError:
             with self.rw():
                 self._entries["paused"]["entries"] = []
-            return self._entries["paused"]["entries"]
+            return t.cast(
+                list[dict[str, t.Any]],
+                self._entries["paused"]["entries"],
+            )
 
     @paused_entries.setter
     def paused_entries(self, __val: T) -> None:

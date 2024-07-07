@@ -1588,8 +1588,7 @@ def update_notes(
     new_note = PromptFactory.prompt_note(
         project,
         message="(new-note)",
-        rprompt="\nNotes being replaced:\n%s" % notes_to_replace,
-        bottom_toolbar=lambda: "Replacing notes for %s." % project,
+        rprompt="\nReplacing %s notes:\n%s" % (project, notes_to_replace),
     )
 
     query_job: "QueryJob" = routine.update_notes(
