@@ -53,9 +53,9 @@ def _create_kb_system_command_fn(name: str) -> t.Callable[..., t.Any]:
 def _create_kb_exit_fn(name: str) -> t.Callable[..., t.Any]:
     @utils._nl_start(before=True)
     def _exit(event: KeyPressEvent) -> None:
-        from lightlike.app import shutdown
+        from lightlike.app import call_on_close
 
-        shutdown()
+        call_on_close()
 
     _exit.__qualname__ = name
     _exit.__name__ = name

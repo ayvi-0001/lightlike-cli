@@ -53,7 +53,8 @@ def build_cli(
     help: str | None = None,
     lazy_subcommands: dict[str, t.Any] | None = None,
     context_settings: dict[str, t.Any] | None = None,
-    shutdown_callable: t.Callable[..., t.Never] | None = None,
+    call_on_close: t.Callable[..., t.Never] | None = None,
+    obj: dict[str, t.Any] | None = None,
 ) -> LazyAliasedGroup:
     @click.group(
         cls=LazyAliasedGroup,
@@ -65,12 +66,13 @@ def build_cli(
     )
     @click.pass_context
     def cli(ctx: click.Context) -> None:
+        ctx.obj = obj or {}
         if ctx.invoked_subcommand is None:
             from lightlike.app._repl import repl
 
             repl(ctx=ctx, **repl_kwargs)
-            if shutdown_callable:
-                shutdown_callable()
+            if call_on_close:
+                call_on_close()
 
     return cli
 
@@ -90,7 +92,7 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
 
         from prompt_toolkit.shortcuts import CompleteStyle
 
-        from lightlike.app import cursor, dates, shell_complete, shutdown
+        from lightlike.app import call_on_close, cursor, dates, shell_complete
         from lightlike.app.client import get_client
         from lightlike.app.config import AppConfig
         from lightlike.app.core import _format_click_exception
@@ -157,7 +159,7 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
                 ignore_unknown_options=True,
                 help_option_names=["-h", "--help"],
             ),
-            shutdown_callable=shutdown,
+            call_on_close=call_on_close,
         )
 
         with lock:
@@ -190,6 +192,8 @@ def _check_lock(lock: InterProcessLock) -> None | t.NoReturn:
 
 
 def _build_lazy_subcommands(config: dict[str, str] | None = None) -> dict[str, str]:
+    # Nothing imports from the `cmd` module.
+    # Commands are all added either by default here, or from the config file.
     if not config:
         config = {}
 
@@ -209,6 +213,9 @@ def _build_lazy_subcommands(config: dict[str, str] | None = None) -> dict[str, s
 
 
 def _append_paths(config: dict[str, str] | None) -> None:
+    # Commands anywhere on the local machine can be loaded through lazy subcommands,
+    # as long as it is on path. There is a key in the config file to add additional paths,
+    # before the cli runs.
     try:
         if config:
             for path in config:

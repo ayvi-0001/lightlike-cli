@@ -87,6 +87,8 @@ def rmtree(appdata: Path = __appdir__) -> t.NoReturn:
 
 _interprocess_locked: t.Callable[..., t.Any] = interprocess_locked
 
+VersionTuple: t.TypeAlias = tuple[int, int, int]
+
 
 @_interprocess_locked(__appdir__ / "config.lock")  # type:ignore[misc]
 def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
@@ -101,20 +103,30 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
         console.log("Initializing app directory")
         return _initial_build()
     else:
-        not _console.QUIET_START and console.log("Checking for updates")
+        v_package: VersionTuple = update.extract_version(__version__)
+        local_config: dict[str, t.Any] = rtoml.load(__config__)
 
-        v_package: tuple[int, int, int] = update.extract_version(__version__)
+        last_checked_release: datetime | None = local_config["app"].get(
+            "last_checked_release"
+        )
 
-        update.check_latest_release(v_package, __repo__, __latest_release__)
+        if not last_checked_release or (
+            last_checked_release
+            and last_checked_release.date() < datetime.today().date()
+        ):
+            not _console.QUIET_START and console.log("Checking latest release")
+            update.check_latest_release(v_package, __repo__, __latest_release__)
+            last_checked_release = datetime.now()
 
-        local_config = rtoml.load(__config__)
+        not _console.QUIET_START and console.log("Updating config")
 
-        v_local = update.extract_version(local_config["app"]["version"])
+        v_local: VersionTuple = update.extract_version(local_config["app"]["version"])
         v_local < v_package and console.log(
             "Updating version: v",
             markup.repr_number(".".join(map(str, v_package))),
             sep="",
         )
+
         v_local < (0, 9, 0) and update._patch_cache_lt_v_0_9_0(__appdir__)
 
         updated_config = utils.update_dict(
@@ -122,7 +134,10 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
             updates=local_config,
             ignore=["cli", "lazy_subcommands"],
         )
-        updated_config["app"].update(version=__version__)
+        updated_config["app"].update(
+            version=__version__,
+            last_checked_release=last_checked_release,
+        )
         __config__.write_text(utils._format_toml(updated_config))
 
     return None

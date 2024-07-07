@@ -13,6 +13,7 @@ DEFAULT_CONFIG: str = """\
 name = ""
 version = ""
 term = ""
+last_checked_release = ""
 
 [user]
 name = "null"

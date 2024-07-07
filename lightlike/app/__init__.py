@@ -3,8 +3,7 @@ import sys
 import typing as t
 
 
-def shutdown() -> t.NoReturn:
-
+def call_on_close() -> t.NoReturn:
     from lightlike.app.client import get_client
     from lightlike.internal import appdir
 
