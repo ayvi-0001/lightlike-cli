@@ -29,7 +29,7 @@ complete_style = "COLUMN"
 editor = ""
 note_required = "not-implemented"
 quiet_start = false
-reserve_space_for_menu = 10
+reserve_space_for_menu = 12
 timer_add_min = -6
 timezone = "null"
 week_start = 1
@@ -218,6 +218,10 @@ cursor = "fg:#f0f0ff"
 cursor-column = "bg:#dddddd"
 cursor-line = "underline"
 
+"bottom-toolbar" = "noreverse bg:#f0f0ff"
+"bottom-toolbar.space" = "bg:default noreverse noitalic nounderline noblink"
+"bottom-toolbar.text" = "#000000"
+
 system = "fg:#555753"
 selected = "reverse"
 color-column = "bg:#ccaacc"
@@ -251,7 +255,6 @@ color-column = "bg:#ccaacc"
 "scrollbar.background" = "bg:#f0f0ff"
 "scrollbar.button" = "bg:#9146ff"
 
-"bottom-toolbar" = "reverse"
 "control-character" = 'bold ansired'
 "validation-toolbar" = "bg:#550000 #ffffff"
 """

@@ -2,6 +2,7 @@ import typing as t
 from datetime import datetime
 
 import click
+from prompt_toolkit import prompt
 from pytz import timezone
 from rich import box, get_console
 from rich import print as rprint
@@ -13,7 +14,9 @@ from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
+from lightlike.app.config import AppConfig
 from lightlike.app.core import FormattedCommand
+from lightlike.internal import utils
 
 __all__: t.Sequence[str] = ("eval", "calendar")
 
@@ -43,8 +46,11 @@ def _eval_help(ctx: click.Context, param: click.Parameter, value: str) -> None:
     if not value or ctx.resilient_parsing:
         return
 
-    rprint("This command simply runs the args passed to it through eval().")
-    rprint("Some additional modules are imported to locals.\n")
+    rprint(
+        "This command simply runs the args passed to it through eval()."
+        "Some additional modules are imported to locals.\n"
+        "For multiline prompt, press escape enter to submit."
+    )
     rprint(
         Syntax(
             code="""\
@@ -86,6 +92,7 @@ def _eval_help(ctx: click.Context, param: click.Parameter, value: str) -> None:
     name="eval",
     hidden=True,
 )
+@utils._handle_keyboard_interrupt()
 @click.option(
     "-h",
     "--help",
@@ -95,23 +102,33 @@ def _eval_help(ctx: click.Context, param: click.Parameter, value: str) -> None:
     callback=_eval_help,
 )
 @click.argument("args", nargs=-1, type=click.STRING)
-def eval_(args: list[str]) -> None:
-    def _execute_eval(args: t.Sequence[str]) -> None:
+@click.option("--multiline-prompt", is_flag=True)
+def eval_(args: list[str], multiline_prompt: bool) -> None:
+    def _execute_eval(eval_args: str) -> None:
         global EVAL_GLOBALS
         global EVAL_LOCALS
         try:
-            retval = eval(" ".join(args), EVAL_GLOBALS, EVAL_LOCALS)
+            retval = eval(eval_args, EVAL_GLOBALS, EVAL_LOCALS)
             if retval:
                 rprint(retval)
         except SyntaxError:
-            exec(" ".join(args), EVAL_GLOBALS, EVAL_LOCALS)
+            exec(eval_args, EVAL_GLOBALS, EVAL_LOCALS)
             EVAL_LOCALS |= locals()
         finally:
             if "args" in EVAL_LOCALS:
                 EVAL_LOCALS.pop("args")
 
     try:
-        _execute_eval(args)
+        if multiline_prompt:
+            _execute_eval(
+                prompt(
+                    message="",
+                    multiline=True,
+                    style=AppConfig().prompt_style,
+                )
+            )
+        else:
+            _execute_eval(" ".join(args))
     except Exception:
         get_console().print_exception(
             max_frames=1,

@@ -111,6 +111,8 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
         prompt_kwargs.update(
             message=cursor.build,
             history=appdir.REPL_FILE_HISTORY(),
+            bottom_toolbar=cursor.bottom_toolbar,
+            rprompt=cursor.rprompt,
             style=AppConfig().prompt_style,
             cursor=AppConfig().cursor_shape,
             key_bindings=PROMPT_BINDINGS,

@@ -14,7 +14,7 @@ from lightlike.app.config import AppConfig
 from lightlike.internal import markup, utils
 from lightlike.internal.enums import ActiveCompleter
 
-__all__: t.Sequence[str] = ("PROMPT_BINDINGS", "QUERY_BINDINGS")
+__all__: t.Sequence[str] = ("PROMPT_BINDINGS",)
 
 
 PROMPT_BINDINGS = KeyBindings()

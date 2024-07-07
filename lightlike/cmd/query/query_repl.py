@@ -99,6 +99,8 @@ def _build_query_session(
         style=AppConfig().prompt_style,
         refresh_interval=1,
         completer=completer,
+        bottom_toolbar=cursor.bottom_toolbar,
+        rprompt=cursor.rprompt,
         complete_in_thread=True,
         complete_while_typing=True,
         validate_while_typing=True,

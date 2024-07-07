@@ -837,11 +837,12 @@ def set_project_description(
         else None
     )
 
+    default: str = current_desc or ""
+
     new_desc = desc or PromptFactory._prompt(
         message="(description)",
-        default=current_desc or "",
-        auto_suggest=threaded_autosuggest([current_desc or ""]),
-        bottom_toolbar=lambda: f"Enter new description for project: {project}.",
+        default=default,
+        auto_suggest=threaded_autosuggest([default]),
     )
 
     if not new_desc:
