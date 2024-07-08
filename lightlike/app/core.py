@@ -81,10 +81,10 @@ def _get_maybe_callable(
         for fn in apply:
             fn(_attr)
 
-    if _attr:
+    if _attr is not None:
         return _attr
     else:
-        if default:
+        if default is not None:
             if isinstance(default, cast):
                 return default
             else:
@@ -347,7 +347,7 @@ def _group_help(
     )
 
     lines = help_text.split("\n")
-    if lines:
+    if lines != [""]:
         yield ReplHighlighter()(
             render(cleandoc("\n".join(map(lambda l: l.replace("\n", " "), lines))))
         )

@@ -2,7 +2,9 @@ import typing as t
 from datetime import datetime
 
 import click
+import rtoml
 from prompt_toolkit import prompt
+from prompt_toolkit.styles import Style
 from pytz import timezone
 from rich import box, get_console
 from rich import print as rprint
@@ -16,7 +18,7 @@ from rich.text import Text
 
 from lightlike.app.config import AppConfig
 from lightlike.app.core import FormattedCommand
-from lightlike.internal import utils
+from lightlike.internal import constant, utils
 
 __all__: t.Sequence[str] = ("eval", "calendar")
 
@@ -124,7 +126,12 @@ def eval_(args: list[str], multiline_prompt: bool) -> None:
                 prompt(
                     message="",
                     multiline=True,
-                    style=AppConfig().prompt_style,
+                    style=Style.from_dict(
+                        utils.update_dict(
+                            rtoml.load(constant.PROMPT_STYLE),
+                            AppConfig().get("prompt", "style", default={}),
+                        )
+                    ),
                 )
             )
         else:

@@ -3,7 +3,7 @@ import typing as t
 __all__: t.Sequence[str] = (
     "DEFAULT_CONFIG",
     "CONSOLE",
-    "PROMPT",
+    "PROMPT_STYLE",
     "_CONSOLE_SVG_FORMAT",
 )
 
@@ -192,12 +192,8 @@ repr_uuid = "not bold bright_yellow"
 """
 
 
-PROMPT: str = """
-cursor-shape = "BLOCK"
-
-[style]
+PROMPT_STYLE: str = """
 "" = "fg:#f0f0ff"
-
 prompt = "fg:#f0f0ff"
 "prompt.user" = "fg:#bfabff bold"
 "prompt.at" = "fg:#f0f0ff"
@@ -303,7 +299,7 @@ _CONSOLE_SVG_FORMAT = """\
     </clipPath>
     {lines}
     </defs>
-    
+
     {backgrounds}
     <g class="{unique_id}-matrix">
     {matrix}

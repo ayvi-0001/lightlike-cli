@@ -5,8 +5,11 @@ import typing as t
 from inspect import cleandoc
 from pathlib import Path
 
+import rtoml
 from google.auth.exceptions import DefaultCredentialsError
 from google.cloud.bigquery import Client
+from prompt_toolkit.cursor_shapes import CursorShape
+from prompt_toolkit.styles import Style
 from pytz import timezone
 from rich import get_console
 from rich import print as rprint
@@ -19,7 +22,7 @@ from lightlike import _console
 from lightlike.app import _questionary
 from lightlike.app.auth import AuthPromptSession, _Auth
 from lightlike.app.config import AppConfig
-from lightlike.internal import markup, utils
+from lightlike.internal import constant, markup, utils
 from lightlike.internal.enums import CredentialsSource
 
 if t.TYPE_CHECKING:
@@ -132,8 +135,13 @@ def _select_credential_source() -> str | None | t.NoReturn:
         source: str = _questionary.select(
             message="Select GCP project.",
             choices=choices,
-            style=AppConfig().prompt_style,
-            cursor=AppConfig().cursor_shape,
+            style=Style.from_dict(
+                utils.update_dict(
+                    rtoml.load(constant.PROMPT_STYLE),
+                    AppConfig().get("prompt", "style", default={}),
+                )
+            ),
+            cursor=CursorShape.BLOCK,
             default=current_setting if current_setting in choices else None,
         )
 
@@ -161,8 +169,13 @@ def _select_project(client: Client) -> str:
     select = _questionary.select(
         message="Select GCP project.",
         choices=list(map(project_display, projects)),
-        style=AppConfig().prompt_style,
-        cursor=AppConfig().cursor_shape,
+        style=Style.from_dict(
+            utils.update_dict(
+                rtoml.load(constant.PROMPT_STYLE),
+                AppConfig().get("prompt", "style", default={}),
+            )
+        ),
+        cursor=CursorShape.BLOCK,
         instruction="",
         use_indicator=True,
     )

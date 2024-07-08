@@ -3,7 +3,10 @@ from __future__ import annotations
 import typing as t
 from datetime import datetime
 
+import rtoml
+from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.shortcuts import PromptSession
+from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import Validator
 from pytz import timezone
 
@@ -11,7 +14,7 @@ from lightlike.app import cursor, dates, shell_complete, validate
 from lightlike.app.autosuggest import threaded_autosuggest
 from lightlike.app.config import AppConfig
 from lightlike.app.key_bindings import PROMPT_BINDINGS
-from lightlike.internal import appdir, utils
+from lightlike.internal import appdir, constant, utils
 
 __all__: t.Sequence[str] = ("PromptFactory",)
 
@@ -22,9 +25,14 @@ T = t.TypeVar("T", bound="PromptFactory")
 class PromptFactory(PromptSession[t.Any]):
     def __init__(self, **prompt_kwargs: t.Any) -> None:
         super().__init__(**prompt_kwargs)
-        self.style = AppConfig().prompt_style
+        self.style = Style.from_dict(
+            utils.update_dict(
+                rtoml.load(constant.PROMPT_STYLE),
+                AppConfig().get("prompt", "style", default={}),
+            )
+        )
         self.history = appdir.REPL_FILE_HISTORY()
-        self.cursor = AppConfig().cursor_shape
+        self.cursor = CursorShape.BLOCK
         self.complete_in_thread = True
         self.validate_while_typing = True
         self.complete_while_typing = True

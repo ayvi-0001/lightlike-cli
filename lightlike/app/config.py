@@ -9,11 +9,9 @@ from threading import Lock
 
 import rtoml
 from fasteners import ReaderWriterLock
-from prompt_toolkit.cursor_shapes import CursorShape
-from prompt_toolkit.styles import Style
 
 from lightlike.__about__ import __config__
-from lightlike.internal import constant, utils
+from lightlike.internal import utils
 
 if t.TYPE_CHECKING:
     from fasteners import ReaderWriterLock
@@ -46,18 +44,6 @@ class AppConfig(metaclass=_Singleton):
 
         with self._rw_lock.read_lock():
             self.config: dict[str, t.Any] = self.load()
-
-        self._prompt_config = utils.update_dict(
-            rtoml.load(constant.PROMPT), self.config.get("prompt", {})
-        )
-        self.prompt_style: Style = Style.from_dict(
-            self._prompt_config["style"],
-        )
-        self.cursor_shape: CursorShape = getattr(
-            CursorShape,
-            self._prompt_config["cursor-shape"],
-            CursorShape.BLOCK,
-        )
 
     def __setitem__(self, __key: str, __val: t.Any) -> None:
         self.config[__key] = __val

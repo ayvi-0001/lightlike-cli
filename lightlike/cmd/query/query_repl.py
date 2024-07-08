@@ -5,8 +5,10 @@ from datetime import datetime
 from os import getenv
 
 import click
+import rtoml
 from prompt_toolkit.lexers import PygmentsLexer
 from prompt_toolkit.shortcuts import CompleteStyle, PromptSession
+from prompt_toolkit.styles import Style
 from rich import box, get_console
 from rich.console import Console
 from rich.filesize import decimal
@@ -21,7 +23,7 @@ from lightlike.app.routines import CliQueryRoutines
 from lightlike.cmd.query.completers import query_repl_completer
 from lightlike.cmd.query.key_bindings import QUERY_BINDINGS
 from lightlike.cmd.query.lexer import BqSqlLexer
-from lightlike.internal import appdir, markup
+from lightlike.internal import appdir, constant, markup, utils
 from lightlike.internal.constant import _CONSOLE_SVG_FORMAT
 
 if t.TYPE_CHECKING:
@@ -96,7 +98,12 @@ def _build_query_session(
     completer: "Completer", **prompt_kwargs: t.Any
 ) -> PromptSession[t.Any]:
     session: PromptSession[str] = PromptSession(
-        style=AppConfig().prompt_style,
+        style=Style.from_dict(
+            utils.update_dict(
+                rtoml.load(constant.PROMPT_STYLE),
+                AppConfig().get("prompt", "style", default={}),
+            )
+        ),
         refresh_interval=1,
         completer=completer,
         bottom_toolbar=cursor.bottom_toolbar,

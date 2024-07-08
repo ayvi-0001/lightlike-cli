@@ -7,15 +7,18 @@ from hashlib import sha3_256, sha256
 from json import JSONDecodeError, loads
 from os import urandom
 
+import rtoml
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives.kdf.pbkdf2 import (  # type: ignore[attr-defined] # fmt: skip
     PBKDF2HMAC,
     hashes,
 )
 from prompt_toolkit import PromptSession
+from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.keys import Keys
+from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import Validator
 from rich import get_console
 from rich import print as rprint
@@ -24,7 +27,7 @@ from rich.panel import Panel
 from rich.text import Text
 
 from lightlike.app.config import AppConfig
-from lightlike.internal import markup, utils
+from lightlike.internal import constant, markup, utils
 from lightlike.internal.enums import CredentialsSource
 
 if t.TYPE_CHECKING:
@@ -175,8 +178,13 @@ class AuthPromptSession:
 
         session: PromptSession[str] = PromptSession(
             message="(service-account-key) $ ",
-            style=AppConfig().prompt_style,
-            cursor=AppConfig().cursor_shape,
+            style=Style.from_dict(
+                utils.update_dict(
+                    rtoml.load(constant.PROMPT_STYLE),
+                    AppConfig().get("prompt", "style", default={}),
+                )
+            ),
+            cursor=CursorShape.BLOCK,
             multiline=True,
             refresh_interval=1,
             erase_when_done=True,

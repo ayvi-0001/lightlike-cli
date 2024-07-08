@@ -28,7 +28,11 @@ from functools import partial
 from pathlib import Path
 
 import click
+import rtoml
 from fasteners import InterProcessLock, try_lock
+from prompt_toolkit.cursor_shapes import CursorShape
+from prompt_toolkit.shortcuts import CompleteStyle
+from prompt_toolkit.styles import Style
 from pytz import timezone
 from rich import get_console
 from rich.traceback import install
@@ -42,7 +46,7 @@ _console.reconfigure()
 from lightlike.__about__ import __config__, __lock__, __version__
 from lightlike.app import render
 from lightlike.app.core import LazyAliasedGroup
-from lightlike.internal import appdir
+from lightlike.internal import appdir, constant, utils
 
 __all__: t.Sequence[str] = ("lightlike",)
 
@@ -90,8 +94,6 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
             appdir.console_log_error(error, notify=True, patch_stdout=True)
             sys.exit(2)
 
-        from prompt_toolkit.shortcuts import CompleteStyle
-
         from lightlike.app import call_on_close, cursor, dates, shell_complete
         from lightlike.app.client import get_client
         from lightlike.app.config import AppConfig
@@ -104,7 +106,7 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
 
         console = get_console()
 
-        _append_paths(config=AppConfig().get("cli", "append_path", "paths"))
+        _append_paths(paths=AppConfig().get("cli", "append_path", "paths"))
 
         not _console.QUIET_START and console.log("Authorizing BigQuery Client")
         get_client()
@@ -115,8 +117,13 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
             history=appdir.REPL_FILE_HISTORY(),
             bottom_toolbar=cursor.bottom_toolbar,
             rprompt=cursor.rprompt,
-            style=AppConfig().prompt_style,
-            cursor=AppConfig().cursor_shape,
+            style=Style.from_dict(
+                utils.update_dict(
+                    rtoml.load(constant.PROMPT_STYLE),
+                    AppConfig().get("prompt", "style", default={}),
+                )
+            ),
+            cursor=CursorShape.BLOCK,
             key_bindings=PROMPT_BINDINGS,
             refresh_interval=1,
             complete_in_thread=True,
@@ -127,7 +134,7 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
             reserve_space_for_menu=AppConfig().get(
                 "settings",
                 "reserve_space_for_menu",
-                default=7,
+                default=10,
             ),
             complete_style=t.cast(
                 CompleteStyle,
@@ -212,13 +219,13 @@ def _build_lazy_subcommands(config: dict[str, str] | None = None) -> dict[str, s
     return config
 
 
-def _append_paths(config: dict[str, str] | None) -> None:
+def _append_paths(paths: list[str] | None) -> None:
     # Commands anywhere on the local machine can be loaded through lazy subcommands,
     # as long as it is on path. There is a key in the config file to add additional paths,
     # before the cli runs.
     try:
-        if config:
-            for path in config:
+        if paths:
+            for path in paths:
                 sys.path.append(path)
                 appdir._log().debug(f"{path} added to path")
     except Exception as error:
