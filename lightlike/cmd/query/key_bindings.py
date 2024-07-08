@@ -7,7 +7,7 @@ from prompt_toolkit.filters import Condition
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.keys import Keys
 
-__all__: t.Sequence[str] = ("PROMPT_BINDINGS", "QUERY_BINDINGS")
+__all__: t.Sequence[str] = ("QUERY_BINDINGS",)
 
 
 QUERY_BINDINGS = KeyBindings()

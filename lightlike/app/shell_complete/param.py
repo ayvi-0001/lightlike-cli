@@ -56,6 +56,14 @@ class Param:
         return completion_items
 
 
+class LiteralEvalOption(click.Option):
+    def type_cast_value(self, ctx: click.Context, value: t.Any) -> t.Any:
+        try:
+            return ast.literal_eval(value)
+        except:
+            raise click.BadParameter(value)
+
+
 class LiteralEvalArg(click.Argument):
     def type_cast_value(self, ctx: click.Context, value: t.Any) -> t.Any:
         try:
