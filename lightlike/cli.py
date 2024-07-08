@@ -144,8 +144,9 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
 
         repl_kwargs = dict(
             prompt_kwargs=prompt_kwargs,
-            completer_callable=shell_complete.repl,
-            dynamic_completer_callable=shell_complete.dynamic_completer,
+            completer_callable=lambda g, c, e: shell_complete.dynamic_completer(
+                shell_complete.repl(g, c, e)
+            ),
             format_click_exceptions_callable=_format_click_exception,
             shell_config_callable=lambda: AppConfig().get("system-command", "shell"),
             pass_unknown_commands_to_shell=True,
