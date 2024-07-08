@@ -7,11 +7,11 @@ import click
 from more_itertools import first, last
 from prompt_toolkit import PromptSession
 from prompt_toolkit.application import get_app
-from prompt_toolkit.completion import Completer
 from rich import print as rprint
 
 if t.TYPE_CHECKING:
     from prompt_toolkit.buffer import Buffer
+    from prompt_toolkit.completion import Completer
 
 __all__: t.Sequence[str] = ("repl",)
 
@@ -20,30 +20,32 @@ def repl(
     # fmt:off
     ctx: click.Context,
     prompt_kwargs: dict[str, t.Any],
-    completer_callable: t.Callable[[click.Group, click.Context, t.Callable[[Exception], object] | None], Completer],
-    dynamic_completer_callable: t.Callable[..., Completer] | None = None,
+    completer_callable: t.Callable[[click.Group, click.Context, t.Callable[[Exception], object] | None], "Completer"],
     format_click_exceptions_callable: t.Callable[[click.ClickException], object] | None = None,
     shell_config_callable: t.Callable[[], str] | None = None,
     pass_unknown_commands_to_shell: bool = True,
     uncaught_exceptions_callable: t.Callable[[Exception], object] | None = None,
     # fmt:on
 ) -> None:
-    group_ctx: click.Context = ctx
-
+    """
+    :param prompt_kwargs: Dictionary containing keyword arguments passed to prompt_toolkit.PromptSession
+    :param completer_callable: A callable that takes click.Group and click.Context as the first 2 args,\
+                               and an optional callable for unhandled exceptions, that takes only an exception as an arg.
+    :param format_click_exceptions_callable: A callable that handles any exceptions derived from click.ClickException.
+    :param shell_config_callable: An optional callable to configure the default shell used for system commands.
+    :param pass_unknown_commands_to_shell: Unrecognized commands get passed to the shell.
+    :param uncaught_exceptions_callable: A callable to handle any non-click exceptions. This also gets passed to the completer callable.
+    """
     if ctx.parent and not isinstance(ctx.command, click.Group):
-        group_ctx = ctx.parent
+        ctx = ctx.parent
 
-    group: click.Group = t.cast(click.Group, group_ctx.command)
+    group: click.Group = t.cast(click.Group, ctx.command)
 
-    repl_completer: Completer = completer_callable(
-        group, group_ctx, uncaught_exceptions_callable
+    prompt_kwargs.update(
+        completer=completer_callable(group, ctx, uncaught_exceptions_callable)
     )
-    if dynamic_completer_callable:
-        prompt_kwargs.update(completer=dynamic_completer_callable(repl_completer))
-    else:
-        prompt_kwargs.update(completer=repl_completer)
 
-    session: PromptSession[t.Any] = PromptSession(**prompt_kwargs)
+    session: PromptSession[str] = PromptSession(**prompt_kwargs)
 
     while 1:
         try:
@@ -53,15 +55,15 @@ def repl(
 
         if not command:
             continue
-        args: list[str] = split_arg_string(command)
+        args: list[str] = split_arg_string(command, posix=True)
         if not args:
             continue
 
         try:
-            group_ctx.protected_args = args
-            group.invoke(group_ctx)
+            ctx.protected_args = args
+            group.invoke(ctx)
         except click.UsageError as e1:
-            if _is_unknown_command(error=e1) and pass_unknown_commands_to_shell:
+            if _is_unknown_command(e1) and pass_unknown_commands_to_shell:
                 try:
                     _execute_system_command(args, shell_config_callable)
                 except Exception as e3:
