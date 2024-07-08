@@ -70,11 +70,16 @@ credentials_source = "not-set"
 service_account_key = []
 
 [cli.lazy_subcommands]
-calendar = "lightlike.cmd.app.other.calendar"
-cd = "lightlike.cmd.app.default.cd_"
-eval = "lightlike.cmd.app.other.eval_"
-exit = "lightlike.cmd.app.default.exit_"
-help = "lightlike.cmd.app.default.help_"
+calendar = "lightlike.cmd.app.other:calendar"
+eval = "lightlike.cmd.app.other:eval_"
+help = "lightlike.cmd.app.default:help_"
+cd = "lightlike.cmd.app.default:cd_"
+exit = "lightlike.cmd.app.default:exit_"
+app = "lightlike.cmd.app:app"
+bq = "lightlike.cmd.bq:bq"
+project = "lightlike.cmd.project:project"
+summary = "lightlike.cmd.summary:summary"
+timer = "lightlike.cmd.timer:timer"
 
 [cli.append_path]
 paths = []

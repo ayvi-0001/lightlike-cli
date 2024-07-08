@@ -206,14 +206,9 @@ def _build_lazy_subcommands(config: dict[str, str] | None = None) -> dict[str, s
         config = {}
 
     default = {
-        "help": "lightlike.cmd.app.default.help_",
-        "cd": "lightlike.cmd.app.default.cd_",
-        "exit": "lightlike.cmd.app.default.exit_",
-        "app": "lightlike.cmd.app.app",
-        "bq": "lightlike.cmd.bq.bq",
-        "project": "lightlike.cmd.project.project",
-        "summary": "lightlike.cmd.summary.summary",
-        "timer": "lightlike.cmd.timer.timer",
+        "help": "lightlike.cmd.app.default:help_",
+        "cd": "lightlike.cmd.app.default:cd_",
+        "exit": "lightlike.cmd.app.default:exit_",
     }
     config.update(default)
 

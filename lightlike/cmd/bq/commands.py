@@ -35,10 +35,10 @@ __all__: t.Sequence[str] = (
     name="snapshot",
     cls=LazyAliasedGroup,
     lazy_subcommands={
-        "create": "lightlike.cmd.bq.snapshot.create",
-        "delete": "lightlike.cmd.bq.snapshot.delete",
-        "list": "lightlike.cmd.bq.snapshot.list_",
-        "restore": "lightlike.cmd.bq.snapshot.restore",
+        "create": "lightlike.cmd.bq.snapshot:create",
+        "delete": "lightlike.cmd.bq.snapshot:delete",
+        "list": "lightlike.cmd.bq.snapshot:list_",
+        "restore": "lightlike.cmd.bq.snapshot:restore",
     },
     short_help="Create/restore snapshots.",
 )

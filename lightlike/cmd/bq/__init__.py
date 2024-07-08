@@ -9,12 +9,12 @@ from lightlike.app.core import LazyAliasedGroup
     name="bq",
     cls=LazyAliasedGroup,
     lazy_subcommands={
-        "snapshot": "lightlike.cmd.bq.commands.snapshot",
-        "query": "lightlike.cmd.bq.commands.query",
-        "init": "lightlike.cmd.bq.commands.init",
-        "show": "lightlike.cmd.bq.commands.show",
-        "projects": "lightlike.cmd.bq.commands.projects",
-        "reset": "lightlike.cmd.bq.commands.reset",
+        "snapshot": "lightlike.cmd.bq.commands:snapshot",
+        "query": "lightlike.cmd.bq.commands:query",
+        "init": "lightlike.cmd.bq.commands:init",
+        "show": "lightlike.cmd.bq.commands:show",
+        "projects": "lightlike.cmd.bq.commands:projects",
+        "reset": "lightlike.cmd.bq.commands:reset",
     },
     short_help="BigQuery client settings & commands.",
 )
