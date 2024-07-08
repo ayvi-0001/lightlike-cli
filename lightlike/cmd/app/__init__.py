@@ -6,16 +6,17 @@ import click
 from lightlike.app.core import LazyAliasedGroup
 
 lazy_subcommands: dict[str, str] = {
-    "config": "lightlike.cmd.app.commands.config",
-    "dir": "lightlike.cmd.app.commands.dir_",
-    "run-bq": "lightlike.cmd.app.commands.run_bq",
-    "inspect-console": "lightlike.cmd.app.commands.inspect_console",
-    "sync": "lightlike.cmd.app.commands.sync",
-    "test": "lightlike.cmd.app.commands.test",
+    "config": "lightlike.cmd.app.commands:config",
+    "dir": "lightlike.cmd.app.commands:dir_",
+    "run-bq": "lightlike.cmd.app.commands:run_bq",
+    "inspect-console": "lightlike.cmd.app.commands:inspect_console",
+    "sync": "lightlike.cmd.app.commands:sync",
+    "test": "lightlike.cmd.app.commands:test",
+    "scheduler": "lightlike.cmd.scheduler:scheduler",
 }
 
 if getenv("LIGHTLIKE_CLI_DEV"):
-    lazy_subcommands["reset-all"] = "lightlike.cmd.app.commands._reset_all"
+    lazy_subcommands["reset-all"] = "lightlike.cmd.app.commands:_reset_all"
 
 
 @click.group(

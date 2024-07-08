@@ -42,9 +42,9 @@ else:
     name="config",
     cls=LazyAliasedGroup,
     lazy_subcommands={
-        "open": "lightlike.cmd.app.config.open_",
-        "set": "lightlike.cmd.app.config.set_",
-        "show": "lightlike.cmd.app.config.show",
+        "open": "lightlike.cmd.app.config:open_",
+        "set": "lightlike.cmd.app.config:set_",
+        "show": "lightlike.cmd.app.config:show",
     },
     short_help=f"Cli config file and settings. {__config}",
     syntax=Syntax(
@@ -240,6 +240,7 @@ def inspect_console(console: Console) -> None:
 )
 @click.option("-a", "--appdata", is_flag=True)
 @click.option("-c", "--cache", is_flag=True)
+@click.option("-q", "--quiet", is_flag=True, default=False, show_default=True)
 @_pass.appdata
 @_pass.cache
 @_pass.console
@@ -249,22 +250,28 @@ def sync(
     _appdata: TimeEntryAppData,
     appdata: bool,
     cache: bool,
+    quiet: bool,
 ) -> None:
     """
     Syncs local files for time entry data, projects, and cache.
 
-    These can be found in the app directory using the app:dir.
+    These can be found in the app directory using the app:dir command.
 
     These tables should only ever be altered through the procedures in this cli.
     If the local files are out of sync with BigQuery, or if logging in from a new location, can use this command to re-sync them.
     """
-    with console.status(markup.status_message("Syncing")) as status:
-        if appdata:
-            status.update(markup.status_message("Syncing appdata"))
-            _appdata.sync()
-        if cache:
-            status.update(markup.status_message("Syncing cache"))
-            _cache.sync()
+    if quiet:
+        _appdata.sync()
+        _cache.sync()
+    else:
+        with console.status(markup.status_message("Syncing")) as status:
+            if appdata:
+                status.update(markup.status_message("Syncing appdata"))
+                _appdata.sync()
+            if cache:
+                status.update(markup.status_message("Syncing cache"))
+                _cache.sync()
+        rprint("[b][green]Sync complete")
 
 
 @click.command(
@@ -311,8 +318,8 @@ def _reset_all(
     name="test",
     cls=LazyAliasedGroup,
     lazy_subcommands={
-        "date-parse": "lightlike.cmd.app.test.date_parse",
-        "date-diff": "lightlike.cmd.app.test.date_diff",
+        "date-parse": "lightlike.cmd.app.test:date_parse",
+        "date-diff": "lightlike.cmd.app.test:date_diff",
     },
     short_help="Test functions.",
 )

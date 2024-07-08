@@ -192,7 +192,7 @@ class LazyAliasedGroup(AliasedGroup):
         import_path: str | None = self.lazy_subcommands.get(cmd_name)
         if not import_path:
             return None
-        modname, cmd_object_name = t.cast(tuple[str, str], import_path.rsplit(".", 1))
+        modname, cmd_object_name = import_path.rsplit(":", 1)
         # do the import
         mod: ModuleType | None = None
         try:

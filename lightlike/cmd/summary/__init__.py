@@ -9,9 +9,9 @@ from lightlike.app.core import LazyAliasedGroup
     name="summary",
     cls=LazyAliasedGroup,
     lazy_subcommands={
-        "table": "lightlike.cmd.summary.commands.summary_table",
-        "csv": "lightlike.cmd.summary.commands.summary_csv",
-        "json": "lightlike.cmd.summary.commands.summary_json",
+        "table": "lightlike.cmd.summary.commands:summary_table",
+        "csv": "lightlike.cmd.summary.commands:summary_csv",
+        "json": "lightlike.cmd.summary.commands:summary_json",
     },
     short_help="View & Save a summary timesheet.",
 )

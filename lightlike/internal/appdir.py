@@ -67,7 +67,7 @@ logging.basicConfig(
     level=logging.DEBUG,
     filename=LOGS / "cli.log",
     filemode="a",
-    format="[%(asctime)s] {%(pathname)s:%(lineno)d}\n%(levelname)s: %(message)s",
+    format="[%(asctime)s] %(pathname)s:%(lineno)d\n%(levelname)s: %(message)s",
     datefmt="%m-%d %H:%M:%S",
 )
 
@@ -118,27 +118,26 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
             update.check_latest_release(v_package, __repo__, __latest_release__)
             last_checked_release = datetime.now()
 
-        not _console.QUIET_START and console.log("Updating config")
+        not _console.QUIET_START and console.log("Checking config")
 
         v_local: VersionTuple = update.extract_version(local_config["app"]["version"])
-        v_local < v_package and console.log(
-            "Updating version: v",
-            markup.repr_number(".".join(map(str, v_package))),
-            sep="",
-        )
 
-        v_local < (0, 9, 0) and update._patch_cache_lt_v_0_9_0(__appdir__)
+        if v_local < v_package:
+            console.log(
+                "Updating version: v",
+                markup.repr_number(".".join(map(str, v_package))),
+                sep="",
+            )
+            v_local < (0, 9, 0) and update._patch_cache_lt_v_0_9_0(__appdir__)
 
-        updated_config = utils.update_dict(
-            original=rtoml.load(constant.DEFAULT_CONFIG),
-            updates=local_config,
-            ignore=["cli", "lazy_subcommands"],
-        )
-        updated_config["app"].update(
-            version=__version__,
-            last_checked_release=last_checked_release,
-        )
-        __config__.write_text(utils._format_toml(updated_config))
+            updated_config = utils.update_dict(
+                rtoml.load(constant.DEFAULT_CONFIG), local_config
+            )
+            updated_config["app"].update(version=__version__)
+            local_config = updated_config
+
+        local_config["app"].update(last_checked_release=last_checked_release)
+        __config__.write_text(utils._format_toml(local_config))
 
     return None
 
