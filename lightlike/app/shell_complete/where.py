@@ -37,8 +37,8 @@ def completer(schema: str, table: str) -> ThreadedCompleter:
 
 class WhereClauseCompleter(WordCompleter):
     __slots__ = ()
-    client: t.ClassVar[t.Callable[..., "Client"]] = get_client
-    fields: t.ClassVar[list[str]] = [
+    client: t.Callable[..., "Client"] = get_client
+    fields: list[str] = [
         "id",
         "date",
         "project",

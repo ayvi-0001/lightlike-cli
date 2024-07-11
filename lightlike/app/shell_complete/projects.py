@@ -31,7 +31,7 @@ AnyProject = t.NewType("AnyProject", str)
 
 
 class Projects(Completer):
-    path: t.ClassVar[Path] = appdir.ENTRY_APPDATA
+    path: Path = appdir.ENTRY_APPDATA
 
     def __init__(self, list_: t.Literal["active", "archived"] | str = "") -> None:
         self.list_ = list_.lower()

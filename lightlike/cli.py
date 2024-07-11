@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# mypy: disable-error-code="import-untyped, func-returns-value"
+# mypy: disable-error-code="import-untyped"
 
 import sys
 import typing as t
@@ -30,12 +30,16 @@ from pathlib import Path
 import click
 import rtoml
 from fasteners import InterProcessLock, try_lock
+from google.cloud import bigquery
 from prompt_toolkit.cursor_shapes import CursorShape
-from prompt_toolkit.shortcuts import CompleteStyle
 from prompt_toolkit.styles import Style
 from pytz import timezone
 from rich import get_console
 from rich.traceback import install
+
+from lightlike.__about__ import __cli_help__, __config__, __lock__, __version__
+
+# isort: split
 
 from lightlike import _console
 
@@ -43,7 +47,6 @@ install(suppress=[click])
 
 _console.reconfigure()
 
-from lightlike.__about__ import __config__, __lock__, __version__
 from lightlike.app import render
 from lightlike.app.core import LazyAliasedGroup
 from lightlike.internal import appdir, constant, utils
@@ -71,7 +74,12 @@ def build_cli(
     @click.pass_context
     def cli(ctx: click.Context) -> None:
         ctx.obj = obj or {}
+
+        get_client: t.Callable[..., bigquery.Client] = ctx.obj["get_client"]
+        get_client()
+
         if ctx.invoked_subcommand is None:
+            _console.if_not_quiet_start(get_console().log, "Starting REPL")
             from lightlike.app._repl import repl
 
             repl(ctx=ctx, **repl_kwargs)
@@ -86,7 +94,7 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
         lock: InterProcessLock = InterProcessLock(lock_path)
 
         _check_lock(lock)
-        render.cli_info()
+        _console.if_not_quiet_start(render.cli_info)
 
         try:
             appdir.validate(__version__, __config__)
@@ -94,56 +102,47 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
             appdir.console_log_error(error, notify=True, patch_stdout=True)
             sys.exit(2)
 
+        from lightlike.app.config import AppConfig  # isort: split # fmt: skip
         from lightlike.app import call_on_close, cursor, dates, shell_complete
         from lightlike.app.client import get_client
-        from lightlike.app.config import AppConfig
         from lightlike.app.core import _format_click_exception
         from lightlike.app.key_bindings import PROMPT_BINDINGS
-        from lightlike.cmd.app.default import general_help
 
-        tzinfo = timezone(AppConfig().get("settings", "timezone"))
-        _console.reconfigure(get_datetime=partial(dates.now, tzinfo=tzinfo))
-
-        console = get_console()
-
-        _append_paths(paths=AppConfig().get("cli", "append_path", "paths"))
-
-        not _console.QUIET_START and console.log("Authorizing BigQuery Client")
-        get_client()
-
-        prompt_kwargs: dict[str, t.Any] = {}
-        prompt_kwargs.update(
-            message=cursor.build,
-            history=appdir.REPL_FILE_HISTORY(),
-            bottom_toolbar=cursor.bottom_toolbar,
-            rprompt=cursor.rprompt,
-            style=Style.from_dict(
-                utils.update_dict(
-                    rtoml.load(constant.PROMPT_STYLE),
-                    AppConfig().get("prompt", "style", default={}),
-                )
-            ),
-            cursor=CursorShape.BLOCK,
-            key_bindings=PROMPT_BINDINGS,
-            refresh_interval=1,
-            complete_in_thread=True,
-            complete_while_typing=True,
-            validate_while_typing=True,
-            enable_system_prompt=True,
-            enable_open_in_editor=True,
-            reserve_space_for_menu=AppConfig().get(
-                "settings",
-                "reserve_space_for_menu",
-                default=10,
-            ),
-            complete_style=t.cast(
-                CompleteStyle,
-                AppConfig().get("settings", "complete_style", default="COLUMN"),
-            ),
+        _console.reconfigure(
+            get_datetime=partial(
+                dates.now, tzinfo=timezone(AppConfig().get("settings", "timezone"))
+            )
         )
 
-        repl_kwargs = dict(
-            prompt_kwargs=prompt_kwargs,
+        repl_kwargs: dict[str, t.Any] = dict(
+            prompt_kwargs=dict(
+                message=cursor.build,
+                history=appdir.REPL_FILE_HISTORY(),
+                bottom_toolbar=cursor.bottom_toolbar,
+                rprompt=cursor.rprompt,
+                style=Style.from_dict(
+                    utils.update_dict(
+                        rtoml.load(constant.PROMPT_STYLE),
+                        AppConfig().get("prompt", "style", default={}),
+                    )
+                ),
+                cursor=CursorShape.BLOCK,
+                key_bindings=PROMPT_BINDINGS,
+                refresh_interval=1,
+                complete_in_thread=True,
+                complete_while_typing=True,
+                validate_while_typing=True,
+                enable_system_prompt=True,
+                enable_open_in_editor=True,
+                reserve_space_for_menu=AppConfig().get(
+                    "settings",
+                    "reserve_space_for_menu",
+                    default=10,
+                ),
+                complete_style=AppConfig().get(
+                    "settings", "complete_style", default="COLUMN"
+                ),
+            ),
             completer_callable=lambda g, c, e: shell_complete.dynamic_completer(
                 shell_complete.repl(g, c, e)
             ),
@@ -157,7 +156,7 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
 
         cli: LazyAliasedGroup = build_cli(
             name=name,
-            help=general_help(),
+            help=__cli_help__,
             repl_kwargs=repl_kwargs,
             lazy_subcommands=_build_lazy_subcommands(
                 config=AppConfig().get("cli", "lazy_subcommands", default={})
@@ -168,14 +167,14 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
                 help_option_names=["-h", "--help"],
             ),
             call_on_close=call_on_close,
+            obj=dict(get_client=get_client),
         )
 
-        with lock:
-            if not _console.QUIET_START:
-                console.log("Starting REPL")
+        _append_paths(paths=AppConfig().get("cli", "append_path", "paths"))
 
-            # If no invoked subcommand, cli is launched through REPL,
-            # Don't show cli name in help/usage contexts.
+        # If no invoked subcommand, cli is launched through REPL,
+        # Don't show cli name in help/usage contexts.
+        with lock:
             cli(prog_name=name if len(sys.argv) > 1 else "")
 
     except Exception as error:
@@ -206,7 +205,6 @@ def _build_lazy_subcommands(config: dict[str, str] | None = None) -> dict[str, s
         config = {}
 
     default = {
-        "help": "lightlike.cmd.app.default:help_",
         "cd": "lightlike.cmd.app.default:cd_",
         "exit": "lightlike.cmd.app.default:exit_",
     }

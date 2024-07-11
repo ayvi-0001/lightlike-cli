@@ -1,4 +1,4 @@
-# mypy: disable-error-code="import-untyped, func-returns-value"
+# mypy: disable-error-code="import-untyped"
 
 import sys
 import typing as t
@@ -45,16 +45,13 @@ __all__: t.Sequence[str] = (
 P = t.ParamSpec("P")
 
 
-def global_console_log(*objects: t.Any) -> None:
-    not _console.QUIET_START and get_console().log(*objects)
-
-
 CLIENT: Client | None = None
 
 
 def get_client(*args: P.args, **kwargs: P.kwargs) -> Client:
     global CLIENT
     if CLIENT is None:
+        _console.if_not_quiet_start(get_console().log, "Authorizing BigQuery Client")
         CLIENT = authorize_client()
     return CLIENT
 
@@ -78,8 +75,10 @@ def authorize_client() -> Client:
                 client = _authorize_from_environment()
 
             case CredentialsSource.not_set:
-                global_console_log(markup.log_error("Client configuration not found"))
-
+                _console.if_not_quiet_start(
+                    get_console().log,
+                    markup.log_error("Client configuration not found"),
+                )
                 with AppConfig().rw() as config:
                     config["client"].update(
                         credentials_source=_select_credential_source()
@@ -189,7 +188,9 @@ def service_account_key_flow() -> tuple[bytes, bytes]:
     salt: bytes | None = AppConfig().get("user", "salt")
 
     if not (encrypted_key and salt):
-        global_console_log("Initializing new service-account config")
+        _console.if_not_quiet_start(
+            get_console().log, "Initializing new service-account config"
+        )
 
         auth: _Auth = _Auth()
 
@@ -229,7 +230,10 @@ def service_account_key_flow() -> tuple[bytes, bytes]:
 
 
 def _authorize_from_service_account_key() -> Client:
-    global_console_log("Getting credentials from service-account-key")
+    console = get_console()
+    _console.if_not_quiet_start(
+        console.log, "Getting credentials from service-account-key"
+    )
 
     encrypted_key, salt = service_account_key_flow()
 
@@ -247,14 +251,16 @@ def _authorize_from_service_account_key() -> Client:
 
     lightlike.app.cursor.GCP_PROJECT = client.project
 
-    global_console_log("Client authenticated")
+    _console.if_not_quiet_start(console.log, "Client authenticated")
     return client
 
 
 def _authorize_from_environment() -> Client:
     import google.auth
 
-    global_console_log("Getting credentials from environment")
+    console = get_console()
+
+    _console.if_not_quiet_start(console.log, "Getting credentials from environment")
     active_project: str = AppConfig().get("client", "active_project")
 
     if active_project != "null" and active_project is not None:
@@ -269,21 +275,27 @@ def _authorize_from_environment() -> Client:
 
         lightlike.app.cursor.GCP_PROJECT = active_project
 
-        global_console_log("Client authenticated")
-        global_console_log("Current project:", markup.code(active_project))
+        _console.if_not_quiet_start(console.log, "Client authenticated")
+        _console.if_not_quiet_start(
+            console.log, "Current project:", markup.code(active_project)
+        )
         return client
 
     else:
         credentials, project_id = google.auth.default()
 
-        global_console_log("Default project:", markup.code(project_id))
+        _console.if_not_quiet_start(
+            console.log, "Default project:", markup.code(project_id)
+        )
 
         if not _questionary.confirm(
             message=f"Continue with project: {project_id}?", auto_enter=True
         ):
             project_id = _select_project(Client(credentials=credentials))
 
-        global_console_log("Current project:", markup.code(project_id))
+        _console.if_not_quiet_start(
+            console.log, "Current project:", markup.code(project_id)
+        )
 
         credentials = credentials.with_quota_project(project_id)
 
@@ -299,7 +311,7 @@ def _authorize_from_environment() -> Client:
 
         lightlike.app.cursor.GCP_PROJECT = client.project
 
-        global_console_log("Client authenticated")
+        _console.if_not_quiet_start(console.log, "Client authenticated")
         return client
 
 
@@ -338,7 +350,8 @@ def provision_bigquery_resources(
         f"View scripts in {link.markup}"
     )
 
-    not (force or yes) and rprint(Padding(confirm_panel, (1, 0, 1, 1)))
+    if not (force or yes):
+        rprint(Padding(confirm_panel, (1, 0, 1, 1)))
 
     def update_config() -> None:
         updates = AppConfig().get("updates")

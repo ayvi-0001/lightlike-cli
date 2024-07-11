@@ -1,4 +1,4 @@
-# mypy: disable-error-code="import-untyped, func-returns-value"
+# mypy: disable-error-code="import-untyped"
 from __future__ import annotations
 
 import re
@@ -43,8 +43,8 @@ P = t.ParamSpec("P")
 
 
 class TimeEntryCache:
-    __slots__: t.ClassVar[t.Sequence[str]] = ("_entries", "_path")
-    _rw_lock: t.ClassVar[ReaderWriterLock] = ReaderWriterLock()
+    __slots__: t.Sequence[str] = ("_entries", "_path")
+    _rw_lock: ReaderWriterLock = ReaderWriterLock()
 
     def __init__(self, path: Path = appdir.CACHE) -> None:
         self._path = path
@@ -343,8 +343,6 @@ class TimeEntryCache:
             self._reset()
 
     def sync(self, debug: bool = False) -> None:
-        from lightlike.app.routines import CliQueryRoutines
-
         routine = CliQueryRoutines()
         running_entries_to_cache = routine._select(
             resource=routine.timesheet_id,
@@ -362,15 +360,14 @@ class TimeEntryCache:
         running_entries: list[dict[str, t.Any]] = []
         paused_entries: list[dict[str, t.Any]] = []
 
+        tzinfo = timezone(AppConfig().get("settings", "timezone"))
+
         active_index: str | None = self.active["id"] if self else None
 
         for row in list(running_entries_to_cache):
             entry = dict(
                 id=row.id,
-                start=dates.astimezone(
-                    row.timestamp_start,
-                    timezone(AppConfig().get("settings", "timezone")),
-                ),
+                start=dates.astimezone(row.timestamp_start, tzinfo),
                 timestamp_paused="null",
                 project=row.project,
                 note=row.note,
@@ -390,14 +387,8 @@ class TimeEntryCache:
             paused_entries.append(
                 dict(
                     id=row.id,
-                    start=dates.astimezone(
-                        row.timestamp_start,
-                        timezone(AppConfig().get("settings", "timezone")),
-                    ),
-                    timestamp_paused=dates.astimezone(
-                        row.timestamp_paused,
-                        timezone(AppConfig().get("settings", "timezone")),
-                    ),
+                    start=dates.astimezone(row.timestamp_start, tzinfo),
+                    timestamp_paused=dates.astimezone(row.timestamp_paused, tzinfo),
                     project=row.project,
                     note=row.note,
                     billable=row.billable,
@@ -629,12 +620,12 @@ class TimeEntryCache:
         return _kwargs
 
 
-not _console.QUIET_START and get_console().log("Validating cache")
+_console.if_not_quiet_start(get_console().log, "Validating cache")
 TimeEntryCache().validate()
 
 
 class _Singleton(type):
-    _instances: t.ClassVar[dict[object, _Singleton]] = {}
+    _instances: dict[object, _Singleton] = {}
     _lock: Lock = Lock()
 
     def __call__(cls, *args: P.args, **kwargs: P.kwargs) -> _Singleton:
@@ -645,7 +636,7 @@ class _Singleton(type):
 
 
 class TimeEntryIdList(metaclass=_Singleton):
-    id_pattern: t.Final[re.Pattern[str]] = re.compile(r"^\w{,40}$")
+    id_pattern: re.Pattern[str] = re.compile(r"^\w{,40}$")
 
     @cached_property
     def ids(self) -> list[str]:
@@ -711,7 +702,8 @@ class TimeEntryIdList(metaclass=_Singleton):
 
 
 class TimeEntryAppData:
-    path: t.ClassVar[Path] = appdir.ENTRY_APPDATA
+    def __init__(self, path: Path = appdir.ENTRY_APPDATA) -> None:
+        self.path = path
 
     def sync(
         self,

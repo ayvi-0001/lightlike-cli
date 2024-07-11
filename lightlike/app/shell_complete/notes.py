@@ -25,7 +25,7 @@ __all__: t.Sequence[str] = (
 
 
 class Notes(Completer):
-    path: t.ClassVar[Path] = appdir.ENTRY_APPDATA
+    path: Path = appdir.ENTRY_APPDATA
 
     def __init__(self, project: str | None = None) -> None:
         self.project = project

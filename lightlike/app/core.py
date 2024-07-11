@@ -153,8 +153,6 @@ class AliasedGroup(click.Group):
 
 
 class LazyAliasedGroup(AliasedGroup):
-    """https://click.palletsprojects.com/en/8.1.x/complex/#using-lazygroup-to-define-a-cli"""
-
     def __init__(
         self,
         lazy_subcommands: dict[str, str] | None = None,

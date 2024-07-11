@@ -60,8 +60,8 @@ class _Auth:
 
 
 class AuthPromptSession:
-    auth_keybinds: t.ClassVar[KeyBindings] = KeyBindings()
-    hidden: t.ClassVar[list[bool]] = [True]
+    auth_keybinds: KeyBindings = KeyBindings()
+    hidden: list[bool] = [True]
 
     @staticmethod
     @auth_keybinds.add(Keys.ControlT, eager=True)

@@ -34,7 +34,7 @@ def query_repl_completer() -> ThreadedCompleter:
 
 class LoopNestedCompleter(Completer):
     __slots__ = ()
-    original_keywords: t.ClassVar[dict[str, t.Any]] = SQL_KEYWORDS
+    original_keywords: dict[str, t.Any] = SQL_KEYWORDS
 
     class _LastNestedWordCompleter(Completer):
         __slots__ = ()

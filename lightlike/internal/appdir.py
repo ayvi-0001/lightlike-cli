@@ -94,7 +94,7 @@ VersionTuple: t.TypeAlias = tuple[int, int, int]
 def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
     console = get_console()
 
-    not _console.QUIET_START and console.log("Validating app directory")
+    _console.if_not_quiet_start(console.log, "Validating app directory")
 
     update._patch_appdir_lt_v_0_9_0(__appdir__, __config__)
 
@@ -114,11 +114,11 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
             last_checked_release
             and last_checked_release.date() < datetime.today().date()
         ):
-            not _console.QUIET_START and console.log("Checking latest release")
+            _console.if_not_quiet_start(console.log, "Checking latest release")
             update.check_latest_release(v_package, __repo__, __latest_release__)
             last_checked_release = datetime.now()
 
-        not _console.QUIET_START and console.log("Checking config")
+        _console.if_not_quiet_start(console.log, "Checking config")
 
         v_local: VersionTuple = update.extract_version(local_config["app"]["version"])
 
@@ -184,6 +184,7 @@ def _initial_build() -> None | t.NoReturn:
         from inspect import cleandoc
 
         from prompt_toolkit.validation import Validator
+        from pytz import all_timezones
         from rich.markdown import Markdown
         from rich.padding import Padding
 
@@ -273,8 +274,6 @@ def _initial_build() -> None | t.NoReturn:
         default_config["user"].update(name=user, host=host)
 
         console.log("Determining timezone from env")
-
-        from pytz import all_timezones
 
         default_timezone = utils._get_local_timezone_string()
         if default_timezone is None:
@@ -373,11 +372,8 @@ def _initial_build() -> None | t.NoReturn:
         console.log("Building app directory")
         __config__.touch(exist_ok=True)
         console.log(f"Writing {__config__}")
-        REPL_HISTORY.touch(exist_ok=True)
         console.log(f"Writing {REPL_HISTORY}")
-        SQL_HISTORY.touch(exist_ok=True)
         console.log(f"Writing {SQL_HISTORY}")
-        CACHE.touch(exist_ok=True)
         console.log(f"Writing {CACHE}")
         console.log("Directory build complete")
 

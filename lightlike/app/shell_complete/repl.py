@@ -24,7 +24,7 @@ def repl(
 
 
 class ReplCompleter(Completer):
-    __slots__: t.ClassVar[t.Sequence[str]] = (
+    __slots__: t.Sequence[str] = (
         "cli",
         "ctx",
         "parsed_args",
