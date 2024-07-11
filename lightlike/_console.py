@@ -21,6 +21,7 @@ __all__: t.Sequence[str] = (
     "QUIET_START",
     "CONSOLE_CONFIG",
     "Highlighter",
+    "if_not_quiet_start",
     "reconfigure",
     "ACTIVE_COMPLETERS",
     "global_completers",
@@ -52,6 +53,11 @@ def _set_quiet_start(config: Path) -> None:
 
 
 _set_quiet_start(__config__)
+
+
+def if_not_quiet_start(fn: t.Callable[..., None], *args: t.Any) -> None:
+    if not QUIET_START:
+        fn(*args)
 
 
 @dataclass()
@@ -115,6 +121,7 @@ def reconfigure(**kwargs: t.Any) -> None:
         style=CONSOLE_CONFIG.style,
         theme=CONSOLE_CONFIG.theme,
         highlighter=Highlighter(),
+        log_time_format="[%H:%M:%S]",
         **kwargs,
     )
 

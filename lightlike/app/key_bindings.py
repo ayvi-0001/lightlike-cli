@@ -158,23 +158,3 @@ def _(event: KeyPressEvent) -> None:
         buffer.complete_next()
     else:
         buffer.start_completion()
-
-
-@prompt_handle("[", "A")
-def _(event: KeyPressEvent) -> None:
-    event.current_buffer.auto_up()
-
-
-@prompt_handle("[", "B")
-def _(event: KeyPressEvent) -> None:
-    event.current_buffer.auto_down()
-
-
-@prompt_handle("[", "D")
-def _(event: KeyPressEvent) -> None:
-    event.current_buffer.cursor_left()
-
-
-@prompt_handle("[", "C")
-def _(event: KeyPressEvent) -> None:
-    event.current_buffer.cursor_right()

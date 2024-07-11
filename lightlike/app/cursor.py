@@ -98,6 +98,7 @@ def bottom_toolbar() -> t.Callable[..., StyleAndTextTuples]:
         ("class:rprompt.entries", f" {_entry_counter()}"),
     ]
 
+        max_width: int = min(columns - fragment_list_width(toolbar) - 20, 50)
 
 def rprompt() -> t.Callable[..., StyleAndTextTuples]:
     global TIMEZONE

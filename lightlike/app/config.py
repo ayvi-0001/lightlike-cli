@@ -13,10 +13,6 @@ from fasteners import ReaderWriterLock
 from lightlike.__about__ import __config__
 from lightlike.internal import utils
 
-if t.TYPE_CHECKING:
-    from fasteners import ReaderWriterLock
-
-
 __all__: t.Sequence[str] = ("AppConfig",)
 
 
@@ -26,7 +22,7 @@ P = t.ParamSpec("P")
 
 
 class _Singleton(type):
-    _instances: t.ClassVar[dict[object, _Singleton]] = {}
+    _instances: dict[object, _Singleton] = {}
     _lock: Lock = Lock()
 
     def __call__(cls, *args: P.args, **kwargs: P.kwargs) -> _Singleton:
@@ -37,7 +33,7 @@ class _Singleton(type):
 
 
 class AppConfig(metaclass=_Singleton):
-    _rw_lock: t.ClassVar[ReaderWriterLock] = ReaderWriterLock()
+    _rw_lock: ReaderWriterLock = ReaderWriterLock()
 
     def __init__(self) -> None:
         self.path: Path = __config__

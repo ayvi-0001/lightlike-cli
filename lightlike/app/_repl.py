@@ -116,6 +116,12 @@ def _execute_system_command(
         buffer.reset(append_to_history=True)
         buffer.delete_before_cursor(len(args2cmdline))
 
+        if shell_config_callable and (shell := shell_config_callable()):
+            if isinstance(shell, str):
+                cmd_prefix = shell
+            elif isinstance(shell, list):
+                cmd_prefix = list2cmdline(shell)
+
         for cmd_args in args2cmdline.split("&&"):
             commands = list(map(lambda c: c.strip(), cmd_args.split("|")))
             processes: list[Popen[t.Any]] = []
@@ -135,11 +141,8 @@ def _execute_system_command(
 
                 try:
                     _cmd: str = list2cmdline(proc_args)
-                    if shell_config_callable and (shell := shell_config_callable()):
-                        if isinstance(shell, str):
-                            _cmd = f'{shell} "{_cmd}"'
-                        elif isinstance(shell, list):
-                            _cmd = f'{list2cmdline(shell)} "{_cmd}"'
+                    if cmd_prefix:
+                        _cmd = f'{cmd_prefix} "{_cmd}"'
 
                     proc: Popen[t.Any] = Popen(  # type: ignore[call-overload]
                         _cmd,
@@ -150,7 +153,6 @@ def _execute_system_command(
                         text=True,
                         close_fds=True,
                     )
-
                 except Exception as e2:
                     print(e2)
                     break

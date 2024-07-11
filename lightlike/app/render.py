@@ -1,5 +1,3 @@
-# mypy: disable-error-code="func-returns-value"
-
 import typing as t
 from contextlib import suppress
 from datetime import date, datetime, time, timedelta
@@ -13,7 +11,7 @@ from rich import print as rprint
 from rich.table import Table
 from rich.text import Text
 
-from lightlike import _console
+from lightlike.__about__ import __appdir__, __appname_sc__, __version__
 from lightlike.internal import appdir, markup
 
 if t.TYPE_CHECKING:
@@ -32,37 +30,18 @@ __all__: t.Sequence[str] = (
 
 
 def cli_info() -> None:
-    if _console.QUIET_START:
-        return
-
-    from lightlike.__about__ import __appdir__, __appname_sc__, __version__
-
     console = get_console()
     console.set_window_title(__appname_sc__)
 
-    console.log(
-        "__appname__[b red]=[/]",
-        markup.repr_attrib_value(__appname_sc__),
-        sep="",
-    )
-    console.log(
-        "__version__[b red]=[/]",
-        markup.repr_number(__version__),
-        sep="",
-    )
+    console.log(f"__appname__[b red]=[/]{__appname_sc__}")
+    console.log(f"__version__[b red]=[/][repr.number]{__version__}")
 
     if LIGHTLIKE_CLI_DEV_USERNAME := getenv("LIGHTLIKE_CLI_DEV_USERNAME"):
         console.log(
-            "__appdir__[b red]=[/]",
-            markup.repr_path(f"/{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike-cli"),
-            sep="",
+            f"__appdir__[b red]=[/][repr.path]/{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike-cli"
         )
     else:
-        console.log(
-            "__appdir__[b red]=[/]",
-            markup.repr_path(__appdir__.as_posix()),
-            sep="",
-        )
+        console.log(f"__appdir__[b red]=[/][repr.path]{__appdir__.as_posix()}")
 
     width = (
         markup.bg(console.width).markup
@@ -75,13 +54,13 @@ def cli_info() -> None:
         else markup.br(console.height).markup
     )
 
-    console.log(
-        f"Console[b red]=[/]<console",
-        f"ConsoleDimensions(width={width} height={height})",
-        f"{console._color_system!s}>",
-    )
-    console.width < 140 and console.log("[dim red]Recommended console width </ 140")
-    console.height < 40 and console.log("[dim red]Recommended console height </ 40")
+    console.log(f"console_width[b red]=[/]{width}")
+    console.log(f"console_height[b red]=[/]{height}")
+
+    if console.width < 140:
+        console.log("[dim red]Recommended console width </ 140")
+    if console.height < 40:
+        console.log("[dim red]Recommended console height </ 40")
 
 
 def query_start_render(

@@ -36,7 +36,7 @@ P = t.ParamSpec("P")
 
 
 class _Singleton(type):
-    _instances: t.ClassVar[dict[object, _Singleton]] = {}
+    _instances: dict[object, _Singleton] = {}
 
     def __call__(cls, *args: P.args, **kwargs: P.kwargs) -> _Singleton:
         if cls not in cls._instances:
@@ -45,12 +45,12 @@ class _Singleton(type):
 
 
 class CliQueryRoutines(metaclass=_Singleton):
-    _client: t.ClassVar[t.Callable[..., "Client"]] = get_client
-    dataset: t.ClassVar[str] = AppConfig().get("bigquery", "dataset")
-    table_timesheet: t.ClassVar[str] = AppConfig().get("bigquery", "timesheet")
-    table_projects: t.ClassVar[str] = AppConfig().get("bigquery", "projects")
-    timesheet_id: t.ClassVar[str] = f"{dataset}.{table_timesheet}"
-    projects_id: t.ClassVar[str] = f"{dataset}.{table_projects}"
+    _client: t.Callable[..., "Client"] = get_client
+    dataset: str = AppConfig().get("bigquery", "dataset")
+    table_timesheet: str = AppConfig().get("bigquery", "timesheet")
+    table_projects: str = AppConfig().get("bigquery", "projects")
+    timesheet_id: str = f"{dataset}.{table_timesheet}"
+    projects_id: str = f"{dataset}.{table_projects}"
 
     def _query_and_wait(
         self,
@@ -660,10 +660,6 @@ class CliQueryRoutines(metaclass=_Singleton):
             status_renderable=status_renderable,
         )
 
-    @property
-    def _resume_time_entry(self) -> str:
-        return f"CALL {self.dataset}.resume_time_entry(@id, @time_resume);"
-
     def resume_time_entry(
         self,
         id: str,
@@ -687,7 +683,7 @@ class CliQueryRoutines(metaclass=_Singleton):
         )
 
         return self._query(
-            target=self._resume_time_entry,
+            target=f"CALL {self.dataset}.resume_time_entry(@id, @time_resume);",
             job_config=job_config,
             wait=wait,
             render=render,
