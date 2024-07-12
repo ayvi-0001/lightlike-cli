@@ -198,6 +198,8 @@ class TimeEntryCache(_Entries):
         with self._rw_lock.read_lock():
             self._entries = rtoml.load(self._path)
 
+        EntriesInMemory().update(self._entries)
+
     def __rich_console__(
         self, console: "Console", options: "ConsoleOptions"
     ) -> "RenderResult":

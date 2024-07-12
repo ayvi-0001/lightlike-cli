@@ -4,12 +4,12 @@ from decimal import Decimal
 from os import getenv
 from pathlib import Path
 
-from prompt_toolkit.application import get_app
+from prompt_toolkit.application import Application, get_app
 from prompt_toolkit.formatted_text import fragment_list_width
 from pytz import timezone
 from rich import get_console
 
-from lightlike.app.cache import TimeEntryCache
+from lightlike.app.cache import EntriesInMemory
 from lightlike.app.config import AppConfig
 from lightlike.app.dates import now, seconds_to_time_parts
 
@@ -49,18 +49,15 @@ def build(message: str | None = None) -> str:
     if not message:
         cursor: StyleAndTextTuples = []
         cwd: Path = Path.cwd()
-        columns: int = get_app().output.get_size().columns
 
         _extend_base(cursor, cwd)
         _extend_active_project(cursor, GCP_PROJECT)
         _extend_git_branch(cursor, cwd)
 
-        cache: TimeEntryCache = TimeEntryCache()
-        if cache:
-            cache_project: str = cache.project
-            stopwatch: str = _stopwatch(cache)
-            _set_title(stopwatch, cache_project)
-            _extend_stopwatch(cursor, stopwatch, cache_project, cache.note, columns)
+        if cache := EntriesInMemory():
+            timer: str = _timer(cache)
+            get_console().set_window_title(timer)
+            _extend_timer(cursor, timer)
 
         _extend_cursor_pointer(cursor)
 
@@ -69,18 +66,15 @@ def build(message: str | None = None) -> str:
     def build_with_message(message: str | None = message) -> StyleAndTextTuples:
         cursor: StyleAndTextTuples = []
         cwd: Path = Path.cwd()
-        columns: int = get_app().output.get_size().columns
 
         _extend_base(cursor, cwd)
         _extend_active_project(cursor, GCP_PROJECT)
         _extend_git_branch(cursor, cwd)
 
-        cache: TimeEntryCache = TimeEntryCache()
-        if cache:
-            cache_project: str = cache.project
-            stopwatch: str = _stopwatch(cache)
-            _set_title(stopwatch, cache_project)
-            _extend_stopwatch(cursor, stopwatch, cache_project, cache.note, columns)
+        if cache := EntriesInMemory():
+            timer: str = _timer(cache)
+            get_console().set_window_title(timer)
+            _extend_timer(cursor, timer)
 
         _extend_cursor_pointer(cursor, message or "")
 
@@ -90,18 +84,102 @@ def build(message: str | None = None) -> str:
 
 
 def bottom_toolbar() -> t.Callable[..., StyleAndTextTuples]:
-    padding = " " * (get_app().output.get_size().columns)
-    return lambda: [
-        ("bg:default noreverse noitalic nounderline noblink", f"{padding}\n"),
-        ("class:rprompt.entries", f" {_entry_counter()}"),
-    ]
+    app: Application[t.Any] = get_app()
+    cache = EntriesInMemory()
+    columns: int = app.output.get_size().columns
+    toolbar: StyleAndTextTuples = []
 
-        max_width: int = min(columns - fragment_list_width(toolbar) - 20, 50)
+    if cache:
+        toolbar.extend([("class:rprompt.entries", f" A[{cache.id[:8]}")])
+        toolbar.extend([("class:rprompt.entries", f":{cache.project}")])
+
+        cache_note: str = cache.note
+        if cache_note:
+            max_width: int = min(columns - fragment_list_width(toolbar) - 20, 50)
+            note: str = (
+                f"{cache_note[:max_width].strip()}…"
+                if len(cache_note) > max_width
+                else cache_note
+            )
+            toolbar.extend([("class:rprompt.entries", f':"{note}"')])
+
+        toolbar.extend([("class:rprompt.entries", "] |")])
+
+    display_running: str = f"R[{cache.count_running_entries if cache else 0}]"
+    display_paused: str = f"P[{cache.count_paused_entries}]"
+    sep = " | " if all([display_running, display_paused]) else ""
+
+    toolbar.extend(
+        [("class:rprompt.entries", f" {display_running}{sep}{display_paused}")]
+    )
+
+    blank_line = (
+        "bg:default noreverse noitalic nounderline noblink",
+        f"{' ' * (columns)}\n",
+    )
+    toolbar.insert(0, blank_line)
+
+    return lambda: toolbar
+
 
 def rprompt() -> t.Callable[..., StyleAndTextTuples]:
     global TIMEZONE
-    timestamp: str = now(TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
+    timestamp: str = now(TIMEZONE).strftime("%H:%M:%S")
     return lambda: [("", f"\n"), ("class:rprompt.clock", "[%s]" % timestamp)]
+
+
+def _extend_git_branch(cursor: StyleAndTextTuples, cwd: Path) -> None:
+    global BRANCH, PATH
+    if BRANCH:
+        if not cwd.is_relative_to(PATH):
+            PATH, BRANCH = "", ""
+            with AppConfig().rw() as config:
+                config["git"].update(path=PATH, branch=BRANCH)
+    else:
+        if (head_dir := cwd / ".git" / "HEAD").exists():
+            PATH = head_dir.parent.parent.resolve().as_posix()
+            BRANCH = head_dir.read_text().splitlines()[0].partition("refs/heads/")[2]
+            with AppConfig().rw() as config:
+                config["git"].update(path=PATH, branch=BRANCH)
+
+    BRANCH and cursor.extend(
+        [
+            ("class:prompt.branch.parenthesis", "("),
+            ("class:prompt.branch.name", BRANCH),
+            ("class:prompt.branch.parenthesis", ") "),
+        ]
+    )
+
+
+def _extend_cursor_pointer(cursor: StyleAndTextTuples, message: str = "") -> None:
+    pointer = f"\n{message}{'$ ' if not message else ' $ '}"
+    cursor.extend([("class:cursor", pointer)])
+
+
+def _extend_timer(cursor: StyleAndTextTuples, timer: str) -> None:
+    cursor.extend([("class:prompt.timer", timer)])
+
+
+def _timer(cache: EntriesInMemory) -> str:
+    paused_hours: Decimal = cache.paused_hours
+    start: datetime = cache.start
+
+    global TIMEZONE
+    if paused_hours:
+        phr, pmin, psec = seconds_to_time_parts(paused_hours * Decimal(3600))
+        paused_delta: timedelta = timedelta(hours=phr, minutes=pmin, seconds=psec)
+        return f" {(now(TIMEZONE) - start) - paused_delta} "
+    else:
+        return f" {now(TIMEZONE) - start} "
+
+
+def _entry_counter(cache: EntriesInMemory) -> str:
+    running: int = cache.count_running_entries
+    paused: int = cache.count_paused_entries
+    display_running: str = f"R[{running if running > 1 or cache.id else 0}]"
+    display_paused: str = f"P[{paused}]"
+    sep = " " if all([display_running, display_paused]) else ""
+    return f"{display_running}{sep}{display_paused}"
 
 
 if all(
@@ -173,58 +251,6 @@ else:
         )
 
 
-def _set_title(stopwatch: str, cache_project: str) -> None:
-    get_console().set_window_title(f"{stopwatch} | {cache_project}")
-
-
-def _stopwatch(cache: TimeEntryCache) -> str:
-    paused_hours: Decimal = cache.paused_hours
-    start: datetime = cache.start
-
-    global TIMEZONE
-    if paused_hours:
-        phr, pmin, psec = seconds_to_time_parts(paused_hours * Decimal(3600))
-        paused_delta: timedelta = timedelta(hours=phr, minutes=pmin, seconds=psec)
-        return f" {(now(TIMEZONE) - start) - paused_delta} "
-    else:
-        return f" {now(TIMEZONE) - start} "
-
-
-def _entry_counter() -> str:
-    cache: TimeEntryCache = TimeEntryCache()
-    running_entries: int = cache.count_running_entries
-    paused_entries: int = cache.count_paused_entries
-    indicator_running: str = (
-        f"Running[{running_entries if running_entries > 1 or cache.id else 0}]"
-    )
-    indicator_paused = f"Paused[{paused_entries}]"
-    separator = " " if all([indicator_running, indicator_paused]) else ""
-    extension = f"{indicator_running}{separator}{indicator_paused}"
-    return extension
-
-
-def _extend_stopwatch(
-    cursor: StyleAndTextTuples,
-    stopwatch: str,
-    cache_project: str,
-    cache_note: str,
-    columns: int,
-) -> None:
-    cursor.extend([("class:prompt.stopwatch", stopwatch)])
-
-    if cache_project:
-        cursor.extend([("class:prompt.stopwatch", f"| {cache_project} ")])
-
-    if cache_note:
-        max_width: int = columns - fragment_list_width(cursor) - 30
-        note: str = (
-            f"{cache_note[:max_width].strip()}…"
-            if len(cache_note) > max_width
-            else cache_note
-        )
-        cursor.extend([("class:prompt.note", f" | {note} ")])
-
-
 if LIGHTLIKE_CLI_DEV_GCP_PROJECT := getenv("LIGHTLIKE_CLI_DEV_GCP_PROJECT"):
 
     def _extend_active_project(cursor: StyleAndTextTuples, project: str) -> None:
@@ -246,34 +272,6 @@ else:
                 ("class:prompt.project.parenthesis", ") "),
             ]
         )
-
-
-def _extend_git_branch(cursor: StyleAndTextTuples, cwd: Path) -> None:
-    global BRANCH, PATH
-    if BRANCH:
-        if not cwd.is_relative_to(PATH):
-            PATH, BRANCH = "", ""
-            with AppConfig().rw() as config:
-                config["git"].update(path=PATH, branch=BRANCH)
-    else:
-        if (head_dir := cwd / ".git" / "HEAD").exists():
-            PATH = head_dir.parent.parent.resolve().as_posix()
-            BRANCH = head_dir.read_text().splitlines()[0].partition("refs/heads/")[2]
-            with AppConfig().rw() as config:
-                config["git"].update(path=PATH, branch=BRANCH)
-
-    BRANCH and cursor.extend(
-        [
-            ("class:prompt.branch.parenthesis", "("),
-            ("class:prompt.branch.name", BRANCH),
-            ("class:prompt.branch.parenthesis", ") "),
-        ]
-    )
-
-
-def _extend_cursor_pointer(cursor: StyleAndTextTuples, message: str = "") -> None:
-    pointer = f"\n{message}{'$ ' if not message else ' $ '}"
-    cursor.extend([("class:cursor", pointer)])
 
 
 # CONSOLE_WIDTH: int = get_console().width
