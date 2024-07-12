@@ -1,5 +1,3 @@
-# mypy: disable-error-code="import-untyped"
-
 import typing as t
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta

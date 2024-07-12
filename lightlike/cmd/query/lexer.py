@@ -1,5 +1,3 @@
-# mypy: disable-error-code="import-untyped"
-
 import re
 from typing import Sequence
 

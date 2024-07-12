@@ -102,3 +102,6 @@ pythonpath = ["."]
 [tool.pytest]
 log_cli = true
 log_level = "DEBUG"
+
+[tool.mypy]
+disable_error_code = ["import-untyped", "func-returns-value", "no-untyped-call"]

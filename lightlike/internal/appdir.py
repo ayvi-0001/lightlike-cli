@@ -1,5 +1,3 @@
-# mypy: disable-error-code="func-returns-value, import-untyped"
-
 import logging
 import sys
 import typing as t

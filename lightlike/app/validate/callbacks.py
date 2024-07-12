@@ -1,5 +1,3 @@
-# mypy: disable-error-code="func-returns-value, import-untyped"
-
 import typing as t
 from datetime import datetime
 from inspect import cleandoc

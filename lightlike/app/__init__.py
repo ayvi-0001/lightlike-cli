@@ -7,7 +7,7 @@ def call_on_close() -> t.NoReturn:
     from lightlike.app.client import get_client
     from lightlike.internal import appdir
 
-    get_client().close()  # type:ignore[no-untyped-call]
+    get_client().close()
     appdir._log().debug("Closed Bigquery client HTTPS connection.")
     appdir._log().debug("Exiting gracefully.")
     logging.shutdown()

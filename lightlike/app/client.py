@@ -1,5 +1,3 @@
-# mypy: disable-error-code="import-untyped"
-
 import sys
 import typing as t
 from inspect import cleandoc
@@ -236,7 +234,7 @@ def _authorize_from_service_account_key() -> Client:
 
     encrypted_key, salt = service_account_key_flow()
 
-    client: Client = Client.from_service_account_info(  # type:ignore[no-untyped-call]
+    client: Client = Client.from_service_account_info(
         AuthPromptSession().authenticate(salt=salt, encrypted_key=encrypted_key)
     )
 

@@ -1,5 +1,3 @@
-# mypy: disable-error-code="func-returns-value"
-
 import re
 import typing as t
 from contextlib import suppress
