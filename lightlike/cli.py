@@ -79,7 +79,7 @@ def build_cli(
         get_client()
 
         if ctx.invoked_subcommand is None:
-            _console.if_not_quiet_start(get_console().log, "Starting REPL")
+            _console.if_not_quiet_start(get_console().log)("Starting REPL")
             from lightlike.app._repl import repl
 
             repl(ctx=ctx, **repl_kwargs)
@@ -94,7 +94,7 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
         lock: InterProcessLock = InterProcessLock(lock_path)
 
         _check_lock(lock)
-        _console.if_not_quiet_start(render.cli_info)
+        _console.if_not_quiet_start(render.cli_info)()
 
         try:
             appdir.validate(__version__, __config__)

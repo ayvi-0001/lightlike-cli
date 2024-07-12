@@ -619,8 +619,12 @@ class TimeEntryCache:
         return _kwargs
 
 
-_console.if_not_quiet_start(get_console().log, "Validating cache")
-TimeEntryCache().validate()
+def __validate_cache() -> None:
+    _console.if_not_quiet_start(get_console().log)("Validating cache")
+    TimeEntryCache().validate()
+
+
+__validate_cache()
 
 
 class TimeEntryIdList(metaclass=factory._Singleton):

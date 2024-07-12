@@ -51,7 +51,7 @@ CLIENT: Client | None = None
 def get_client(*args: P.args, **kwargs: P.kwargs) -> Client:
     global CLIENT
     if CLIENT is None:
-        _console.if_not_quiet_start(get_console().log, "Authorizing BigQuery Client")
+        _console.if_not_quiet_start(get_console().log)("Authorizing BigQuery Client")
         CLIENT = authorize_client()
     return CLIENT
 
@@ -75,9 +75,8 @@ def authorize_client() -> Client:
                 client = _authorize_from_environment()
 
             case CredentialsSource.not_set:
-                _console.if_not_quiet_start(
-                    get_console().log,
-                    markup.log_error("Client configuration not found"),
+                _console.if_not_quiet_start(get_console().log)(
+                    markup.log_error("Client configuration not found")
                 )
                 with AppConfig().rw() as config:
                     config["client"].update(
@@ -188,8 +187,8 @@ def service_account_key_flow() -> tuple[bytes, bytes]:
     salt: bytes | None = AppConfig().get("user", "salt")
 
     if not (encrypted_key and salt):
-        _console.if_not_quiet_start(
-            get_console().log, "Initializing new service-account config"
+        _console.if_not_quiet_start(get_console().log)(
+            "Initializing new service-account config"
         )
 
         auth: _Auth = _Auth()
@@ -231,8 +230,8 @@ def service_account_key_flow() -> tuple[bytes, bytes]:
 
 def _authorize_from_service_account_key() -> Client:
     console = get_console()
-    _console.if_not_quiet_start(
-        console.log, "Getting credentials from service-account-key"
+    _console.if_not_quiet_start(console.log)(
+        "Getting credentials from service-account-key"
     )
 
     encrypted_key, salt = service_account_key_flow()
@@ -251,7 +250,7 @@ def _authorize_from_service_account_key() -> Client:
 
     lightlike.app.cursor.GCP_PROJECT = client.project
 
-    _console.if_not_quiet_start(console.log, "Client authenticated")
+    _console.if_not_quiet_start(console.log)("Client authenticated")
     return client
 
 
@@ -260,7 +259,7 @@ def _authorize_from_environment() -> Client:
 
     console = get_console()
 
-    _console.if_not_quiet_start(console.log, "Getting credentials from environment")
+    _console.if_not_quiet_start(console.log)("Getting credentials from environment")
     active_project: str = AppConfig().get("client", "active_project")
 
     if active_project != "null" and active_project is not None:
@@ -275,17 +274,17 @@ def _authorize_from_environment() -> Client:
 
         lightlike.app.cursor.GCP_PROJECT = active_project
 
-        _console.if_not_quiet_start(console.log, "Client authenticated")
-        _console.if_not_quiet_start(
-            console.log, "Current project:", markup.code(active_project)
+        _console.if_not_quiet_start(console.log)("Client authenticated")
+        _console.if_not_quiet_start(console.log)(
+            "Current project:", markup.code(active_project)
         )
         return client
 
     else:
         credentials, project_id = google.auth.default()
 
-        _console.if_not_quiet_start(
-            console.log, "Default project:", markup.code(project_id)
+        _console.if_not_quiet_start(console.log)(
+            "Default project:", markup.code(project_id)
         )
 
         if not _questionary.confirm(
@@ -293,8 +292,8 @@ def _authorize_from_environment() -> Client:
         ):
             project_id = _select_project(Client(credentials=credentials))
 
-        _console.if_not_quiet_start(
-            console.log, "Current project:", markup.code(project_id)
+        _console.if_not_quiet_start(console.log)(
+            "Current project:", markup.code(project_id)
         )
 
         credentials = credentials.with_quota_project(project_id)
@@ -311,7 +310,7 @@ def _authorize_from_environment() -> Client:
 
         lightlike.app.cursor.GCP_PROJECT = client.project
 
-        _console.if_not_quiet_start(console.log, "Client authenticated")
+        _console.if_not_quiet_start(console.log)("Client authenticated")
         return client
 
 

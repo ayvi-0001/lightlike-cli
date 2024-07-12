@@ -94,7 +94,7 @@ VersionTuple: t.TypeAlias = tuple[int, int, int]
 def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
     console = get_console()
 
-    _console.if_not_quiet_start(console.log, "Validating app directory")
+    _console.if_not_quiet_start(console.log)("Validating app directory")
 
     update._patch_appdir_lt_v_0_9_0(__appdir__, __config__)
 
@@ -114,11 +114,11 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
             last_checked_release
             and last_checked_release.date() < datetime.today().date()
         ):
-            _console.if_not_quiet_start(console.log, "Checking latest release")
+            _console.if_not_quiet_start(console.log)("Checking latest release")
             update.check_latest_release(v_package, __repo__, __latest_release__)
             last_checked_release = datetime.now()
 
-        _console.if_not_quiet_start(console.log, "Checking config")
+        _console.if_not_quiet_start(console.log)("Checking config")
 
         v_local: VersionTuple = update.extract_version(local_config["app"]["version"])
 
