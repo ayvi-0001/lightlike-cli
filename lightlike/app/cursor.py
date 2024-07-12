@@ -1,5 +1,3 @@
-# mypy: disable-error-code="import-untyped, func-returns-value"
-
 import typing as t
 from datetime import datetime, timedelta
 from decimal import Decimal

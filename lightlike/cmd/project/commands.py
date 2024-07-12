@@ -1,5 +1,3 @@
-# mypy: disable-error-code="func-returns-value"
-
 import typing as t
 
 import click

@@ -1,5 +1,3 @@
-# mypy: disable-error-code="import-untyped"
-
 import sys
 import typing as t
 from dataclasses import dataclass
