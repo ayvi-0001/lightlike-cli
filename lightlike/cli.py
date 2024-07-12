@@ -89,7 +89,7 @@ def build_cli(
 
 def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
     try:
-        lock: InterProcessLock = InterProcessLock(lock_path)
+        lock: InterProcessLock = InterProcessLock(lock_path, logger=appdir._log())
 
         _check_lock(lock)
         _console.if_not_quiet_start(render.cli_info)()

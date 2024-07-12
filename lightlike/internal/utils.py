@@ -113,7 +113,7 @@ def _get_local_timezone_string(default: str | None = None) -> str | None:
     else:
         from tzlocal.unix import _get_localzone_name
 
-        default_timezone = _get_localzone_name()  # type: ignore[no-untyped-call]
+        default_timezone = _get_localzone_name()
 
     return default_timezone or default
 

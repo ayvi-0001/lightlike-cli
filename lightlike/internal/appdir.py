@@ -5,14 +5,13 @@ from datetime import datetime
 from pathlib import Path
 
 import rtoml
-from fasteners import interprocess_locked
 from prompt_toolkit.history import FileHistory, ThreadedHistory
 from rich import get_console
 from rich import print as rprint
 from rich.console import Console
 from rich.text import Text
 
-from lightlike import _console
+from lightlike import _console, _fasteners
 from lightlike.__about__ import (
     __appdir__,
     __appname__,
@@ -27,6 +26,7 @@ from lightlike.internal import constant, markup, update, utils
 
 __all__: t.Sequence[str] = (
     "CACHE",
+    "CACHE_LOCK",
     "ENTRY_APPDATA",
     "SQL_HISTORY",
     "SQL_FILE_HISTORY",
@@ -46,6 +46,8 @@ __appdir__.mkdir(exist_ok=True)
 
 CACHE: t.Final[Path] = __appdir__ / "cache.toml"
 CACHE.touch(exist_ok=True)
+CACHE_LOCK: t.Final[Path] = __appdir__ / "cache.lock"
+CACHE_LOCK.touch(exist_ok=True)
 ENTRY_APPDATA: t.Final[Path] = __appdir__ / "entry_appdata.toml"
 ENTRY_APPDATA.touch(exist_ok=True)
 SQL_HISTORY: t.Final[Path] = __appdir__ / ".sql_history"
@@ -83,12 +85,10 @@ def rmtree(appdata: Path = __appdir__) -> t.NoReturn:
     sys.exit(1)
 
 
-_interprocess_locked: t.Callable[..., t.Any] = interprocess_locked
-
 VersionTuple: t.TypeAlias = tuple[int, int, int]
 
 
-@_interprocess_locked(__appdir__ / "config.lock")  # type:ignore[misc]
+@_fasteners.interprocess_locked(__appdir__ / "config.lock", logger=_log())
 def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
     console = get_console()
 
@@ -122,11 +122,8 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
 
         if v_local < v_package:
             console.log(
-                "Updating version: v",
-                markup.repr_number(".".join(map(str, v_package))),
-                sep="",
+                f"Updating version: [repr.number]{'.'.join(map(str, v_package))}"
             )
-            v_local < (0, 9, 0) and update._patch_cache_lt_v_0_9_0(__appdir__)
 
             updated_config = utils.update_dict(
                 rtoml.load(constant.DEFAULT_CONFIG), local_config

@@ -5,13 +5,13 @@ from functools import partial
 from pathlib import Path
 
 import rtoml
-from fasteners import interprocess_locked
 from rich import get_console
 from rich import reconfigure as rich_reconfigure
 from rich.highlighter import RegexHighlighter, _combine_regex
 from rich.style import Style
 from rich.theme import Theme
 
+from lightlike import _fasteners
 from lightlike.__about__ import __appdir__, __config__
 from lightlike.internal import appdir, constant, enums
 
@@ -30,10 +30,7 @@ __all__: t.Sequence[str] = (
 QUIET_START: bool = False
 
 
-_interprocess_locked: t.Callable[..., t.Any] = interprocess_locked
-
-
-@_interprocess_locked(__appdir__ / "config.lock")  # type: ignore[misc]
+@_fasteners.interprocess_locked(__appdir__ / "config.lock")
 def _set_quiet_start(config: Path) -> None:
     try:
         if config.exists():
