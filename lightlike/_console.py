@@ -55,9 +55,8 @@ def _set_quiet_start(config: Path) -> None:
 _set_quiet_start(__config__)
 
 
-def if_not_quiet_start(fn: t.Callable[..., None], *args: t.Any) -> None:
-    if not QUIET_START:
-        fn(*args)
+def if_not_quiet_start(fn: t.Callable[..., None]) -> t.Callable[..., None]:
+    return fn if not QUIET_START else lambda *a, **kw: None
 
 
 @dataclass()
