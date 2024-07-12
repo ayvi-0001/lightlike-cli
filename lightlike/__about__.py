@@ -29,7 +29,6 @@ __all__: Sequence[str] = (
     "__appname__",
     "__appname_sc__",
     "__config__",
-    "__latest_release__",
     "__lock__",
     "__repo__",
     "__version__",
@@ -73,13 +72,12 @@ def _config_filename() -> str:
     return f".lightlike{('_' + env.lower()) if env else ''}.toml"
 
 
-__version__: Final[str] = "v0.10.0.alpha.5"
+__version__: Final[str] = "v0.10.0a6"
 
 __appname__: Final[str] = _appdir_filename()
 __appname_sc__: Final[str] = "".join(c if c.isalnum() else "_" for c in __appname__.lower())  # fmt: skip
 __config__: Final[Path] = Path.home() / _config_filename()
 __repo__: Final[str] = "https://github.com/ayvi-0001/lightlike-cli"
-__latest_release__: Final[str] = f"{__repo__}/releases/latest"
 __appdir__: Final[Path] = Path(get_app_dir(__appname__, roaming=True))
 __lock__: Final[Path] = __appdir__ / "cli.lock"
 

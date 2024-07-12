@@ -91,7 +91,7 @@ allow-direct-references = true
 path = "lightlike/__about__.py"
 source = "code"
 search-paths = ["lightlike"]
-pattern = "__version__: Final[str] = 'b(?P<version>[^']+)'"
+pattern = "__version__: Final[str] = \"'b(?P<version>[^']+)'\""
 
 [tool.black]
 target-version = ["py311"]

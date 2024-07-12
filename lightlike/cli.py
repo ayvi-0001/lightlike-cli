@@ -35,7 +35,13 @@ from pytz import timezone
 from rich import get_console
 from rich.traceback import install
 
-from lightlike.__about__ import __cli_help__, __config__, __lock__, __version__
+from lightlike.__about__ import (
+    __cli_help__,
+    __config__,
+    __lock__,
+    __repo__,
+    __version__,
+)
 
 # isort: split
 
@@ -95,7 +101,7 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
         _console.if_not_quiet_start(render.cli_info)()
 
         try:
-            appdir.validate(__version__, __config__)
+            appdir.validate(__version__, __config__, __repo__)
         except Exception as error:
             appdir.console_log_error(error, notify=True, patch_stdout=True)
             sys.exit(2)
