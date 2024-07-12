@@ -37,10 +37,158 @@ __all__: t.Sequence[str] = ("TimeEntryCache", "TimeEntryIdList", "TimeEntryAppDa
 
 
 T = t.TypeVar("T")
-P = t.ParamSpec("P")
 
 
-class TimeEntryCache:
+class _Entries:
+    def __init__(self) -> None:
+        self._entries: dict[str, t.Any] = {}
+
+    def __bool__(self) -> bool:
+        return self.id is not None
+
+    @staticmethod
+    def _ifnull(attr: T) -> T | None:
+        return attr if attr != "null" else None
+
+    @property
+    def default(self) -> dict[str, t.Any]:
+        return {
+            "running": {
+                "entries": [
+                    {
+                        "id": None,
+                        "start": None,
+                        "timestamp_paused": None,
+                        "project": None,
+                        "note": None,
+                        "billable": None,
+                        "paused": None,
+                        "paused_hours": "0",
+                    }
+                ],
+            },
+            "paused": {
+                "entries": [],
+            },
+        }
+
+    @property
+    def default_entry(self) -> t.Any:
+        return self.default["running"]["entries"][0]
+
+    @property
+    def count_running_entries(self) -> int:
+        return len(list(filter(lambda e: e != {}, self.running_entries)))
+
+    @property
+    def count_paused_entries(self) -> int:
+        return len(list(filter(lambda e: e != {}, self.paused_entries)))
+
+    @property
+    def running_entries(self) -> list[dict[str, t.Any]]:
+        return t.cast(
+            list[dict[str, t.Any]],
+            self._entries["running"]["entries"],
+        )
+
+    @running_entries.setter
+    def running_entries(self, __val: T) -> None:
+        self._entries["running"]["entries"] = __val
+
+    @property
+    def active(self) -> dict[str, t.Any]:
+        return self.running_entries[0]
+
+    @property
+    def paused_entries(self) -> list[dict[str, t.Any]]:
+        return self._entries["paused"]["entries"]
+
+    @paused_entries.setter
+    def paused_entries(self, __val: T) -> None:
+        self._entries["paused"]["entries"] = __val
+
+    @property
+    def project(self) -> str:
+        return t.cast(str, self._ifnull(self.active["project"]))
+
+    @project.setter
+    def project(self, __val: T) -> None:
+        self.active["project"] = __val
+
+    @property
+    def id(self) -> str:
+        return t.cast(str, self._ifnull(_get._id(self.active)))
+
+    @id.setter
+    def id(self, __val: T) -> None:
+        self.active["id"] = __val
+
+    @property
+    def start(self) -> datetime:
+        start = t.cast(datetime, self._ifnull(self.active["start"]))
+        return start
+
+    @start.setter
+    def start(self, __val: T) -> None:
+        self.active["start"] = __val
+
+    @property
+    def note(self) -> str:
+        return t.cast(str, self._ifnull(self.active["note"]))
+
+    @note.setter
+    def note(self, __val: T) -> None:
+        self.active["note"] = __val
+
+    @property
+    def billable(self) -> bool:
+        return t.cast(bool, self._ifnull(self.active["billable"]))
+
+    @billable.setter
+    def billable(self, __val: T) -> None:
+        self.active["billable"] = __val
+
+    @property
+    def timestamp_paused(self) -> datetime:
+        timestamp_paused = t.cast(
+            datetime, self._ifnull(self.active["timestamp_paused"])
+        )
+        return timestamp_paused
+
+    @timestamp_paused.setter
+    def timestamp_paused(self, __val: T) -> None:
+        self.active["timestamp_paused"] = __val
+
+    @property
+    def paused(self) -> bool:
+        return t.cast(bool, self._ifnull(self.active["paused"]))
+
+    @paused.setter
+    def paused(self, __val: T) -> None:
+        self.active["paused"] = __val
+
+    @property
+    def paused_hours(self) -> Decimal:
+        return Decimal(self._ifnull(self.active["paused_hours"]) or 0)
+
+    @paused_hours.setter
+    def paused_hours(self, __val: T) -> None:
+        self.active["paused_hours"] = f"{__val}"
+
+
+class EntriesInMemory(_Entries, metaclass=factory._Singleton):
+    def __init__(self) -> None:
+        self._entries
+
+    @cached_property
+    def _entries(self) -> dict[str, t.Any]:  # type: ignore[override]
+        return rtoml.load(appdir.CACHE)
+
+    def update(self, _entries: dict[str, t.Any]) -> None:
+        self.__dict__["_entries"] = _entries
+
+
+class TimeEntryCache(_Entries):
     __slots__: t.Sequence[str] = ("_entries", "_path")
     _rw_lock: ReaderWriterLock = ReaderWriterLock()
 
@@ -49,9 +197,6 @@ class TimeEntryCache:
 
         with self._rw_lock.read_lock():
             self._entries = rtoml.load(self._path)
-
-    def __bool__(self) -> bool:
-        return truth(self.id)
 
     def __rich_console__(
         self, console: "Console", options: "ConsoleOptions"
@@ -401,150 +546,18 @@ class TimeEntryCache:
             cache.paused_entries = paused_entries
 
     @property
-    def default(self) -> dict[str, t.Any]:
-        return {
-            "running": {
-                "entries": [
-                    {
-                        "id": None,
-                        "start": None,
-                        "timestamp_paused": None,
-                        "project": None,
-                        "note": None,
-                        "billable": None,
-                        "paused": None,
-                        "paused_hours": "0",
-                    }
-                ],
-            },
-            "paused": {
-                "entries": [],
-            },
-        }
-
-    @property
-    def default_entry(self) -> t.Any:
-        return self.default["running"]["entries"][0]
-
-    @property
-    def count_running_entries(self) -> int:
-        return len(list(filter(lambda e: e != {}, self.running_entries)))
-
-    @property
-    def count_paused_entries(self) -> int:
-        return len(list(filter(lambda e: e != {}, self.paused_entries)))
-
-    @property
-    def running_entries(self) -> list[dict[str, t.Any]]:
-        return t.cast(
-            list[dict[str, t.Any]],
-            self._entries["running"]["entries"],
-        )
-
-    @running_entries.setter
-    def running_entries(self, __val: T) -> None:
-        self._entries["running"]["entries"] = __val
-
-    @property
-    def active(self) -> dict[str, t.Any]:
-        return self.running_entries[0]
-
-    @property
     def paused_entries(self) -> list[dict[str, t.Any]]:
+        paused_entries: list[dict[str, t.Any]] = []
         try:
-            return t.cast(
-                list[dict[str, t.Any]],
-                self._entries["paused"]["entries"],
-            )
+            paused_entries = self._entries["paused"]["entries"]
         except KeyError:
             with self.rw():
-                self._entries["paused"]["entries"] = []
-            return t.cast(
-                list[dict[str, t.Any]],
-                self._entries["paused"]["entries"],
-            )
+                self._entries["paused"] |= {"entries": paused_entries}
+        return paused_entries
 
     @paused_entries.setter
     def paused_entries(self, __val: T) -> None:
         self._entries["paused"]["entries"] = __val
-
-    @property
-    def project(self) -> str:
-        return t.cast(str, self._ifnull(self.active["project"]))
-
-    @project.setter
-    def project(self, __val: T) -> None:
-        self.active["project"] = __val
-
-    @property
-    def id(self) -> str:
-        return t.cast(str, self._ifnull(_get._id(self.active)))
-
-    @id.setter
-    def id(self, __val: T) -> None:
-        self.active["id"] = __val
-
-    @property
-    def start(self) -> datetime:
-        start = t.cast(datetime, self._ifnull(self.active["start"]))
-        start = dates.astimezone(
-            start, timezone(AppConfig().get("settings", "timezone"))
-        )
-        with self.rw() as cache:
-            cache.start = start
-        return start
-
-    @start.setter
-    def start(self, __val: T) -> None:
-        self.active["start"] = __val
-
-    @property
-    def note(self) -> str:
-        return t.cast(str, self._ifnull(self.active["note"]))
-
-    @note.setter
-    def note(self, __val: T) -> None:
-        self.active["note"] = __val
-
-    @property
-    def billable(self) -> bool:
-        return t.cast(bool, self._ifnull(self.active["billable"]))
-
-    @billable.setter
-    def billable(self, __val: T) -> None:
-        self.active["billable"] = __val
-
-    @property
-    def timestamp_paused(self) -> datetime:
-        timestamp_paused = t.cast(
-            datetime, self._ifnull(self.active["timestamp_paused"])
-        )
-        timestamp_paused = dates.astimezone(
-            timestamp_paused, timezone(AppConfig().get("settings", "timezone"))
-        )
-        with self.rw() as cache:
-            cache.timestamp_paused = timestamp_paused
-        return timestamp_paused
-
-    @timestamp_paused.setter
-    def timestamp_paused(self, __val: T) -> None:
-        self.active["timestamp_paused"] = __val
-
-    @property
-    def paused(self) -> bool:
-        return t.cast(bool, self._ifnull(self.active["paused"]))
-
-    @paused.setter
-    def paused(self, __val: T) -> None:
-        self.active["paused"] = __val
-
-    @property
-    def paused_hours(self) -> Decimal:
-        return Decimal(self._ifnull(self.active["paused_hours"]) or 0)
-
-    @paused_hours.setter
-    def paused_hours(self, __val: T) -> None:
-        self.active["paused_hours"] = f"{__val}"
 
     def _map_row_style(self, row: dict[str, t.Any]) -> str:
         if row == self.running_entries[0]:
@@ -553,10 +566,6 @@ class TimeEntryCache:
             return "#888888"
         else:
             return ""
-
-    @staticmethod
-    def _ifnull(attr: T) -> T | None:
-        return attr if attr != "null" else None
 
     @staticmethod
     def _map_column_styles(
