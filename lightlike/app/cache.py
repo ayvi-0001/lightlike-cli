@@ -6,12 +6,11 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from decimal import Decimal
 from functools import cached_property, reduce
-from operator import truth, xor
+from operator import xor
 from pathlib import Path
 
 import click
 import rtoml
-from fasteners import ReaderWriterLock
 from more_itertools import first, locate, map_except, one, unique_everseen
 from prompt_toolkit.patch_stdout import patch_stdout
 from pytz import timezone
@@ -21,7 +20,7 @@ from rich.measure import Measurement
 from rich.table import Table
 from rich.text import Text
 
-from lightlike import _console
+from lightlike import _console, _fasteners
 from lightlike.__about__ import __appname_sc__
 from lightlike.app import _get, dates, render
 from lightlike.app.config import AppConfig
@@ -190,14 +189,11 @@ class EntriesInMemory(_Entries, metaclass=factory._Singleton):
 
 class TimeEntryCache(_Entries):
     __slots__: t.Sequence[str] = ("_entries", "_path")
-    _rw_lock: ReaderWriterLock = ReaderWriterLock()
 
+    @_fasteners.interprocess_read_locked(appdir.CACHE_LOCK, logger=appdir._log())
     def __init__(self, path: Path = appdir.CACHE) -> None:
         self._path = path
-
-        with self._rw_lock.read_lock():
-            self._entries = rtoml.load(self._path)
-
+        self._entries = rtoml.load(self._path)
         EntriesInMemory().update(self._entries)
 
     def __rich_console__(
@@ -279,16 +275,15 @@ class TimeEntryCache(_Entries):
     ) -> Measurement:
         return Measurement(140, options.max_width)
 
+    @_fasteners.interprocess_locked(appdir.CACHE_LOCK, logger=appdir._log())
     @contextmanager
     def rw(self) -> t.Generator[TimeEntryCache, t.Any, None]:
         try:
-            with self._rw_lock.read_lock():
-                yield self
+            yield self
         finally:
-            with self._rw_lock.write_lock():
-                self._path.write_text(self._serialize)
-            with self._rw_lock.read_lock():
-                self._entries = rtoml.load(self._path)
+            self._path.write_text(self._serialize)
+            self._entries = rtoml.load(self._path)
+            EntriesInMemory().update(self._entries)
 
     @property
     def _serialize(self) -> str:

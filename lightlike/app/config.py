@@ -22,11 +22,9 @@ P = t.ParamSpec("P")
 class AppConfig(metaclass=factory._Singleton):
     _rw_lock: ReaderWriterLock = ReaderWriterLock()
 
-    def __init__(self) -> None:
-        self.path: Path = __config__
-
-        with self._rw_lock.read_lock():
-            self.config: dict[str, t.Any] = self.load()
+    def __init__(self, path: Path = __config__) -> None:
+        self.path = path
+        self.config: dict[str, t.Any] = self.load()
 
     def __setitem__(self, __key: str, __val: t.Any) -> None:
         self.config[__key] = __val
@@ -43,8 +41,7 @@ class AppConfig(metaclass=factory._Singleton):
         finally:
             with self._rw_lock.write_lock():
                 self.path.write_text(utils._format_toml(self.config))
-            with self._rw_lock.read_lock():
-                self.config = self.load()
+            self.config = self.load()
 
     def load(self) -> dict[str, t.Any]:
         with self._rw_lock.read_lock():

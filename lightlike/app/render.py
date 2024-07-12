@@ -154,7 +154,7 @@ def map_sequence_to_rich_table(
     )
     # fmt: off
     reduce(
-        lambda n, c: table.add_column(c[0], **fn(c), **column_kwargs), #type: ignore[no-untyped-call]
+        lambda n, c: table.add_column(c[0], **fn(c), **column_kwargs),
         items,
         None,
     )
