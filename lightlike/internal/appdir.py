@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 import rtoml
+from packaging.version import Version
 from prompt_toolkit.history import FileHistory, ThreadedHistory
 from rich import get_console
 from rich import print as rprint
@@ -17,7 +18,6 @@ from lightlike.__about__ import (
     __appname__,
     __appname_sc__,
     __config__,
-    __latest_release__,
     __lock__,
     __repo__,
     __version__,
@@ -89,7 +89,9 @@ VersionTuple: t.TypeAlias = tuple[int, int, int]
 
 
 @_fasteners.interprocess_locked(__appdir__ / "config.lock", logger=_log())
-def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
+def validate(
+    __version__: str, __config__: Path, repo: str | None = None, /
+) -> None | t.NoReturn:
     console = get_console()
 
     _console.if_not_quiet_start(console.log)("Validating app directory")
@@ -101,29 +103,31 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
         console.log("Initializing app directory")
         return _initial_build()
     else:
-        v_package: VersionTuple = update.extract_version(__version__)
         local_config: dict[str, t.Any] = rtoml.load(__config__)
 
-        last_checked_release: datetime | None = local_config["app"].get(
-            "last_checked_release"
-        )
+        v_local: Version = Version(local_config["app"]["version"])
+        v_package: Version = Version(__version__)
 
-        if not last_checked_release or (
-            last_checked_release
-            and last_checked_release.date() < datetime.today().date()
-        ):
-            _console.if_not_quiet_start(console.log)("Checking latest release")
-            update.check_latest_release(v_package, __repo__, __latest_release__)
-            last_checked_release = datetime.now()
+        last_checked_release: datetime | None = None
+        last_checked_release = local_config["app"].get("last_checked_release")
+
+        if repo:
+            if not last_checked_release or (
+                last_checked_release
+                and last_checked_release.date() < datetime.today().date()
+            ):
+                _console.if_not_quiet_start(console.log)("Checking latest release")
+                update.check_latest_release(v_package, repo)
+                last_checked_release = datetime.now()
 
         _console.if_not_quiet_start(console.log)("Checking config")
 
-        v_local: VersionTuple = update.extract_version(local_config["app"]["version"])
-
         if v_local < v_package:
-            console.log(
-                f"Updating version: [repr.number]{'.'.join(map(str, v_package))}"
-            )
+            console.log(f"Updating version: [repr.number]{v_package}")
+
+            if v_local < Version("0.10.0"):
+                if v_local < Version("0.9.0"):
+                    update._patch_cache_lt_v_0_9_0(__appdir__)
 
             updated_config = utils.update_dict(
                 rtoml.load(constant.DEFAULT_CONFIG), local_config
