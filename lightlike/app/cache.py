@@ -9,7 +9,6 @@ from decimal import Decimal
 from functools import cached_property, reduce
 from operator import truth, xor
 from pathlib import Path
-from threading import Lock
 
 import click
 import rtoml
@@ -28,7 +27,7 @@ from lightlike.__about__ import __appname_sc__
 from lightlike.app import _get, dates, render
 from lightlike.app.config import AppConfig
 from lightlike.app.routines import CliQueryRoutines
-from lightlike.internal import appdir, markup, utils
+from lightlike.internal import appdir, factory, markup, utils
 
 if t.TYPE_CHECKING:
     from google.cloud.bigquery import QueryJob
@@ -624,18 +623,7 @@ _console.if_not_quiet_start(get_console().log, "Validating cache")
 TimeEntryCache().validate()
 
 
-class _Singleton(type):
-    _instances: dict[object, _Singleton] = {}
-    _lock: Lock = Lock()
-
-    def __call__(cls, *args: P.args, **kwargs: P.kwargs) -> _Singleton:
-        with cls._lock:
-            if cls not in cls._instances:
-                cls._instances[cls] = super(type(cls), cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
-
-
-class TimeEntryIdList(metaclass=_Singleton):
+class TimeEntryIdList(metaclass=factory._Singleton):
     id_pattern: re.Pattern[str] = re.compile(r"^\w{,40}$")
 
     @cached_property

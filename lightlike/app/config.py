@@ -5,13 +5,12 @@ import typing as t
 from contextlib import contextmanager
 from hashlib import sha3_256, sha256
 from pathlib import Path
-from threading import Lock
 
 import rtoml
 from fasteners import ReaderWriterLock
 
 from lightlike.__about__ import __config__
-from lightlike.internal import utils
+from lightlike.internal import factory, utils
 
 __all__: t.Sequence[str] = ("AppConfig",)
 
@@ -21,18 +20,7 @@ _Hash = type(sha256(b"_Hash"))
 P = t.ParamSpec("P")
 
 
-class _Singleton(type):
-    _instances: dict[object, _Singleton] = {}
-    _lock: Lock = Lock()
-
-    def __call__(cls, *args: P.args, **kwargs: P.kwargs) -> _Singleton:
-        with cls._lock:
-            if cls not in cls._instances:
-                cls._instances[cls] = super(type(cls), cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
-
-
-class AppConfig(metaclass=_Singleton):
+class AppConfig(metaclass=factory._Singleton):
     _rw_lock: ReaderWriterLock = ReaderWriterLock()
 
     def __init__(self) -> None:

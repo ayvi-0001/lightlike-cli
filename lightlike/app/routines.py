@@ -35,16 +35,7 @@ __all__: t.Sequence[str] = ("CliQueryRoutines",)
 P = t.ParamSpec("P")
 
 
-class _Singleton(type):
-    _instances: dict[object, _Singleton] = {}
-
-    def __call__(cls, *args: P.args, **kwargs: P.kwargs) -> _Singleton:
-        if cls not in cls._instances:
-            cls._instances[cls] = super(type(cls), cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
-
-
-class CliQueryRoutines(metaclass=_Singleton):
+class CliQueryRoutines:
     _client: t.Callable[..., "Client"] = get_client
     dataset: str = AppConfig().get("bigquery", "dataset")
     table_timesheet: str = AppConfig().get("bigquery", "timesheet")
