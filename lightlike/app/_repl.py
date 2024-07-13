@@ -1,10 +1,9 @@
 import sys
 import typing as t
 from shlex import shlex
-from subprocess import PIPE, STDOUT, Popen, list2cmdline
+from subprocess import list2cmdline, run
 
 import click
-from more_itertools import first, last
 from prompt_toolkit import PromptSession
 from prompt_toolkit.application import get_app
 from rich import print as rprint
@@ -22,7 +21,7 @@ def repl(
     prompt_kwargs: dict[str, t.Any],
     completer_callable: t.Callable[[click.Group, click.Context, t.Callable[[Exception], object] | None], "Completer"],
     format_click_exceptions_callable: t.Callable[[click.ClickException], object] | None = None,
-    shell_config_callable: t.Callable[[], str] | None = None,
+    shell_cmd_callable: t.Callable[[], str] | None = None,
     pass_unknown_commands_to_shell: bool = True,
     uncaught_exceptions_callable: t.Callable[[Exception], object] | None = None,
     # fmt:on
@@ -32,7 +31,7 @@ def repl(
     :param completer_callable: A callable that takes click.Group and click.Context as the first 2 args,\
                                and an optional callable for unhandled exceptions, that takes only an exception as an arg.
     :param format_click_exceptions_callable: A callable that handles any exceptions derived from click.ClickException.
-    :param shell_config_callable: An optional callable to configure the default shell used for system commands.
+    :param shell_cmd_callable: An optional callable to configure the default shell used for system commands.
     :param pass_unknown_commands_to_shell: Unrecognized commands get passed to the shell.
     :param uncaught_exceptions_callable: A callable to handle any non-click exceptions. This also gets passed to the completer callable.
     """
@@ -53,8 +52,6 @@ def repl(
         except (KeyboardInterrupt, EOFError):
             continue
 
-        if not command:
-            continue
         args: list[str] = split_arg_string(command, posix=True)
         if not args:
             continue
@@ -65,7 +62,7 @@ def repl(
         except click.UsageError as e1:
             if _is_unknown_command(e1) and pass_unknown_commands_to_shell:
                 try:
-                    _execute_system_command(args, shell_config_callable)
+                    _execute_system_command(args, shell_cmd_callable)
                 except Exception as e3:
                     print(e3)
             else:
@@ -105,67 +102,53 @@ def _is_unknown_command(error: click.UsageError) -> bool:
 
 
 def _execute_system_command(
-    args: list[str],
-    shell_config_callable: t.Callable[[], str] | None = None,
+    args: list[str], shell_cmd_callable: t.Callable[[], str] | None = None
 ) -> None:
     try:
-        args2cmdline = list2cmdline(args)
+        _CMD: str = list2cmdline(args)
 
         buffer: "Buffer" = get_app().current_buffer
         buffer.append_to_history()
         buffer.reset(append_to_history=True)
-        buffer.delete_before_cursor(len(args2cmdline))
+        buffer.delete_before_cursor(len(_CMD))
 
-        if shell_config_callable and (shell := shell_config_callable()):
+        if shell_cmd_callable and (shell := shell_cmd_callable()) is not None:
             if isinstance(shell, str):
-                cmd_prefix = shell
+                cmd_exec = shell
             elif isinstance(shell, list):
-                cmd_prefix = list2cmdline(shell)
+                cmd_exec = list2cmdline(shell)
 
-        for cmd_args in args2cmdline.split("&&"):
-            commands = list(map(lambda c: c.strip(), cmd_args.split("|")))
-            processes: list[Popen[t.Any]] = []
+        if sys.platform.startswith("win"):
+            import win32console  # type:ignore
 
-            while commands:
-                try:
-                    last_process = last(processes)
-                    last_process.wait()
-                except ValueError:
-                    last_process = None
+            stdin_handle: win32console.PyConsoleScreenBufferType = (
+                win32console.GetStdHandle(win32console.STD_INPUT_HANDLE)
+            )
+            original_stdin_mode: int = stdin_handle.GetConsoleMode()
+            stdout_handle: win32console.PyConsoleScreenBufferType = (
+                win32console.GetStdHandle(win32console.STD_OUTPUT_HANDLE)
+            )
+            original_stdout_mode: int = stdout_handle.GetConsoleMode()
+        else:
+            import termios
 
-                proc_args = list(filter(lambda l: l != "", first(commands).split(" ")))
+            original_attributes: list[t.Any] = termios.tcgetattr(sys.stdin)
+        try:
+            if cmd_exec:
+                _CMD = '%s "%s"' % (cmd_exec, _CMD)
 
-                stdin = last_process.stdout if last_process else PIPE
-                stdout = sys.stdout if len(commands) == 1 else PIPE
-                stderr = STDOUT
+            run(_CMD, shell=True)
+        finally:
+            if sys.platform.startswith("win"):
+                stdin_handle.SetConsoleMode(original_stdin_mode)
+                stdout_handle.SetConsoleMode(original_stdout_mode)
+            else:
+                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, original_attributes)
 
-                try:
-                    _cmd: str = list2cmdline(proc_args)
-                    if cmd_prefix:
-                        _cmd = f'{cmd_prefix} "{_cmd}"'
-
-                    proc: Popen[t.Any] = Popen(  # type: ignore[call-overload]
-                        _cmd,
-                        stdin=stdin,
-                        stdout=stdout,
-                        stderr=stderr,
-                        shell=True,
-                        text=True,
-                        close_fds=True,
-                    )
-                except Exception as e2:
-                    print(e2)
-                    break
-
-                processes.append(proc)
-                commands.pop(0)
-
-            if not processes:
-                continue
-
-            last(processes).wait()
     except KeyboardInterrupt:
         rprint("[#888888]Command killed by keyboard interrupt.")
+    except EOFError:
+        rprint("[#888888]End of file. No input.")
 
 
 class ExitRepl(Exception): ...

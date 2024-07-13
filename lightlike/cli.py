@@ -151,7 +151,7 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
                 shell_complete.repl(g, c, e)
             ),
             format_click_exceptions_callable=_format_click_exception,
-            shell_config_callable=lambda: AppConfig().get("system-command", "shell"),
+            shell_cmd_callable=lambda: AppConfig().get("system-command", "shell"),
             pass_unknown_commands_to_shell=True,
             uncaught_exceptions_callable=partial(
                 appdir.console_log_error, notify=True, patch_stdout=True

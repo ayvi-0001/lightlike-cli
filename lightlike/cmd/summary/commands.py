@@ -1,3 +1,4 @@
+import platform
 import typing as t
 from datetime import datetime
 from operator import truth
@@ -617,6 +618,12 @@ def summary_csv(
         it must either begin with the word "WHERE" (case-insensitive),
         or it must be the string immediately proceeding the word "WHERE".
     """
+    if "android" in platform.release():
+        console.print(
+            "[b][red]summary:csv and summary:json not currently supported on android."
+        )
+        raise click.exceptions.Exit
+
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
@@ -887,6 +894,12 @@ def summary_json(
         it must either begin with the word "WHERE" (case-insensitive),
         or it must be the string immediately proceeding the word "WHERE".
     """
+    if "android" in platform.release():
+        console.print(
+            "[b][red]summary:csv and summary:json not currently supported on android."
+        )
+        raise click.exceptions.Exit
+
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
