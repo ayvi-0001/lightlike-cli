@@ -5,9 +5,10 @@ from pytz import timezone
 from rich import print as rprint
 from rich.table import Table
 
-from lightlike.app import _get, _pass, _questionary, dates, render, validate
+from lightlike.app import _get, _questionary, dates, render, validate
 from lightlike.app.config import AppConfig
 from lightlike.app.core import FormattedCommand
+from lightlike.cmd import _pass
 from lightlike.internal import markup, utils
 
 if t.TYPE_CHECKING:

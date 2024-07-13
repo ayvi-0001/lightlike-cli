@@ -5,7 +5,7 @@ import click
 from rich import print as rprint
 from rich.table import Table
 
-from lightlike.app import _pass, _questionary, render
+from lightlike.app import _questionary, render
 from lightlike.app.client import (
     _select_credential_source,
     _select_project,
@@ -14,6 +14,7 @@ from lightlike.app.client import (
 )
 from lightlike.app.config import AppConfig
 from lightlike.app.core import AliasedGroup, FormattedCommand, LazyAliasedGroup
+from lightlike.cmd import _pass
 from lightlike.internal import markup, utils
 from lightlike.internal.enums import ClientInitOptions, CredentialsSource
 

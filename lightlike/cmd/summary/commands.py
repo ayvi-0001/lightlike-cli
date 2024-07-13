@@ -11,10 +11,11 @@ from rich.syntax import Syntax
 from rich.table import Table
 
 from lightlike import _console
-from lightlike.app import _pass, dates, render, shell_complete, validate
+from lightlike.app import dates, render, shell_complete, validate
 from lightlike.app.config import AppConfig
 from lightlike.app.core import FormattedCommand
 from lightlike.app.prompt import PromptFactory
+from lightlike.cmd import _pass
 from lightlike.internal import markup, utils
 from lightlike.internal.constant import _CONSOLE_SVG_FORMAT
 

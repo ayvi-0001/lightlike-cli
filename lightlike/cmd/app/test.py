@@ -6,8 +6,9 @@ import click
 from rich.console import Console
 
 from lightlike.__about__ import __appdir__, __config__
-from lightlike.app import _pass, dates, validate
+from lightlike.app import dates, validate
 from lightlike.app.core import FormattedCommand
+from lightlike.cmd import _pass
 from lightlike.internal import utils
 
 __all__: t.Sequence[str] = ("date_parse", "date_diff")

@@ -111,8 +111,7 @@ def eval_(args: list[str], multiline_prompt: bool) -> None:
         global EVAL_LOCALS
         try:
             retval = eval(eval_args, EVAL_GLOBALS, EVAL_LOCALS)
-            if retval:
-                rprint(retval)
+            rprint(retval)
         except SyntaxError:
             exec(eval_args, EVAL_GLOBALS, EVAL_LOCALS)
             EVAL_LOCALS |= locals()

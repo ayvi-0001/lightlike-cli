@@ -7,12 +7,13 @@ from rich.console import Console
 from rich.syntax import Syntax
 
 from lightlike.__about__ import __appdir__, __config__
-from lightlike.app import _pass, _questionary
+from lightlike.app import _questionary
 from lightlike.app.cache import TimeEntryAppData, TimeEntryCache
 from lightlike.app.client import get_client
 from lightlike.app.config import AppConfig
 from lightlike.app.core import FormattedCommand, LazyAliasedGroup
 from lightlike.app.routines import CliQueryRoutines
+from lightlike.cmd import _pass
 from lightlike.internal import markup, utils
 
 __all__: t.Sequence[str] = (

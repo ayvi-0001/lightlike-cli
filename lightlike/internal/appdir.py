@@ -85,9 +85,6 @@ def rmtree(appdata: Path = __appdir__) -> t.NoReturn:
     sys.exit(1)
 
 
-VersionTuple: t.TypeAlias = tuple[int, int, int]
-
-
 @_fasteners.interprocess_locked(__appdir__ / "config.lock", logger=_log())
 def validate(
     __version__: str, __config__: Path, repo: str | None = None, /

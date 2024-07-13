@@ -173,15 +173,6 @@ def _timer(cache: EntriesInMemory) -> str:
         return f" {now(TIMEZONE) - start} "
 
 
-def _entry_counter(cache: EntriesInMemory) -> str:
-    running: int = cache.count_running_entries
-    paused: int = cache.count_paused_entries
-    display_running: str = f"R[{running if running > 1 or cache.id else 0}]"
-    display_paused: str = f"P[{paused}]"
-    sep = " " if all([display_running, display_paused]) else ""
-    return f"{display_running}{sep}{display_paused}"
-
-
 if all(
     [
         LIGHTLIKE_CLI_DEV_USERNAME := getenv("LIGHTLIKE_CLI_DEV_USERNAME"),

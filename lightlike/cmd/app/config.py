@@ -9,10 +9,11 @@ from rich.console import Console
 from rich.syntax import Syntax
 
 from lightlike.__about__ import __appdir__, __config__
-from lightlike.app import _pass, shell_complete, threads, validate
+from lightlike.app import shell_complete, threads, validate
 from lightlike.app.cache import TimeEntryAppData
 from lightlike.app.config import AppConfig
 from lightlike.app.core import AliasedGroup, FormattedCommand
+from lightlike.cmd import _pass
 from lightlike.internal import markup, utils
 from lightlike.internal.enums import CredentialsSource
 

@@ -7,8 +7,9 @@ import click
 from rich import print as rprint
 from rich.console import Console
 
-from lightlike.app import _pass, shell_complete
+from lightlike.app import shell_complete
 from lightlike.app.core import FormattedCommand
+from lightlike.cmd import _pass
 
 __all__: t.Sequence[str] = ("help_", "exit_", "cd_")
 
