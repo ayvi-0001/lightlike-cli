@@ -19,7 +19,6 @@ from rich.text import Text
 from lightlike.__about__ import __appname_sc__
 from lightlike.app import (
     _get,
-    _pass,
     _questionary,
     dates,
     render,
@@ -32,6 +31,7 @@ from lightlike.app.config import AppConfig
 from lightlike.app.core import AliasedGroup, FormattedCommand
 from lightlike.app.prompt import PromptFactory
 from lightlike.app.shell_complete.types import CallableIntRange, DynamicHelpOption
+from lightlike.cmd import _pass
 from lightlike.internal import appdir, markup, utils
 
 if t.TYPE_CHECKING:

@@ -301,7 +301,11 @@ def _resolve_context(args: list[str], ctx: click.Context) -> click.Context:
                 break
     except Exception as error:
         if "No such command" not in f"{error}":
-            logging.error(f"Failed to resolve context: {error}")
+            logging.error(
+                f"Failed to resolve context: {error}. "
+                f"ctx: {ctx.info_name} | "
+                f"args: {' '.join(map(str, args))}"
+            )
 
     return ctx
 

@@ -72,7 +72,7 @@ def _config_filename() -> str:
     return f".lightlike{('_' + env.lower()) if env else ''}.toml"
 
 
-__version__: Final[str] = "v0.10.0a6"
+__version__: Final[str] = "v0.10.0a7"
 
 __appname__: Final[str] = _appdir_filename()
 __appname_sc__: Final[str] = "".join(c if c.isalnum() else "_" for c in __appname__.lower())  # fmt: skip
@@ -112,8 +112,11 @@ __cli_help__: str = f"""
         )
     }[/repr_path]
 
+github: [repr.url]{__repo__}[/]
+
 GENERAL:
     [code]ctrl space[/code] or [code]tab[/code] to display commands/autocomplete.
+    commands are aliased, use the shortest unique string of the current command path.
     [code]:q[/code] or [code]ctrl q[/code] or type exit to exit repl.
     [code]:c{{1 | 2 | 3}}[/code] to add/remove completions from the global completer. [code]1[/code]=commands, [code]2[/code]=history, [code]3[/code]=path
 
@@ -131,13 +134,12 @@ SYSTEM COMMANDS:
     path autocompletion is automatic for [code]cd[/code].
 
 TIME ENTRY IDS:
-    time entry ids are the sha1 hash of the project, note, and the start timestamp.
+    time entry ids are the sha1 hash of the project, note, and start timestamp.
     if any fields are later edited, the id will not change.
     for commands requiring an id, supply the first several characters.
     the command will find the matching id, as long as it is unique.
-    if more than 1 id matches the string provided, use more characters until it is unique.
 
 DATE/TIME FIELDS:
-    arguments/options asking for datetime will parse the string input. an error will raise if unable to parse.
-    dates are relative to today, unless explicitly stated in the string.
+    datetime arguments/options use dateparser on the string input. an error will raise if it's unable to parse.
+    unless explicitly stated in the string, dates are relative to today.
 """

@@ -117,7 +117,8 @@ def from_param(
         )
 
     if not completions:
-        return from_cache(ctx, param, incomplete)
+        if "-p" not in get_app().current_buffer.document.text:
+            return from_cache(ctx, param, incomplete)
     return completions
 
 

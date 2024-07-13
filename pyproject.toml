@@ -68,11 +68,11 @@ dev = [
   "mypy>=1.8.0",
   "mypy-extensions>=1.0.0",
   "pandas-stubs>=2.2.0.240218",
-  "types-dateparser>=1.1.4.20240106",
-  "types-pytz>=2023.3.1.1",
   "pytest==8.2.2",
   "pytest-order==1.2.1",
   "pytest-xdist==3.6.1",
+  "types-dateparser>=1.1.4.20240106",
+  "types-pytz>=2023.3.1.1",
 ]
 
 [project.scripts]
@@ -104,4 +104,9 @@ log_cli = true
 log_level = "DEBUG"
 
 [tool.mypy]
-disable_error_code = ["import-untyped", "func-returns-value", "no-untyped-call"]
+disable_error_code = [
+  "func-returns-value",
+  "import-not-found",
+  "import-untyped",
+  "no-untyped-call",
+]
