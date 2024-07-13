@@ -111,15 +111,16 @@ def query_start_render(
 
 def map_sequence_to_rich_table(
     mappings: list[dict[str, t.Any]],
-    string_ctype: list[str] = [],
-    bool_ctype: list[str] = [],
-    num_ctype: list[str] = [],
-    datetime_ctype: list[str] = [],
-    time_ctype: list[str] = [],
-    date_ctype: list[str] = [],
-    row_kwargs: t.Mapping[str, t.Any] = {},
-    table_kwargs: t.Mapping[str, t.Any] = {},
-    column_kwargs: t.Mapping[str, t.Any] = {},
+    string_ctype: list[str] | None = None,
+    bool_ctype: list[str] | None = None,
+    num_ctype: list[str] | None = None,
+    datetime_ctype: list[str] | None = None,
+    time_ctype: list[str] | None = None,
+    date_ctype: list[str] | None = None,
+    exclude_fields: list[str] | None = None,
+    row_kwargs: t.Mapping[str, t.Any] | None = None,
+    table_kwargs: t.Mapping[str, t.Any] | None = None,
+    column_kwargs: t.Mapping[str, t.Any] | None = None,
 ) -> Table:
     default = {
         "box": box.MARKDOWN,
@@ -127,9 +128,19 @@ def map_sequence_to_rich_table(
         "show_header": True,
         "show_edge": True,
     }
-    default.update(table_kwargs)
+    default.update(table_kwargs or {})
     table: Table = Table(**default)  # type: ignore[arg-type]
     console_width: int = get_console().width
+
+    if exclude_fields:
+        reduced: list[dict[str, t.Any]] = []
+        for row in mappings:
+            reduced_row = {}
+            for k, v in row.items():
+                if k not in exclude_fields:
+                    reduced_row[k] = v
+            reduced.append(reduced_row)
+        mappings = reduced
 
     first_row: dict[str, t.Any] | None = None
 
@@ -143,23 +154,23 @@ def map_sequence_to_rich_table(
 
     fn = lambda c: map_column_style(
         items=c,
-        string_ctype=string_ctype,
-        bool_ctype=bool_ctype,
-        num_ctype=num_ctype,
-        datetime_ctype=datetime_ctype,
-        time_ctype=time_ctype,
-        date_ctype=date_ctype,
+        string_ctype=string_ctype or [],
+        bool_ctype=bool_ctype or [],
+        num_ctype=num_ctype or [],
+        datetime_ctype=datetime_ctype or [],
+        time_ctype=time_ctype or [],
+        date_ctype=date_ctype or [],
         console_width=console_width,
         no_color=False,
     )
     # fmt: off
     reduce(
-        lambda n, c: table.add_column(c[0], **fn(c), **column_kwargs),
-        items,
+        lambda n, c: table.add_column(c[0], **fn(c), **column_kwargs or {}),
+        filter(lambda c: c[0] not in (exclude_fields or []), items),
         None,
     )
     reduce(
-        lambda n, r: table.add_row(*map_cell_style(r.values()), **row_kwargs),
+        lambda n, r: table.add_row(*map_cell_style(r.values()), **row_kwargs or {}),
         mappings,
         None,
     )

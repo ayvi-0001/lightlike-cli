@@ -1483,22 +1483,31 @@ def list_(
 
     rows: list[dict[str, t.Any]] = list(map(lambda r: dict(r.items()), query_job))
 
-    table: Table = render.map_sequence_to_rich_table(
-        mappings=rows,
-        string_ctype=["project", "note", "id"],
-        bool_ctype=["billable", "active", "paused"],
-        num_ctype=["paused_hours", "hours", "total", "row"],
-        time_ctype=["start", "end"],
-        date_ctype=["date"],
-    )
-    if not table.row_count:
-        rprint(markup.dimmed("No results"))
-        raise click.exceptions.Exit
+    if console.width < 80:
+        console.print_json(data=rows, default=str)
+    else:
+        table: Table = render.map_sequence_to_rich_table(
+            mappings=rows,
+            string_ctype=["project", "note", "id"],
+            bool_ctype=["billable", "active", "paused"],
+            num_ctype=["paused_hours", "hours", "total", "row"],
+            time_ctype=["start", "end"],
+            date_ctype=["date"],
+            exclude_fields=(
+                ["paused_hours", "note", "paused", "active"]
+                if console.width < 100
+                else None
+            ),
+        )
+        if not table.row_count:
+            rprint(markup.dimmed("No results"))
+            raise click.exceptions.Exit
+
+        console.print(table)
 
     appdir.TIMER_LIST_CACHE.write_text(
         dumps({idx: row.get("id") for idx, row in enumerate(rows)})
     )
-    console.print(table)
 
 
 @click.group(
