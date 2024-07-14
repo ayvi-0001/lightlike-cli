@@ -9,10 +9,9 @@ from rich.syntax import Syntax
 from lightlike.__about__ import __appdir__, __config__
 from lightlike.app import _questionary
 from lightlike.app.cache import TimeEntryAppData, TimeEntryCache
-from lightlike.app.client import get_client
 from lightlike.app.config import AppConfig
 from lightlike.app.core import FormattedCommand, LazyAliasedGroup
-from lightlike.app.routines import CliQueryRoutines
+from lightlike.client import CliQueryRoutines, get_client
 from lightlike.cmd import _pass
 from lightlike.internal import markup, utils
 
@@ -177,7 +176,7 @@ def run_bq(yes: bool) -> None:
 
     Executes all necessary scripts in BigQuery for this cli to run. Table's are only built if they do not exist.
     """
-    from lightlike.app.client import provision_bigquery_resources
+    from lightlike.client import provision_bigquery_resources
 
     provision_bigquery_resources(client=get_client(), force=True, yes=yes)
 

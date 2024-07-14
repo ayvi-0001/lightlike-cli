@@ -6,7 +6,7 @@ import rtoml
 from prompt_toolkit import prompt
 from prompt_toolkit.styles import Style
 from pytz import timezone
-from rich import box, get_console
+from rich import box
 from rich import print as rprint
 from rich.align import Align
 from rich.columns import Columns
@@ -42,6 +42,13 @@ EVAL_GLOBALS = {
     "time": time,
 }
 EVAL_LOCALS: dict[str, t.Any] = {}
+
+STYLE: Style = Style.from_dict(
+    utils.update_dict(
+        rtoml.load(constant.PROMPT_STYLE),
+        AppConfig().get("prompt", "style", default={}),
+    )
+)
 
 
 def _eval_help(ctx: click.Context, param: click.Parameter, value: str) -> None:
@@ -95,6 +102,7 @@ def _eval_help(ctx: click.Context, param: click.Parameter, value: str) -> None:
     hidden=True,
 )
 @utils._handle_keyboard_interrupt()
+@utils.pretty_print_exception
 @click.option(
     "-h",
     "--help",
@@ -119,28 +127,10 @@ def eval_(args: list[str], multiline_prompt: bool) -> None:
             if "args" in EVAL_LOCALS:
                 EVAL_LOCALS.pop("args")
 
-    try:
-        if multiline_prompt:
-            _execute_eval(
-                prompt(
-                    message="",
-                    multiline=True,
-                    style=Style.from_dict(
-                        utils.update_dict(
-                            rtoml.load(constant.PROMPT_STYLE),
-                            AppConfig().get("prompt", "style", default={}),
-                        )
-                    ),
-                )
-            )
-        else:
-            _execute_eval(" ".join(args))
-    except Exception:
-        get_console().print_exception(
-            max_frames=1,
-            show_locals=True,
-            word_wrap=True,
-        )
+    if multiline_prompt:
+        _execute_eval(prompt(message="", multiline=True, style=STYLE))
+    else:
+        _execute_eval(" ".join(args))
 
 
 @click.command(

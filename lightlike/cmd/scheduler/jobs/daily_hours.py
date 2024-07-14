@@ -12,7 +12,7 @@ from rich.console import Console, NewLine
 
 from lightlike.app.config import AppConfig
 from lightlike.app.dates import get_relative_week, now
-from lightlike.app.routines import CliQueryRoutines
+from lightlike.client import CliQueryRoutines
 from lightlike.cmd.scheduler.jobs.types import JobKwargs
 
 if t.TYPE_CHECKING:

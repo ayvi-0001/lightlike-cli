@@ -17,7 +17,7 @@ from rich.table import Table
 from lightlike._console import CONSOLE_CONFIG
 from lightlike.app import cursor, render
 from lightlike.app.config import AppConfig
-from lightlike.app.routines import CliQueryRoutines
+from lightlike.client import CliQueryRoutines
 from lightlike.cmd import _pass
 from lightlike.cmd.query.completers import query_repl_completer
 from lightlike.cmd.query.key_bindings import QUERY_BINDINGS
@@ -30,7 +30,7 @@ if t.TYPE_CHECKING:
     from google.cloud.bigquery.table import RowIterator
     from prompt_toolkit.completion import Completer
 
-    from lightlike.app.routines import CliQueryRoutines
+    from lightlike.client import CliQueryRoutines
 
 __all__: t.Sequence[str] = ("query_repl", "_build_query_session")
 

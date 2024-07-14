@@ -10,7 +10,7 @@ from prompt_toolkit.completion import (
 from prompt_toolkit.document import Document
 
 from lightlike.app import shell_complete
-from lightlike.app.client import get_client
+from lightlike.client import get_client
 from lightlike.internal import utils
 
 if t.TYPE_CHECKING:
@@ -18,7 +18,7 @@ if t.TYPE_CHECKING:
     from prompt_toolkit.completion import CompleteEvent
     from rich.console import Console
 
-    from lightlike.app.routines import CliQueryRoutines
+    from lightlike.client import CliQueryRoutines
 
 __all__: t.Sequence[str] = ("completer", "_bottom_toolbar", "_parse_click_options")
 

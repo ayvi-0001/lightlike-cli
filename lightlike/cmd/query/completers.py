@@ -14,7 +14,7 @@ from prompt_toolkit.completion import (
 from prompt_toolkit.document import Document
 
 from lightlike.app import _get
-from lightlike.app.client import get_client
+from lightlike.client import get_client
 from lightlike.cmd.query.words import KEYWORD_META, SQL_KEYWORDS
 from lightlike.internal.utils import _alter_str
 

@@ -1,3 +1,4 @@
+import json
 import sys
 import typing as t
 from inspect import cleandoc
@@ -6,8 +7,13 @@ from pathlib import Path
 import rtoml
 from google.auth.exceptions import DefaultCredentialsError
 from google.cloud.bigquery import Client
+from prompt_toolkit import PromptSession
 from prompt_toolkit.cursor_shapes import CursorShape
+from prompt_toolkit.filters import Condition
+from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
+from prompt_toolkit.keys import Keys
 from prompt_toolkit.styles import Style
+from prompt_toolkit.validation import Validator
 from pytz import timezone
 from rich import get_console
 from rich import print as rprint
@@ -213,7 +219,7 @@ def service_account_key_flow() -> tuple[bytes, bytes]:
                 stay_logged_in=True,
             )
 
-        service_account: str = AuthPromptSession().prompt_service_account_key()
+        service_account: str = prompt_service_account_key()
         encrypted_key = auth.encrypt(key_derivation, service_account)
 
         AppConfig()._update_user_credentials(salt=salt)
@@ -312,6 +318,74 @@ def _authorize_from_environment() -> Client:
         return client
 
 
+def prompt_service_account_key() -> str:
+    auth_keybinds: KeyBindings = KeyBindings()
+    hidden: list[bool] = [True]
+
+    @auth_keybinds.add(Keys.ControlT, eager=True)
+    def _(event: KeyPressEvent) -> None:
+        hidden[0] = not hidden[0]
+
+    panel = Panel.fit(
+        Text.assemble(
+            "Copy and paste service-account key. Press ",
+            markup.code("esc enter"),
+            " to continue.",
+        )
+    )
+    rprint(Padding(panel, (1, 0, 1, 1)))
+
+    session: PromptSession[str] = PromptSession(
+        message="(service-account-key) $ ",
+        style=Style.from_dict(
+            utils.update_dict(
+                rtoml.load(constant.PROMPT_STYLE),
+                AppConfig().get("prompt", "style", default={}),
+            )
+        ),
+        cursor=CursorShape.BLOCK,
+        multiline=True,
+        refresh_interval=1,
+        erase_when_done=True,
+        key_bindings=auth_keybinds,
+        is_password=Condition(lambda: hidden[0]),
+        validator=Validator.from_callable(
+            lambda d: False if not d else True,
+            error_message="Input cannot be None.",
+        ),
+    )
+
+    service_account_key = None
+
+    try:
+        while not service_account_key:
+            key_input = session.prompt()
+            try:
+                key = json.loads(key_input)
+            except json.JSONDecodeError:
+                rprint(markup.br("Invalid json."))
+                continue
+            else:
+                if "client_email" not in key.keys():
+                    rprint(
+                        "Invalid service-account json. Missing required key",
+                        markup.code("client_email"),
+                    )
+                    continue
+                if "token_uri" not in key.keys():
+                    rprint(
+                        "Invalid service-account json. Missing required key",
+                        markup.code("token_uri"),
+                    )
+                    continue
+                service_account_key = key_input
+    except (KeyboardInterrupt, EOFError):
+        rprint(markup.br("Aborted"))
+        sys.exit(2)
+
+    return service_account_key
+
+
 def provision_bigquery_resources(
     client: Client,
     force: bool = False,
@@ -406,10 +480,11 @@ def update_routine_diff(client: Client) -> None:
     try:
         from more_itertools import flatten, interleave_longest
 
-        from lightlike.app import _get, routines
+        from lightlike.app import _get
+        from lightlike.client.routines import CliQueryRoutines
 
         console = get_console()
-        routine = routines.CliQueryRoutines()
+        routine = CliQueryRoutines()
 
         dataset = AppConfig().get("bigquery", "dataset")
         list_routines = client.list_routines(dataset=dataset)

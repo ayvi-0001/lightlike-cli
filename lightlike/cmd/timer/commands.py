@@ -41,7 +41,7 @@ if t.TYPE_CHECKING:
     from rich.table import Table
 
     from lightlike.app.cache import TimeEntryAppData, TimeEntryIdList
-    from lightlike.app.routines import CliQueryRoutines
+    from lightlike.client import CliQueryRoutines
 
 __all__: t.Sequence[str] = (
     "add",
