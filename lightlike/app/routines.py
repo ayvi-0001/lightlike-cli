@@ -48,8 +48,8 @@ class CliQueryRoutines:
         query: str,
         job_config: QueryJobConfig | None = None,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         query_is_active = 1
 
@@ -103,8 +103,8 @@ class CliQueryRoutines:
         job_config: QueryJobConfig | None = None,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
         suppress: bool | None = False,
     ) -> "QueryJob":
         if wait or render:
@@ -142,8 +142,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -180,8 +180,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -214,8 +214,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -243,8 +243,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -270,8 +270,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -299,8 +299,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             # fmt: off
@@ -330,8 +330,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -357,8 +357,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -385,15 +385,15 @@ class CliQueryRoutines:
         project: str | None = None,
         note: str | None = None,
         billable: bool | None = None,
-        start: t.Optional["datetime"] = None,
-        end: t.Optional["datetime"] = None,
-        date: t.Optional["date"] = None,
+        start: "datetime | None" = None,
+        end: "datetime | None" = None,
+        date: "date | None" = None,
         use_query_cache: bool = True,
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -428,8 +428,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -456,8 +456,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -486,8 +486,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -532,8 +532,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -605,8 +605,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -659,8 +659,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -689,8 +689,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -716,8 +716,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -745,8 +745,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             # fmt: off
@@ -777,8 +777,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -808,8 +808,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -837,8 +837,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             # fmt: off
@@ -868,8 +868,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             # fmt: off
@@ -899,8 +899,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             # fmt: off
@@ -924,9 +924,9 @@ class CliQueryRoutines:
 
     def _list_timesheet(
         self,
-        date: t.Optional["date"] = None,
-        start_date: t.Optional["date"] = None,
-        end_date: t.Optional["date"] = None,
+        date: "date | None" = None,
+        start_date: "date | None" = None,
+        end_date: "date | None" = None,
         where: str | None = None,
         match_project: str | None = None,
         match_note: str | None = None,
@@ -938,8 +938,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -1053,8 +1053,8 @@ class CliQueryRoutines:
 
     def _summary(
         self,
-        start_date: t.Optional["date"] = None,
-        end_date: t.Optional["date"] = None,
+        start_date: "date | None" = None,
+        end_date: "date | None" = None,
         where: str | None = None,
         round_: bool | None = False,
         is_file: bool | None = False,
@@ -1066,8 +1066,8 @@ class CliQueryRoutines:
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
         render: bool | None = False,
-        status: t.Optional["Status"] = None,
-        status_renderable: t.Optional["RenderableType"] = None,
+        status: "Status | None" = None,
+        status_renderable: "RenderableType | None" = None,
     ) -> "QueryJob":
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
@@ -1264,7 +1264,7 @@ class CliQueryRoutines:
         self,
         query_job: "QueryJob",
         status: "Status",
-        status_message: t.Optional["RenderableType"],
+        status_message: "RenderableType | None",
         start: float | None = None,
     ) -> None:
         elapsed_time = markup.repr_number(self._elapsed_time(query_job, start=start))

@@ -105,7 +105,7 @@ def _nl_start(
     return decorator
 
 
-def _get_local_timezone_string(default: str | None = None) -> str | None:
+def _get_local_timezone_string(default: str = "UTC") -> str | None:
     if os.name == "nt":
         from tzlocal import get_localzone_name
 
@@ -141,11 +141,11 @@ def pretty_print_exception(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]
         try:
             return fn(*args, **kwargs)
         except Exception:
-            with get_console() as console:
-                console.print_exception(
-                    show_locals=True,
-                    width=console.width,
-                )
+            get_console().print_exception(
+                max_frames=1,
+                show_locals=True,
+                word_wrap=True,
+            )
 
     return inner
 

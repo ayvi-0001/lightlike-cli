@@ -62,7 +62,6 @@ class AppConfig(metaclass=factory._Singleton):
                     config["user"].update(
                         password=sha256(password.encode()).hexdigest(),
                     )
-
                 elif isinstance(password, _Hash):
                     config["user"].update(
                         password=password.hexdigest(),

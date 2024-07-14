@@ -5,10 +5,12 @@ from decimal import Decimal
 from math import copysign
 
 import click
-from dateparser import parse
+import dateparser
+import pytz
 from rich.text import Text
 
 from lightlike.app.config import AppConfig
+from lightlike.internal.utils import _get_local_timezone_string
 
 if t.TYPE_CHECKING:
     from datetime import _TzInfo
@@ -44,11 +46,11 @@ def is_tzaware(dt: datetime) -> bool:
     return not (dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None)
 
 
-def astimezone(dt: datetime, tzinfo: t.Optional["_TzInfo"] = None) -> datetime:
+def astimezone(dt: datetime, tzinfo: "_TzInfo | None" = None) -> datetime:
     return dt.astimezone(tzinfo).replace(microsecond=0)
 
 
-def now(tzinfo: t.Optional["_TzInfo"] = None) -> datetime:
+def now(tzinfo: "_TzInfo | None" = None) -> datetime:
     return astimezone(datetime.now(), tzinfo)
 
 
@@ -92,9 +94,12 @@ del dateparser_settings
 
 def parse_date(
     date: str,
-    relative_base: t.Optional[datetime] = None,
-    tzinfo: t.Optional["_TzInfo"] = None,
+    relative_base: datetime | None = None,
+    tzinfo: "_TzInfo | None" = None,
 ) -> datetime:
+    if tzinfo is None:
+        tzinfo = pytz.timezone(_get_local_timezone_string())
+
     _settings = DEFAULT_PARSER_SETTINGS.copy()
     _settings.update(
         {
@@ -103,7 +108,7 @@ def parse_date(
             "TIMEZONE": f"{tzinfo}",
         },
     )
-    parsed_date = parse(
+    parsed_date = dateparser.parse(
         date,
         settings=t.cast("_Settings", _settings),
         date_formats=ADDITIONAL_DATE_FORMATS,

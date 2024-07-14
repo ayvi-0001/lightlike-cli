@@ -8,6 +8,7 @@ from rich import print as rprint
 from rich.console import Console
 
 from lightlike.app import shell_complete
+from lightlike.app._repl import exit_repl
 from lightlike.app.core import FormattedCommand
 from lightlike.cmd import _pass
 
@@ -30,8 +31,6 @@ P = t.ParamSpec("P")
 )
 def exit_() -> None:
     """Exit REPL."""
-    from lightlike.app._repl import exit_repl
-
     exit_repl()
 
 
@@ -47,11 +46,11 @@ def exit_() -> None:
 )
 @click.argument("path", type=Path, shell_complete=shell_complete.path)
 def cd_(path: Path) -> None:
-    if f"{path}" in ("~", "~/"):
-        os.chdir(path.home())
-        return
     try:
-        os.chdir(path.resolve())
+        if f"{path}" in ("~", "~/"):
+            os.chdir(path.home())
+        else:
+            os.chdir(path.resolve())
     except Exception as error:
         rprint(f"{error!r}; {str(path.resolve())!r}")
 

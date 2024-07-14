@@ -704,7 +704,7 @@ class TimeEntryAppData:
 
     def sync(
         self,
-        trigger_query_job: t.Optional["QueryJob"] = None,
+        trigger_query_job: "QueryJob | None" = None,
         debug: bool = False,
     ) -> None:
         console = get_console()
