@@ -17,8 +17,8 @@ from more_itertools import filter_map
 from rich import get_console
 from rich.text import Text
 
-from lightlike.app.client import get_client
 from lightlike.app.config import AppConfig
+from lightlike.client._client import get_client
 from lightlike.internal import markup
 
 if t.TYPE_CHECKING:

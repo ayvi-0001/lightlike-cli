@@ -102,9 +102,10 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
 
         from lightlike.app.config import AppConfig  # isort: split # fmt: skip
         from lightlike.app import call_on_close, cursor, dates, shell_complete
-        from lightlike.app.client import get_client
+        from lightlike.app.cache import __validate_cache
         from lightlike.app.core import _format_click_exception
         from lightlike.app.key_bindings import PROMPT_BINDINGS
+        from lightlike.client import get_client
         from lightlike.scheduler import create_or_replace_default_jobs, get_scheduler
 
         _console.reconfigure(
@@ -159,6 +160,9 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
             ),
         )
 
+        __validate_cache()
+        _append_paths(paths=AppConfig().get("cli", "append_path", "paths"))
+
         cli: LazyAliasedGroup = build_cli(
             name=name,
             help=__cli_help__,
@@ -174,8 +178,6 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
             call_on_close=call_on_close,
             obj=dict(get_scheduler=get_scheduler, get_client=get_client),
         )
-
-        _append_paths(paths=AppConfig().get("cli", "append_path", "paths"))
 
         # If no invoked subcommand, cli is launched through REPL,
         # Don't show cli name in help/usage contexts.

@@ -23,7 +23,7 @@ from lightlike.internal.constant import _CONSOLE_SVG_FORMAT
 if t.TYPE_CHECKING:
     from pandas import DataFrame
 
-    from lightlike.app.routines import CliQueryRoutines
+    from lightlike.client import CliQueryRoutines
 
 __all__: t.Sequence[str] = (
     "summary_table",

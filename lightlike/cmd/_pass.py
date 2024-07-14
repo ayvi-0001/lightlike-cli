@@ -8,10 +8,9 @@ from rich import get_console
 from rich import print as rprint
 
 from lightlike.app.cache import TimeEntryAppData, TimeEntryCache, TimeEntryIdList
-from lightlike.app.client import get_client
 from lightlike.app.config import AppConfig
 from lightlike.app.dates import now as datetime_now
-from lightlike.app.routines import CliQueryRoutines
+from lightlike.client import CliQueryRoutines, get_client
 from lightlike.internal import markup
 
 __all__: t.Sequence[str] = (

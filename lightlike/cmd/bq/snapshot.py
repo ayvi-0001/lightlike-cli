@@ -17,7 +17,7 @@ if t.TYPE_CHECKING:
     from google.cloud.bigquery import Client
     from rich.console import Console
 
-    from lightlike.app.routines import CliQueryRoutines
+    from lightlike.client import CliQueryRoutines
 
 __all__: t.Sequence[str] = ("snapshots",)
 

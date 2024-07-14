@@ -24,7 +24,7 @@ from lightlike import _console, _fasteners
 from lightlike.__about__ import __appname_sc__
 from lightlike.app import _get, dates, render
 from lightlike.app.config import AppConfig
-from lightlike.app.routines import CliQueryRoutines
+from lightlike.client import CliQueryRoutines
 from lightlike.internal import appdir, factory, markup, utils
 
 if t.TYPE_CHECKING:
@@ -32,7 +32,12 @@ if t.TYPE_CHECKING:
     from google.cloud.bigquery.table import Row
     from rich.console import Console, ConsoleOptions, RenderResult
 
-__all__: t.Sequence[str] = ("TimeEntryCache", "TimeEntryIdList", "TimeEntryAppData")
+__all__: t.Sequence[str] = (
+    "TimeEntryCache",
+    "TimeEntryIdList",
+    "TimeEntryAppData",
+    "__validate_cache",
+)
 
 
 T = t.TypeVar("T")
@@ -627,9 +632,6 @@ class TimeEntryCache(_Entries):
 def __validate_cache() -> None:
     _console.if_not_quiet_start(get_console().log)("Validating cache")
     TimeEntryCache().validate()
-
-
-__validate_cache()
 
 
 class TimeEntryIdList(metaclass=factory._Singleton):

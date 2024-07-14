@@ -7,7 +7,7 @@ from apscheduler.schedulers import SchedulerNotRunningError
 
 
 def call_on_close() -> t.NoReturn:
-    from lightlike.app.client import get_client
+    from lightlike.client import get_client
     from lightlike.internal import appdir
     from lightlike.scheduler import get_scheduler
 

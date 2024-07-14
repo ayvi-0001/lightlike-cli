@@ -494,7 +494,7 @@ if (
     @value_arg
     def stay_logged_in(value: bool) -> None:
         from lightlike.app.auth import AuthPromptSession
-        from lightlike.app.client import service_account_key_flow
+        from lightlike.client import service_account_key_flow
 
         if value is True:
             stay_logged_in = AppConfig().get("user", "stay_logged_in")
