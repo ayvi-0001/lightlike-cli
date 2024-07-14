@@ -35,13 +35,7 @@ from pytz import timezone
 from rich import get_console
 from rich.traceback import install
 
-from lightlike.__about__ import (
-    __cli_help__,
-    __config__,
-    __lock__,
-    __repo__,
-    __version__,
-)
+from lightlike.__about__ import __cli_help__, __config__, __lock__, __version__
 
 # isort: split
 
@@ -101,7 +95,7 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
         _console.if_not_quiet_start(render.cli_info)()
 
         try:
-            appdir.validate(__version__, __config__, __repo__)
+            appdir.validate(__version__, __config__)
         except Exception as error:
             appdir.console_log_error(error, notify=True, patch_stdout=True)
             sys.exit(2)
@@ -111,6 +105,7 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
         from lightlike.app.client import get_client
         from lightlike.app.core import _format_click_exception
         from lightlike.app.key_bindings import PROMPT_BINDINGS
+        from lightlike.scheduler import create_or_replace_default_jobs, get_scheduler
 
         _console.reconfigure(
             get_datetime=partial(
@@ -156,6 +151,12 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
             uncaught_exceptions_callable=partial(
                 appdir.console_log_error, notify=True, patch_stdout=True
             ),
+            scheduler=get_scheduler,
+            default_jobs_callable=partial(
+                create_or_replace_default_jobs,
+                path_to_jobs=appdir.SCHEDULER_CONFIG,
+                keys=["jobs", "default"],
+            ),
         )
 
         cli: LazyAliasedGroup = build_cli(
@@ -163,7 +164,7 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
             help=__cli_help__,
             repl_kwargs=repl_kwargs,
             lazy_subcommands=_build_lazy_subcommands(
-                config=AppConfig().get("cli", "lazy_subcommands", default={})
+                config=AppConfig().get("cli", "commands", default={})
             ),
             context_settings=dict(
                 allow_extra_args=True,
@@ -171,7 +172,7 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
                 help_option_names=["-h", "--help"],
             ),
             call_on_close=call_on_close,
-            obj=dict(get_client=get_client),
+            obj=dict(get_scheduler=get_scheduler, get_client=get_client),
         )
 
         _append_paths(paths=AppConfig().get("cli", "append_path", "paths"))

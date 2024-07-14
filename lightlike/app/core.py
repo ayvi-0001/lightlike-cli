@@ -23,12 +23,7 @@ from rich.table import Table
 from rich.text import Text
 
 from lightlike.__about__ import __appname__, __repo__
-from lightlike._console import (
-    CONSOLE_CONFIG,
-    GROUP_FIRST_COMMANDS,
-    GROUP_LAST_COMMANDS,
-    GROUP_MID_COMMANDS,
-)
+from lightlike._console import CONSOLE_CONFIG, GROUP_COMMANDS
 from lightlike.internal.constant import _CONSOLE_SVG_FORMAT
 
 __all__: t.Sequence[str] = (
@@ -230,9 +225,7 @@ class ReplHighlighter(RegexHighlighter):
         r"(^|[^\w\-])(?P<switch>-([^\W0-9][\w\-]*\w|[^\W0-9]))",
         r"(^|[^\w\-])(?P<option>--([^\W0-9][\w\-]*\w|[^\W0-9]))",
         r"(?P<metavar><[^>]+>)",
-        GROUP_FIRST_COMMANDS,
-        GROUP_MID_COMMANDS,
-        GROUP_LAST_COMMANDS,
+        GROUP_COMMANDS,
     ]
 
 

@@ -65,17 +65,68 @@ class ConsoleConfig:
 
 CONSOLE_CONFIG = ConsoleConfig(rtoml.loads(constant.CONSOLE))
 
-GROUP_FIRST_COMMANDS = r"(?P<command>((app|bq|project|summary|timer))):\w+"
-GROUP_MID_COMMANDS = (
-    r"\w:(?P<command>((set|config|test|general|query|notes|snapshot))):\w"
-)
-GROUP_LAST_COMMANDS = (
-    r":(?P<command>(("
-    r"add|archive|create|csv|date-diff|date-parse|default_billable|delete|description|"
-    r"dir|edit|editor|end|exit|get|hide_table_render|init|json|list|mouse_support|name|"
-    r"note_history|open|pause|projects|query|quiet_start|reset|restore|resume|run|run-bq|"
-    r"save_query_info|save_svg|save_txt|set|shell|show|show|stay_logged_in|stop|switch|"
-    r"sync|table|timer_add_min|timezone|unarchive|update|week_start)))"
+GROUP_COMMANDS = r"(?P<command>((%s)))" % "|".join(
+    [
+        "timer:update",
+        "timer:switch",
+        "timer:stop",
+        "timer:show",
+        "timer:run",
+        "timer:resume",
+        "timer:pause",
+        "timer:notes:update",
+        "timer:list",
+        "timer:get",
+        "timer:edit",
+        "timer:delete",
+        "timer:add",
+        "summary:table",
+        "summary:json",
+        "summary:csv",
+        "project:unarchive",
+        "project:set:name",
+        "project:set:description",
+        "project:set:default:billable",
+        "project:set",
+        "project:list",
+        "project:delete",
+        "project:create",
+        "project:archive",
+        "bq:snapshot:restore",
+        "bq:snapshot:list",
+        "bq:snapshot:delete",
+        "bq:snapshot:create",
+        "bq:snapshot",
+        "bq:show",
+        "bq:reset",
+        "bq:query",
+        "bq:projects",
+        "bq:init",
+        "app:test:date-parse",
+        "app:test:date-diff",
+        "app:test",
+        "app:sync",
+        "app:run-bq",
+        "app:dir",
+        "app:config:show",
+        "app:config:set:query:save_txt",
+        "app:config:set:query:save_svg",
+        "app:config:set:query:save_query_info",
+        "app:config:set:query:mouse_support",
+        "app:config:set:query:hide_table_render",
+        "app:config:set:query",
+        "app:config:set:general:week_start",
+        "app:config:set:general:timezone",
+        "app:config:set:general:timer:add:min",
+        "app:config:set:general:stay_logged_in",
+        "app:config:set:general:quiet_start",
+        "app:config:set:general:note_history",
+        "app:config:set:general:editor",
+        "app:config:set:general",
+        "app:config:set",
+        "app:config:open",
+        "app:config",
+    ]
 )
 
 
@@ -104,9 +155,7 @@ class Highlighter(RegexHighlighter):
             r"(?<![\\\w])(?P<repr_str>b?'''.*?(?<!\\)'''|b?'.*?(?<!\\)'|b?\"\"\".*?(?<!\\)\"\"\"|b?\".*?(?<!\\)\")",
             r"(?P<repr_url>(file|https|http|ws|wss)://[-0-9a-zA-Z$_+!`(),.?/;:&=%#~]*)",
         ),
-        GROUP_FIRST_COMMANDS,
-        GROUP_MID_COMMANDS,
-        GROUP_LAST_COMMANDS,
+        GROUP_COMMANDS,
     ]
 
 

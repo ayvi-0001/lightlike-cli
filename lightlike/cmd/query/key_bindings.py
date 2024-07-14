@@ -56,23 +56,3 @@ def _(event: KeyPressEvent) -> None:
 @query_handle(Keys.ControlQ)
 def _(event: KeyPressEvent) -> None:
     sys.exit(0)
-
-
-@query_handle("[", "A")
-def _(event: KeyPressEvent) -> None:
-    event.current_buffer.auto_up()
-
-
-@query_handle("[", "B")
-def _(event: KeyPressEvent) -> None:
-    event.current_buffer.auto_down()
-
-
-@query_handle("[", "D")
-def _(event: KeyPressEvent) -> None:
-    event.current_buffer.cursor_left()
-
-
-@query_handle("[", "C")
-def _(event: KeyPressEvent) -> None:
-    event.current_buffer.cursor_right()

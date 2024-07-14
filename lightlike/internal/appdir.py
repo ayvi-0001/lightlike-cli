@@ -22,7 +22,7 @@ from lightlike.__about__ import (
     __repo__,
     __version__,
 )
-from lightlike.internal import constant, markup, update, utils
+from lightlike.internal import constant, markup, patch, utils
 
 __all__: t.Sequence[str] = (
     "CACHE",
@@ -35,6 +35,7 @@ __all__: t.Sequence[str] = (
     "QUERIES",
     "TIMER_LIST_CACHE",
     "LOGS",
+    "SCHEDULER_CONFIG",
     "rmtree",
     "_log",
     "console_log_error",
@@ -57,9 +58,12 @@ REPL_HISTORY: t.Final[Path] = __appdir__ / ".repl_history"
 REPL_HISTORY.touch(exist_ok=True)
 REPL_FILE_HISTORY: t.Final[t.Callable[..., ThreadedHistory]] = lambda: ThreadedHistory(FileHistory(f"{REPL_HISTORY}"))
 QUERIES: t.Final[Path] = __appdir__ / "queries"
-TIMER_LIST_CACHE: t.Final[Path] = __appdir__ / "timer_list_cache.json"
+TIMER_LIST_CACHE: t.Final[Path] = __appdir__ / "tl_ids_latest.json"
 LOGS: t.Final[Path] = __appdir__ / "logs"
 LOGS.mkdir(exist_ok=True)
+SCHEDULER_CONFIG: t.Final[Path] = __appdir__ / "scheduler.toml"
+APSCHEDULER_DB: t.Final[Path] = __appdir__ / "apscheduler.db"
+APSCHEDULER_DB.touch(exist_ok=True)
 # fmt: on
 
 
@@ -86,14 +90,12 @@ def rmtree(appdata: Path = __appdir__) -> t.NoReturn:
 
 
 @_fasteners.interprocess_locked(__appdir__ / "config.lock", logger=_log())
-def validate(
-    __version__: str, __config__: Path, repo: str | None = None, /
-) -> None | t.NoReturn:
+def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
     console = get_console()
 
     _console.if_not_quiet_start(console.log)("Validating app directory")
 
-    update._patch_appdir_lt_v_0_9_0(__appdir__, __config__)
+    patch._appdir_lt_v_0_9_0(__appdir__, __config__)
 
     if not __config__.exists():
         console.log(f"{__config__} not found")
@@ -105,26 +107,28 @@ def validate(
         v_local: Version = Version(local_config["app"]["version"])
         v_package: Version = Version(__version__)
 
-        last_checked_release: datetime | None = None
-        last_checked_release = local_config["app"].get("last_checked_release")
-
-        if repo:
-            if not last_checked_release or (
-                last_checked_release
-                and last_checked_release.date() < datetime.today().date()
-            ):
-                _console.if_not_quiet_start(console.log)("Checking latest release")
-                update.check_latest_release(v_package, repo)
-                last_checked_release = datetime.now()
-
         _console.if_not_quiet_start(console.log)("Checking config")
 
         if v_local < v_package:
-            console.log(f"Updating version: [repr.number]{v_package}")
+            console.log(
+                "Updating version:", f"[repr.number]{v_local}[/]",
+                "->", f"[repr.number]{v_package}[/]",  # fmt: skip
+            )
 
-            if v_local < Version("0.10.0"):
+            if v_local < Version("0.10.0b0"):
                 if v_local < Version("0.9.0"):
-                    update._patch_cache_lt_v_0_9_0(__appdir__)
+                    patch._cache_lt_v_0_9_0(__appdir__)
+
+                patch._config_lt_v_0_10_0(__appdir__, local_config)
+
+                SCHEDULER_CONFIG.touch(exist_ok=True)
+                SCHEDULER_CONFIG.write_text(
+                    constant.DEFAULT_SCHEDULER_TOML
+                    % (
+                        local_config["settings"]["timezone"],
+                        "sqlite:///" + (__appdir__ / "apscheduler.db").as_posix(),
+                    )
+                )
 
             updated_config = utils.update_dict(
                 rtoml.load(constant.DEFAULT_CONFIG), local_config
@@ -132,7 +136,6 @@ def validate(
             updated_config["app"].update(version=__version__)
             local_config = updated_config
 
-        local_config["app"].update(last_checked_release=last_checked_release)
         __config__.write_text(utils._format_toml(local_config))
 
     return None

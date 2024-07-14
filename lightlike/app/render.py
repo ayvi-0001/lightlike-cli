@@ -33,8 +33,8 @@ def cli_info() -> None:
     console = get_console()
     console.set_window_title(__appname_sc__)
 
-    console.log(f"__appname__[b red]=[/]{__appname_sc__}")
-    console.log(f"__version__[b red]=[/][repr.number]{__version__}")
+    console.log(f"__appname__[b][red]=[/]{__appname_sc__}")
+    console.log(f"__version__[b][red]=[/][repr.number]{__version__}")
 
     if LIGHTLIKE_CLI_DEV_USERNAME := getenv("LIGHTLIKE_CLI_DEV_USERNAME"):
         console.log(
@@ -44,23 +44,24 @@ def cli_info() -> None:
         console.log(f"__appdir__[b red]=[/][repr.path]{__appdir__.as_posix()}")
 
     width = (
-        markup.bg(console.width).markup
+        f"[b][green]{console.width}[/]"
         if console.width >= 140
-        else markup.br(console.width).markup
+        else f"[b][red]{console.width}[/]"
     )
     height = (
-        markup.bg(console.height).markup
+        f"[b][green]{console.height}[/]"
         if console.height >= 40
-        else markup.br(console.height).markup
+        else f"[b][red]{console.height}[/]"
     )
 
-    console.log(f"console_width[b red]=[/]{width}")
-    console.log(f"console_height[b red]=[/]{height}")
-
-    if console.width < 140:
-        console.log("[dim red]Recommended console width </ 140")
-    if console.height < 40:
-        console.log("[dim red]Recommended console height </ 40")
+    console.log(
+        f"console_width[b][red]=[/]{width}",
+        "[dim][red](recommended width </ 140)" if console.width < 140 else "",
+    )
+    console.log(
+        f"console_height[b][red]=[/]{height}",
+        "[dim][red](recommended height </ 40)" if console.height < 40 else "",
+    )
 
 
 def query_start_render(

@@ -127,7 +127,7 @@ class SettingsCommand:
         t.Sequence[tuple[t.Callable[[t.Any | None], t.Any], t.Any]] | None
     ) = None
     context_settings: dict[str, t.Any] | None = None
-    syntax: t.Optional["Syntax"] = None
+    syntax: "Syntax | None" = None
     no_args_is_help: bool = True
 
 
@@ -164,7 +164,7 @@ def create_settings_fn(
     ) -> None:
         val = nth(one(kwargs.items()), 1)
 
-        if val == AppConfig().get(*config_keys).get(cmd.name):
+        if val == AppConfig().get(*config_keys, cmd.name):
             console.print(
                 markup.dimmed(
                     f"`{cmd.name}` is already set to `{val}`, nothing happened."

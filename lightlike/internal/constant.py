@@ -2,6 +2,7 @@ import typing as t
 
 __all__: t.Sequence[str] = (
     "DEFAULT_CONFIG",
+    "DEFAULT_SCHEDULER_TOML",
     "CONSOLE",
     "PROMPT_STYLE",
     "_CONSOLE_SVG_FORMAT",
@@ -69,7 +70,7 @@ active_project = "null"
 credentials_source = "not-set"
 service_account_key = []
 
-[cli.lazy_subcommands]
+[cli.commands]
 calendar = "lightlike.cmd.app.other:calendar"
 eval = "lightlike.cmd.app.other:eval_"
 help = "lightlike.cmd.app.default:help_"
@@ -120,6 +121,39 @@ path = [":", "c", "3"]
 [git]
 branch = ""
 path = ""
+
+"""
+
+
+DEFAULT_SCHEDULER_TOML: str = """\
+[scheduler]
+"apscheduler.job_defaults.coalesce" = false
+"apscheduler.job_defaults.max_instances" = 3
+"apscheduler.timezone" = "%s"
+
+[scheduler."apscheduler.jobstores.sqlalchemy"]
+type = "sqlalchemy"
+url = "%s"
+
+[scheduler."apscheduler.executors.sqlalchemy"]
+class = "apscheduler.executors.pool:ThreadPoolExecutor"
+max_workers = 20
+
+[scheduler."apscheduler.executors.processpool"]
+"type" = "processpool"
+max_workers = 5
+
+[jobs.functions]
+print_daily_total_hours = "lightlike.cmd.scheduler.jobs:print_daily_total_hours"
+load_entry_ids = "lightlike.cmd.scheduler.jobs:load_entry_ids"
+sync_cache = "lightlike.cmd.scheduler.jobs:sync_cache"
+check_latest_release = "lightlike.cmd.scheduler.jobs:check_latest_release"
+
+[jobs.default]
+default_job_print_daily_total_hours = "lightlike.cmd.scheduler.jobs:default_job_print_daily_total_hours"
+default_job_load_entry_ids = "lightlike.cmd.scheduler.jobs:default_job_load_entry_ids"
+default_job_sync_cache = "lightlike.cmd.scheduler.jobs:default_job_sync_cache"
+default_job_check_latest_release = "lightlike.cmd.scheduler.jobs:default_job_check_latest_release"
 """
 
 

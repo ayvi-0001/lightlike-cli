@@ -1,14 +1,22 @@
 import logging
 import sys
 import typing as t
+from contextlib import suppress
+
+from apscheduler.schedulers import SchedulerNotRunningError
 
 
 def call_on_close() -> t.NoReturn:
     from lightlike.app.client import get_client
     from lightlike.internal import appdir
+    from lightlike.scheduler import get_scheduler
 
     get_client().close()
     appdir._log().debug("Closed Bigquery client HTTPS connection.")
-    appdir._log().debug("Exiting gracefully.")
+
+    with suppress(SchedulerNotRunningError):
+        get_scheduler().shutdown()
+
     logging.shutdown()
+    appdir._log().debug("Exiting gracefully.")
     sys.exit(0)
