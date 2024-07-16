@@ -1663,8 +1663,8 @@ def pause(
         $ timer resume 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46
         $ t re 36c9fe5
     
-        $ timer resume 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46 --force
-        $ t re 36c9fe5 -f\
+        $ timer resume 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46 --stop
+        $ t re 36c9fe5 -S\
         """,
         lexer="fishshell",
         dedent=True,

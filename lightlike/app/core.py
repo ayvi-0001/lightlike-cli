@@ -155,7 +155,7 @@ class LazyAliasedGroup(AliasedGroup):
         **kwargs: P.kwargs,
     ):
         super().__init__(*args, **kwargs)
-        #   {command-name} -> {module-name}.{command-object-name}
+        #   {command-name} -> {module-name}:{command-object-name}
         self.lazy_subcommands = lazy_subcommands or {}
 
     def list_commands(self, ctx: click.Context) -> list[str]:
@@ -291,9 +291,11 @@ def format_help(
     if _export_help:
         title = "lightlike-cli"
         command_path = ctx.command_path.replace("lightlike", "").strip()
+        if not command_path:
+            command_path = "help"
 
         invoked_subcommand = "".join(
-            c if c.isalnum() else "_" for c in str(command_path)
+            c if c.isalnum() or c == "-" else "_" for c in str(command_path)
         )
         unique_id = f"{title}-%s" % zlib.adler32(
             invoked_subcommand.encode("utf-8", "ignore")

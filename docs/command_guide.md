@@ -2,7 +2,6 @@
 
 # Command Guide
 
-- [`general`](#general)
 - [`timer`](#timer)
 - [`project`](#project)
 - [`summary`](#summary)
@@ -10,8 +9,6 @@
 - [`bq`](#bq)
 
 ---
-
-## `general`
 
 ![help](/docs/assets/svg/help.svg)
 
@@ -75,15 +72,6 @@
 
 ---
 
-- [`general`](#general)
-- [`timer`](#timer)
-- [`project`](#project)
-- [`summary`](#summary)
-- [`app`](#app)
-- [`bq`](#bq)
-
----
-
 ## `project`
 
 ![project](/docs/assets/svg/project.svg)
@@ -108,7 +96,7 @@
 
 ![project_set](/docs/assets/svg/project_set.svg)
 
-### `project:set:default:billable`
+### `project:set:default_billable`
 
 ![project_set_default_billable](/docs/assets/svg/project_set_default_billable.svg)
 
@@ -123,15 +111,6 @@
 ### `project:unarchive`
 
 ![project_unarchive](/docs/assets/svg/project_unarchive.svg)
-
----
-
-- [`general`](#general)
-- [`timer`](#timer)
-- [`project`](#project)
-- [`summary`](#summary)
-- [`app`](#app)
-- [`bq`](#bq)
 
 ---
 
@@ -150,15 +129,6 @@
 ### `summary:table`
 
 ![summary_table](/docs/assets/svg/summary_table.svg)
-
----
-
-- [`general`](#general)
-- [`timer`](#timer)
-- [`project`](#project)
-- [`summary`](#summary)
-- [`app`](#app)
-- [`bq`](#bq)
 
 ---
 
@@ -202,7 +172,7 @@
 
 ![app_config_set_general_stay_logged_in](/docs/assets/svg/app_config_set_general_stay_logged_in.svg)
 
-### `app:config:set:general:timer:add:min`
+### `app:config:set:general:timer_add_min`
 
 ![app_config_set_general_timer_add_min](/docs/assets/svg/app_config_set_general_timer_add_min.svg)
 
@@ -244,7 +214,7 @@
 
 ### `app:run-bq`
 
-![app_run_bq](/docs/assets/svg/app_run_bq.svg)
+![app_run_bq](/docs/assets/svg/app_run-bq.svg)
 
 ### `app:sync`
 
@@ -256,20 +226,11 @@
 
 ### `app:test:date-diff`
 
-![app_test_date_diff](/docs/assets/svg/app_test_date_diff.svg)
+![app_test_date-diff](/docs/assets/svg/app_test_date-diff.svg)
 
 ### `app:test:date-parse`
 
-![app_test_date_parse](/docs/assets/svg/app_test_date_parse.svg)
-
----
-
-- [`general`](#general)
-- [`timer`](#timer)
-- [`project`](#project)
-- [`summary`](#summary)
-- [`app`](#app)
-- [`bq`](#bq)
+![app_test_date-parse](/docs/assets/svg/app_test_date-parse.svg)
 
 ---
 
