@@ -22,7 +22,7 @@ from lightlike.__about__ import (
     __repo__,
     __version__,
 )
-from lightlike.internal import constant, markup, patch, utils
+from lightlike.internal import constant, enums, markup, patch, utils
 
 __all__: t.Sequence[str] = (
     "CACHE",
@@ -45,11 +45,11 @@ __all__: t.Sequence[str] = (
 # fmt: off
 __appdir__.mkdir(exist_ok=True)
 
-CACHE: t.Final[Path] = __appdir__ / "cache.toml"
+CACHE: t.Final[Path] = __appdir__ / ".local_entries"
 CACHE.touch(exist_ok=True)
 CACHE_LOCK: t.Final[Path] = __appdir__ / "cache.lock"
 CACHE_LOCK.touch(exist_ok=True)
-ENTRY_APPDATA: t.Final[Path] = __appdir__ / "entry_appdata.toml"
+ENTRY_APPDATA: t.Final[Path] = __appdir__ / ".entry_appdata"
 ENTRY_APPDATA.touch(exist_ok=True)
 SQL_HISTORY: t.Final[Path] = __appdir__ / ".sql_history"
 SQL_HISTORY.touch(exist_ok=True)
@@ -58,7 +58,7 @@ REPL_HISTORY: t.Final[Path] = __appdir__ / ".repl_history"
 REPL_HISTORY.touch(exist_ok=True)
 REPL_FILE_HISTORY: t.Final[t.Callable[..., ThreadedHistory]] = lambda: ThreadedHistory(FileHistory(f"{REPL_HISTORY}"))
 QUERIES: t.Final[Path] = __appdir__ / "queries"
-TIMER_LIST_CACHE: t.Final[Path] = __appdir__ / "tl_ids_latest.json"
+TIMER_LIST_CACHE: t.Final[Path] = __appdir__ / ".tl_ids_latest.json"
 LOGS: t.Final[Path] = __appdir__ / "logs"
 LOGS.mkdir(exist_ok=True)
 SCHEDULER_CONFIG: t.Final[Path] = __appdir__ / "scheduler.toml"
@@ -95,7 +95,7 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
 
     _console.if_not_quiet_start(console.log)("Validating app directory")
 
-    patch._appdir_lt_v_0_9_0(__appdir__, __config__)
+    patch._appdir_lt_v_0_9_0()
 
     if not __config__.exists():
         console.log(f"{__config__} not found")
@@ -107,28 +107,13 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
         v_local: Version = Version(local_config["app"]["version"])
         v_package: Version = Version(__version__)
 
-        _console.if_not_quiet_start(console.log)("Checking config")
-
         if v_local < v_package:
             console.log(
                 "Updating version:", f"[repr.number]{v_local}[/]",
                 "->", f"[repr.number]{v_package}[/]",  # fmt: skip
             )
 
-            if v_local < Version("0.10.0b0"):
-                if v_local < Version("0.9.0"):
-                    patch._cache_lt_v_0_9_0(__appdir__)
-
-                patch._config_lt_v_0_10_0(__appdir__, local_config)
-
-                SCHEDULER_CONFIG.touch(exist_ok=True)
-                SCHEDULER_CONFIG.write_text(
-                    constant.DEFAULT_SCHEDULER_TOML
-                    % (
-                        local_config["settings"]["timezone"],
-                        "sqlite:///" + (__appdir__ / "apscheduler.db").as_posix(),
-                    )
-                )
+            patch._run(v_local, local_config)
 
             updated_config = utils.update_dict(
                 rtoml.load(constant.DEFAULT_CONFIG), local_config
@@ -174,9 +159,6 @@ def console_log_error(error: Exception, notify: bool, patch_stdout: bool) -> Non
 
 def _initial_build() -> None | t.NoReturn:
     try:
-        _console.reconfigure()
-        console = get_console()
-
         import getpass
         import os
         import socket
@@ -188,8 +170,8 @@ def _initial_build() -> None | t.NoReturn:
         from rich.padding import Padding
 
         from lightlike.app import _questionary
-        from lightlike.internal.enums import CredentialsSource
 
+        console = get_console()
         default_config = rtoml.load(constant.DEFAULT_CONFIG)
 
         license = Markdown(
@@ -324,8 +306,8 @@ def _initial_build() -> None | t.NoReturn:
         client_credential_source = _questionary.select(
             message="Select authorization",
             choices=[
-                CredentialsSource.from_service_account_key,
-                CredentialsSource.from_environment,
+                enums.CredentialsSource.from_service_account_key,
+                enums.CredentialsSource.from_environment,
             ],
         )
 
@@ -365,17 +347,23 @@ def _initial_build() -> None | t.NoReturn:
         default_config["client"].update(
             credentials_source=repr(client_credential_source)
         )
-        console.log("Saving config")
+        default_config["cli"]["append_path"].update(paths=[f"{__appdir__}"])
 
-        __config__.write_text(utils._format_toml(default_config))
         console.log("Building app directory")
+        console.log("Saving config")
+        __config__.write_text(utils._format_toml(default_config))
         __config__.touch(exist_ok=True)
         console.log(f"Writing {__config__}")
         console.log(f"Writing {REPL_HISTORY}")
         console.log(f"Writing {SQL_HISTORY}")
         console.log(f"Writing {CACHE}")
-        console.log("Directory build complete")
-
+        console.log(f"Writing {SCHEDULER_CONFIG}")
+        SCHEDULER_CONFIG.touch(exist_ok=True)
+        SCHEDULER_CONFIG.write_text(
+            constant.DEFAULT_SCHEDULER_TOML
+            % (timezone, "sqlite:///" + (__appdir__ / "apscheduler.db").as_posix())
+        )
+        console.log(f"Writing {ENTRY_APPDATA}")
         ENTRY_APPDATA.write_text(
             cleandoc(
                 """
@@ -387,11 +375,11 @@ def _initial_build() -> None | t.NoReturn:
                 """
             )
         )
-        return None
+        console.log("Directory build complete")
 
+        return None
     except (KeyboardInterrupt, EOFError):
         sys.exit(1)
-
     except Exception as error:
         rprint(markup.failure("Failed build:"), error)
         rprint(markup.failure("Deleting app directory."))

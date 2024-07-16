@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import re
 import typing as t
@@ -31,6 +32,7 @@ __all__: t.Sequence[str] = (
     "_get_config_if_exists",
     "_identical_vectors",
     "pretty_print_exception",
+    "_log_exception",
     "_prerun_autocomplete",
     "_regexp_replace",
     "_format_toml",
@@ -154,6 +156,17 @@ def pretty_print_exception(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]
                 show_locals=True,
                 word_wrap=True,
             )
+
+    return inner
+
+
+def _log_exception(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
+    @wraps(fn)
+    def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
+        try:
+            return fn(*args, **kwargs)
+        except Exception as error:
+            logging.error(f"{error}")
 
     return inner
 
