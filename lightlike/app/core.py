@@ -1,4 +1,5 @@
 import importlib
+import logging
 import re
 import typing as t
 import zlib
@@ -181,43 +182,28 @@ class LazyAliasedGroup(AliasedGroup):
             return super().get_command(ctx, cmd_name)
 
     def _lazy_load(self, cmd_name: str) -> click.Command | None:
-        # lazily loading a command, first get the module name and attribute name
-        import_path: str | None = self.lazy_subcommands.get(cmd_name)
-        if not import_path:
-            return None
-        modname, cmd_object_name = import_path.rsplit(":", 1)
-        # do the import
-        mod: ModuleType | None = None
         try:
-            mod = importlib.import_module(modname)
-        except ModuleNotFoundError as error:
-            with patch_stdout(raw=True):
-                get_console().log(f"Failed to load subcommand: {cmd_name}: {error.msg}")
-            self.lazy_subcommands.pop(cmd_name, None)
-        if not mod:
-            return None
-        # get the Command object from that module
-        try:
+            # lazily loading a command, first get the module name and attribute name
+            import_path: str = self.lazy_subcommands[cmd_name]
+            modname, cmd_object_name = import_path.rsplit(":", 1)
+            # do the import
+            mod: ModuleType = importlib.import_module(modname)
+            # get the Command object from that module
             cmd_object: click.Command = getattr(mod, cmd_object_name)
-        except AttributeError:
-            self.lazy_subcommands.pop(cmd_name, None)
-        # check the result to make debugging easier
-        try:
-            cmd_object_is_command = isinstance(cmd_object, click.BaseCommand)
-        except UnboundLocalError:
-            with patch_stdout(raw=True):
-                get_console().log(
-                    f"Failed to load subcommand: {cmd_name} from {import_path}"
+            # check the result to make debugging easier
+            cmd_object_is_command: bool = isinstance(cmd_object, click.BaseCommand)
+            if not cmd_object_is_command:
+                raise ValueError(
+                    f"Lazy loading of {import_path} failed by returning "
+                    "a non-command object"
                 )
-                self.lazy_subcommands.pop(cmd_name, None)
-            return None
-        if not cmd_object_is_command:
+            return cmd_object
+        except Exception as error:
             self.lazy_subcommands.pop(cmd_name, None)
-            raise ValueError(
-                f"Lazy loading of {import_path} failed by returning "
-                "a non-command object"
+            logging.error(
+                f"Failed to load subcommand: {cmd_name} from {import_path}. Error: {error}"
             )
-        return cmd_object
+            return None
 
 
 class ReplHighlighter(RegexHighlighter):

@@ -13,7 +13,7 @@ from click.shell_completion import CompletionItem
 from pytz import timezone
 from rich import box
 from rich import print as rprint
-from rich import table
+from rich.table import Table
 
 from lightlike.__about__ import __appname_sc__
 from lightlike.app import shell_complete
@@ -249,8 +249,8 @@ def add_job(
     jobstore: str,
     id_: str,
     name: str,
-    args: tuple[t.Any] | list[t.Any],
-    kwargs: tuple[t.Any] | list[t.Any],
+    args: tuple[t.Any | None],
+    kwargs: dict[str, t.Any],
     coalesce: bool,
     replace_existing: bool,
     executor: str,
@@ -346,7 +346,7 @@ def add_job(
         job_kwargs["id"] = id_
     if name is not None:
         job_kwargs["name"] = name
-    if args != ():
+    if args != ():  # type: ignore[comparison-overlap]
         job_kwargs["args"] = args
     if kwargs != {}:
         job_kwargs["kwargs"] = kwargs
@@ -410,7 +410,7 @@ def get_job(
 def print_jobs(ctx: click.Context) -> None:
     scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
 
-    jobstore_table = table.Table(
+    jobstore_table = Table(
         box=box.HORIZONTALS,
         show_edge=False,
         show_lines=False,
@@ -439,7 +439,6 @@ def print_jobs(ctx: click.Context) -> None:
             jobstore_table.add_row("[b][u]Pending jobs")
             if scheduler._pending_jobs:
                 for job, jobstore_alias, replace_existing in scheduler._pending_jobs:
-                    job: Job
                     if jobstore in (None, jobstore_alias):
                         # fmt: off
                         jobstore_table.add_row("jobstore:", f"{job._jobstore_alias}")
@@ -560,8 +559,8 @@ def modify_job(
     jobstore: str,
     id_: str,
     name: str,
-    args: tuple[t.Any] | list[t.Any],
-    kwargs: tuple[t.Any] | list[t.Any],
+    args: tuple[t.Any | None],
+    kwargs: dict[str, t.Any],
     coalesce: bool,
     executor: str,
     misfire_grace_time: int,
@@ -575,7 +574,7 @@ def modify_job(
         job_modify_kwargs["id"] = id_
     if name is not None:
         job_modify_kwargs["name"] = name
-    if args != ():
+    if args != ():  # type: ignore[comparison-overlap]
         job_modify_kwargs["args"] = args
     if kwargs != {}:
         job_modify_kwargs["kwargs"] = kwargs
@@ -911,11 +910,8 @@ def start(ctx: click.Context) -> None:
         rprint("[b][green]Scheduler started")
 
 
-def _job_info(
-    job: Job,
-    show_jobstore: bool = False,
-) -> str:
-    job_table = table.Table(
+def _job_info(job: Job, show_jobstore: bool = False) -> Table:
+    job_table = Table(
         box=box.HORIZONTALS,
         show_edge=False,
         show_lines=False,

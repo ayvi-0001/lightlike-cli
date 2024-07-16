@@ -29,8 +29,7 @@ def create_or_replace_default_jobs(
             _job_config = utils.reduce_keys(
                 *keys or [], sequence=rtoml.load(path_to_jobs)
             )
-            if isinstance(_job_config, dict):
-                job_config = _job_config
+            job_config = _job_config
     elif jobs:
         job_config = jobs
 

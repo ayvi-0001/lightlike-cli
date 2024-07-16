@@ -35,7 +35,13 @@ from pytz import timezone
 from rich import get_console
 from rich.traceback import install
 
-from lightlike.__about__ import __cli_help__, __config__, __lock__, __version__
+from lightlike.__about__ import (
+    __cli_help__,
+    __config__,
+    __lock__,
+    __repo__,
+    __version__,
+)
 
 # isort: split
 
@@ -88,6 +94,8 @@ def build_cli(
 
 
 def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
+    no_invoked_subcommand: bool = len(sys.argv) == 1
+
     try:
         lock: InterProcessLock = InterProcessLock(lock_path, logger=appdir._log())
 
@@ -182,10 +190,15 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
         # If no invoked subcommand, cli is launched through REPL,
         # Don't show cli name in help/usage contexts.
         with lock:
-            cli(prog_name=name if len(sys.argv) > 1 else "")
+            cli(prog_name="" if no_invoked_subcommand else name)
 
     except Exception as error:
         appdir.console_log_error(error, notify=True, patch_stdout=True)
+    finally:
+        if no_invoked_subcommand is False:
+            from lightlike.cmd.scheduler.jobs import check_latest_release
+
+            check_latest_release(__version__, __repo__)
 
 
 def _check_lock(lock: InterProcessLock) -> None | t.NoReturn:
@@ -224,10 +237,10 @@ def _append_paths(paths: list[str] | None) -> None:
     # Commands anywhere on the local machine can be loaded through lazy subcommands,
     # as long as it is on path. There is a key in the config file to add additional paths,
     # before the cli runs.
-    try:
-        if paths:
-            for path in paths:
+    if paths:
+        for path in paths:
+            try:
                 sys.path.append(path)
                 appdir._log().debug(f"{path} added to path")
-    except Exception as error:
-        appdir._log().error(error)
+            except Exception as error:
+                appdir._log().error(error)
