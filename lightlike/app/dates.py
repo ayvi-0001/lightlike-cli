@@ -95,10 +95,12 @@ del dateparser_settings
 def parse_date(
     date: str,
     relative_base: datetime | None = None,
-    tzinfo: "_TzInfo | None" = None,
+    tzinfo: "_TzInfo | str | None" = None,
 ) -> datetime:
-    if tzinfo is None:
-        tzinfo = pytz.timezone(_get_local_timezone_string())
+    if isinstance(tzinfo, str):
+        tzinfo = pytz.timezone(tzinfo)
+    elif tzinfo is None:
+        tzinfo = pytz.timezone(_get_local_timezone_string(default="UTC"))
 
     _settings = DEFAULT_PARSER_SETTINGS.copy()
     _settings.update(

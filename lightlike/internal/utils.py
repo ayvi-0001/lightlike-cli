@@ -105,7 +105,15 @@ def _nl_start(
     return decorator
 
 
-def _get_local_timezone_string(default: str = "UTC") -> str | None:
+@t.overload
+def _get_local_timezone_string(default: str) -> str: ...
+
+
+@t.overload
+def _get_local_timezone_string(default: None = None) -> str | None: ...
+
+
+def _get_local_timezone_string(default: str | None = None) -> str | None:
     if os.name == "nt":
         from tzlocal import get_localzone_name
 
