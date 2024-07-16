@@ -24,7 +24,7 @@ PATTERN_SEMVER: t.Final[t.Pattern[str]] = re.compile(
 )
 
 
-def get_version_from_release(repo: str) -> Version:
+def get_version_from_github_release(repo: str) -> Version:
     headers = {
         "accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
@@ -32,9 +32,7 @@ def get_version_from_release(repo: str) -> Version:
     response = httpx.get(url=f"{repo}/releases/latest", headers=headers)
     next_request: httpx.Request | None = response.next_request
     assert next_request
-    version = next_request.url.path.removeprefix(
-        "/ayvi-0001/lightlike-cli/releases/tag/"
-    )
+    version = next_request.url.path.partition("releases/tag/")[-1]
     return Version(version)
 
 
@@ -48,7 +46,7 @@ def check_latest_release(v_package: str, repo: str) -> None:
             and last_checked_release.date() < datetime.today().date()
         ):
             console = get_console()
-            latest_version: Version = get_version_from_release(repo)
+            latest_version: Version = get_version_from_github_release(repo)
 
             with AppConfig().rw() as config:
                 config["app"].update(last_checked_release=datetime.now())
@@ -60,7 +58,7 @@ def check_latest_release(v_package: str, repo: str) -> None:
                         markup.repr_number(f"v{latest_version}"),
                     )
                     console.log(
-                        "Install update with command: ",
+                        "Install update with command:",
                         markup.code(
                             f'$ pip install -U "lightlike @ git+{repo}@v{latest_version}"'
                         ),

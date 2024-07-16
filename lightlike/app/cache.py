@@ -105,7 +105,7 @@ class _Entries:
 
     @property
     def paused_entries(self) -> list[dict[str, t.Any]]:
-        return self._entries["paused"]["entries"]
+        return t.cast(list[dict[str, t.Any]], self._entries["paused"]["entries"])
 
     @paused_entries.setter
     def paused_entries(self, __val: T) -> None:
@@ -766,7 +766,9 @@ class TimeEntryAppData:
             try:
                 appdata[__key][p].update({"notes": self._unique_notes(p, rows)})
             except Exception as error:
-                appdir._log().error(f"Error attempting to map appdata notes: {error}")
+                appdir._log().error(
+                    f"Error attempting to map appdata notes - {error!r}: {error!s}"
+                )
             return appdata
 
         reduce(_map_notes, projects, appdata)
