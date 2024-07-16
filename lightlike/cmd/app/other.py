@@ -81,11 +81,9 @@ def _eval_help(ctx: click.Context, param: click.Parameter, value: str) -> None:
                 global EVAL_LOCALS
                 try:
                     retval = eval(" ".join(args), EVAL_GLOBALS, EVAL_LOCALS)
-                    if retval:
-                        print(retval)
+                    print(retval)
                 except SyntaxError:
-                    exec(" ".join(args), EVAL_GLOBALS, EVAL_LOCALS)
-                    EVAL_LOCALS |= locals()\
+                    exec(" ".join(args), EVAL_GLOBALS, EVAL_LOCALS)\
             """,
             lexer="python",
             dedent=True,
@@ -122,10 +120,8 @@ def eval_(args: list[str], multiline_prompt: bool) -> None:
             rprint(retval)
         except SyntaxError:
             exec(eval_args, EVAL_GLOBALS, EVAL_LOCALS)
-            EVAL_LOCALS |= locals()
         finally:
-            if "args" in EVAL_LOCALS:
-                EVAL_LOCALS.pop("args")
+            EVAL_LOCALS.pop("eval_args", None)
 
     if multiline_prompt:
         _execute_eval(prompt(message="", multiline=True, style=STYLE))

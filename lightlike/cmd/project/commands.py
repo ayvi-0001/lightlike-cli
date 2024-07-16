@@ -276,7 +276,7 @@ def create(
     description: str,
     default_billable: bool,
 ) -> None:
-    r"""
+    """
     Create a new project.
 
     For interactive prompt, pass no options.
@@ -658,6 +658,7 @@ def set_() -> None:
 @set_.command(
     cls=FormattedCommand,
     name="name",
+    short_help="Update a project's name.",
     syntax=Syntax(
         code="""\
         $ project set name lightlike-cli # interactive
@@ -713,11 +714,11 @@ def set_project_name(
     project: str,
     name: str,
 ) -> None:
-    r"""
+    """
     Update a project's name.
 
-    Name must match regex [code]no-project[/code].
-    The name [code]^\[a-zA-Z0-9-\\_]{3,20}$[/code] is reserved for the default setting.
+    Name must match regex [code]^\[a-zA-Z0-9-\\_]{3,20}$[/code].
+    The name [code]no-project[/code] is reserved for the default setting.
     """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
