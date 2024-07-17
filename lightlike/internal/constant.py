@@ -104,11 +104,6 @@ cursor = "fg:#f0f0ff"
 [system-command]
 shell = []
 
-[keybinds.system-command]
-1 = [":", "!"]
-2 = [":", "s", "h"]
-3 = ["escape", "c-m"]
-
 [keybinds.exit]
 1 = [":", "q"]
 2 = ["c-q"]

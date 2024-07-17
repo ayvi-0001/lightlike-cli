@@ -140,7 +140,6 @@ def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
                 complete_in_thread=True,
                 complete_while_typing=True,
                 validate_while_typing=True,
-                enable_system_prompt=True,
                 enable_open_in_editor=True,
                 reserve_space_for_menu=AppConfig().get(
                     "settings",

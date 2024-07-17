@@ -72,7 +72,7 @@ def _config_filename() -> str:
     return f".lightlike{('_' + env.lower()) if env else ''}.toml"
 
 
-__version__: Final[str] = "v0.10.0b3"
+__version__: Final[str] = "v0.10.0b4"
 
 __appname__: Final[str] = _appdir_filename()
 __appname_sc__: Final[str] = "".join(c if c.isalnum() else "_" for c in __appname__.lower())  # fmt: skip
@@ -125,11 +125,6 @@ HELP:
 
 SYSTEM COMMANDS:
     any command that's not recognized by the top-level parent commands, will be passed to the shell.
-    system commands can also be invoked by:
-        - typing command and pressing [code]:[/code][code]![/code]
-        - typing command and pressing [code]escape[/code] [code]enter[/code]
-        - pressing [code]meta[/code] [code]shift[/code] [code]1[/code] to enable system prompt
-    
     see app:config:set:general:shell --help / -h to configure shell..
     path autocompletion is automatic for [code]cd[/code].
 

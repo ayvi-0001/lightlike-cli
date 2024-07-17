@@ -1,6 +1,5 @@
 import typing as t
 from operator import truth
-from subprocess import list2cmdline
 
 from prompt_toolkit.application import get_app
 from prompt_toolkit.filters import Condition
@@ -24,32 +23,6 @@ prompt_handle = PROMPT_BINDINGS.add
 keybinds = AppConfig().get("keybinds")
 
 
-def _create_kb_system_command_fn(name: str) -> t.Callable[..., t.Any]:
-    @utils._nl_start(before=True)
-    async def _system_command(event: KeyPressEvent) -> None:
-        buffer = event.app.current_buffer
-        cmd = buffer.document.text
-
-        shell = AppConfig().get("system-command", "shell")
-        if shell:
-            if isinstance(shell, str):
-                cmd = f'{shell} "{cmd}"'
-            elif isinstance(shell, list):
-                cmd = f'{list2cmdline(shell)} "{cmd}"'
-
-        buffer.append_to_history()
-        buffer.reset(append_to_history=True)
-        buffer.delete_before_cursor(len(cmd))
-        utils._nl()
-        utils._nl()
-        kb_system_command = event.app.run_system_command(cmd, wait_for_enter=False)
-        await kb_system_command
-
-    _system_command.__qualname__ = name
-    _system_command.__name__ = name
-    return _system_command
-
-
 def _create_kb_exit_fn(name: str) -> t.Callable[..., t.Any]:
     @utils._nl_start(before=True)
     def _exit(event: KeyPressEvent) -> None:
@@ -61,10 +34,6 @@ def _create_kb_exit_fn(name: str) -> t.Callable[..., t.Any]:
     _exit.__name__ = name
     return _exit
 
-
-for k in keybinds["system-command"]:
-    cmd = _create_kb_system_command_fn(f"kb_system_command_{k}")
-    prompt_handle(*keybinds["system-command"][k])(cmd)
 
 for k in keybinds["exit"]:
     cmd = _create_kb_exit_fn(f"kb_exit_{k}")
