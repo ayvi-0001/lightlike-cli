@@ -1,5 +1,6 @@
 import typing as t
 from dataclasses import dataclass
+from functools import partial
 
 import click
 import pytz
@@ -493,8 +494,7 @@ if (
     )
     @value_arg
     def stay_logged_in(value: bool) -> None:
-        from lightlike.app.auth import AuthPromptSession
-        from lightlike.client import service_account_key_flow
+        from lightlike.client import AuthPromptSession, service_account_key_flow
 
         if value is True:
             stay_logged_in = AppConfig().get("user", "stay_logged_in")
@@ -508,8 +508,15 @@ if (
                     AuthPromptSession().authenticate(
                         salt=salt,
                         encrypted_key=encrypted_key,
-                        password=current,
+                        saved_password=AppConfig().saved_password,
+                        stay_logged_in=AppConfig().stay_logged_in,
+                        input_password=current,
                         retry=False,
+                        saved_credentials_failed=partial(
+                            AppConfig()._update_user_credentials,
+                            password="null",
+                            stay_logged_in=False,
+                        ),
                     )
                     AppConfig()._update_user_credentials(
                         password=current, stay_logged_in=value

@@ -1,6 +1,7 @@
 import json
 import sys
 import typing as t
+from functools import partial
 from inspect import cleandoc
 from pathlib import Path
 
@@ -24,8 +25,8 @@ from rich.text import Text
 
 from lightlike import _console
 from lightlike.app import _questionary
-from lightlike.app.auth import AuthPromptSession, _Auth
 from lightlike.app.config import AppConfig
+from lightlike.client.auth import AuthPromptSession, _Auth
 from lightlike.internal import constant, markup, utils
 from lightlike.internal.enums import CredentialsSource
 
@@ -215,7 +216,7 @@ def service_account_key_flow() -> tuple[bytes, bytes]:
         utils._nl()
         if _questionary.confirm(message="Stay logged in?"):
             AppConfig()._update_user_credentials(
-                password=hashed_password,
+                password=hashed_password.hexdigest(),
                 stay_logged_in=True,
             )
 
@@ -241,7 +242,17 @@ def _authorize_from_service_account_key() -> Client:
     encrypted_key, salt = service_account_key_flow()
 
     client: Client = Client.from_service_account_info(
-        AuthPromptSession().authenticate(salt=salt, encrypted_key=encrypted_key)
+        AuthPromptSession().authenticate(
+            salt=salt,
+            encrypted_key=encrypted_key,
+            saved_password=AppConfig().saved_password,
+            stay_logged_in=AppConfig().stay_logged_in,
+            saved_credentials_failed=partial(
+                AppConfig()._update_user_credentials,
+                password="null",
+                stay_logged_in=False,
+            ),
+        )
     )
 
     with AppConfig().rw() as config:
