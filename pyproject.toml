@@ -83,7 +83,7 @@ dev = [
 ]
 
 [project.scripts]
-lightlike = "lightlike.cli:lightlike"
+lightlike = "lightlike.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["lightlike"]

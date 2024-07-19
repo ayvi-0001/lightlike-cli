@@ -4,6 +4,8 @@ import click
 
 from lightlike.app.core import LazyAliasedGroup
 
+__all__: t.Sequence[str] = ("timer",)
+
 
 @click.group(
     name="timer",
@@ -28,6 +30,3 @@ from lightlike.app.core import LazyAliasedGroup
 @click.option("-d", "--debug", is_flag=True, hidden=True)
 def timer(debug: bool) -> None:
     """Run & manage time entries."""
-
-
-__all__: t.Sequence[str] = ("timer",)

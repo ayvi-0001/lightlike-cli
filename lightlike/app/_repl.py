@@ -59,7 +59,7 @@ def repl(
 
     session: PromptSession[str] = PromptSession(**prompt_kwargs)
 
-    if scheduler:
+    if scheduler and callable(scheduler):
         scheduler().start()
         if default_jobs_callable and callable(default_jobs_callable):
             default_jobs_callable()
@@ -92,7 +92,7 @@ def repl(
         except ExitRepl:
             break
         except Exception as error4:
-            if uncaught_exceptions_callable:
+            if uncaught_exceptions_callable and callable(uncaught_exceptions_callable):
                 uncaught_exceptions_callable(error4)
             else:
                 continue

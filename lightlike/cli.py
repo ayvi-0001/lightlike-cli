@@ -23,7 +23,6 @@
 import sys
 import typing as t
 from functools import partial
-from pathlib import Path
 
 import click
 import rtoml
@@ -35,6 +34,9 @@ from pytz import timezone
 from rich import get_console
 from rich.traceback import install
 
+install(suppress=[click])
+
+from lightlike import _console
 from lightlike.__about__ import (
     __cli_help__,
     __config__,
@@ -43,19 +45,37 @@ from lightlike.__about__ import (
     __version__,
 )
 
-# isort: split
-
-from lightlike import _console
-
-install(suppress=[click])
-
 _console.reconfigure()
 
 from lightlike.app import render
 from lightlike.app.core import LazyAliasedGroup
 from lightlike.internal import appdir, constant, utils
 
-__all__: t.Sequence[str] = ("lightlike",)
+__all__: t.Sequence[str] = ("main",)
+
+
+LOCK: InterProcessLock = InterProcessLock(__lock__, logger=appdir._log())
+
+
+def main() -> None:
+    _check_lock(LOCK)
+    _console.if_not_quiet_start(render.cli_info)()
+
+    try:
+        appdir.validate(__version__, __config__)
+    except Exception as error:
+        appdir.console_log_error(error, notify=True, patch_stdout=True)
+        sys.exit(2)
+
+    try:
+        run_cli()
+    except Exception as error:
+        appdir.console_log_error(error, notify=True, patch_stdout=True)
+    finally:
+        if len(sys.argv) > 1:
+            from lightlike.cmd.scheduler.jobs import check_latest_release
+
+            check_latest_release(__version__, __repo__)
 
 
 def build_cli(
@@ -64,9 +84,10 @@ def build_cli(
     help: str | None = None,
     lazy_subcommands: dict[str, t.Any] | None = None,
     context_settings: dict[str, t.Any] | None = None,
-    call_on_close: t.Callable[..., t.Never] | None = None,
+    call_on_close: t.Callable[[click.Context | None], t.Never] | None = None,
     obj: dict[str, t.Any] | None = None,
 ) -> LazyAliasedGroup:
+
     @click.group(
         cls=LazyAliasedGroup,
         name=name,
@@ -87,117 +108,97 @@ def build_cli(
             from lightlike.app._repl import repl
 
             repl(ctx=ctx, **repl_kwargs)
-            if call_on_close:
-                call_on_close()
+            if call_on_close and callable(call_on_close):
+                call_on_close(ctx)
 
     return cli
 
 
-def lightlike(name: str = "lightlike", lock_path: Path = __lock__) -> None:
-    no_invoked_subcommand: bool = len(sys.argv) == 1
+def run_cli(name: str = "lightlike") -> None:
+    from lightlike.app.config import AppConfig  # isort: split # fmt: skip
+    from lightlike.app import call_on_close, cursor, dates, shell_complete
+    from lightlike.app.cache import __validate_cache
+    from lightlike.app.core import _format_click_exception
+    from lightlike.app.key_bindings import PROMPT_BINDINGS
+    from lightlike.client import get_client
+    from lightlike.scheduler import create_or_replace_default_jobs, get_scheduler
 
-    try:
-        lock: InterProcessLock = InterProcessLock(lock_path, logger=appdir._log())
-
-        _check_lock(lock)
-        _console.if_not_quiet_start(render.cli_info)()
-
-        try:
-            appdir.validate(__version__, __config__)
-        except Exception as error:
-            appdir.console_log_error(error, notify=True, patch_stdout=True)
-            sys.exit(2)
-
-        from lightlike.app.config import AppConfig  # isort: split # fmt: skip
-        from lightlike.app import call_on_close, cursor, dates, shell_complete
-        from lightlike.app.cache import __validate_cache
-        from lightlike.app.core import _format_click_exception
-        from lightlike.app.key_bindings import PROMPT_BINDINGS
-        from lightlike.client import get_client
-        from lightlike.scheduler import create_or_replace_default_jobs, get_scheduler
-
-        _console.reconfigure(
-            get_datetime=partial(
-                dates.now, tzinfo=timezone(AppConfig().get("settings", "timezone"))
-            )
+    _console.reconfigure(
+        get_datetime=partial(
+            dates.now, tzinfo=timezone(AppConfig().get("settings", "timezone"))
         )
+    )
 
-        repl_kwargs: dict[str, t.Any] = dict(
-            prompt_kwargs=dict(
-                message=cursor.build,
-                history=appdir.REPL_FILE_HISTORY(),
-                bottom_toolbar=cursor.bottom_toolbar,
-                rprompt=cursor.rprompt,
-                style=Style.from_dict(
-                    utils.update_dict(
-                        rtoml.load(constant.PROMPT_STYLE),
-                        AppConfig().get("prompt", "style", default={}),
-                    )
-                ),
-                cursor=CursorShape.BLOCK,
-                key_bindings=PROMPT_BINDINGS,
-                refresh_interval=1,
-                complete_in_thread=True,
-                complete_while_typing=True,
-                validate_while_typing=True,
-                enable_open_in_editor=True,
-                reserve_space_for_menu=AppConfig().get(
-                    "settings",
-                    "reserve_space_for_menu",
-                    default=10,
-                ),
-                complete_style=AppConfig().get(
-                    "settings", "complete_style", default="COLUMN"
-                ),
+    repl_kwargs: dict[str, t.Any] = dict(
+        prompt_kwargs=dict(
+            message=cursor.build,
+            history=appdir.REPL_FILE_HISTORY(),
+            bottom_toolbar=cursor.bottom_toolbar,
+            rprompt=cursor.rprompt,
+            style=Style.from_dict(
+                utils.update_dict(
+                    rtoml.load(constant.PROMPT_STYLE),
+                    AppConfig().get("prompt", "style", default={}),
+                )
             ),
-            completer_callable=lambda g, c, e: shell_complete.dynamic_completer(
-                shell_complete.repl(g, c, e)
+            cursor=CursorShape.BLOCK,
+            key_bindings=PROMPT_BINDINGS,
+            refresh_interval=1,
+            complete_in_thread=True,
+            complete_while_typing=True,
+            validate_while_typing=True,
+            enable_open_in_editor=True,
+            reserve_space_for_menu=AppConfig().get(
+                "settings",
+                "reserve_space_for_menu",
+                default=10,
             ),
-            format_click_exceptions_callable=_format_click_exception,
-            shell_cmd_callable=lambda: AppConfig().get("system-command", "shell"),
-            pass_unknown_commands_to_shell=True,
-            uncaught_exceptions_callable=partial(
-                appdir.console_log_error, notify=True, patch_stdout=True
+            complete_style=AppConfig().get(
+                "settings", "complete_style", default="COLUMN"
             ),
-            scheduler=get_scheduler,
-            default_jobs_callable=partial(
-                create_or_replace_default_jobs,
-                path_to_jobs=appdir.SCHEDULER_CONFIG,
-                keys=["jobs", "default"],
-            ),
-        )
+        ),
+        completer_callable=lambda g, c, e: shell_complete.dynamic_completer(
+            shell_complete.repl(g, c, e)
+        ),
+        format_click_exceptions_callable=_format_click_exception,
+        shell_cmd_callable=lambda: AppConfig().get("system-command", "shell"),
+        pass_unknown_commands_to_shell=True,
+        uncaught_exceptions_callable=partial(
+            appdir.console_log_error, notify=True, patch_stdout=True
+        ),
+        scheduler=get_scheduler,
+        default_jobs_callable=partial(
+            create_or_replace_default_jobs,
+            path_to_jobs=appdir.SCHEDULER_CONFIG,
+            keys=["jobs", "default"],
+        ),
+    )
 
-        __validate_cache()
-        _append_paths(paths=AppConfig().get("cli", "append_path", "paths"))
+    __validate_cache()
+    _append_paths(paths=AppConfig().get("cli", "append_path", "paths"))
 
-        cli: LazyAliasedGroup = build_cli(
-            name=name,
-            help=__cli_help__,
-            repl_kwargs=repl_kwargs,
-            lazy_subcommands=_build_lazy_subcommands(
-                config=AppConfig().get("cli", "commands", default={})
-            ),
-            context_settings=dict(
-                allow_extra_args=True,
-                ignore_unknown_options=True,
-                help_option_names=["-h", "--help"],
-            ),
-            call_on_close=call_on_close,
-            obj=dict(get_scheduler=get_scheduler, get_client=get_client),
-        )
+    cli: LazyAliasedGroup = build_cli(
+        name=name,
+        help=__cli_help__,
+        repl_kwargs=repl_kwargs,
+        lazy_subcommands=_build_lazy_subcommands(
+            config=AppConfig().get("cli", "commands", default={})
+        ),
+        context_settings=dict(
+            allow_extra_args=True,
+            ignore_unknown_options=True,
+            help_option_names=["-h", "--help"],
+        ),
+        call_on_close=call_on_close,
+        obj=dict(get_scheduler=get_scheduler, get_client=get_client),
+    )
 
-        # If no invoked subcommand, cli is launched through REPL,
-        # Don't show cli name in help/usage contexts.
-        with lock:
-            cli(prog_name="" if no_invoked_subcommand else name)
+    # If no invoked subcommand, cli is launched through REPL,
+    # Don't show cli name in help/usage contexts.
+    prog_name: str = "" if len(sys.argv) == 1 else name
 
-    except Exception as error:
-        appdir.console_log_error(error, notify=True, patch_stdout=True)
-    finally:
-        if no_invoked_subcommand is False:
-            from lightlike.cmd.scheduler.jobs import check_latest_release
-
-            check_latest_release(__version__, __repo__)
+    with LOCK:
+        cli(prog_name=prog_name)
 
 
 def _check_lock(lock: InterProcessLock) -> None | t.NoReturn:
@@ -213,7 +214,7 @@ def _check_lock(lock: InterProcessLock) -> None | t.NoReturn:
                     "Cli is already running in another interpreter on this machine. "
                     "Please close it before attempting to run again.",
                 )
-            sys.exit(2)
+            sys.exit(1)
     return None
 
 

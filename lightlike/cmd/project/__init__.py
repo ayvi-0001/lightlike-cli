@@ -4,6 +4,8 @@ import click
 
 from lightlike.app.core import LazyAliasedGroup
 
+__all__: t.Sequence[str] = ("project",)
+
 
 @click.group(
     name="project",
@@ -21,6 +23,3 @@ from lightlike.app.core import LazyAliasedGroup
 @click.option("-d", "--debug", is_flag=True, hidden=True)
 def project(debug: bool) -> None:
     """Create & manage projects."""
-
-
-__all__: t.Sequence[str] = ("project",)

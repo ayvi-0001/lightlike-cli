@@ -32,6 +32,7 @@ __all__: Sequence[str] = (
     "__lock__",
     "__repo__",
     "__version__",
+    "__cli_help__",
 )
 
 
@@ -72,7 +73,7 @@ def _config_filename() -> str:
     return f".lightlike{('_' + env.lower()) if env else ''}.toml"
 
 
-__version__: Final[str] = "v0.10.0b5"
+__version__: Final[str] = "v0.10.0b6"
 
 __appname__: Final[str] = _appdir_filename()
 __appname_sc__: Final[str] = "".join(c if c.isalnum() else "_" for c in __appname__.lower())  # fmt: skip
