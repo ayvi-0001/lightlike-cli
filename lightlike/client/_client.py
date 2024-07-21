@@ -195,7 +195,6 @@ def service_account_key_flow() -> tuple[bytes, bytes]:
         _console.if_not_quiet_start(get_console().log)(
             "Initializing new service-account config"
         )
-
         auth: _Auth = _Auth()
 
         panel: Panel = Panel.fit(
@@ -241,8 +240,8 @@ def _authorize_from_service_account_key() -> Client:
 
     encrypted_key, salt = service_account_key_flow()
 
-    client: Client = Client.from_service_account_info(
-        AuthPromptSession().authenticate(
+    service_account_key: dict[str, t.Any] = json.loads(
+        AuthPromptSession().decrypt_key(
             salt=salt,
             encrypted_key=encrypted_key,
             saved_password=AppConfig().saved_password,
@@ -254,6 +253,8 @@ def _authorize_from_service_account_key() -> Client:
             ),
         )
     )
+
+    client: Client = Client.from_service_account_info(service_account_key)
 
     with AppConfig().rw() as config:
         config["client"].update(

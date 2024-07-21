@@ -16,6 +16,7 @@ from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
+from lightlike.app import dates
 from lightlike.app.config import AppConfig
 from lightlike.app.core import FormattedCommand
 from lightlike.internal import constant, utils
@@ -143,9 +144,6 @@ def eval_(args: list[str], multiline_prompt: bool) -> None:
 )
 def calendar(year: int) -> None:
     import calendar
-
-    from lightlike.app import dates
-    from lightlike.app.config import AppConfig
 
     today = dates.now(timezone(AppConfig().get("settings", "timezone")))
     year = int(year)

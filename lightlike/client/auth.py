@@ -35,16 +35,16 @@ class _Auth:
 
 
 class AuthPromptSession:
-    def authenticate(
+    def decrypt_key(
         self,
         salt: bytes,
         encrypted_key: bytes,
-        saved_password: str | t.Callable[..., str | None] | None = None,
-        stay_logged_in: bool | t.Callable[..., bool | None] | None = None,
+        saved_password: str | t.Callable[[], str | None] | None = None,
+        stay_logged_in: bool | t.Callable[[], bool | None] | None = None,
         input_password: "sha3_256 | None" = None,
         retry: bool = True,
-        saved_credentials_failed: t.Callable[..., t.Any] | None = None,
-    ) -> bytes:
+        saved_credentials_failed: t.Callable[[], None] | None = None,
+    ) -> str:
         auth = _Auth()
         _saved_password: str | None = (
             saved_password() if callable(saved_password) else saved_password
@@ -82,7 +82,7 @@ class AuthPromptSession:
                 rprint(f"[bright_white on dark_red]{error!r} {error!s}.")
 
             if retry:
-                return self.authenticate(
+                return self.decrypt_key(
                     salt,
                     encrypted_key,
                     saved_password,
@@ -92,10 +92,10 @@ class AuthPromptSession:
                     saved_credentials_failed,
                 )
             else:
-                rprint("\n[b][red]Authentication failed.")
+                rprint("[b][red]Authentication failed.")
                 sys.exit(2)
 
-        return t.cast(bytes, json.loads(decrypted_key.decode()))
+        return decrypted_key.decode()
 
     def prompt_password(
         self,

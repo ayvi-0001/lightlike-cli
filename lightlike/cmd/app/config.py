@@ -505,7 +505,7 @@ if (
                 encrypted_key, salt = service_account_key_flow()
 
                 try:
-                    AuthPromptSession().authenticate(
+                    AuthPromptSession().decrypt_key(
                         salt=salt,
                         encrypted_key=encrypted_key,
                         saved_password=AppConfig().saved_password,

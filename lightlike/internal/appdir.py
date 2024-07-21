@@ -53,10 +53,10 @@ ENTRY_APPDATA: t.Final[Path] = __appdir__ / ".entry_appdata"
 ENTRY_APPDATA.touch(exist_ok=True)
 SQL_HISTORY: t.Final[Path] = __appdir__ / ".sql_history"
 SQL_HISTORY.touch(exist_ok=True)
-SQL_FILE_HISTORY: t.Final[t.Callable[..., ThreadedHistory]] = lambda: ThreadedHistory(FileHistory(f"{SQL_HISTORY}"))
+SQL_FILE_HISTORY: t.Final[t.Callable[[], ThreadedHistory]] = lambda: ThreadedHistory(FileHistory(f"{SQL_HISTORY}"))
 REPL_HISTORY: t.Final[Path] = __appdir__ / ".repl_history"
 REPL_HISTORY.touch(exist_ok=True)
-REPL_FILE_HISTORY: t.Final[t.Callable[..., ThreadedHistory]] = lambda: ThreadedHistory(FileHistory(f"{REPL_HISTORY}"))
+REPL_FILE_HISTORY: t.Final[t.Callable[[], ThreadedHistory]] = lambda: ThreadedHistory(FileHistory(f"{REPL_HISTORY}"))
 QUERIES: t.Final[Path] = __appdir__ / "queries"
 TIMER_LIST_CACHE: t.Final[Path] = __appdir__ / ".tl_ids_latest.json"
 LOGS: t.Final[Path] = __appdir__ / "logs"
@@ -151,7 +151,6 @@ def console_log_error(error: Exception, notify: bool, patch_stdout: bool) -> Non
             from prompt_toolkit.patch_stdout import patch_stdout as _patch_stdout
 
             with _patch_stdout(raw=True):
-
                 rprint(notice)
         else:
             rprint(notice)
@@ -166,6 +165,7 @@ def _initial_build() -> None | t.NoReturn:
 
         from prompt_toolkit.validation import Validator
         from pytz import all_timezones
+        from rich.console import NewLine
         from rich.markdown import Markdown
         from rich.padding import Padding
 
@@ -174,7 +174,7 @@ def _initial_build() -> None | t.NoReturn:
         console = get_console()
         default_config = rtoml.load(constant.DEFAULT_CONFIG)
 
-        license = Markdown(
+        _license = Markdown(
             markup=cleandoc(
                 """
             MIT License
@@ -205,11 +205,11 @@ def _initial_build() -> None | t.NoReturn:
 
         console.rule(style="#9146ff")
         _console.reconfigure(height=17)
-        console.print(Padding(license, (0, 0, 1, 1)))
+        console.print(Padding(_license, (0, 0, 1, 1)))
         _console.reconfigure(height=None)
         _questionary.press_any_key_to_continue(message="Press any key to continue.")
 
-        utils._nl()
+        console.print(NewLine())
         console.log("Writing config")
         console.log(
             markup.repr_attrib_name("appname"),
@@ -261,7 +261,7 @@ def _initial_build() -> None | t.NoReturn:
             console.log(markup.log_error("Could not determine timezone"))
             default_timezone = "UTC"
 
-        utils._nl()
+        console.print(NewLine())
         timezone = _questionary.autocomplete(
             message="Enter timezone $",
             choices=all_timezones,
@@ -272,7 +272,7 @@ def _initial_build() -> None | t.NoReturn:
             ),
         )
 
-        utils._nl()
+        console.print(NewLine())
         console.log(
             markup.repr_attrib_name("timezone"),
             markup.repr_attrib_equal(),
@@ -302,7 +302,7 @@ def _initial_build() -> None | t.NoReturn:
             )
         )
 
-        utils._nl()
+        console.print(NewLine())
         client_credential_source = _questionary.select(
             message="Select authorization",
             choices=[
@@ -335,7 +335,7 @@ def _initial_build() -> None | t.NoReturn:
         else:
             dataset_name = __appname_sc__
 
-        utils._nl()
+        console.print(NewLine())
         console.log(
             markup.repr_attrib_name("dataset"),
             markup.repr_attrib_equal(),

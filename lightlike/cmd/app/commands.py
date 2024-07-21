@@ -135,8 +135,13 @@ def dir_(console: Console, start: bool) -> None:
         console.print("$ start", markup.link(uri, uri))
     else:
         editor = AppConfig().get("settings", "editor", default=None) or None
-        click.edit(editor=editor, filename=path, require_save=False)
-        console.print("$", editor, markup.link(uri, uri))
+        if editor:
+            click.edit(editor=editor, filename=path, require_save=False)
+            console.print("$", editor, markup.link(uri, uri))
+        else:
+            console.print("editor not set.")
+            click.launch(path)
+            console.print("$ start", markup.link(uri, uri))
 
 
 @click.command(
