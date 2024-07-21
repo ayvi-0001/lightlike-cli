@@ -2,6 +2,8 @@ import typing as t
 from inspect import cleandoc
 
 import click
+import google.auth
+import google.auth.credentials
 from rich import print as rprint
 from rich.table import Table
 
@@ -138,8 +140,12 @@ def show(console: "Console") -> None:
     """Show the current credentials object."""
     from rich._inspect import Inspect
 
+    credentials: google.auth.credentials.Credentials = get_client()._credentials
+    request = google.auth.transport.requests.Request()
+    credentials.refresh(request)
+
     _inspect = Inspect(
-        get_client()._credentials,
+        credentials,
         help=True,
         methods=False,
         docs=True,
