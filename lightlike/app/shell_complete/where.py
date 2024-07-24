@@ -10,15 +10,12 @@ from prompt_toolkit.completion import (
 from prompt_toolkit.document import Document
 
 from lightlike.app import shell_complete
-from lightlike.client import get_client
+from lightlike.client import CliQueryRoutines
 from lightlike.internal import utils
 
 if t.TYPE_CHECKING:
-    from google.cloud.bigquery import Client
     from prompt_toolkit.completion import CompleteEvent
     from rich.console import Console
-
-    from lightlike.client import CliQueryRoutines
 
 __all__: t.Sequence[str] = ("completer", "_bottom_toolbar", "_parse_click_options")
 
@@ -37,7 +34,6 @@ def completer(schema: str, table: str) -> ThreadedCompleter:
 
 class WhereClauseCompleter(WordCompleter):
     __slots__ = ()
-    client: t.Callable[..., "Client"] = get_client
     fields: list[str] = [
         "id",
         "date",
@@ -59,7 +55,7 @@ class WhereClauseCompleter(WordCompleter):
 
     def __init__(self, schema: str, table: str) -> None:
         super().__init__([], WORD=True)
-        self.resource_id = f"{self.client().project}.{schema}.{table}"
+        self.resource_id = f"{CliQueryRoutines()._client().project}.{schema}.{table}"
         self.projects = shell_complete.projects.Active().names
         self.notes = shell_complete.notes.Notes().get_all()
 
@@ -85,7 +81,7 @@ class WhereClauseCompleter(WordCompleter):
                 )
 
     def _project_items(
-        self, document: "Document", word_before_cursor: str
+        self, document: Document, word_before_cursor: str
     ) -> t.Iterable[Completion]:
         for project in self.projects:
             if utils._match_str(
@@ -134,12 +130,25 @@ def _bottom_toolbar(console: "Console") -> t.Callable[..., list[tuple[str, str]]
         "note values from timesheets for that project will add to autocomplete."
     )
 
+    default = "default noreverse noitalic nounderline noblink"
+
     text = [
-        ("#000000", f"{' ' * (console.width - 2)}|\n"),
-        ("#000000", f"{' ' * (console.width - 2)}|\n"),
-        ("", f"{bt_line1}{' ' * (console.width - len(bt_line1) - 2)}|\n"),
-        ("", f"{bt_line2}{' ' * (console.width - len(bt_line2) - 2)}|\n"),
-        ("", f"{bt_line3}{' ' * (console.width - len(bt_line3) - 2)}|"),
+        (f"bg:{default}", f"{' ' * (console.width - 1)}\n"),
+        (f"bg:{default}", f"{' ' * (console.width - 1)}\n"),
+        (
+            f"fg: #f0f0ff bg:{default}\n",
+            f"{bt_line1}{' ' * (console.width - len(bt_line1) - 1)}",
+        ),
+        ("", "\n"),
+        (
+            f"fg: #f0f0ff bg:{default}\n",
+            f"{bt_line2}{' ' * (console.width - len(bt_line2) - 1)}",
+        ),
+        ("", "\n"),
+        (
+            f"fg: #f0f0ff bg:{default}",
+            f"{bt_line3}{' ' * (console.width - len(bt_line3) - 1)}",
+        ),
     ]
 
     return lambda: text
@@ -154,8 +163,10 @@ def _parse_click_options(
     flag: bool,
     args: t.Sequence[str] | None,
     console: "Console",
-    routine: "CliQueryRoutines",
+    routine: CliQueryRoutines,
 ) -> str:
+    where_clause: str = ""
+
     if not args:
         if flag:
             from lightlike.cmd.query import _build_query_session
@@ -170,16 +181,12 @@ def _parse_click_options(
                 pre_run=utils._prerun_autocomplete,
                 bottom_toolbar=shell_complete.where._bottom_toolbar(console),
             )
-        else:
-            where_clause = ""
     else:
         where_clause = " ".join(args)
 
     if where_clause:
-        capture_groups = WHERE_CLAUSE.match(where_clause)
-        if capture_groups:
-            where_clause = capture_groups.group(1)
-        else:
-            where_clause = ""
+        match = WHERE_CLAUSE.match(where_clause)
+        if match:
+            where_clause = match.group(1)
 
-    return t.cast(str, where_clause)
+    return where_clause
