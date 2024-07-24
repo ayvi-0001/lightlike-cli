@@ -24,6 +24,7 @@ __all__: t.Sequence[str] = ("timer",)
         "stop": "lightlike.cmd.timer.commands:stop",
         "switch": "lightlike.cmd.timer.commands:switch",
         "update": "lightlike.cmd.timer.commands:update",
+        "summary": "lightlike.cmd.timer.summary:summary",
     },
     short_help="Run & manage time entries.",
 )

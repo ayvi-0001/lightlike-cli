@@ -79,8 +79,8 @@ exit = "lightlike.cmd.app.default:exit_"
 app = "lightlike.cmd.app:app"
 bq = "lightlike.cmd.bq:bq"
 project = "lightlike.cmd.project:project"
-summary = "lightlike.cmd.summary:summary"
 timer = "lightlike.cmd.timer:timer"
+scheduler = "lightlike.cmd.scheduler:scheduler"
 
 [cli.append_path]
 paths = []

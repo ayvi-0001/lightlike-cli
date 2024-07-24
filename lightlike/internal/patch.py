@@ -8,12 +8,25 @@ from lightlike.internal import constant, utils
 
 
 @utils._log_exception
-def _run(v_local: Version, local_config: dict[str, t.Any], /) -> None:
+def run(v_local: Version, local_config: dict[str, t.Any], /) -> None:
+    if v_local < Version("0.9.0"):
+        _lt_v_0_9_0()
+
     if v_local < Version("0.10.0b0"):
-        if v_local < Version("0.9.0"):
-            _lt_v_0_9_0()
         _config_lt_v_0_10_0b0(local_config)
         _appdata_lt_v_0_10_0b0(local_config)
+
+    if v_local <= Version("0.10.0b7"):
+        _config_le_v_0_10_0b3(local_config)
+
+
+@utils._log_exception
+def _config_le_v_0_10_0b3(local_config: dict[str, t.Any], /) -> None:
+    commands = local_config["cli"]["commands"]
+    # summary moved under timer group
+    commands.pop("summary", None)
+    commands["scheduler"] = "lightlike.cmd.scheduler:scheduler"
+    local_config["cli"]["commands"] = commands
 
 
 @utils._log_exception
@@ -58,15 +71,6 @@ def _appdata_lt_v_0_10_0b0(local_config: dict[str, t.Any], /) -> None:
             "sqlite:///" + (__appdir__ / "apscheduler.db").as_posix(),
         )
     )
-
-
-@utils._log_exception
-def _appdir_lt_v_0_9_0() -> None:
-    # config location changed from appdir to home.
-    if (deprecated_config := __appdir__ / "config.toml").exists():
-        __config__.touch(exist_ok=True)
-        __config__.write_text(deprecated_config.read_text())
-        deprecated_config.unlink()
 
 
 @utils._log_exception

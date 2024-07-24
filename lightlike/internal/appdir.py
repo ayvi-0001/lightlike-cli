@@ -92,12 +92,11 @@ def rmtree(appdata: Path = __appdir__) -> t.NoReturn:
 @_fasteners.interprocess_locked(__appdir__ / "config.lock", logger=_log())
 def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
     console = get_console()
-
     _console.if_not_quiet_start(console.log)("Validating app directory")
 
-    patch._appdir_lt_v_0_9_0()
-
-    if not __config__.exists():
+    if not __config__.exists() ^ (
+        __config__.exists() and __config__.read_text().splitlines() == [""]
+    ):
         console.log(f"{__config__} not found")
         console.log("Initializing app directory")
         return _initial_build()
@@ -113,7 +112,7 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
                 "->", f"[repr.number]{v_package}[/]",  # fmt: skip
             )
 
-            patch._run(v_local, local_config)
+            patch.run(v_local, local_config)
 
             updated_config = utils.update_dict(
                 rtoml.load(constant.DEFAULT_CONFIG), local_config

@@ -12,7 +12,6 @@ lazy_subcommands: dict[str, str] = {
     "inspect-console": "lightlike.cmd.app.commands:inspect_console",
     "sync": "lightlike.cmd.app.commands:sync",
     "test": "lightlike.cmd.app.commands:test",
-    "scheduler": "lightlike.cmd.scheduler:scheduler",
 }
 
 if getenv("LIGHTLIKE_CLI_DEV"):
