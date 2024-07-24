@@ -194,22 +194,22 @@ def available_executors(
 )
 @click.option(
     "--year",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], 4-digit year",
 )
 @click.option(
     "--month",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], month (1-12)",
 )
 @click.option(
     "--week",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], day of month (1-31)",
 )
 @click.option(
     "--day",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], ISO week (1-53)",
 )
 @click.option(
@@ -219,17 +219,17 @@ def available_executors(
 )
 @click.option(
     "--hour",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], hour (0-23)",
 )
 @click.option(
     "--minute",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], minute (0-59)",
 )
 @click.option(
     "--second",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], second (0-59)",
 )
 @click.option(
@@ -264,14 +264,14 @@ def add_job(
     hours: int,
     minutes: int,
     seconds: int,
-    year: int,
-    month: int,
-    week: int,
-    day: int,
+    year: str,
+    month: str,
+    week: str,
+    day: str,
     day_of_week: str,
-    hour: int,
-    minute: int,
-    second: int,
+    hour: str,
+    minute: str,
+    second: str,
     start_date: str,
     end_date: str,
 ) -> None:
@@ -723,22 +723,22 @@ def remove_job(
 )
 @click.option(
     "--year",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], 4-digit year",
 )
 @click.option(
     "--month",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], month (1-12)",
 )
 @click.option(
     "--week",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], day of month (1-31)",
 )
 @click.option(
     "--day",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], ISO week (1-53)",
 )
 @click.option(
@@ -748,17 +748,17 @@ def remove_job(
 )
 @click.option(
     "--hour",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], hour (0-23)",
 )
 @click.option(
     "--minute",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], minute (0-59)",
 )
 @click.option(
     "--second",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], second (0-59)",
 )
 @click.option(
@@ -783,10 +783,10 @@ def reschedule_job(
     hours: int,
     minutes: int,
     seconds: int,
-    year: int,
-    month: int,
-    week: int,
-    day: int,
+    year: str,
+    month: str,
+    week: str,
+    day: str,
     day_of_week: str,
     hour: int,
     minute: int,
