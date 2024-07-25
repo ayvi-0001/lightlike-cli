@@ -157,7 +157,7 @@ def archive(
                 fields=["count(*) as count_entries"],
                 where=[f'project = "{project}"'],
             )
-            routine.archive_project(
+            routine._archive_project(
                 project,
                 wait=True,
                 render=True,
@@ -167,7 +167,7 @@ def archive(
                     markup.code(project),
                 ),
             )
-            routine.archive_time_entries(
+            routine._archive_time_entries(
                 project,
                 wait=True,
                 render=True,
@@ -307,7 +307,7 @@ def create(
         "[DEBUG]", "project default billable set to", default_billable
     )
 
-    routine.create_project(
+    routine._create_project(
         name=name,
         description=description or "",
         default_billable=default_billable,
@@ -411,7 +411,7 @@ def delete(
                 fields=["count(*) as count_entries"],
                 where=[f'project = "{project}"'],
             )
-            routine.delete_project(
+            routine._delete_project(
                 project,
                 wait=True,
                 render=True,
@@ -423,7 +423,7 @@ def delete(
                 ),
             )
             threads.spawn(ctx, appdata.sync, dict(debug=debug))
-            routine.delete_time_entries(
+            routine._delete_time_entries(
                 project,
                 wait=True,
                 render=True,
@@ -730,7 +730,7 @@ def set_project_name(
         raise click.exceptions.Exit
 
     with console.status(markup.status_message("Updating project")) as status:
-        routine.update_project_name(
+        routine._update_project_name(
             name=project,
             new_name=new_name,
             wait=True,
@@ -739,7 +739,7 @@ def set_project_name(
             status_renderable=markup.status_message("Updating project name"),
         )
         threads.spawn(ctx, appdata.sync, dict(debug=debug))
-        routine.update_time_entry_projects(
+        routine._update_time_entry_projects(
             name=project,
             new_name=new_name,
             wait=True,
@@ -844,7 +844,7 @@ def set_project_description(
         console.print(markup.dimmed("Current description, nothing happened."))
         return
 
-    routine.update_project_description(
+    routine._update_project_description(
         project,
         new_desc,
         wait=True,
@@ -912,7 +912,7 @@ def set_project_default_billable(
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
-    routine.update_project_default_billable(
+    routine._update_project_default_billable(
         project,
         billable,
         wait=True,
@@ -986,7 +986,7 @@ def unarchive(
                 fields=["count(*) as count_entries"],
                 where=[f'project = "{project}"'],
             )
-            routine.unarchive_project(
+            routine._unarchive_project(
                 project,
                 wait=True,
                 render=True,
@@ -997,7 +997,7 @@ def unarchive(
                 ),
             )
             threads.spawn(ctx, appdata.sync, dict(debug=debug))
-            routine.unarchive_time_entries(
+            routine._unarchive_time_entries(
                 project,
                 wait=True,
                 render=True,

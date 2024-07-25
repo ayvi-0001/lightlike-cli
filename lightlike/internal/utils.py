@@ -328,7 +328,7 @@ def _match_str(
         string_to_check = string_to_check.strip()
         string_to_match = string_to_match.strip()
     if replace_patterns:
-        if not isinstance(replace_patterns, t.Mapping):
+        if not isinstance(replace_patterns, dict):
             raise TypeError("Patterns must be a mapping.")
 
         string_to_check = _regexp_replace(

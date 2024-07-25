@@ -24,6 +24,7 @@ password = ""
 salt = []
 
 [updates]
+"v0.10.0b8" = false
 "v0.9.3" = false
 
 [settings]

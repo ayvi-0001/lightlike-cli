@@ -252,7 +252,7 @@ def add(
 
     status_renderable = markup.status_message("Adding time entry")
     with console.status(status_renderable) as status:
-        query_job: "QueryJob" = routine.add_time_entry(
+        query_job: "QueryJob" = routine._add_time_entry(
             id=time_entry_id,
             project=project,
             note=note,
@@ -890,7 +890,7 @@ def edit(
         edits = first(all_edits)
         status.update(status_renderable)
 
-        query_job: "QueryJob" = routine.update_time_entries(
+        query_job: "QueryJob" = routine._update_time_entries(
             ids=matched_ids,
             project=edits.get("project"),
             note=edits.get("note"),
@@ -1598,7 +1598,7 @@ def update_notes(
         rprompt="\nReplacing %s notes:\n%s" % (project, notes_to_replace),
     )
 
-    query_job: "QueryJob" = routine.update_notes(
+    query_job: "QueryJob" = routine._update_notes(
         new_note=new_note,
         old_note="".join(["(", "|".join(n for n in notes_to_edit), ")"]),
         project=project,
@@ -1645,7 +1645,7 @@ def pause(
     debug: bool = parent.params.get("debug", False)
 
     time_entry_id: str = cache.id
-    query_job: "QueryJob" = routine.pause_time_entry(time_entry_id, now, wait=debug)
+    query_job: "QueryJob" = routine._pause_time_entry(time_entry_id, now, wait=debug)
     cache.pause_entry(0, now)
     console.set_window_title(__appname_sc__)
 
@@ -1753,7 +1753,7 @@ def resume(
 
         matched_id = select
         cache.resume_entry(matched_id, now)
-        query_job = routine.resume_time_entry(matched_id, now)
+        query_job = routine._resume_time_entry(matched_id, now)
     else:
         if len(entry) < 40:
             matched_id = id_list.match_id(entry)
@@ -1765,10 +1765,10 @@ def resume(
 
         if stop_:
             cache.remove([cache.paused_entries], "id", [matched_id])
-            routine.stop_time_entry(matched_id, now)
+            routine._stop_time_entry(matched_id, now)
         else:
             cache.resume_entry(matched_id, now)
-            query_job = routine.resume_time_entry(matched_id, now)
+            query_job = routine._resume_time_entry(matched_id, now)
 
     if debug:
         query_job.result()
@@ -1967,7 +1967,7 @@ def run(
 
     start_local: datetime = start or now
     time_entry_id: str = sha1(f"{project}{note}{start_local}".encode()).hexdigest()
-    query_job: "QueryJob" = routine.start_time_entry(
+    query_job: "QueryJob" = routine._start_time_entry(
         time_entry_id, project, note, start_local, billable or project_default_billable
     )
 
@@ -1975,7 +1975,7 @@ def run(
         if cache:
             entry_to_pause: str = copy(cache.id)
             cache.pause_entry(0, start_local)
-            routine.pause_time_entry(entry_to_pause, start_local, wait=debug)
+            routine._pause_time_entry(entry_to_pause, start_local, wait=debug)
         else:
             console.print("No active entry. --pause-active / -P ignored.")
     elif cache:
@@ -2072,7 +2072,7 @@ def stop(
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
-    routine.stop_time_entry(cache.id, now, wait=debug)
+    routine._stop_time_entry(cache.id, now, wait=debug)
     cache._clear_active()
     console.set_window_title(__appname_sc__)
 
@@ -2186,11 +2186,11 @@ def switch(
         select = id_list.match_id(entry)
 
     if cache.index(cache.paused_entries, "id", [select]):
-        routine.resume_time_entry(select, now, wait=debug)
+        routine._resume_time_entry(select, now, wait=debug)
         debug and console.log("[DEBUG]", f"resuming entry {select}")
 
     if not continue_:
-        routine.pause_time_entry(cache.id, now, wait=debug)
+        routine._pause_time_entry(cache.id, now, wait=debug)
         debug and console.log("[DEBUG]", f"pausing entry {cache.id}")
 
     cache.switch_active_entry(select, now, continue_)
@@ -2394,7 +2394,7 @@ def update(
             console.print(markup.dimmed("No valid fields to update, nothing happened."))
             return
         else:
-            query_job: "QueryJob" = routine.update_time_entries(
+            query_job: "QueryJob" = routine._update_time_entries(
                 ids=[cache.id],
                 project=edits.get("project"),
                 note=edits.get("note"),

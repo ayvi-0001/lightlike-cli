@@ -20,7 +20,7 @@ from lightlike.internal.utils import _regexp_replace
 __all__: t.Sequence[str] = ("run", "SCRIPTS")
 
 
-SCRIPTS: t.Final[Path] = (Path(__file__) / ".." / "sql").resolve()
+SCRIPTS: t.Final[Path] = Path(__file__).parent.joinpath("sql").resolve()
 
 
 @dataclass
@@ -30,7 +30,7 @@ class Build:
 
     @property
     def path(self) -> Path:
-        return SCRIPTS / f"build{self.ordinal}"
+        return SCRIPTS / self.name
 
     @property
     def scripts(self) -> t.Sequence[Path]:
@@ -44,6 +44,13 @@ class Build:
     @property
     def names(self) -> t.Sequence[str]:
         return tuple((path.name for path in self.scripts))
+
+
+BUILDS: list[Build] = []
+
+for idx, _path in enumerate(SCRIPTS.iterdir()):
+    if _path.is_dir():
+        BUILDS.append(Build(_path.name, ordinal=idx + 1))
 
 
 def _run_script(
@@ -151,19 +158,13 @@ def run(client: "Client", patterns: dict[str, str]) -> bool:
         Padding(overall_progress, (1, 0, 0, 0)),
     )
 
-    builds = (
-        Build(name="Schemas", ordinal=1),
-        Build(name="Tables | Functions", ordinal=2),
-        Build(name="Procedures | Table Functions", ordinal=3),
-    )
-
-    overall_task_id = overall_progress.add_task("", total=len(builds))
+    overall_task_id = overall_progress.add_task("", total=len(BUILDS))
 
     with get_console().screen(style="bold white on red"):
         with Live(progress_group, transient=True):
-            for idx, build in enumerate(builds):
+            for idx, build in enumerate(BUILDS):
                 description_overall_progress = (
-                    "[b][#f0f0ff](%d out of %d builds completed)" % (idx, len(builds))
+                    "[b][#f0f0ff](%d out of %d builds completed)" % (idx, len(BUILDS))
                 )
 
                 overall_progress.update(
@@ -202,7 +203,7 @@ def run(client: "Client", patterns: dict[str, str]) -> bool:
             overall_progress.update(
                 overall_task_id,
                 description="[b][green]%d/%d builds completed."
-                % (len(builds), len(builds)),
+                % (len(BUILDS), len(BUILDS)),
             )
 
         _questionary.press_any_key_to_continue(

@@ -8,6 +8,7 @@ from pathlib import Path
 import rtoml
 from google.auth.exceptions import DefaultCredentialsError
 from google.cloud.bigquery import Client
+from more_itertools import flatten, interleave_longest
 from prompt_toolkit import PromptSession
 from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.filters import Condition
@@ -24,7 +25,7 @@ from rich.panel import Panel
 from rich.text import Text
 
 from lightlike import _console
-from lightlike.app import _questionary
+from lightlike.app import _get, _questionary
 from lightlike.app.config import AppConfig
 from lightlike.client.auth import AuthPromptSession, _Auth
 from lightlike.internal import constant, markup, utils
@@ -490,9 +491,6 @@ def provision_bigquery_resources(
 
 def update_routine_diff(client: Client) -> None:
     try:
-        from more_itertools import flatten, interleave_longest
-
-        from lightlike.app import _get
         from lightlike.client.routines import CliQueryRoutines
 
         console = get_console()
