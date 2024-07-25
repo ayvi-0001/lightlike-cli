@@ -67,9 +67,13 @@ APSCHEDULER_DB.touch(exist_ok=True)
 # fmt: on
 
 
+_TODAY: datetime = datetime.today()
+_DAILY_LOG_DIR: Path = LOGS / _TODAY.strftime("%Y.%m.%d")
+_DAILY_LOG_DIR.mkdir(exist_ok=True)
+
 logging.basicConfig(
     level=logging.DEBUG,
-    filename=LOGS / "cli.log",
+    filename=(_DAILY_LOG_DIR / _TODAY.strftime("%H.%M.%S.%f")).with_suffix(".log"),
     filemode="a",
     format="[%(asctime)s] %(pathname)s:%(lineno)d\n%(levelname)s: %(message)s",
     datefmt="%m-%d %H:%M:%S",
