@@ -1,10 +1,8 @@
 import logging
 import sys
 import typing as t
-from contextlib import suppress
 
 import click
-from apscheduler.schedulers import SchedulerNotRunningError
 
 
 def call_on_close(ctx: click.Context | None = None) -> t.NoReturn:
@@ -15,8 +13,8 @@ def call_on_close(ctx: click.Context | None = None) -> t.NoReturn:
     get_client().close()
     appdir._log().debug("Closed Bigquery client HTTPS connection.")
 
-    with suppress(SchedulerNotRunningError):
-        get_scheduler().shutdown()
+    if (scheduler := get_scheduler()).running:
+        scheduler.shutdown()
 
     logging.shutdown()
     appdir._log().debug("Exiting gracefully.")

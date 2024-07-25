@@ -59,43 +59,49 @@ def repl(
 
     session: PromptSession[str] = PromptSession(**prompt_kwargs)
 
-    if scheduler and callable(scheduler):
+    scheduler_started: bool = False
+    if scheduler:
         scheduler().start()
+        scheduler_started = True
         if default_jobs_callable and callable(default_jobs_callable):
             default_jobs_callable()
 
-    while 1:
-        try:
-            command = session.prompt(in_thread=True)
-        except (KeyboardInterrupt, EOFError):
-            continue
-
-        args: list[str] = split_arg_string(command, posix=True)
-        if not args:
-            continue
-
-        try:
-            ctx.protected_args = args
-            ctx_command.invoke(ctx)
-        except click.UsageError as error1:
-            if _is_unknown_command(error1) and pass_unknown_commands_to_shell:
-                try:
-                    _execute_system_command(args, shell_cmd_callable)
-                except Exception as error2:
-                    print(error2)
-            else:
-                _show_click_exception(error1, format_click_exceptions_callable)
-        except click.ClickException as error3:
-            _show_click_exception(error3, format_click_exceptions_callable)
-        except (click.exceptions.Exit, SystemExit):
-            pass
-        except ExitRepl:
-            break
-        except Exception as error4:
-            if uncaught_exceptions_callable and callable(uncaught_exceptions_callable):
-                uncaught_exceptions_callable(error4)
-            else:
+    try:
+        while 1:
+            try:
+                command = session.prompt(in_thread=True)
+            except (KeyboardInterrupt, EOFError):
                 continue
+
+            args: list[str] = split_arg_string(command, posix=True)
+            if not args:
+                continue
+
+            try:
+                ctx.protected_args = args
+                ctx_command.invoke(ctx)
+            except click.UsageError as error1:
+                if _is_unknown_command(error1) and pass_unknown_commands_to_shell:
+                    try:
+                        _execute_system_command(args, shell_cmd_callable)
+                    except Exception as error2:
+                        print(error2)
+                else:
+                    _show_click_exception(error1, format_click_exceptions_callable)
+            except click.ClickException as error3:
+                _show_click_exception(error3, format_click_exceptions_callable)
+            except (click.exceptions.Exit, SystemExit):
+                pass
+            except ExitRepl:
+                break
+            except Exception as error4:
+                if uncaught_exceptions_callable:
+                    uncaught_exceptions_callable(error4)
+                else:
+                    continue
+    finally:
+        if scheduler_started and scheduler().running:
+            scheduler().shutdown()
 
 
 def _show_click_exception(
@@ -160,11 +166,7 @@ def _execute_system_command(
 def _prepend_exec_to_cmd(
     _cmd: str, shell_cmd_callable: t.Callable[[], str] | None = None
 ) -> str:
-    if (
-        shell_cmd_callable
-        and callable(shell_cmd_callable)
-        and (shell := shell_cmd_callable()) is not None
-    ):
+    if shell_cmd_callable and (shell := shell_cmd_callable()) is not None:
         if isinstance(shell, str):
             cmd_exec = shell
         elif isinstance(shell, list):
