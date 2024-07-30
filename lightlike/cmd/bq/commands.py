@@ -10,8 +10,8 @@ from rich.table import Table
 from lightlike.app import _questionary, render
 from lightlike.app.config import AppConfig
 from lightlike.app.core import AliasedGroup, FormattedCommand, LazyAliasedGroup
-from lightlike.client import get_client, reconfigure
-from lightlike.client._client import _select_credential_source, _select_project
+from lightlike.client._credentials import _select_credential_source, _select_project
+from lightlike.client.bigquery import get_client, reconfigure
 from lightlike.cmd import _pass
 from lightlike.internal import markup, utils
 from lightlike.internal.enums import ClientInitOptions, CredentialsSource
@@ -71,8 +71,8 @@ def query(console: "Console") -> None:
 def init(console: "Console") -> None:
     """Change active project or credentials source."""
     client = get_client()
-
     credentials = client._credentials
+
     if hasattr(credentials, "service_account_email"):
         account = credentials.service_account_email
     else:
@@ -104,30 +104,27 @@ def init(console: "Console") -> None:
     )
 
     if option == ClientInitOptions.UPDATE_PROJECT % client.project:
-        project_id = _select_project(client)
+        project_id = _select_project(client._credentials)
 
         with AppConfig().rw() as config:
             config["client"].update(active_project=project_id)
 
-        reconfigure()
-
     elif ClientInitOptions.UPDATE_AUTH % credentials_source:
-        source = _select_credential_source()
+        source = _select_credential_source(credentials_source)
 
         match source:
             case CredentialsSource.from_service_account_key:
                 with AppConfig().rw() as config:
                     config["client"].update(credentials_source=source)
 
-                reconfigure()
-
             case CredentialsSource.from_environment:
                 with AppConfig().rw() as config:
                     config["client"].update(
-                        credentials_source=source, active_project=None
+                        credentials_source=source,
+                        active_project=None,
                     )
 
-                reconfigure()
+    reconfigure()
 
 
 @click.command(

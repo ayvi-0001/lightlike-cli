@@ -1,4 +1,3 @@
-import json
 import sys
 import typing as t
 from base64 import b64encode
@@ -6,14 +5,27 @@ from hashlib import sha3_256, sha256
 from os import urandom
 from secrets import compare_digest
 
+import rtoml
 from cryptography.fernet import Fernet, InvalidToken
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from prompt_toolkit import PromptSession
+from prompt_toolkit.cursor_shapes import CursorShape
+from prompt_toolkit.filters import Condition
+from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
+from prompt_toolkit.keys import Keys
+from prompt_toolkit.styles import Style
+from prompt_toolkit.validation import Validator
 from rich import get_console
 from rich import print as rprint
 from rich.console import NewLine
 
+from lightlike.internal import constant
+
 __all__: t.Sequence[str] = ("_Auth", "AuthPromptSession")
+
+
+T = t.TypeVar("T")
 
 
 class _Auth:
@@ -35,6 +47,13 @@ class _Auth:
 
 
 class AuthPromptSession:
+    auth_keybinds: KeyBindings = KeyBindings()
+    hidden: list[bool] = [True]
+
+    @auth_keybinds.add(Keys.ControlT, eager=True)
+    def _(event: KeyPressEvent) -> None:
+        AuthPromptSession.hidden[0] = not AuthPromptSession.hidden[0]
+
     def decrypt_key(
         self,
         salt: bytes,
@@ -128,3 +147,27 @@ class AuthPromptSession:
                 return password, urandom(32)
             else:
                 rprint("[#888888]Password does not match, try again.")
+
+    def prompt_secret(
+        self,
+        message: str,
+        add_newline_breaks: bool = True,
+    ) -> T:
+        add_newline_breaks and rprint(NewLine())
+        session: PromptSession[T] = PromptSession(
+            message=message,
+            style=Style.from_dict(rtoml.load(constant.PROMPT_STYLE)),
+            cursor=CursorShape.BLOCK,
+            multiline=True,
+            refresh_interval=1,
+            erase_when_done=True,
+            key_bindings=self.auth_keybinds,
+            is_password=Condition(lambda: self.hidden[0]),
+            validator=Validator.from_callable(
+                lambda d: False if not d else True,
+                error_message="Input cannot be None.",
+            ),
+        )
+        retval: T = session.prompt()
+        add_newline_breaks and rprint(NewLine())
+        return retval

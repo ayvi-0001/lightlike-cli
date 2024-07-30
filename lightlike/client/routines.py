@@ -18,7 +18,7 @@ from rich import get_console
 from rich.text import Text
 
 from lightlike.app.config import AppConfig
-from lightlike.client._client import get_client
+from lightlike.client.bigquery import get_client
 from lightlike.internal import markup
 
 if t.TYPE_CHECKING:

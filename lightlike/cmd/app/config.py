@@ -1,4 +1,5 @@
 import typing as t
+from contextlib import suppress
 from dataclasses import dataclass
 from functools import partial
 
@@ -494,23 +495,24 @@ if (
     )
     @value_arg
     def stay_logged_in(value: bool) -> None:
-        from lightlike.client import AuthPromptSession, service_account_key_flow
+        from lightlike.client import AuthPromptSession
+        from lightlike.client._credentials import service_account_key_flow
 
         if value is True:
             stay_logged_in = AppConfig().get("user", "stay_logged_in")
 
             if not stay_logged_in:
                 rprint("Enter current password.")
-                current = AuthPromptSession().prompt_password()
-                encrypted_key, salt = service_account_key_flow()
+                input_password = AuthPromptSession().prompt_password()
+                encrypted_key, salt = service_account_key_flow(AppConfig())
 
-                try:
+                with suppress(UnboundLocalError):
                     AuthPromptSession().decrypt_key(
                         salt=salt,
                         encrypted_key=encrypted_key,
                         saved_password=AppConfig().saved_password,
                         stay_logged_in=AppConfig().stay_logged_in,
-                        input_password=current,
+                        input_password=input_password,
                         retry=False,
                         saved_credentials_failed=partial(
                             AppConfig()._update_user_credentials,
@@ -519,11 +521,9 @@ if (
                         ),
                     )
                     AppConfig()._update_user_credentials(
-                        password=current, stay_logged_in=value
+                        password=input_password, stay_logged_in=value
                     )
                     rprint("Set", markup.scope_key("stay_logged_in"), "to", value)
-                except UnboundLocalError:
-                    ...
 
             else:
                 rprint(
