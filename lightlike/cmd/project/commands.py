@@ -845,8 +845,8 @@ def set_project_description(
         return
 
     routine._update_project_description(
-        project,
-        new_desc,
+        name=project,
+        description=new_desc,
         wait=True,
         render=True,
         status_renderable=markup.status_message("Updating project"),
@@ -913,8 +913,8 @@ def set_project_default_billable(
     debug: bool = parent.params.get("debug", False)
 
     routine._update_project_default_billable(
-        project,
-        billable,
+        name=project,
+        default_billable=billable,
         wait=True,
         render=True,
         status_renderable=markup.status_message("Updating project"),

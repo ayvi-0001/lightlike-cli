@@ -1004,8 +1004,8 @@ class CliQueryRoutines:
 
     def _update_project_default_billable(
         self,
-        project: str,
-        value: bool,
+        name: str,
+        default_billable: bool,
         use_query_cache: bool = True,
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
@@ -1018,8 +1018,8 @@ class CliQueryRoutines:
             use_legacy_sql=use_legacy_sql,
             query_parameters=[
                 # fmt:off
-                ScalarQueryParameter("project", SqlParameterScalarTypes.STRING, project),
-                ScalarQueryParameter("value", SqlParameterScalarTypes.BOOL, value),
+                ScalarQueryParameter("name", SqlParameterScalarTypes.STRING, name),
+                ScalarQueryParameter("default_billable", SqlParameterScalarTypes.BOOL, default_billable),
                 # fmt:on
             ],
         )
@@ -1029,9 +1029,9 @@ class CliQueryRoutines:
             UPDATE
               {self.projects_id}
             SET
-              default_billable = @value
+              default_billable = @default_billable
             WHERE
-              name = @project;
+              name = @name;
             """
         )
 
@@ -1047,7 +1047,7 @@ class CliQueryRoutines:
     def _update_project_description(
         self,
         name: str,
-        desc: str,
+        description: str,
         use_query_cache: bool = True,
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
@@ -1060,7 +1060,9 @@ class CliQueryRoutines:
             use_legacy_sql=use_legacy_sql,
             query_parameters=[
                 ScalarQueryParameter("name", SqlParameterScalarTypes.STRING, name),
-                ScalarQueryParameter("desc", SqlParameterScalarTypes.STRING, desc),
+                ScalarQueryParameter(
+                    "description", SqlParameterScalarTypes.STRING, description
+                ),
             ],
         )
 
@@ -1113,7 +1115,7 @@ class CliQueryRoutines:
             SET
               name = @new_name
             WHERE
-              name = @current_name;
+              name = @name;
             """
         )
 

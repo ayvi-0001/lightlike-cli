@@ -134,20 +134,30 @@ def eval_(args: list[str], multiline_prompt: bool) -> None:
     hidden=True,
     allow_name_alias=False,
 )
-@click.argument(
-    "year",
+@click.option(
+    "-y",
+    "--year",
     type=click.INT,
+    show_default=True,
     default=datetime.now().year,
     required=False,
 )
-def calendar(year: int) -> None:
+@click.option(
+    "-w",
+    "--firstweekday",
+    type=click.IntRange(0, 6),
+    show_default=True,
+    default=0,
+    required=False,
+)
+def calendar(year: int, firstweekday: int) -> None:
     import calendar
 
     from lightlike.app.config import AppConfig
 
     today = dates.now(timezone(AppConfig().get("settings", "timezone")))
     year = int(year)
-    cal = calendar.Calendar()
+    cal = calendar.Calendar(firstweekday)
     today_tuple = today.day, today.month, today.year
 
     tables = []

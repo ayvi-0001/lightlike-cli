@@ -59,10 +59,8 @@ def repl(
 
     session: PromptSession[str] = PromptSession(**prompt_kwargs)
 
-    scheduler_started: bool = False
     if scheduler:
         scheduler().start()
-        scheduler_started = True
         if default_jobs_callable and callable(default_jobs_callable):
             default_jobs_callable()
 
@@ -100,7 +98,7 @@ def repl(
                 else:
                     continue
     finally:
-        if scheduler_started and scheduler().running:
+        if scheduler and scheduler().running:
             scheduler().shutdown()
 
 
