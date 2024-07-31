@@ -357,10 +357,10 @@ def ns_time_diff(ns: int) -> float:
 
 
 def update_dict(
-    original: dict[str, t.Any], updates: dict[str, t.Any]
+    original: dict[str, t.Any],
+    updates: dict[str, t.Any],
 ) -> dict[str, t.Any]:
     for __key, __val in updates.items():
-
         if isinstance(__val, dict):
             original[__key] = update_dict(original.get(__key, {}), __val)
         else:

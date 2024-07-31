@@ -73,7 +73,7 @@ def _config_filename() -> str:
     return f".lightlike{('_' + env.lower()) if env else ''}.toml"
 
 
-__version__: Final[str] = "v0.10.0b10"
+__version__: Final[str] = "v0.10.0b11"
 
 __appname__: Final[str] = _appdir_filename()
 __appname_sc__: Final[str] = "".join(c if c.isalnum() else "_" for c in __appname__.lower())  # fmt: skip
@@ -90,22 +90,22 @@ LIGHTLIKE_CLI_DEV_USERNAME = os.getenv("LIGHTLIKE_CLI_DEV_USERNAME")
 
 
 __cli_help__: str = f"""
-[repr_attrib_name]__appname__[/][b red]=[/][repr_attrib_value]{
+[repr_attrib_name]__appname__[/][b][red]=[/][repr_attrib_value]{
         (
             "lightlike_cli"
             if LIGHTLIKE_CLI_DEV_USERNAME
             else __appname_sc__
         )
     }[/repr_attrib_value]
-[repr_attrib_name]__version__[/][b red]=[/][repr_number]{__version__}[/repr_number]
-[repr_attrib_name]__config__[/][b red]=[/][repr_path]{
+[repr_attrib_name]__version__[/][b][red]=[/][repr_number]{__version__}[/repr_number]
+[repr_attrib_name]__config__[/][b][red]=[/][repr_path]{
         (
             "/%s/.lightlike.toml" % LIGHTLIKE_CLI_DEV_USERNAME
             if LIGHTLIKE_CLI_DEV_USERNAME
             else __config__.as_posix()
         )
     }[/repr_path]
-[repr_attrib_name]__appdir__[/][b red]=[/][repr_path]{
+[repr_attrib_name]__appdir__[/][b][red]=[/][repr_path]{
         (
             "/%s/.lightlike-cli" % LIGHTLIKE_CLI_DEV_USERNAME
             if LIGHTLIKE_CLI_DEV_USERNAME
@@ -119,14 +119,22 @@ GENERAL:
     [code]ctrl space[/code] or [code]tab[/code] to display commands/autocomplete.
     commands are aliased, use the shortest unique string of the current command path.
     [code]:q[/code] or [code]ctrl q[/code] or type exit to exit repl.
-    [code]:c{{1 | 2 | 3}}[/code] to add/remove completions from the global completer. [code]1[/code]=commands, [code]2[/code]=history, [code]3[/code]=path
+    [code]:c{{1 | 2 | 3 | 4}}[/code] to add/remove completions from the global completer.
+    {", ".join(
+        [
+            "[code]1[/code]=commands",
+            "[code]2[/code]=history",
+            "[code]3[/code]=path",
+            "[code]4[/code]=executables",
+        ]
+    )}
 
 HELP:
     add help option to command/group --help / -h.
 
 SYSTEM COMMANDS:
     any command that's not recognized by the top-level parent commands, will be passed to the shell.
-    see app:config:set:general:shell --help / -h to configure shell..
+    see app:config:set:general:shell --help / -h to configure what shell is used.1
     path autocompletion is automatic for [code]cd[/code].
 
 TIME ENTRY IDS:

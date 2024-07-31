@@ -11,7 +11,7 @@ from rich import print as rprint
 from rich.table import Table
 from rich.text import Text
 
-from lightlike.__about__ import __appdir__, __appname_sc__, __version__
+from lightlike.__about__ import __appdir__, __appname_sc__, __config__, __version__
 from lightlike.internal import appdir, markup
 
 if t.TYPE_CHECKING:
@@ -35,13 +35,14 @@ def cli_info() -> None:
 
     console.log(f"__appname__[b][red]=[/]{__appname_sc__}")
     console.log(f"__version__[b][red]=[/][repr.number]{__version__}")
+    console.log(f"__config__[b][red]=[/][repr.path]{__config__.as_posix()}")
 
     if LIGHTLIKE_CLI_DEV_USERNAME := getenv("LIGHTLIKE_CLI_DEV_USERNAME"):
         console.log(
             f"__appdir__[b red]=[/][repr.path]/{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike-cli"
         )
     else:
-        console.log(f"__appdir__[b red]=[/][repr.path]{__appdir__.as_posix()}")
+        console.log(f"__appdir__[b][red]=[/][repr.path]{__appdir__.as_posix()}")
 
     width = (
         f"[b][green]{console.width}[/]"
@@ -122,6 +123,7 @@ def map_sequence_to_rich_table(
     row_kwargs: t.Mapping[str, t.Any] | None = None,
     table_kwargs: t.Mapping[str, t.Any] | None = None,
     column_kwargs: t.Mapping[str, t.Any] | None = None,
+    no_color: bool = False,
 ) -> Table:
     default = {
         "box": box.MARKDOWN,
@@ -153,17 +155,21 @@ def map_sequence_to_rich_table(
     else:
         items = first_row.items()
 
-    fn = lambda c: map_column_style(
-        items=c,
-        string_ctype=string_ctype or [],
-        bool_ctype=bool_ctype or [],
-        num_ctype=num_ctype or [],
-        datetime_ctype=datetime_ctype or [],
-        time_ctype=time_ctype or [],
-        date_ctype=date_ctype or [],
-        console_width=console_width,
-        no_color=False,
-    )
+    if not no_color:
+        fn = lambda c: map_column_style(
+            items=c,
+            string_ctype=string_ctype or [],
+            bool_ctype=bool_ctype or [],
+            num_ctype=num_ctype or [],
+            datetime_ctype=datetime_ctype or [],
+            time_ctype=time_ctype or [],
+            date_ctype=date_ctype or [],
+            console_width=console_width,
+            no_color=False,
+        )
+    else:
+        fn = lambda c: {}
+
     # fmt: off
     reduce(
         lambda n, c: table.add_column(c[0], **fn(c), **column_kwargs or {}),

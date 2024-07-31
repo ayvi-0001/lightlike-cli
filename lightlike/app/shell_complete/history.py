@@ -17,6 +17,8 @@ __all__: t.Sequence[str] = ("HistoryCompleter",)
 
 
 class HistoryCompleter(Completer):
+    style: str = "#a49db0"
+
     def get_completions(
         self, document: "Document", complete_event: "CompleteEvent"
     ) -> t.Iterator[Completion]:
@@ -25,29 +27,19 @@ class HistoryCompleter(Completer):
         start_position = -len(document.text_before_cursor)
         console_width = get_console().width
 
-        for match in list(
-            filter(lambda l: _match_str(document.text_before_cursor, l), history)
-        ):
-            if match:
-                yield Completion(
-                    text=match,
-                    start_position=start_position,
-                    display=self._display(match, console_width),
-                    display_meta=FormattedText([("bold #a49db0", "history")]),
-                    style="#a49db0",
-                )
-            else:
-                for line in history:
-                    yield Completion(
-                        text=line,
-                        start_position=start_position,
-                        display=self._display(match, console_width),
-                        display_meta=FormattedText([("bold #a49db0", "history")]),
-                        style="#a49db0",
-                    )
+        match_word_before_cursor = lambda l: _match_str(document.text_before_cursor, l)
+        for match in list(filter(match_word_before_cursor, history)):
+            yield Completion(
+                text=match,
+                start_position=start_position,
+                display=self._display(match, console_width),
+                display_meta=FormattedText([(f"bold {self.style}", "history")]),
+                style=f"{self.style}",
+            )
 
     def _display(self, text: str, console_width: int) -> str:
         half_console_width = int(console_width / 2)
-        return (
-            f"{text[:half_console_width]}…" if len(text) > half_console_width else text
-        )
+        if len(text) > half_console_width:
+            return f"{text[:half_console_width]}…"
+        else:
+            return text

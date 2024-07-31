@@ -8,7 +8,6 @@ from click.shell_completion import CompletionItem
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.formatted_text import FormattedText
 
-from lightlike._console import global_completers
 from lightlike.internal.enums import ActiveCompleter
 from lightlike.internal.utils import _alter_str
 
@@ -21,6 +20,8 @@ __all__: t.Sequence[str] = ("path", "PathCompleter")
 
 TYPED_DIR = re.compile(r"^(.*)(?:\\|\/)", flags=re.IGNORECASE)
 TYPED_STEM = re.compile(r"^.*(?:\\|\/)+(.*)$", flags=re.IGNORECASE)
+
+_E = (PermissionError, NotADirectoryError, FileNotFoundError)
 
 
 def _match_stem(incomplete: str) -> t.Callable[[Path], bool]:
@@ -35,7 +36,7 @@ def _typed_dir_and_stem(
     if typed_dir and typed_stem:
         target_dir = Path(typed_dir.group(0)).expanduser()
         if target_dir.exists():
-            with suppress(NotADirectoryError, FileNotFoundError):
+            with suppress(*_E):
                 target_stem = typed_stem.group(1).lower()
                 yield from filter(_match_stem(target_stem), iterator(target_dir))
 
@@ -54,7 +55,7 @@ def _paths_from_incomplete(
     typed_path = Path(incomplete)
 
     if not incomplete:
-        with suppress(PermissionError):
+        with suppress(*_E):
             yield from iterator(Path("."))
     elif typed_path.exists():
         if typed_path.is_dir():
@@ -81,7 +82,7 @@ def _yield_paths(incomplete: str, dir_only: bool = False) -> t.Iterator[Path]:
 def _path_str_contents(path: Path) -> FormattedText:
     contents = []
     if path.is_dir():
-        with suppress(PermissionError):
+        with suppress(*_E):
             for sub in path.iterdir():
                 contents.extend(
                     [
@@ -100,6 +101,10 @@ def path(
     if not ctx.resilient_parsing:
         return None
 
+    from lightlike.app.shell_complete.dynamic import global_completers
+
+    # Don't show path completions again if they're already included in
+    # the global completer
     if ActiveCompleter.PATH in global_completers():
         return completions
 

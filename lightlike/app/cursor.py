@@ -4,7 +4,6 @@ from decimal import Decimal
 from os import getenv
 from pathlib import Path
 
-from prompt_toolkit.application import Application, get_app
 from prompt_toolkit.formatted_text import fragment_list_width
 from pytz import timezone
 from rich import get_console
@@ -12,6 +11,7 @@ from rich import get_console
 from lightlike.app.cache import EntriesInMemory
 from lightlike.app.config import AppConfig
 from lightlike.app.dates import now, seconds_to_time_parts
+from lightlike.app.shell_complete.dynamic import global_completers
 
 if t.TYPE_CHECKING:
     from datetime import _TzInfo
@@ -84,14 +84,13 @@ def build(message: str | None = None) -> str:
 
 
 def bottom_toolbar() -> t.Callable[..., StyleAndTextTuples]:
-    app: Application[t.Any] = get_app()
     cache = EntriesInMemory()
-    columns: int = app.output.get_size().columns
+    columns: int = get_console().width
     toolbar: StyleAndTextTuples = []
 
     if cache:
-        toolbar.extend([("class:rprompt.entries", f" A[{cache.id[:8]}")])
-        toolbar.extend([("class:rprompt.entries", f":{cache.project}")])
+        toolbar.extend([("class:bottom.toolbar.text", f" A[{cache.id[:8]}")])
+        toolbar.extend([("class:bottom.toolbar.text", f":{cache.project}")])
 
         cache_note: str = cache.note
         if cache_note:
@@ -101,17 +100,29 @@ def bottom_toolbar() -> t.Callable[..., StyleAndTextTuples]:
                 if len(cache_note) > max_width
                 else cache_note
             )
-            toolbar.extend([("class:rprompt.entries", f':"{note}"')])
+            toolbar.extend([("class:bottom.toolbar.text", f':"{note}"')])
 
-        toolbar.extend([("class:rprompt.entries", "] |")])
+        toolbar.extend([("class:bottom.toolbar.text", "] |")])
 
     display_running: str = f"R[{cache.count_running_entries if cache else 0}]"
     display_paused: str = f"P[{cache.count_paused_entries}]"
     sep = " | " if all([display_running, display_paused]) else ""
+    rside_toolbar = f" {display_running}{sep}{display_paused}"
 
-    toolbar.extend(
-        [("class:rprompt.entries", f" {display_running}{sep}{display_paused}")]
+    toolbar.extend([("class:bottom.toolbar.text", rside_toolbar)])
+
+    active_completers = (
+        "[" + ",".join(map(lambda c: c._name_[:1], global_completers())) + "]"
     )
+
+    padding = " " * (
+        columns
+        - fragment_list_width(toolbar)  # type: ignore[arg-type]
+        - fragment_list_width([("class:bottom.toolbar.text", active_completers)])  # type: ignore[arg-type]
+        - 2
+    )
+
+    toolbar.extend([("", padding), ("class:bottom.toolbar.text", active_completers)])
 
     blank_line = (
         "bg:default noreverse noitalic nounderline noblink",

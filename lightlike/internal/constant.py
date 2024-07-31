@@ -101,17 +101,23 @@ paths = []
 "rprompt.entries" = "fg:#000000 bg:#f0f0ff"
 cursor = "fg:#f0f0ff"
 
+[completers]
+default = ["CMD"]
+
+[completers.exec]
+ignore_patterns = []
+
+[keys]
+exit = [[":", "q"], ["c-q"]]
+system-command = [[":", "s", "h"], [":", "!"]]
+[keys.completers]
+commands = [[":", "c", "1"]]
+history = [[":", "c", "2"]]
+path = [[":", "c", "3"]]
+exec = [[":", "c", "4"]]
+
 [system-command]
 shell = []
-
-[keybinds.exit]
-1 = [":", "q"]
-2 = ["c-q"]
-
-[keybinds.completers]
-commands = [":", "c", "1"]
-history = [":", "c", "2"]
-path = [":", "c", "3"]
 
 [git]
 branch = ""
@@ -235,10 +241,7 @@ prompt = "fg:#f0f0ff"
 "prompt.branch.name" = "fg:#fc6675 bold"
 "prompt.project.parenthesis" = "fg:#bfabff bold"
 "prompt.branch.parenthesis" = "fg:#feee85 bold"
-
-rprompt = "fg:#f0f0ff"
-"rprompt.clock" = "fg:#888888"
-"rprompt.entries" = "fg:#000000 bg:#f0f0ff"
+"bottom.toolbar.text" = "fg:#000000 bg:#f0f0ff"
 
 cursor = "fg:#f0f0ff"
 cursor-column = "bg:#dddddd"

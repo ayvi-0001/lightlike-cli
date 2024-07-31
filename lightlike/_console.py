@@ -13,7 +13,7 @@ from rich.theme import Theme
 
 from lightlike import _fasteners
 from lightlike.__about__ import __appdir__, __config__
-from lightlike.internal import appdir, constant, enums
+from lightlike.internal import appdir, constant
 
 __all__: t.Sequence[str] = (
     "QUIET_START",
@@ -21,9 +21,6 @@ __all__: t.Sequence[str] = (
     "Highlighter",
     "if_not_quiet_start",
     "reconfigure",
-    "ACTIVE_COMPLETERS",
-    "global_completers",
-    "reconfigure_completer",
 )
 
 
@@ -172,33 +169,3 @@ def reconfigure(**kwargs: t.Any) -> None:
 
     spinner = "simpleDotsScrolling"
     setattr(get_console(), "status", partial(get_console().status, spinner=spinner))
-
-
-ACTIVE_COMPLETERS: list[int] = []
-
-
-def global_completers() -> list[int]:
-    global ACTIVE_COMPLETERS
-    if not ACTIVE_COMPLETERS:
-        ACTIVE_COMPLETERS = [enums.ActiveCompleter.CMD]
-
-    return ACTIVE_COMPLETERS
-
-
-def reconfigure_completer(
-    completer: t.Literal[
-        enums.ActiveCompleter.CMD,
-        enums.ActiveCompleter.HISTORY,
-        enums.ActiveCompleter.PATH,
-    ]
-) -> None:
-    NEW_COMPLETER = completer
-    global ACTIVE_COMPLETERS
-    active_completers = global_completers()
-
-    if NEW_COMPLETER not in active_completers:
-        active_completers.append(NEW_COMPLETER)
-    else:
-        active_completers.pop(active_completers.index(NEW_COMPLETER))
-
-    ACTIVE_COMPLETERS = active_completers

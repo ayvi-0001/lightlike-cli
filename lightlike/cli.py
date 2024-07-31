@@ -119,7 +119,7 @@ def run_cli(name: str = "lightlike") -> None:
     from lightlike.app import call_on_close, cursor, dates, shell_complete
     from lightlike.app.cache import __validate_cache
     from lightlike.app.core import _format_click_exception
-    from lightlike.app.key_bindings import PROMPT_BINDINGS
+    from lightlike.app.keybinds import PROMPT_BINDINGS
     from lightlike.client import get_client
     from lightlike.scheduler import create_or_replace_default_jobs, get_scheduler
 
@@ -157,7 +157,7 @@ def run_cli(name: str = "lightlike") -> None:
                 "settings", "complete_style", default="COLUMN"
             ),
         ),
-        completer_callable=lambda g, c, e: shell_complete.dynamic_completer(
+        completer_callable=lambda g, c, e: shell_complete.global_completer(
             shell_complete.repl(g, c, e)
         ),
         format_click_exceptions_callable=_format_click_exception,

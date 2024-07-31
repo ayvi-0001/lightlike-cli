@@ -13,7 +13,7 @@ from pytz import timezone
 from lightlike.app import cursor, dates, shell_complete, validate
 from lightlike.app.autosuggest import threaded_autosuggest
 from lightlike.app.config import AppConfig
-from lightlike.app.key_bindings import PROMPT_BINDINGS
+from lightlike.app.keybinds import PROMPT_BINDINGS
 from lightlike.internal import appdir, constant, utils
 
 __all__: t.Sequence[str] = ("PromptFactory",)
