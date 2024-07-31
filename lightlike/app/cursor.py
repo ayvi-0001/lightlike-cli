@@ -117,9 +117,9 @@ def bottom_toolbar() -> t.Callable[..., StyleAndTextTuples]:
 
     padding = " " * (
         columns
-        - fragment_list_width(toolbar)  # type: ignore[arg-type]
-        - fragment_list_width([("class:bottom.toolbar.text", active_completers)])  # type: ignore[arg-type]
-        - 2
+        - fragment_list_width(toolbar)
+        - fragment_list_width([("class:bottom.toolbar.text", active_completers)])
+        - 1
     )
 
     toolbar.extend([("", padding), ("class:bottom.toolbar.text", active_completers)])

@@ -7,7 +7,7 @@ import google.auth
 import google.auth.credentials
 from google.cloud import bigquery
 from google.oauth2 import service_account
-from rich import get_console
+from rich import get_console, print
 from rich.console import Console, NewLine
 from rich.text import Text
 
@@ -100,10 +100,20 @@ def _get_credentials_from_config(
 
 def service_account_key_flow(appconfig: AppConfig) -> tuple[bytes, bytes]:
     console: Console = get_console()
-    encrypted_key: bytes | list[int] = appconfig.get("client", "service_account_key")
-    salt: bytes | list[int] = appconfig.get("user", "salt")
 
-    if not (encrypted_key and salt):
+    encrypted_key: bytes | None = None
+    salt: bytes | None = None
+
+    encrypted_key_from_config: bytearray = appconfig.get(
+        "client",
+        "service_account_key",
+    )
+    salt_from_config: bytearray = appconfig.get(
+        "user",
+        "salt",
+    )
+
+    if not (encrypted_key_from_config and salt_from_config):
         _console.if_not_quiet_start(console.log)(
             "Initializing new service-account config"
         )
@@ -125,13 +135,15 @@ def service_account_key_flow(appconfig: AppConfig) -> tuple[bytes, bytes]:
                 stay_logged_in=True,
             )
 
-        print(NewLine())
         print(
-            Text.assemble(
-                "Copy and paste service-account key. Press ",
-                markup.code("esc enter"),
-                " to continue.",
-            )
+            NewLine(),
+            "Copy and paste service-account key.",
+            "Press",
+            markup.code("esc enter"),
+            "to continue.",
+            "Press",
+            markup.code("ctrl t"),
+            "to toggle hidden input.",
         )
         service_account: str = prompt_service_account_key()
         encrypted_key = _Auth().encrypt(key_derivation, service_account)
@@ -143,7 +155,9 @@ def service_account_key_flow(appconfig: AppConfig) -> tuple[bytes, bytes]:
         del password
         del key_derivation
 
-    return encrypted_key, salt
+        return encrypted_key, salt
+    else:
+        return bytes(encrypted_key_from_config), bytes(salt_from_config)
 
 
 def prompt_service_account_key() -> str:
@@ -151,7 +165,7 @@ def prompt_service_account_key() -> str:
 
     try:
         while not service_account_key:
-            response = AuthPromptSession().prompt_secret(
+            response: str = AuthPromptSession().prompt_secret(
                 message="(service-account-key) $ "
             )
             try:

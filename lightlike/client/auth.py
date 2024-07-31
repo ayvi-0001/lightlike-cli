@@ -25,9 +25,6 @@ from lightlike.internal import constant
 __all__: t.Sequence[str] = ("_Auth", "AuthPromptSession")
 
 
-T = t.TypeVar("T")
-
-
 class _Auth:
     def encrypt(self, __key: bytes, __val: str) -> bytes:
         return Fernet(__key).encrypt(__val.encode())
@@ -50,6 +47,7 @@ class AuthPromptSession:
     auth_keybinds: KeyBindings = KeyBindings()
     hidden: list[bool] = [True]
 
+    @staticmethod
     @auth_keybinds.add(Keys.ControlT, eager=True)
     def _(event: KeyPressEvent) -> None:
         AuthPromptSession.hidden[0] = not AuthPromptSession.hidden[0]
@@ -148,13 +146,9 @@ class AuthPromptSession:
             else:
                 rprint("[#888888]Password does not match, try again.")
 
-    def prompt_secret(
-        self,
-        message: str,
-        add_newline_breaks: bool = True,
-    ) -> T:
+    def prompt_secret(self, message: str, add_newline_breaks: bool = True) -> str:
         add_newline_breaks and rprint(NewLine())
-        session: PromptSession[T] = PromptSession(
+        session: PromptSession[str] = PromptSession(
             message=message,
             style=Style.from_dict(rtoml.load(constant.PROMPT_STYLE)),
             cursor=CursorShape.BLOCK,
@@ -168,6 +162,6 @@ class AuthPromptSession:
                 error_message="Input cannot be None.",
             ),
         )
-        retval: T = session.prompt()
+        retval: str = session.prompt()
         add_newline_breaks and rprint(NewLine())
         return retval
