@@ -7,7 +7,7 @@ import click
 import pytz
 from more_itertools import nth, one
 from rich import print as rprint
-from rich.console import Console
+from rich.console import Console, NewLine
 from rich.syntax import Syntax
 
 from lightlike.__about__ import __appdir__, __config__
@@ -19,7 +19,7 @@ from lightlike.cmd import _pass
 from lightlike.internal import markup, utils
 from lightlike.internal.enums import CredentialsSource
 
-__all__: t.Sequence[str] = ("open_", "show", "set_")
+__all__: t.Sequence[str] = ("edit", "list_", "set_")
 
 
 P = t.ParamSpec("P")
@@ -27,10 +27,13 @@ P = t.ParamSpec("P")
 
 @click.command(
     cls=FormattedCommand,
-    name="open",
-    short_help="Open config using the default text editor.",
+    name="edit",
+    short_help="Edit config using the default text editor.",
     syntax=Syntax(
-        code="$ app config open",
+        code="""\
+        $ app config edit
+        $ a c e\
+        """,
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
@@ -38,8 +41,8 @@ P = t.ParamSpec("P")
     ),
 )
 @_pass.console
-def open_(console: Console) -> None:
-    """Open the config file located in the users home directory using the default text editor."""
+def edit(console: Console) -> None:
+    """Edit the config file located in the users home directory using the default text editor."""
     path = __config__.resolve()
     uri = path.as_uri()
     editor = AppConfig().get("settings", "editor", default=None)
@@ -56,15 +59,15 @@ def open_(console: Console) -> None:
 
 @click.command(
     cls=FormattedCommand,
-    name="show",
-    short_help="Show config values.",
+    name="list",
+    short_help="Show current config values.",
     syntax=Syntax(
         code="""\
-        $ app config show
-        $ a c s
+        $ app config list
+        $ a c l
     
-        $ app config show --json
-        $ a c s -j\
+        $ app config list --json
+        $ a c l -j\
         """,
         lexer="fishshell",
         dedent=True,
@@ -73,15 +76,22 @@ def open_(console: Console) -> None:
     ),
 )
 @_pass.console
-def show(console: Console) -> None:
-    """Show config file in terminal."""
+def list_(console: Console) -> None:
+    """Show current config file in terminal."""
     console.print(
         Syntax(
             __config__.read_text(),
             lexer="toml",
             line_numbers=True,
             background_color="#131310",
-        )
+        ),
+    )
+    console.print(
+        NewLine(),
+        "location:",
+        __config__.resolve()
+        .as_posix()
+        .replace(__config__.drive, __config__.drive.lower().replace(":", "")),
     )
 
 

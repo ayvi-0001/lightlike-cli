@@ -83,35 +83,32 @@ __appdir__: Final[Path] = Path(get_app_dir(__appname__, roaming=True))
 __lock__: Final[Path] = __appdir__ / "cli.lock"
 
 
-# fmt: off
-
-
 LIGHTLIKE_CLI_DEV_USERNAME = os.getenv("LIGHTLIKE_CLI_DEV_USERNAME")
 
 
 __cli_help__: str = f"""
-[repr_attrib_name]__appname__[/][b][red]=[/][repr_attrib_value]{
+[repr_attrib_name]__appname__[/][b][red]=[/red][repr_attrib_value]{
         (
             "lightlike_cli"
             if LIGHTLIKE_CLI_DEV_USERNAME
             else __appname_sc__
         )
-    }[/repr_attrib_value]
-[repr_attrib_name]__version__[/][b][red]=[/][repr_number]{__version__}[/repr_number]
-[repr_attrib_name]__config__[/][b][red]=[/][repr_path]{
+    }[/b][/repr_attrib_value]
+[repr_attrib_name]__version__[/][b][red]=[/red][repr_number]{__version__}[/b][/repr_number]
+[repr_attrib_name]__config__[/][b][red]=[/red][repr_path]{
         (
             "/%s/.lightlike.toml" % LIGHTLIKE_CLI_DEV_USERNAME
             if LIGHTLIKE_CLI_DEV_USERNAME
             else __config__.as_posix()
         )
-    }[/repr_path]
-[repr_attrib_name]__appdir__[/][b][red]=[/][repr_path]{
+    }[/b][/repr_path]
+[repr_attrib_name]__appdir__[/][b][red]=[/red][repr_path]{
         (
             "/%s/.lightlike-cli" % LIGHTLIKE_CLI_DEV_USERNAME
             if LIGHTLIKE_CLI_DEV_USERNAME
             else __appdir__.as_posix()
         )
-    }[/repr_path]
+    }[/b][/repr_path]
 
 github: [repr.url]{__repo__}[/]
 

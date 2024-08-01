@@ -82,8 +82,8 @@ def default_timer_add(config: AppConfig) -> str:
         $ timer add # defaults to adding an entry under `no-project`, that started 6 minutes ago, ending now.
         $ t a       # this can be later updated using timer:update
 
-        $ timer add --project lightlike-cli --start jan1@9am --end jan1@1pm --note "…" --billable true
-        $ t a -plightlike-cli -sjan1@9am -ejan1@1pm -n"…" -b1\
+        $ timer add --project lightlike-cli --start jan1@9am --end jan1@1pm --note … --billable true
+        $ t a -plightlike-cli -sjan1@9am -ejan1@1pm -n… -b1\
         """,
         lexer="fishshell",
         dedent=True,
@@ -606,8 +606,8 @@ def _match_ids(
     short_help="Edit completed time entries.",
     syntax=Syntax(
         code="""\
-        $ timer edit --id b95eb89 --id 36c9fe5 --start 3pm --note "…"
-        $ t e -ib95eb89 -i36c9fe5 -s3pm -n"…"
+        $ timer edit --id b95eb89 --id 36c9fe5 --start 3pm --note …
+        $ t e -ib95eb89 -i36c9fe5 -s3pm -n…
 
         $ timer edit --use-last-timer-list --note "rewrite task"
         $ t e -u -n"rewrite task"

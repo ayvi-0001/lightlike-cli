@@ -4,7 +4,6 @@
 
 - [`timer`](#timer)
 - [`project`](#project)
-- [`summary`](#summary)
 - [`app`](#app)
 - [`bq`](#bq)
 
@@ -70,6 +69,20 @@
 
 ![timer_update](/docs/assets/svg/timer_update.svg)
 
+![summary](/docs/assets/svg/timer_summary.svg)
+
+### `timer:summary:csv`
+
+![summary_csv](/docs/assets/svg/timer_summary_csv.svg)
+
+### `timer:summary:json`
+
+![summary_json](/docs/assets/svg/timer_summary_json.svg)
+
+### `timer:summary:table`
+
+![summary_table](/docs/assets/svg/timer_summary_table.svg)
+
 ---
 
 ## `project`
@@ -114,24 +127,6 @@
 
 ---
 
-## `summary`
-
-![summary](/docs/assets/svg/summary.svg)
-
-### `summary:csv`
-
-![summary_csv](/docs/assets/svg/summary_csv.svg)
-
-### `summary:json`
-
-![summary_json](/docs/assets/svg/summary_json.svg)
-
-### `summary:table`
-
-![summary_table](/docs/assets/svg/summary_table.svg)
-
----
-
 ## `app`
 
 ![app](/docs/assets/svg/app.svg)
@@ -140,13 +135,13 @@
 
 ![app_config](/docs/assets/svg/app_config.svg)
 
-### `app:config:open`
+### `app:config:edit`
 
-![app_config_open](/docs/assets/svg/app_config_open.svg)
+![app_config_edit](/docs/assets/svg/app_config_edit.svg)
 
-### `app:config:show`
+### `app:config:list`
 
-![app_config_show](/docs/assets/svg/app_config_show.svg)
+![app_config_list](/docs/assets/svg/app_config_list.svg)
 
 ### `app:config:set`
 

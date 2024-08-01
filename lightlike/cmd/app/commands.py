@@ -1,5 +1,6 @@
 import typing as t
 from os import getenv
+from pathlib import Path
 
 import click
 from rich import print as rprint
@@ -40,18 +41,18 @@ else:
     name="config",
     cls=LazyAliasedGroup,
     lazy_subcommands={
-        "open": "lightlike.cmd.app.config:open_",
+        "edit": "lightlike.cmd.app.config:edit",
         "set": "lightlike.cmd.app.config:set_",
-        "show": "lightlike.cmd.app.config:show",
+        "list": "lightlike.cmd.app.config:list_",
     },
     short_help=f"Cli config file and settings. {__config}",
     syntax=Syntax(
         code="""\
-        $ app config open
-        $ a c o
+        $ app config edit
+        $ a c e
     
-        $ app config show
-        $ a c s
+        $ app config list
+        $ a c l
     
         $ app config set
         $ a c u\
@@ -66,10 +67,10 @@ def config() -> None:
     """
     View/Update cli configuration settings.
 
-    app:config:open:
+    app:config:edit:
         open the config file located in the users home directory using the default text editor.
 
-    app:config:show:
+    app:config:list:
         view config file in terminal.
         this list does not include everything, only the keys that can be updated through the cli.
 
@@ -328,3 +329,8 @@ def _reset_all(
 )
 def test() -> None:
     """Test functions."""
+
+
+@click.command(name="locate-source", cls=FormattedCommand, hidden=True)
+def locate_source() -> None:
+    rprint(Path(__file__).parents[2].resolve().absolute())
