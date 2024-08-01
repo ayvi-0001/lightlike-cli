@@ -131,32 +131,30 @@ class PathCompleter(Completer):
     def get_completions(
         self, document: "Document", complete_event: "CompleteEvent"
     ) -> t.Iterable[Completion]:
-        if "\\" in document.text:
-            count = len(document.find_all("\\")) + 1
-            start_pos = document.find_previous_word_beginning(count, WORD=True)
-            current_path = document.text[start_pos:]
-            word_before_cursor = '"%s"' % current_path.replace("\\ ", " ")
-            start_position = -len(word_before_cursor) + 1
-        else:
-            word_before_cursor = document.get_word_before_cursor(WORD=True)
-            start_position = -len(word_before_cursor)
+        try:
+            if "\\" in document.text:
+                count = len(document.find_all("\\")) + 1
+                start_pos = document.find_previous_word_beginning(count, WORD=True)
+                current_path = document.text[start_pos:]
+                word_before_cursor = '"%s"' % current_path.replace("\\ ", " ")
+                start_position = -len(word_before_cursor) + 1
+            else:
+                word_before_cursor = document.get_word_before_cursor(WORD=True)
+                start_position = -len(word_before_cursor)
 
-        completions: list[Completion] = []
-        if not document.text:
-            yield from completions
+            if not document.text:
+                yield from []
 
-        for path in _yield_paths(_alter_str(word_before_cursor, strip_quotes=True)):
-            value = path.expanduser().as_posix()
-            if " " in value:
-                value = value.replace(" ", r"\ ")
+            for path in _yield_paths(_alter_str(word_before_cursor, strip_quotes=True)):
+                value = path.expanduser().as_posix()
+                if " " in value:
+                    value = value.replace(" ", r"\ ")
 
-            completions.append(
-                Completion(
+                yield Completion(
                     text=value,
                     start_position=start_position,
                     display_meta=_path_str_contents(path),
                     style="ansibrightcyan",
                 )
-            )
-
-        yield from completions
+        except:
+            yield from []

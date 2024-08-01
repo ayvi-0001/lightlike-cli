@@ -72,24 +72,26 @@ class ExecutableCompleter(Completer):
     def get_completions(
         self, document: "Document", complete_event: "CompleteEvent"
     ) -> t.Iterator[Completion]:
-        start_position = -len(document.text_before_cursor)
+        try:
+            start_position = -len(document.text_before_cursor)
 
-        match_word_before_cursor = lambda l: _match_str(
-            document.get_word_before_cursor(WORD=True), l.name
-        )
-        matches = list(filter(match_word_before_cursor, self.executables))
-
-        for path in matches:
-            resolved = path.resolve()
-            text: str = resolved.name.removesuffix(".exe")
-            display_meta = resolved.as_posix().replace(
-                resolved.drive,
-                f"/{resolved.drive.lower().replace(':','')}",
+            match_word_before_cursor = lambda l: _match_str(
+                document.get_word_before_cursor(WORD=True), l.name
             )
+            matches = list(filter(match_word_before_cursor, self.executables))
 
-            yield Completion(
-                text=text,
-                start_position=start_position,
-                display_meta=FormattedText([(self.style, display_meta)]),
-                style=self.style,
-            )
+            for path in sorted(matches, key=lambda p: p.name):
+                resolved = path.resolve()
+                text: str = resolved.name.removesuffix(".exe")
+                drive = f"/{resolved.drive.lower().replace(':', '')}"
+                display_meta = f"{resolved}".replace(resolved.drive, drive)
+                display_meta = display_meta.replace("\\", "/")
+
+                yield Completion(
+                    text=text,
+                    start_position=start_position,
+                    display_meta=FormattedText([(self.style, display_meta)]),
+                    style=self.style,
+                )
+        except:
+            yield from []
