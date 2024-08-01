@@ -89,8 +89,8 @@ def bottom_toolbar() -> t.Callable[..., StyleAndTextTuples]:
     toolbar: StyleAndTextTuples = []
 
     if cache:
-        toolbar.extend([("class:bottom.toolbar.text", f" A[{cache.id[:8]}")])
-        toolbar.extend([("class:bottom.toolbar.text", f":{cache.project}")])
+        toolbar.extend([("class:bottom-toolbar.text", f" A[{cache.id[:8]}")])
+        toolbar.extend([("class:bottom-toolbar.text", f":{cache.project}")])
 
         cache_note: str = cache.note
         if cache_note:
@@ -100,16 +100,16 @@ def bottom_toolbar() -> t.Callable[..., StyleAndTextTuples]:
                 if len(cache_note) > max_width
                 else cache_note
             )
-            toolbar.extend([("class:bottom.toolbar.text", f':"{note}"')])
+            toolbar.extend([("class:bottom-toolbar.text", f':"{note}"')])
 
-        toolbar.extend([("class:bottom.toolbar.text", "] |")])
+        toolbar.extend([("class:bottom-toolbar.text", "] |")])
 
     display_running: str = f"R[{cache.count_running_entries if cache else 0}]"
     display_paused: str = f"P[{cache.count_paused_entries}]"
     sep = " | " if all([display_running, display_paused]) else ""
     rside_toolbar = f" {display_running}{sep}{display_paused}"
 
-    toolbar.extend([("class:bottom.toolbar.text", rside_toolbar)])
+    toolbar.extend([("class:bottom-toolbar.text", rside_toolbar)])
 
     active_completers = (
         "[" + ",".join(map(lambda c: c._name_[:1], global_completers())) + "]"
@@ -118,11 +118,11 @@ def bottom_toolbar() -> t.Callable[..., StyleAndTextTuples]:
     padding = " " * (
         columns
         - fragment_list_width(toolbar)
-        - fragment_list_width([("class:bottom.toolbar.text", active_completers)])
+        - fragment_list_width([("class:bottom-toolbar.text", active_completers)])
         - 1
     )
 
-    toolbar.extend([("", padding), ("class:bottom.toolbar.text", active_completers)])
+    toolbar.extend([("", padding), ("class:bottom-toolbar.text", active_completers)])
 
     blank_line = (
         "bg:default noreverse noitalic nounderline noblink",
