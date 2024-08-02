@@ -82,10 +82,14 @@ class ExecutableCompleter(Completer):
 
             for path in sorted(matches, key=lambda p: p.name):
                 resolved = path.resolve()
-                text: str = resolved.name.removesuffix(".exe")
-                drive = f"/{resolved.drive.lower().replace(':', '')}"
-                display_meta = f"{resolved}".replace(resolved.drive, drive)
-                display_meta = display_meta.replace("\\", "/")
+
+                if os.name == "nt":
+                    text = resolved.name.removesuffix(".exe")
+                    drive = f"/{resolved.drive.lower().replace(':', '')}"
+                    display_meta = resolved.as_posix().replace(resolved.drive, drive)
+                else:
+                    text = resolved.name
+                    display_meta = f"{resolved}"
 
                 yield Completion(
                     text=text,

@@ -333,4 +333,4 @@ def test() -> None:
 
 @click.command(name="locate-source", cls=FormattedCommand, hidden=True)
 def locate_source() -> None:
-    rprint(Path(__file__).parents[2].resolve().absolute())
+    rprint(Path(__file__).parents[2].resolve())

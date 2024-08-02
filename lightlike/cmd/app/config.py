@@ -509,7 +509,7 @@ if (
         from lightlike.client._credentials import service_account_key_flow
 
         if value is True:
-            stay_logged_in = AppConfig().get("user", "stay_logged_in")
+            stay_logged_in = AppConfig().stay_logged_in
 
             if not stay_logged_in:
                 rprint("Enter current password.")
@@ -542,7 +542,7 @@ if (
                 )
 
         elif value is False:
-            if not AppConfig().get("user", "stay_logged_in"):
+            if not AppConfig().stay_logged_in:
                 rprint(markup.dimmed("Setting is already off."))
 
             else:

@@ -20,7 +20,7 @@ from rich.measure import Measurement
 from rich.table import Table
 from rich.text import Text
 
-from lightlike import _console, _fasteners
+from lightlike import _fasteners
 from lightlike.__about__ import __appname_sc__
 from lightlike.app import _get, dates, render
 from lightlike.app.config import AppConfig
@@ -36,7 +36,6 @@ __all__: t.Sequence[str] = (
     "TimeEntryCache",
     "TimeEntryIdList",
     "TimeEntryAppData",
-    "__validate_cache",
 )
 
 
@@ -627,11 +626,6 @@ class TimeEntryCache(_Entries):
                 max_width=12,
             )
         return _kwargs
-
-
-def __validate_cache() -> None:
-    _console.if_not_quiet_start(get_console().log)("Validating cache")
-    TimeEntryCache().validate()
 
 
 class TimeEntryIdList(metaclass=factory._Singleton):

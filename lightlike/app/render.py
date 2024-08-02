@@ -33,9 +33,9 @@ def cli_info() -> None:
     console = get_console()
     console.set_window_title(__appname_sc__)
 
-    console.log(f"__appname__[b][red]=[/]{__appname_sc__}")
-    console.log(f"__version__[b][red]=[/][repr.number]{__version__}")
-    console.log(f"__config__[b][red]=[/][repr.path]{__config__.as_posix()}")
+    console.log(f"__appname__[b][red]=[/red][repr.str]{__appname_sc__}")
+    console.log(f"__version__[b][red]=[/red][repr.number]{__version__}")
+    console.log(f"__config__[b][red]=[/red][repr.path]{__config__.as_posix()}")
 
     if LIGHTLIKE_CLI_DEV_USERNAME := getenv("LIGHTLIKE_CLI_DEV_USERNAME"):
         console.log(

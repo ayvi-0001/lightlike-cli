@@ -117,7 +117,7 @@ def build_cli(
 def run_cli(name: str = "lightlike") -> None:
     from lightlike.app.config import AppConfig  # isort: split # fmt: skip
     from lightlike.app import call_on_close, cursor, dates, shell_complete
-    from lightlike.app.cache import __validate_cache
+    from lightlike.app.cache import TimeEntryCache
     from lightlike.app.core import _format_click_exception
     from lightlike.app.keybinds import PROMPT_BINDINGS
     from lightlike.client import get_client
@@ -174,8 +174,8 @@ def run_cli(name: str = "lightlike") -> None:
         ),
     )
 
-    __validate_cache()
-    _append_paths(paths=AppConfig().get("cli", "append_path", "paths"))
+    _console.if_not_quiet_start(get_console().log)("Validating cache")
+    TimeEntryCache().validate()
 
     cli: LazyAliasedGroup = build_cli(
         name=name,
