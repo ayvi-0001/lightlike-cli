@@ -102,10 +102,10 @@ def restore(client: "Client", console: "Console", routine: "CliQueryRoutines") -
     except ValueError as e:
         if str(e) == "A list of choices needs to be provided.":
             console.print(markup.dimmed("No snapshots exist"))
-            raise click.exceptions.Exit
+            raise click.exceptions.Exit()
         else:
             console.print(markup.br(e))
-            raise click.exceptions.Exit
+            raise click.exceptions.Exit()
 
     if _questionary.confirm(
         message="This will drop your timesheet table and replace it "
@@ -136,7 +136,7 @@ def list_(console: "Console", routine: "CliQueryRoutines") -> None:
     )
     if not table.row_count:
         rprint(markup.dimmed("No results"))
-        raise click.exceptions.Exit
+        raise click.exceptions.Exit()
     console.print(table)
 
 
@@ -165,7 +165,7 @@ def delete(client: "Client", console: "Console") -> None:
 
     if not choices:
         console.print(markup.dimmed("No snapshots exist"))
-        raise click.exceptions.Exit
+        raise click.exceptions.Exit()
 
     selection = _questionary.checkbox(
         message="Select snapshots to delete $",

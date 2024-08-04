@@ -177,7 +177,7 @@ def projects(console: "Console") -> None:
     )
     if not table.row_count:
         rprint(markup.dimmed("No results"))
-        raise click.exceptions.Exit
+        raise click.exceptions.Exit()
 
     console.print(table)
 

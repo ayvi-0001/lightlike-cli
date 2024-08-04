@@ -53,8 +53,8 @@ class exit_cmd_on_interrupt(ContextDecorator):
     def __enter__(self) -> exit_cmd_on_interrupt:
         try:
             return self
-        except (KeyboardInterrupt, EOFError):
-            raise click.exceptions.Exit
+        except (KeyboardInterrupt, EOFError) as error:
+            raise click.exceptions.Exit() from error
 
     def __exit__(self, *exc: t.Any) -> None: ...
 

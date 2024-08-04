@@ -1,8 +1,11 @@
+import csv
 import platform
+import tempfile
 import typing as t
 from datetime import datetime
 from operator import truth
 from pathlib import Path
+from uuid import uuid4
 
 import click
 from rich import print as rprint
@@ -30,9 +33,6 @@ __all__: t.Sequence[str] = (
     "summary_csv",
     "summary_json",
 )
-
-
-P = t.ParamSpec("P")
 
 
 all_option = click.option(
@@ -305,7 +305,7 @@ def summary_table(
     current_month: bool,
     current_year: bool,
     round_: bool,
-    output: Path,
+    output: Path | None,
     match_project: str,
     match_note: str,
     modifiers: str,
@@ -441,7 +441,7 @@ def summary_table(
     )
     if not table.row_count:
         rprint(markup.dimmed("No results"))
-        raise click.exceptions.Exit
+        raise click.exceptions.Exit()
 
     with Console(record=True, style=_console.CONSOLE_CONFIG.style) as console:
         console.print(Padding(table, (1, 0, 0, 0)))
@@ -537,7 +537,7 @@ def summary_csv(
     current_week: bool,
     current_month: bool,
     current_year: bool,
-    output: Path,
+    output: Path | None,
     round_: bool,
     print_: bool,
     quoting: str,
@@ -622,12 +622,10 @@ def summary_csv(
         console.print(
             "[b][red]summary:csv and summary:json not currently supported on android."
         )
-        raise click.exceptions.Exit
+        raise click.exceptions.Exit()
 
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
-
-    import csv
 
     validate.callbacks.print_or_output(output=truth(output), print_=print_)
 
@@ -701,9 +699,6 @@ def summary_csv(
 
     if print_:
         if not output:
-            import tempfile
-            from uuid import uuid4
-
             with tempfile.TemporaryDirectory() as temp_dir:
                 _summary = Path(temp_dir).joinpath(f"{uuid4()}.csv")
                 df.to_csv(
@@ -803,7 +798,7 @@ def summary_json(
     current_week: bool,
     current_month: bool,
     current_year: bool,
-    output: Path,
+    output: Path | None,
     round_: bool,
     print_: bool,
     orient: str,
@@ -898,7 +893,7 @@ def summary_json(
         console.print(
             "[b][red]summary:csv and summary:json not currently supported on android."
         )
-        raise click.exceptions.Exit
+        raise click.exceptions.Exit()
 
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
@@ -973,9 +968,6 @@ def summary_json(
 
     if print_:
         if not output:
-            import tempfile
-            from uuid import uuid4
-
             with tempfile.TemporaryDirectory() as temp_dir:
                 _summary = Path(temp_dir).joinpath(f"{uuid4()}.json")
                 df.to_json(  # type: ignore[call-overload]
@@ -984,6 +976,6 @@ def summary_json(
                     date_format="iso",
                     indent=4,
                 )
-                console.print_json(_summary.read_text())
+                console.print_json(_summary.read_text("utf-8"))
         else:
             console.print_json(dest.read_text())

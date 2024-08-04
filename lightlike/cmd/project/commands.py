@@ -283,7 +283,7 @@ def create(
     The name [code]no-project[/code] is reserved for the default setting.
 
     --name / -n:
-        must match regex [code]^\[a-zA-Z0-9-\\_]{3,20}$[/code].
+        must match regex [code]^\[a-zA-Z0-9-\\_]{3,25}$[/code].
     """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
@@ -454,8 +454,6 @@ def delete(
                 key="project",
                 sequence=[project],
             )
-
-            status.update("")
 
 
 @click.command(
@@ -629,7 +627,8 @@ def list_(
     )
     if not table.row_count:
         rprint(markup.dimmed("No results"))
-        raise click.exceptions.Exit
+        raise click.exceptions.Exit()
+
     console.print(table)
 
 
@@ -717,7 +716,7 @@ def set_project_name(
     """
     Update a project's name.
 
-    Name must match regex [code]^\[a-zA-Z0-9-\\_]{3,20}$[/code].
+    Name must match regex [code]^\[a-zA-Z0-9-\\_]{3,25}$[/code].
     The name [code]no-project[/code] is reserved for the default setting.
     """
     ctx, parent = ctx_group
@@ -727,7 +726,7 @@ def set_project_name(
 
     if project == new_name:
         console.print(markup.dimmed("Current name, nothing happened."))
-        raise click.exceptions.Exit
+        raise click.exceptions.Exit()
 
     with console.status(markup.status_message("Updating project")) as status:
         routine._update_project_name(
@@ -838,7 +837,7 @@ def set_project_description(
     )
 
     if not new_desc:
-        raise click.exceptions.Exit
+        raise click.exceptions.Exit()
 
     if current_desc == new_desc:
         console.print(markup.dimmed("Current description, nothing happened."))

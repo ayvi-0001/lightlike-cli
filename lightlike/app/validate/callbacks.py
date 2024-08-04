@@ -148,9 +148,9 @@ def summary_path(ctx: click.Context, param: click.Parameter, value: str) -> Path
             ):
                 return path.with_suffix(suffix)
             else:
-                raise click.exceptions.Exit
+                raise click.exceptions.Exit()
         except (KeyboardInterrupt, EOFError):
-            raise click.exceptions.Exit
+            raise click.exceptions.Exit()
     else:
         if not path.suffix:
             return path.with_suffix(suffix)

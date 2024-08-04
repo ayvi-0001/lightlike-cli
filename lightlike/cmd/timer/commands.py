@@ -510,7 +510,8 @@ def _get_entry_edits(
                 in_end=entry_row.end,
             )
             # Only include date.
-            # Procedure in BigQuery will handle updating each individual time entries start and end times.
+            # Procedure in BigQuery will handle updating each
+            # individual time entries start and end times.
             edits["date"] = new_date
         case True, False, True:
             new_date, new_start, new_end = dates.combine_new_date_into_end(
@@ -851,7 +852,7 @@ def edit(
             matched_entries: "QueryJob" = routine._get_time_entries(matched_ids)
         except Exception as error:
             console.print(markup.br("Error:"), error)
-            raise click.exceptions.Exit
+            raise click.exceptions.Exit()
 
         debug and console.log("[DEBUG]", matched_entries)
 
@@ -1501,7 +1502,7 @@ def list_(
         )
         if not table.row_count:
             rprint(markup.dimmed("No results"))
-            raise click.exceptions.Exit
+            raise click.exceptions.Exit()
 
         console.print(table)
 
@@ -1742,7 +1743,7 @@ def resume(
         )
         if not table.row_count:
             rprint(markup.dimmed("No results"))
-            raise click.exceptions.Exit
+            raise click.exceptions.Exit()
 
         console.print(table)
 
@@ -1893,7 +1894,7 @@ def run(
     console: "Console",
     routine: "CliQueryRoutines",
     cache: "TimeEntryCache",
-    billable: bool,
+    billable: bool | None,
     project: str,
     start: datetime,
     note: str,
@@ -2155,7 +2156,7 @@ def switch(
 
     if len(entries) == 1:
         console.print(markup.dimmed("Nothing to switch."))
-        raise click.exceptions.Exit
+        raise click.exceptions.Exit()
 
     select: str
     if not entry:
@@ -2169,7 +2170,7 @@ def switch(
         )
         if not table.row_count:
             rprint(markup.dimmed("No results"))
-            raise click.exceptions.Exit
+            raise click.exceptions.Exit()
 
         console.print(table)
 

@@ -37,12 +37,17 @@ class ExecutableCompleter(Completer):
     def executables(self) -> list[Path]:
         executables: list[Path] = []
 
+        expressions: list[re.Pattern[str]]
+        if self.ignore_patterns:
+            expressions: list[re.Pattern[str]] = list(
+                map(partial(re.compile, flags=re.I), self.ignore_patterns)  # type: ignore[arg-type, unused-ignore]
+            )
+        else:
+            expressions = []
+
         for path in self.path:
             try:
-                if self.ignore_patterns:
-                    expressions: list[re.Pattern[str]] = list(
-                        map(partial(re.compile, flags=re.I), self.ignore_patterns)  # type: ignore[arg-type]
-                    )
+                if expressions:
                     matches: t.Callable[[Path], bool] = lambda p: not any(
                         exp.match(p.as_posix()) for exp in expressions
                     )

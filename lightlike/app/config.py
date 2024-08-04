@@ -50,6 +50,7 @@ class AppConfig(metaclass=factory._Singleton):
     def get(self, *keys: t.Sequence[str], default: t.Optional[t.Any] = None) -> t.Any:
         return utils.reduce_keys(*keys, sequence=self.load(), default=default)
 
+    @property
     def saved_password(self) -> str | None:
         config_password: str | None = self.get("user", "password")
         saved_password: str | None = (
@@ -57,6 +58,7 @@ class AppConfig(metaclass=factory._Singleton):
         )
         return saved_password
 
+    @property
     def stay_logged_in(self) -> bool | None:
         stay_logged_in: bool | None = self.get("user", "stay_logged_in")
         return stay_logged_in
