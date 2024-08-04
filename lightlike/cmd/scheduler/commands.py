@@ -11,8 +11,7 @@ from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from click.shell_completion import CompletionItem
 from pytz import timezone
-from rich import box
-from rich import print as rprint
+from rich import box, print
 from rich.table import Table
 
 from lightlike.__about__ import __appname_sc__
@@ -366,10 +365,10 @@ def add_job(
 
     try:
         job: Job = scheduler.add_job(**job_kwargs)
-        rprint(f"Added job:")
-        rprint(_job_info(job, show_jobstore=True))
+        print(f"Added job:")
+        print(_job_info(job, show_jobstore=True))
     except LookupError as error:
-        rprint(f"{error}")
+        print(f"{error}")
 
 
 @click.command(cls=FormattedCommand)
@@ -398,9 +397,9 @@ def get_job(
     scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
     job: Job | None = scheduler.get_job(job_id=job_id, jobstore=jobstore)
     if not job:
-        rprint("[dimmed]Job not found")
+        print("[dimmed]Job not found")
         return
-    rprint(_job_info(job, show_jobstore=True))
+    print(_job_info(job, show_jobstore=True))
 
 
 @click.command(cls=FormattedCommand)
@@ -419,6 +418,7 @@ def print_jobs(ctx: click.Context) -> None:
         padding=(0, 0),
         pad_edge=False,
         highlight=True,
+        expand=False,
     )
     jobstore_table.add_column(
         ratio=1,
@@ -433,54 +433,40 @@ def print_jobs(ctx: click.Context) -> None:
         overflow="fold",
     )
 
+    def _job_id(job: Job) -> str:
+        job_id: str | None = ""
+        if job.id != job.name:
+            job_id = job.id + " "
+        return job_id
+
     jobstore = None
     with scheduler._jobstores_lock:
         if scheduler.state == STATE_STOPPED:
-            jobstore_table.add_row("[b][u]Pending jobs")
+            jobstore_table.add_row("[b]Pending jobs")
             if scheduler._pending_jobs:
-                for job, jobstore_alias, replace_existing in scheduler._pending_jobs:
+                for idx, (job, jobstore_alias, replace_existing) in enumerate(
+                    scheduler._pending_jobs
+                ):
                     if jobstore in (None, jobstore_alias):
-                        # fmt: off
-                        jobstore_table.add_row("jobstore:", f"{job._jobstore_alias}")
-                        jobstore_table.add_row("id:", f"{job.id}")
-                        jobstore_table.add_row("name:", f"{job.name}")
-                        jobstore_table.add_row("trigger:", f"{job.trigger!r}")
-                        jobstore_table.add_row("next_run_time:", f"{job.next_run_time}")
-                        jobstore_table.add_row("executor:", f"{job.executor}")
-                        jobstore_table.add_row("replace_existing:", f"{replace_existing}")
-                        jobstore_table.add_row("args:", f"{job.args!r}")
-                        jobstore_table.add_row("kwargs:", f"{job.kwargs!r}")
-                        jobstore_table.add_row("coalesce:", f"{job.coalesce!r}")
-                        jobstore_table.add_row("misfire_grace_time:", f"{job.misfire_grace_time!r}")
-                        jobstore_table.add_row("max_instances:", f"{job.max_instances!r}")
-                        jobstore_table.add_row("func_ref:", f"{job.func_ref}", end_section=True)
-                        # fmt: on
+                        jobstore_table.add_row(
+                            f"\[{idx + 1}]", f"{_job_id(job)}{job!s}"
+                        )
             else:
                 jobstore_table.add_row("[dimmed]No pending jobs")
         else:
             for alias, store in sorted(six.iteritems(scheduler._jobstores)):
                 if jobstore in (None, alias):
-                    jobstore_table.add_row("[b][u]Jobstore %s" % alias)
+                    jobstore_table.add_row("[b]Jobstore %s" % alias)
                     jobs: t.Sequence[Job] = store.get_all_jobs()
                     if not jobs:
                         jobstore_table.add_row("[dimmed]No scheduled jobs")
                         continue
-                    for job in jobs:
-                        # fmt: off
-                        jobstore_table.add_row("id:", f"{job.id}")
-                        jobstore_table.add_row("name:", f"{job.name}")
-                        jobstore_table.add_row("trigger:", f"{job.trigger!r}")
-                        jobstore_table.add_row("next_run_time:", f"{job.next_run_time}")
-                        jobstore_table.add_row("executor:", f"{job.executor}")
-                        jobstore_table.add_row("args:", f"{job.args!r}")
-                        jobstore_table.add_row("kwargs:", f"{job.kwargs!r}")
-                        jobstore_table.add_row("coalesce:", f"{job.coalesce!r}")
-                        jobstore_table.add_row("misfire_grace_time:", f"{job.misfire_grace_time!r}")
-                        jobstore_table.add_row("max_instances:", f"{job.max_instances!r}")
-                        jobstore_table.add_row("func_ref:", f"{job.func_ref}", end_section=True)
-                        # fmt: on
+                    for idx, (job) in enumerate(jobs):
+                        jobstore_table.add_row(
+                            f"\[{idx + 1}]", f"{_job_id(job)}{job!s}"
+                        )
 
-    rprint(jobstore_table)
+    print(jobstore_table)
 
 
 @click.command(cls=FormattedCommand)
@@ -593,8 +579,8 @@ def modify_job(
     job: Job = scheduler.modify_job(
         job_id=job_id, jobstore=jobstore, **job_modify_kwargs
     )
-    rprint(f"Modified job:")
-    rprint(_job_info(job, show_jobstore=True))
+    print(f"Modified job:")
+    print(_job_info(job, show_jobstore=True))
 
 
 @click.command(cls=FormattedCommand)
@@ -622,8 +608,8 @@ def pause_job(
 ) -> None:
     scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
     job: Job = scheduler.pause_job(job_id=job_id, jobstore=jobstore)
-    rprint(f"Paused job:")
-    rprint(_job_info(job, show_jobstore=True))
+    print(f"Paused job:")
+    print(_job_info(job, show_jobstore=True))
 
 
 @click.command(cls=FormattedCommand)
@@ -634,7 +620,7 @@ def pause_job(
 def remove_all_jobs(ctx: click.Context, jobstore: str) -> None:
     scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
     scheduler.remove_all_jobs(jobstore=jobstore)
-    rprint(f"Removed all jobs from jobstore `{jobstore}`")
+    print(f"Removed all jobs from jobstore `{jobstore}`")
 
 
 @click.command(cls=FormattedCommand)
@@ -663,9 +649,9 @@ def remove_job(
     scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
     try:
         scheduler.remove_job(job_id=job_id, jobstore=jobstore)
-        rprint(f"Removed job `{job_id}` from jobstore `{jobstore}`")
+        print(f"Removed job `{job_id}` from jobstore `{jobstore}`")
     except JobLookupError as error:
-        rprint(f"{error}")
+        print(f"{error}")
 
 
 @click.command(cls=FormattedCommand)
@@ -851,8 +837,8 @@ def reschedule_job(
     job: Job = scheduler.reschedule_job(
         job_id=job_id, jobstore=jobstore, trigger=trigger
     )
-    rprint(f"Rescheduled job:")
-    rprint(_job_info(job, show_jobstore=True))
+    print(f"Rescheduled job:")
+    print(_job_info(job, show_jobstore=True))
 
 
 @click.command(cls=FormattedCommand)
@@ -880,8 +866,8 @@ def resume_job(
 ) -> None:
     scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
     job: Job = scheduler.resume_job(job_id=job_id, jobstore=jobstore)
-    rprint(f"Resumed job:")
-    rprint(_job_info(job, show_jobstore=True))
+    print(f"Resumed job:")
+    print(_job_info(job, show_jobstore=True))
 
 
 @click.command(cls=FormattedCommand)
@@ -891,10 +877,9 @@ def resume_job(
 def shutdown(ctx: click.Context) -> None:
     scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
     if scheduler.state == STATE_STOPPED:
-        rprint("[dimmed]Scheduler already stopped")
+        print("[dimmed]Scheduler already stopped")
     else:
         scheduler.shutdown()
-        rprint("Scheduler shutdown")
 
 
 @click.command(cls=FormattedCommand)
@@ -904,10 +889,21 @@ def shutdown(ctx: click.Context) -> None:
 def start(ctx: click.Context) -> None:
     scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
     if scheduler.state == STATE_RUNNING:
-        rprint("[dimmed]Scheduler already running")
+        print("[dimmed]Scheduler already running")
     else:
         scheduler.start()
-        rprint("[b][green]Scheduler started")
+
+
+@click.command(cls=FormattedCommand)
+@utils._handle_keyboard_interrupt()
+@utils.pretty_print_exception
+@click.pass_context
+def status(ctx: click.Context) -> None:
+    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    if scheduler.state == STATE_RUNNING:
+        print("Scheduler is running.")
+    else:
+        print("Scheduler is shutdown.")
 
 
 def _job_info(job: Job, show_jobstore: bool = False) -> Table:

@@ -45,19 +45,21 @@ class ExecutableCompleter(Completer):
         else:
             expressions = []
 
+        matches: t.Callable[[Path], bool] = lambda p: not any(
+            exp.match(p.as_posix()) for exp in expressions
+        )
+
         for path in self.path:
+            if not path.is_dir():
+                continue
             try:
                 if expressions:
-                    matches: t.Callable[[Path], bool] = lambda p: not any(
-                        exp.match(p.as_posix()) for exp in expressions
-                    )
                     subpaths = list(filter(matches, path.iterdir()))
                 else:
                     subpaths = list(path.iterdir())
 
                 for executable in subpaths:
                     resolved = executable.resolve()
-
                     if os.access(resolved, os.X_OK):
                         if executable not in executables:
                             executables.append(executable)
