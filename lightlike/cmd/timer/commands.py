@@ -403,7 +403,7 @@ def delete(
         e.g.
 
         ```
-            $ timer list --current-week
+        $ timer list --current-week
 
         | row | id      |   …
         |-----|---------|   …
@@ -785,7 +785,7 @@ def edit(
         e.g.
 
         ```
-            $ timer list --current-week
+        $ timer list --current-week
 
         | row | id      |   …
         |-----|---------|   …
@@ -1328,28 +1328,8 @@ def list_(
     """
     List time entries.
 
-    DATE/TIME FIELDS:
-        arguments/options asking for datetime will attempt to parse the string provided.
-        error will raise if unable to parse.
-        dates are relative to today, unless explicitly stated in the string.
-
-        Example values to pass to the date parser:
-        | type             | examples                                                  |
-        |-----------------:|-----------------------------------------------------------|
-        | datetime         | jan1@2pm [d](January 1st current year at 2:00 PM)[/d]            |
-        | date (relative)  | today/now, yesterday, monday, 2 days ago, -2d | "\\-2d"    |
-        | time (relative)  | -15m [d](15 minutes ago)[/d], 1.25 hrs ago, -1.25hr | "\\-1.25hr" |
-        | date             | jan1, 01/01, 2024-01-01                                   |
-        | time             | 2pm, 14:30:00, 2:30pm                                     |
-
-        [b]Note:[/b] If the date is an argument, the minus operator needs to be escaped.
-        e.g.
-        ```
-        $ command --option -2d
-        $ c -o-2d
-        $ command \\-2d # argument
-        $ c \\-2d # argument
-        ```
+    Run command app:parse-date-arg and app:parse-date-opt
+    to see examples of strings to pass to parser.
 
     --current-week / -cw:
     --current-month / -cm:
@@ -1388,9 +1368,6 @@ def list_(
         as long as characters are properly escaped if necessary.
         it must either begin with the word "WHERE" (case-insensitive),
         or it must be the string immediately proceeding the word "WHERE".
-
-    [b]See[/]:
-        test a string against the parser with app:test:date-parse.
     """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)

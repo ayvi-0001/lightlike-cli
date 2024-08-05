@@ -80,11 +80,8 @@ class ExecutableCompleter(Completer):
         self, document: "Document", complete_event: "CompleteEvent"
     ) -> t.Iterator[Completion]:
         try:
-            start_position = -len(document.text_before_cursor)
-
-            match_word_before_cursor = lambda l: _match_str(
-                document.get_word_before_cursor(WORD=True), l.name
-            )
+            word_before_cursor = document.get_word_before_cursor(WORD=True)
+            match_word_before_cursor = lambda l: _match_str(word_before_cursor, l.name)
             matches = list(filter(match_word_before_cursor, self.executables))
 
             for path in sorted(matches, key=lambda p: p.name):
@@ -100,7 +97,7 @@ class ExecutableCompleter(Completer):
 
                 yield Completion(
                     text=text,
-                    start_position=start_position,
+                    start_position=-len(word_before_cursor),
                     display_meta=FormattedText([(self.style, display_meta)]),
                     style=self.style,
                 )

@@ -69,6 +69,8 @@
 
 ![timer_update](/docs/assets/svg/timer_update.svg)
 
+### `timer:summary`
+
 ![summary](/docs/assets/svg/timer_summary.svg)
 
 ### `timer:summary:csv`
@@ -215,17 +217,17 @@
 
 ![app_sync](/docs/assets/svg/app_sync.svg)
 
-### `app:test`
+### `app:parse-date-arg`
 
-![app_test](/docs/assets/svg/app_test.svg)
+![app_parse_date_arg](/docs/assets/svg/app_parse-date-arg.svg)
 
-### `app:test:date-diff`
+### `app:parse-date-opt`
 
-![app_test_date-diff](/docs/assets/svg/app_test_date-diff.svg)
+![app_parse_date_opt](/docs/assets/svg/app_parse-date-opt.svg)
 
-### `app:test:date-parse`
+### `app:date-diff`
 
-![app_test_date-parse](/docs/assets/svg/app_test_date-parse.svg)
+![app_date-diff](/docs/assets/svg/app_date-diff.svg)
 
 ---
 

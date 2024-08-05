@@ -11,7 +11,9 @@ lazy_subcommands: dict[str, str] = {
     "run-bq": "lightlike.cmd.app.commands:run_bq",
     "inspect-console": "lightlike.cmd.app.commands:inspect_console",
     "sync": "lightlike.cmd.app.commands:sync",
-    "test": "lightlike.cmd.app.commands:test",
+    "parse-date-opt": "lightlike.cmd.app.commands:parse_date_opt",
+    "parse-date-arg": "lightlike.cmd.app.commands:parse_date_arg",
+    "date-diff": "lightlike.cmd.app.commands:date_diff",
     "locate-source": "lightlike.cmd.app.commands:locate_source",
 }
 

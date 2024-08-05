@@ -1,4 +1,6 @@
 import typing as t
+from datetime import datetime, timedelta
+from decimal import Decimal
 from os import getenv
 from pathlib import Path
 
@@ -8,7 +10,7 @@ from rich.console import Console
 from rich.syntax import Syntax
 
 from lightlike.__about__ import __appdir__, __config__
-from lightlike.app import _questionary
+from lightlike.app import _questionary, dates, validate
 from lightlike.app.cache import TimeEntryAppData, TimeEntryCache
 from lightlike.app.config import AppConfig
 from lightlike.app.core import FormattedCommand, LazyAliasedGroup
@@ -318,17 +320,192 @@ def _reset_all(
     console.print("[b][green]done")
 
 
-@click.group(
-    name="test",
-    cls=LazyAliasedGroup,
-    lazy_subcommands={
-        "date-parse": "lightlike.cmd.app.test:date_parse",
-        "date-diff": "lightlike.cmd.app.test:date_diff",
-    },
-    short_help="Test functions.",
+@click.command(
+    cls=FormattedCommand,
+    name="parse-date-arg",
+    short_help="Test parser on argument / See examples.",
+    no_args_is_help=True,
+    syntax=Syntax(
+        code="""\
+        $ app test parse-date-arg now # `0d` or `today` would give same result
+        $ app test parse-date-arg n # if the date string is the single character `n`, it will expand to `now`.
+        2024-08-05 07:00:00-07:00
+
+        # prefix with m (minutes), d (days), etc.
+        $ app test parse-date-arg 1d  # `yesterday` would give same result
+        2024-08-04 07:00:00-07:00
+
+        $ app test parse-date-arg 1d@0:0 # or 1d@12am
+        2024-08-04 00:00:00-07:00
+
+        $ app test parse-date-arg 15m
+        2024-08-05 06:45:00-07:00
+
+        $ app test parse-date-arg +15m
+        2024-08-05 07:15:00-07:00
+
+        $ app test parse-date-arg jan1@1pm # or jan1@13:0
+        2024-01-01 13:00:00-08:00
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
-def test() -> None:
-    """Test functions."""
+@utils._handle_keyboard_interrupt()
+@click.argument(
+    "date",
+    type=click.STRING,
+    required=False,
+    default=None,
+    callback=validate.callbacks.datetime_parsed,
+    metavar=None,
+    shell_complete=None,
+)
+@_pass.console
+def parse_date_arg(console: Console, date: datetime) -> None:
+    """
+    Test the dateparser function.
+
+    See examples in syntax section below.
+
+    You can opt for more verbose strings if you prefer.
+    Strings such as "monday at 1pm", "january 1st", "15 minutes ago", "in 2 days",
+    or fully qualified dates, such as '2024-01-01' would all work as well.
+
+    Parsed dates prefer the past, unless prefixed with a plus operator.
+    Dates are relative to today, unless explicitely stated in the string.
+
+    An error will raise if the string fails to parse.
+
+    [b]Note:[/b] If the date is an argument, the minus operator needs to be escaped.
+    You can generally ignore adding a minus, as mentioned above.
+    e.g.
+    ```
+    $ command --option -2d
+    $ c -o-2d
+    $ command "\-2d" # argument
+    $ c "\-2d" # argument
+    ```
+    """
+    console.print(date)
+
+
+@click.command(
+    cls=FormattedCommand,
+    name="parse-date-opt",
+    short_help="Test parser on option / See examples.",
+    no_args_is_help=True,
+    syntax=Syntax(
+        code="""\
+        $ app test parse-date-opt --date now # `0d` or `today` would give same result
+        $ app test parse-date-opt -dn # if the date string is the single character `n`, it will expand to `now`.
+        2024-08-05 07:00:00-07:00
+
+        # prefix with m (minutes), d (days), etc.
+        $ app test parse-date-opt --date 1d  # `yesterday` would give same result
+        $ app test parse-date-opt -d1d  # short opt
+        2024-08-04 07:00:00-07:00
+
+        $ app test parse-date-opt --date 1d@0:0 # or 1d@12am
+        $ app test parse-date-opt -d1d@0:0  # short opt
+        2024-08-04 00:00:00-07:00
+
+        $ app test parse-date-opt --date 15m
+        $ app test parse-date-opt -d15m  # short opt
+        2024-08-05 06:45:00-07:00
+
+        $ app test parse-date-opt --date +15m
+        $ app test parse-date-opt -d+15m  # short opt
+        2024-08-05 07:15:00-07:00
+
+        $ app test parse-date-opt --date jan1@1pm  # or jan1@13:0
+        $ app test parse-date-opt -djan1@1pm  # short opt
+        2024-01-01 13:00:00-08:00
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
+)
+@utils._handle_keyboard_interrupt()
+@click.option(
+    "-d",
+    "--date",
+    show_default=True,
+    multiple=False,
+    type=click.STRING,
+    help=None,
+    required=False,
+    default=None,
+    callback=validate.callbacks.datetime_parsed,
+    metavar=None,
+    shell_complete=None,
+)
+@_pass.console
+def parse_date_opt(console: Console, date: datetime) -> None:
+    """
+    Test the dateparser function.
+
+    See examples in syntax section below.
+
+    You can opt for more verbose strings if you prefer.
+    Strings such as "monday at 1pm", "january 1st", "15 minutes ago", "in 2 days",
+    or fully qualified dates, such as '2024-01-01' would all work as well.
+
+    Parsed dates prefer the past, unless prefixed with a plus operator.
+    Dates are relative to today, unless explicitely stated in the string.
+
+    An error will raise if the string fails to parse.
+    """
+    console.print(date)
+
+
+@click.command(
+    cls=FormattedCommand,
+    name="date-diff",
+    short_help="Diff between 2 datetime.",
+    no_args_is_help=True,
+)
+@utils._handle_keyboard_interrupt()
+@click.argument(
+    "date_start",
+    type=click.STRING,
+    callback=validate.callbacks.datetime_parsed,
+)
+@click.argument(
+    "date_end",
+    type=click.STRING,
+    callback=validate.callbacks.datetime_parsed,
+)
+@click.argument(
+    "subtract_hours",
+    type=click.FLOAT,
+    required=False,
+    default=0,
+)
+@_pass.console
+def date_diff(
+    console: Console,
+    date_start: datetime,
+    date_end: datetime,
+    subtract_hours: float,
+) -> None:
+    duration = date_end - date_start
+    time_parts = dates.seconds_to_time_parts(
+        Decimal(subtract_hours or 0) * Decimal(3600)
+    )
+    subtract_hours, paused_minutes, paused_seconds = time_parts
+    duration = (date_end - date_start) - timedelta(
+        hours=subtract_hours,
+        minutes=paused_minutes,
+        seconds=paused_seconds,
+    )
+    hours = round(Decimal(duration.total_seconds()) / Decimal(3600), 4)
+    console.print("Duration:", duration)
+    console.print("Hours:", hours)
 
 
 @click.command(name="locate-source", cls=FormattedCommand, hidden=True)

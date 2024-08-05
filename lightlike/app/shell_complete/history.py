@@ -29,13 +29,13 @@ class HistoryCompleter(Completer):
         self, document: "Document", complete_event: "CompleteEvent"
     ) -> t.Iterator[Completion]:
         try:
+            text_before_cursor: str = document.text_before_cursor
             history_strings = self.file_history.load_history_strings()
             history = unique_everseen(list(map(lambda s: s.strip(), history_strings)))
-            start_position = -len(document.text_before_cursor)
             console_width = get_console().width
 
             match_word_before_cursor = lambda l: _match_str(
-                document.text_before_cursor, l
+                text_before_cursor, l, method="startswith"
             )
             matches = list(filter(match_word_before_cursor, history))
             display_meta = f"history{' ' * int(((console_width / 3) * 2) - 20)}"
@@ -48,7 +48,7 @@ class HistoryCompleter(Completer):
             for match in matches:
                 yield Completion(
                     text=match,
-                    start_position=start_position,
+                    start_position=-len(text_before_cursor),
                     display=self._display(match, console_width),
                     display_meta=FormattedText([(f"bold {self.style}", display_meta)]),
                     style=f"{self.style}",

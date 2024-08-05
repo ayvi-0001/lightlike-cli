@@ -39,7 +39,7 @@ __all__: Sequence[str] = (
     "__cli_help__",
 )
 
-__version__: Final[str] = "v0.11.0b0"
+__version__: Final[str] = "v0.11.0b1"
 
 _ENV: str | None = os.getenv("LIGHTLIKE_CLI_ENV")
 LIGHTLIKE_CLI_APPDIR_PATH = os.getenv("LIGHTLIKE_CLI_APPDIR_PATH")
@@ -179,6 +179,6 @@ DATE/TIME FIELDS:
     if it's unable too parse the string, an error will raise.
     unless explicitly stated in the string or customized in the config,
     dates are relative to today and prefer the past.
-    [yellow]see[/] app:test:date-parse to test parser.
-    [yellow]see[/] timer:list --help / -h for more info.
+    [yellow]see[/] app:parse-date-arg / app:parse-date-opt 
+    to see examples of strings to pass to parser.
 """

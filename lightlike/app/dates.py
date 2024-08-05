@@ -104,12 +104,16 @@ def parse_date(
 
     _settings = DEFAULT_PARSER_SETTINGS.copy()
     _settings.update(
-        {
-            "RELATIVE_BASE": relative_base or now(tzinfo),
-            "TO_TIMEZONE": f"{tzinfo}",
-            "TIMEZONE": f"{tzinfo}",
-        },
+        RELATIVE_BASE=relative_base or now(tzinfo),
+        TO_TIMEZONE=f"{tzinfo}",
+        TIMEZONE=f"{tzinfo}",
     )
+
+    if date.startswith("+"):
+        _settings.update(PREFER_DATES_FROM="future")
+    if date == "n":
+        date = "now"
+
     parsed_date = dateparser.parse(
         date,
         settings=t.cast("_Settings", _settings),

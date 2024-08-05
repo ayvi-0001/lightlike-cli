@@ -24,7 +24,7 @@ commands=(
     "app config set query mouse_support" "app config set query hide_table_render" "app config set general"
     "app config set general week_start" "app config set general timezone" "app config set general timer_add_min" "app config set general stay_logged_in"
     "app config set general shell" "app config set general quiet_start" "app config set general note_history" "app config set general editor"
-    "app test" "app test date-parse" "app test date-diff"
+    "app date-diff" "app parse-date-arg" "app parse-date-opt"
     "bq" "bq snapshot" "bq snapshot restore" "bq snapshot list" "bq snapshot delete" "bq snapshot create" "bq show" "bq reset" "bq query" "bq projects" "bq init"
     "project" "project unarchive" "project set" "project set name" "project set description" "project set default_billable" "project list" "project delete" "project create" "project archive"
     "timer summary" "timer summary table" "timer summary json" "timer summary csv"
