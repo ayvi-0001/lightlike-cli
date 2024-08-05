@@ -87,9 +87,11 @@ lightlike = "lightlike.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["lightlike"]
+dependencies = ["rich", "click"]
 
 [tool.hatch.build.targets.sdist]
 packages = ["lightlike"]
+dependencies = ["rich", "click"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
