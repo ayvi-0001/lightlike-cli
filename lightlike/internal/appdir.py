@@ -22,7 +22,7 @@ from lightlike.__about__ import (
     __repo__,
     __version__,
 )
-from lightlike.internal import constant, enums, markup, patch, utils
+from lightlike.internal import constant, enums, markup, utils
 
 __all__: t.Sequence[str] = (
     "CACHE",
@@ -115,8 +115,6 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
                 "Updating version:", f"[repr.number]{v_local}[/]",
                 "->", f"[repr.number]{v_package}[/]",  # fmt: skip
             )
-
-            patch.run(v_local, local_config)
 
             updated_config = utils.update_dict(
                 rtoml.load(constant.DEFAULT_CONFIG), local_config
@@ -350,7 +348,7 @@ def _initial_build() -> None | t.NoReturn:
         default_config["client"].update(
             credentials_source=repr(client_credential_source)
         )
-        default_config["cli"]["append_path"].update(paths=[f"{__appdir__}"])
+        default_config["cli"].update(add_to_path=[f"{__appdir__}"])
 
         console.log("Building app directory")
         console.log("Saving config")

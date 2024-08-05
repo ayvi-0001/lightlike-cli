@@ -23,10 +23,6 @@ stay_logged_in = false
 password = ""
 salt = []
 
-[updates]
-"v0.10.0b8" = false
-"v0.9.3" = false
-
 [settings]
 complete_style = "COLUMN"
 editor = ""
@@ -71,6 +67,9 @@ active_project = "null"
 credentials_source = "not-set"
 service_account_key = []
 
+[cli]
+add_to_path = []
+
 [cli.commands]
 calendar = "lightlike.cmd.app.other:calendar"
 eval = "lightlike.cmd.app.other:eval_"
@@ -82,9 +81,6 @@ bq = "lightlike.cmd.bq:bq"
 project = "lightlike.cmd.project:project"
 timer = "lightlike.cmd.timer:timer"
 scheduler = "lightlike.cmd.scheduler:scheduler"
-
-[cli.append_path]
-paths = []
 
 [prompt.style]
 "prompt.user" = "fg:#bfabff bold"
@@ -109,6 +105,7 @@ ignore_patterns = []
 [keys]
 exit = [[":", "q"], ["c-q"]]
 system-command = [[":", "s", "h"], [":", "!"]]
+
 [keys.completers]
 commands = [[":", "c", "1"]]
 history = [[":", "c", "2"]]
@@ -121,7 +118,6 @@ shell = []
 [git]
 branch = ""
 path = ""
-
 """
 
 

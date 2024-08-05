@@ -27,7 +27,6 @@ from functools import partial
 import click
 import rtoml
 from fasteners import InterProcessLock, try_lock
-from google.cloud import bigquery
 from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.styles import Style
 from pytz import timezone
@@ -99,9 +98,6 @@ def build_cli(
     @click.pass_context
     def cli(ctx: click.Context) -> None:
         ctx.obj = obj or {}
-
-        get_client: t.Callable[..., bigquery.Client] = ctx.obj["get_client"]
-        get_client()
 
         if ctx.invoked_subcommand is None:
             _console.if_not_quiet_start(get_console().log)("Starting REPL")
@@ -177,6 +173,10 @@ def run_cli(name: str = "lightlike") -> None:
     _console.if_not_quiet_start(get_console().log)("Validating cache")
     TimeEntryCache().validate()
 
+    _add_to_path(paths=AppConfig().get("cli", "add_to_path"))
+
+    get_client()
+
     cli: LazyAliasedGroup = build_cli(
         name=name,
         help=__cli_help__,
@@ -190,7 +190,7 @@ def run_cli(name: str = "lightlike") -> None:
             help_option_names=["-h", "--help"],
         ),
         call_on_close=call_on_close,
-        obj=dict(get_scheduler=get_scheduler, get_client=get_client),
+        obj=dict(get_scheduler=get_scheduler),
     )
 
     # If no invoked subcommand, cli is launched through REPL,
@@ -233,14 +233,15 @@ def _build_lazy_subcommands(config: dict[str, str] | None = None) -> dict[str, s
     return config
 
 
-def _append_paths(paths: list[str] | None) -> None:
+def _add_to_path(paths: list[str] | None) -> None:
     # Commands anywhere on the local machine can be loaded through lazy subcommands,
     # as long as it is on path. There is a key in the config file to add additional paths,
     # before the cli runs.
-    if paths:
-        for path in paths:
-            try:
-                sys.path.append(path)
-                appdir._log().debug(f"{path} added to path")
-            except Exception as error:
-                appdir._log().error(error)
+    if not paths:
+        return
+    for path in paths:
+        try:
+            sys.path.append(path)
+            appdir._log().debug(f"{path} added to path")
+        except Exception as error:
+            appdir._log().error(error)

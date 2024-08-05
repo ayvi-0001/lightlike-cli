@@ -30,7 +30,7 @@ P = t.ParamSpec("P")
 
 
 if LIGHTLIKE_CLI_DEV_USERNAME := getenv("LIGHTLIKE_CLI_DEV_USERNAME"):
-    __config = f"/{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike.toml"
+    __config = f"/{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike-cli/config.toml"
     __appdir = f"/{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike-cli"
 else:
     __config = __config__.as_posix()

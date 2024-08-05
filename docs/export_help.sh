@@ -1,7 +1,7 @@
 #!/bin/bash
 
-LIGHTLIKE_CLI_DIR=$(dirname $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd ))
-cd $LIGHTLIKE_CLI_DIR
+LIGHTLIKE_CLI_SOURCE_DIR=$(dirname $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd ))
+cd $LIGHTLIKE_CLI_SOURCE_DIR
 
 export LIGHTLIKE_CLI_DEV=1
 export LIGHTLIKE_CLI_DEV_EXPORT_HELP=1
