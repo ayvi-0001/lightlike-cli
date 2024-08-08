@@ -7,7 +7,7 @@ from click.shell_completion import CompletionItem
 from prompt_toolkit.completion import Completer, Completion
 
 from lightlike.internal import appdir
-from lightlike.internal.utils import _match_str, _print_message_and_clear_buffer
+from lightlike.internal.utils import match_str, print_message_and_clear_buffer
 
 if t.TYPE_CHECKING:
     from prompt_toolkit.completion import CompleteEvent
@@ -63,7 +63,7 @@ class Projects(Completer):
     ) -> t.Iterator[Completion]:
         matches = list(
             filter(
-                lambda n: _match_str(document.text, n, case_sensitive=True),
+                lambda n: match_str(document.text, n, case_sensitive=True),
                 self.names,
             )
         )
@@ -88,15 +88,9 @@ class Archived(Projects):
 
 
 def _matches_name_or_help(incomplete: str, item: CompletionItem) -> bool:
-    return _match_str(
-        incomplete,
-        item.value,
-        strip_quotes=True,
-    ) or _match_str(
-        incomplete,
-        item.help,
-        strip_quotes=True,
-    )
+    match_value = match_str(incomplete, item.value, strip_quotes=True)
+    match_help = match_str(incomplete, item.help, strip_quotes=True)
+    return match_value or match_help
 
 
 def _item_not_in_parent_args(
@@ -144,7 +138,7 @@ def from_argument(
         )
 
     if not completion_items:
-        _print_message_and_clear_buffer(
+        print_message_and_clear_buffer(
             f"{completer.list_} projects list is empty",
         )
         return completions
@@ -185,7 +179,7 @@ def from_option(
         )
 
     if not completion_items:
-        _print_message_and_clear_buffer(
+        print_message_and_clear_buffer(
             f"{completer.list_} projects list is empty",
         )
         return []

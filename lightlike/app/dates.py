@@ -10,7 +10,7 @@ import pytz
 from rich.text import Text
 
 from lightlike.app.config import AppConfig
-from lightlike.internal.utils import _get_local_timezone_string
+from lightlike.internal.utils import get_local_timezone_string
 
 if t.TYPE_CHECKING:
     from datetime import _TzInfo
@@ -100,7 +100,7 @@ def parse_date(
     if isinstance(tzinfo, str):
         tzinfo = pytz.timezone(tzinfo)
     elif tzinfo is None:
-        tzinfo = pytz.timezone(_get_local_timezone_string(default="UTC"))
+        tzinfo = pytz.timezone(get_local_timezone_string(default="UTC"))
 
     _settings = DEFAULT_PARSER_SETTINGS.copy()
     _settings.update(

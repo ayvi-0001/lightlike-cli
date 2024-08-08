@@ -242,7 +242,7 @@ def update_routine_diff(client: bigquery.Client) -> None:
                     )
                 ):
                     if path.stem in missing:
-                        script = utils._regexp_replace(
+                        script = utils.regexp_replace(
                             text=path.read_text(), patterns=bq_patterns
                         )
                         script = script.replace("${__name__}", path.stem)

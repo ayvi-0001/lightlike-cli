@@ -92,7 +92,7 @@ def _eval_help(ctx: click.Context, param: click.Parameter, value: str) -> None:
     name="eval",
     hidden=True,
 )
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
 @click.option(
     "-h",

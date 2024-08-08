@@ -64,7 +64,7 @@ def query(console: "Console") -> None:
     name="init",
     short_help="Change active project or credentials source.",
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not change configuration.")),
 )
 @_pass.console
@@ -189,7 +189,7 @@ def projects(console: "Console") -> None:
     subcommand_metavar="",
     short_help="Reset auth and all client settings.",
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not change configuration.")),
 )
 @_pass.console

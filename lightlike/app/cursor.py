@@ -56,7 +56,7 @@ def build(message: str | None = None) -> str:
 
         if cache := EntriesInMemory():
             timer: str = _timer(cache)
-            get_console().set_window_title(timer)
+            get_console().set_window_title(f"{timer} | {cache.project}")
             _extend_timer(cursor, timer)
 
         _extend_cursor_pointer(cursor)
@@ -73,7 +73,7 @@ def build(message: str | None = None) -> str:
 
         if cache := EntriesInMemory():
             timer: str = _timer(cache)
-            get_console().set_window_title(timer)
+            get_console().set_window_title(f"{timer} | {cache.project}")
             _extend_timer(cursor, timer)
 
         _extend_cursor_pointer(cursor, message or "")
@@ -100,7 +100,7 @@ def bottom_toolbar() -> t.Callable[..., StyleAndTextTuples]:
                 if len(cache_note) > max_width
                 else cache_note
             )
-            toolbar.extend([("class:bottom-toolbar.text", f':"{note}"')])
+            toolbar.extend([("class:bottom-toolbar.text", f":{note}")])
 
         toolbar.extend([("class:bottom-toolbar.text", "] |")])
 

@@ -49,7 +49,7 @@ class PromptFactory(PromptSession[t.Any]):
             message=cursor.build(message),
             bottom_toolbar=cursor.bottom_toolbar,
             rprompt=cursor.rprompt,
-            pre_run=utils._prerun_autocomplete if pre_run else None,
+            pre_run=utils.prerun_autocomplete if pre_run else None,
             **prompt_kwargs,
         )
         return prompt
@@ -98,7 +98,7 @@ class PromptFactory(PromptSession[t.Any]):
             message=cursor.build(message),
             bottom_toolbar=cursor.bottom_toolbar,
             rprompt=cursor.rprompt,
-            pre_run=utils._prerun_autocomplete,
+            pre_run=utils.prerun_autocomplete,
             completer=shell_complete.notes.Notes(project),
             validator=Validator.from_callable(
                 lambda d: False if not d else True,
@@ -122,7 +122,7 @@ class PromptFactory(PromptSession[t.Any]):
             message=cursor.build(message),
             bottom_toolbar=cursor.bottom_toolbar,
             rprompt=cursor.rprompt,
-            pre_run=utils._prerun_autocomplete,
+            pre_run=utils.prerun_autocomplete,
             completer=shell_complete.projects.Active() if not new else None,
             validator=validate.ExistingProject() if not new else validate.NewProject(),
         )

@@ -16,7 +16,7 @@ from prompt_toolkit.document import Document
 from lightlike.app import _get
 from lightlike.client import get_client
 from lightlike.cmd.query.words import KEYWORD_META, SQL_KEYWORDS
-from lightlike.internal.utils import _alter_str
+from lightlike.internal.utils import alter_str
 
 if t.TYPE_CHECKING:
     from prompt_toolkit.completion import CompleteEvent
@@ -184,7 +184,7 @@ class ResourceCompleter(Completer):
                             word_before_cursor, schema, table
                         )
                     if table in self.fields:
-                        stripped_word_before_cur: str = _alter_str(
+                        stripped_word_before_cur: str = alter_str(
                             word_before_cursor, strip_parenthesis=True
                         )
                         for field in self.fields[table]:

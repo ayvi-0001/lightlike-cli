@@ -122,7 +122,7 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
             updated_config["app"].update(version=__version__)
             local_config = updated_config
 
-        __config__.write_text(utils._format_toml(local_config))
+        __config__.write_text(utils.format_toml(local_config))
 
     return None
 
@@ -257,7 +257,7 @@ def _initial_build() -> None | t.NoReturn:
 
         console.log("Determining timezone from env")
 
-        default_timezone = utils._get_local_timezone_string()
+        default_timezone = utils.get_local_timezone_string()
         if default_timezone is None:
             console.log(markup.log_error("Could not determine timezone"))
             default_timezone = "UTC"
@@ -348,11 +348,11 @@ def _initial_build() -> None | t.NoReturn:
         default_config["client"].update(
             credentials_source=repr(client_credential_source)
         )
-        default_config["cli"].update(add_to_path=[f"{__appdir__}"])
+        default_config["cli"].update(add_to_path=[__appdir__.as_posix()])
 
         console.log("Building app directory")
         console.log("Saving config")
-        __config__.write_text(utils._format_toml(default_config))
+        __config__.write_text(utils.format_toml(default_config))
         __config__.touch(exist_ok=True)
         console.log(f"Writing {__config__}")
         console.log(f"Writing {REPL_HISTORY}")
@@ -362,7 +362,10 @@ def _initial_build() -> None | t.NoReturn:
         SCHEDULER_CONFIG.touch(exist_ok=True)
         SCHEDULER_CONFIG.write_text(
             constant.DEFAULT_SCHEDULER_TOML
-            % (timezone, "sqlite:///" + (__appdir__ / "apscheduler.db").as_posix())
+            % (
+                timezone,
+                "sqlite:///" + __appdir__.joinpath("apscheduler.db").as_posix(),
+            )
         )
         console.log(f"Writing {ENTRY_APPDATA}")
         ENTRY_APPDATA.write_text(

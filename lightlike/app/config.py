@@ -40,7 +40,7 @@ class AppConfig(metaclass=factory._Singleton):
                 yield self
         finally:
             with self._rw_lock.write_lock():
-                self.path.write_text(utils._format_toml(self.config))
+                self.path.write_text(utils.format_toml(self.config))
             self.config = self.load()
 
     def load(self) -> dict[str, t.Any]:

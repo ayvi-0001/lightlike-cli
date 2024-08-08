@@ -162,7 +162,7 @@ def create_settings_fn(
         context_settings=cmd.context_settings,
         syntax=cmd.syntax,
     )
-    @utils._handle_keyboard_interrupt(
+    @utils.handle_keyboard_interrupt(
         callback=lambda: rprint(markup.dimmed(f"Did not update {cmd.name}.")),
     )
     @_pass.console
@@ -500,7 +500,7 @@ if (
             background_color="#131310",
         ),
     )
-    @utils._handle_keyboard_interrupt(
+    @utils.handle_keyboard_interrupt(
         callback=lambda: rprint(markup.dimmed("Did not change settings.")),
     )
     @value_arg

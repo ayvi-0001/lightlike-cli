@@ -91,7 +91,7 @@ def default_timer_add(config: AppConfig) -> str:
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not add time entry.")),
 )
 @click.option(
@@ -260,17 +260,10 @@ def add(
             end_time=end_local,
             billable=billable or project_default_billable,
             wait=True,
-            render=True,
-            status=status,
-            status_renderable=status_renderable,
-        )
 
-        threads.spawn(ctx, id_list.reset)
-        note != "None" and threads.spawn(
-            ctx, appdata.sync, dict(trigger_query_job=query_job, debug=debug)
-        )
-
-        table: Table = render.map_sequence_to_rich_table(
+    console.print(
+        "Added record:",
+        render.map_sequence_to_rich_table(
             mappings=[
                 {
                     "id": time_entry_id[:7],
@@ -288,12 +281,8 @@ def add(
             num_ctype=["paused_hours", "hours"],
             time_ctype=["start", "end"],
             date_ctype=["date"],
-        )
-        if not table.row_count:
-            rprint(markup.dimmed("No results"))
-            raise click.exceptions.Exit
-
-    console.print("Added record:", table)
+        ),
+    )
 
 
 def yank_flag_help() -> str:
@@ -625,7 +614,7 @@ def _match_ids(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not edit entries.")),
 )
 @click.option(
@@ -1030,7 +1019,7 @@ def get(
         allow_interspersed_args=True,
     ),
 )
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @click.option(
     "-d",
     "--date",
@@ -1522,7 +1511,7 @@ def notes() -> None: ...
     callback=validate.active_project,
     shell_complete=shell_complete.projects.from_argument,
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not update notes.")),
 )
 @_pass.routine
@@ -1567,7 +1556,7 @@ def update_notes(
         return
 
     notes_to_replace: str = "\n".join(
-        map(lambda n: utils._alter_str(n, add_quotes=True), notes_to_edit)
+        map(lambda n: utils.alter_str(n, add_quotes=True), notes_to_edit)
     )
 
     new_note = PromptFactory.prompt_note(
@@ -1650,7 +1639,7 @@ def pause(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not resume time entry.")),
 )
 @click.argument(
@@ -1771,7 +1760,7 @@ def resume(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not start time entry.")),
 )
 @click.option(
@@ -2076,7 +2065,7 @@ def stop(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not switch.")),
 )
 @click.argument(

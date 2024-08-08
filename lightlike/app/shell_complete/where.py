@@ -62,7 +62,7 @@ class WhereClauseCompleter(WordCompleter):
     def get_completions(
         self, document: Document, complete_event: "CompleteEvent"
     ) -> t.Iterable[Completion]:
-        word_before_cursor: str = utils._alter_str(
+        word_before_cursor: str = utils.alter_str(
             document.get_word_before_cursor(self.WORD),
             strip_parenthesis=True,
             strip_quotes=True,
@@ -84,7 +84,7 @@ class WhereClauseCompleter(WordCompleter):
         self, document: Document, word_before_cursor: str
     ) -> t.Iterable[Completion]:
         for project in self.projects:
-            if utils._match_str(
+            if utils.match_str(
                 word_before_cursor,
                 project,
                 case_sensitive=False,
@@ -178,7 +178,7 @@ def _parse_click_options(
             )
             where_clause = session.prompt(
                 default="WHERE ",
-                pre_run=utils._prerun_autocomplete,
+                pre_run=utils.prerun_autocomplete,
                 bottom_toolbar=shell_complete.where._bottom_toolbar(console),
             )
     else:

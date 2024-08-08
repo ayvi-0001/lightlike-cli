@@ -10,7 +10,7 @@ from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.formatted_text import FormattedText
 
 from lightlike.app.config import AppConfig
-from lightlike.internal.utils import _match_str
+from lightlike.internal.utils import match_str
 
 if t.TYPE_CHECKING:
     from prompt_toolkit.completion import CompleteEvent
@@ -39,7 +39,7 @@ class ExecutableCompleter(Completer):
 
         expressions: list[re.Pattern[str]]
         if self.ignore_patterns:
-            expressions: list[re.Pattern[str]] = list(
+            expressions = list(
                 map(partial(re.compile, flags=re.I), self.ignore_patterns)  # type: ignore[arg-type, unused-ignore]
             )
         else:
@@ -81,7 +81,7 @@ class ExecutableCompleter(Completer):
     ) -> t.Iterator[Completion]:
         try:
             word_before_cursor = document.get_word_before_cursor(WORD=True)
-            match_word_before_cursor = lambda l: _match_str(word_before_cursor, l.name)
+            match_word_before_cursor = lambda l: match_str(word_before_cursor, l.name)
             matches = list(filter(match_word_before_cursor, self.executables))
 
             for path in sorted(matches, key=lambda p: p.name):

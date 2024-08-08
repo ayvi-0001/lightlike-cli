@@ -262,7 +262,7 @@ regex_engine = click.option(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @start_option
 @end_option
 @all_option
@@ -480,7 +480,7 @@ def summary_table(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @start_option
 @end_option
 @all_option
@@ -741,7 +741,7 @@ def summary_csv(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @start_option
 @end_option
 @all_option

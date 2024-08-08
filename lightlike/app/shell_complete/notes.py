@@ -10,7 +10,7 @@ from prompt_toolkit.completion import Completer, Completion
 
 from lightlike.app.cache import TimeEntryCache
 from lightlike.internal import appdir
-from lightlike.internal.utils import _alter_str, _match_str
+from lightlike.internal.utils import alter_str, match_str
 
 if t.TYPE_CHECKING:
     from prompt_toolkit.completion import CompleteEvent
@@ -50,7 +50,7 @@ class Notes(Completer):
     ) -> t.Iterator[Completion]:
         if self.project:
             matches = filter(
-                lambda o: _match_str(document.text, o),
+                lambda o: match_str(document.text, o),
                 self.get(self.project),
             )
             completions = [
@@ -69,13 +69,13 @@ def from_param(
     if projects := ctx.params.get("projects"):
         for project in projects:
             notes = filter(
-                lambda n: _match_str(incomplete, n, strip_quotes=True),
+                lambda n: match_str(incomplete, n, strip_quotes=True),
                 completer.get(project),
             )
             completions.extend(
                 [
                     CompletionItem(
-                        value=_alter_str(note, add_quotes=True),
+                        value=alter_str(note, add_quotes=True),
                         help=f"project: {project}",
                     )
                     for note in notes
@@ -83,13 +83,13 @@ def from_param(
             )
     elif project := ctx.params.get("project"):
         notes = filter(
-            lambda n: _match_str(incomplete, n, strip_quotes=True),
+            lambda n: match_str(incomplete, n, strip_quotes=True),
             completer.get(project),
         )
         completions.extend(
             [
                 CompletionItem(
-                    value=_alter_str(note, add_quotes=True),
+                    value=alter_str(note, add_quotes=True),
                     help=f"project: {project}",
                 )
                 for note in notes
@@ -103,13 +103,13 @@ def from_param(
 
         project = ctx.protected_args[opt_idx + 1]
         notes = filter(
-            lambda n: _match_str(incomplete, n, strip_quotes=True),
+            lambda n: match_str(incomplete, n, strip_quotes=True),
             completer.get(project),
         )
         completions.extend(
             [
                 CompletionItem(
-                    value=_alter_str(note, add_quotes=True),
+                    value=alter_str(note, add_quotes=True),
                     help=f"project: {project}",
                 )
                 for note in notes
@@ -134,11 +134,11 @@ def from_cache(
             completions.extend(
                 [
                     CompletionItem(
-                        value=_alter_str(note, add_quotes=True),
+                        value=alter_str(note, add_quotes=True),
                         help=f"project: {cache.project}",
                     )
                     for note in filter(
-                        lambda n: _match_str(incomplete, n, strip_quotes=True),
+                        lambda n: match_str(incomplete, n, strip_quotes=True),
                         notes,
                     )
                 ]
@@ -158,13 +158,13 @@ def from_chained_cmd(
         project := first(document.text[project_location:].split(" "))
     ):
         notes = filter(
-            lambda n: _match_str(incomplete, n, strip_quotes=True),
+            lambda n: match_str(incomplete, n, strip_quotes=True),
             Notes().get(project),
         )
         completions.extend(
             [
                 CompletionItem(
-                    value=_alter_str(note, add_quotes=True),
+                    value=alter_str(note, add_quotes=True),
                     help=f"project: {project}",
                 )
                 for note in notes

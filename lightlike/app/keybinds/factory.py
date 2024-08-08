@@ -7,6 +7,7 @@ from prompt_toolkit.filters import Condition
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import get_console
+from rich.text import Text
 
 from lightlike.app.config import AppConfig
 from lightlike.app.shell_complete.dynamic import (
@@ -31,7 +32,7 @@ def add_system_cmd_kb(keybinding: KeyBindings, binds: list[list[str]]) -> None:
         return
 
     def _build(name: str, keys: list[str]) -> t.Callable[..., t.Any]:
-        @utils._nl_start(before=True)
+        @utils.nl_start(before=True)
         async def _(event: KeyPressEvent) -> None:
             buffer = event.app.current_buffer
             cmd = buffer.document.text
@@ -46,8 +47,8 @@ def add_system_cmd_kb(keybinding: KeyBindings, binds: list[list[str]]) -> None:
             buffer.append_to_history()
             buffer.reset(append_to_history=True)
             buffer.delete_before_cursor(len(cmd))
-            utils._nl()
-            utils._nl()
+            utils.nl()
+            utils.nl()
             kb_system_command = event.app.run_system_command(cmd, wait_for_enter=False)
             await kb_system_command
 
@@ -65,7 +66,7 @@ def add_exit_kb(keybinding: KeyBindings, binds: list[list[str]]) -> None:
         return
 
     def _build(name: str, keys: list[str]) -> t.Callable[..., t.Any]:
-        @utils._nl_start(before=True)
+        @utils.nl_start(before=True)
         def _(event: KeyPressEvent) -> None:
             from lightlike.app import call_on_close
 
@@ -81,16 +82,11 @@ def add_exit_kb(keybinding: KeyBindings, binds: list[list[str]]) -> None:
 
 
 def _log_completer_keypress(completer: ActiveCompleter) -> None:
+    message: list[Text | str] = [markup.command(completer._name_.lower())]
     if completer in global_completers():
-        message = (
-            markup.command(f"{completer._name_}"),
-            "added to completers",
-        )
+        message.append("added to completers")
     else:
-        message = (
-            markup.command(f"{completer._name_}"),
-            "removed from completers",
-        )
+        message.append("removed from completers")
     with patch_stdout(raw=True):
         get_console().log(*message)
 

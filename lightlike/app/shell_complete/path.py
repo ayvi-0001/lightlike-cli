@@ -9,7 +9,7 @@ from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.formatted_text import FormattedText
 
 from lightlike.internal.enums import ActiveCompleter
-from lightlike.internal.utils import _alter_str
+from lightlike.internal.utils import alter_str
 
 if t.TYPE_CHECKING:
     from prompt_toolkit.completion import CompleteEvent
@@ -112,7 +112,7 @@ def path(
         dir_only = ctx.obj.get("dir_only", False)
     else:
         dir_only = False
-    for path in _yield_paths(_alter_str(incomplete, strip_quotes=True), dir_only):
+    for path in _yield_paths(alter_str(incomplete, strip_quotes=True), dir_only):
         value = path.expanduser().as_posix()
         if " " in value:
             value = f'"{value}'
@@ -145,7 +145,7 @@ class PathCompleter(Completer):
             if not document.text:
                 yield from []
 
-            for path in _yield_paths(_alter_str(word_before_cursor, strip_quotes=True)):
+            for path in _yield_paths(alter_str(word_before_cursor, strip_quotes=True)):
                 value = path.expanduser().as_posix()
                 if " " in value:
                     value = value.replace(" ", r"\ ")

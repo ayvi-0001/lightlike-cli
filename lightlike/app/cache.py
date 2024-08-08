@@ -291,7 +291,7 @@ class TimeEntryCache(_Entries):
 
     @property
     def _serialize(self) -> str:
-        return utils._format_toml(self._entries)
+        return utils.format_toml(self._entries)
 
     def start_new_active_time_entry(self) -> None:
         with self.rw():
@@ -473,7 +473,7 @@ class TimeEntryCache(_Entries):
             if self._path.exists():
                 if xor(
                     self._path.read_text() == "",
-                    not utils._identical_vectors(
+                    not utils.identical_vectors(
                         list(self.active.keys()),
                         list(self.default_entry.keys()),
                     ),

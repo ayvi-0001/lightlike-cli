@@ -28,7 +28,7 @@ __all__: t.Sequence[str] = ("snapshots",)
     no_args_is_help=True,
     short_help="Create a snapshot.",
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not create snapshot.")),
 )
 @click.option(
@@ -77,7 +77,7 @@ def create(
     name="restore",
     short_help="Replace timesheet table with a snapshot.",
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not restore snapshot.")),
 )
 @_pass.routine
@@ -145,7 +145,7 @@ def list_(console: "Console", routine: "CliQueryRoutines") -> None:
     name="delete",
     short_help="Drop a snapshot.",
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not delete snapshot.")),
 )
 @_pass.console

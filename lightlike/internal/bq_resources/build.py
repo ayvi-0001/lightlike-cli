@@ -15,7 +15,7 @@ from rich.progress import Progress, TaskID
 
 from lightlike.app import _questionary
 from lightlike.internal import markup
-from lightlike.internal.utils import _regexp_replace
+from lightlike.internal.utils import regexp_replace
 
 __all__: t.Sequence[str] = ("run", "SCRIPTS")
 
@@ -62,7 +62,7 @@ def _run_script(
 ) -> None:
     try:
         step_progress.update(task_id, advance=1)
-        script = _regexp_replace(patterns=patterns, text=path.read_text())
+        script = regexp_replace(patterns=patterns, text=path.read_text())
         step_progress.update(task_id, advance=1)
         script = script.replace("${__name__}", path.stem)
         step_progress.update(task_id, advance=1)

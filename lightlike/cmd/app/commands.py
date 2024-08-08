@@ -159,7 +159,7 @@ def dir_(console: Console, start: bool) -> None:
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Canceled Build.")),
 )
 @click.option(
@@ -241,7 +241,7 @@ def inspect_console(console: Console) -> None:
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Canceled Sync.")),
 )
 @click.option("-a", "--appdata", is_flag=True)
@@ -286,7 +286,7 @@ def sync(
     hidden=True,
     allow_name_alias=False,
 )
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @click.option("-y", "--yes", is_flag=True, type=click.BOOL, hidden=True)
 @_pass.appdata
 @_pass.cache
@@ -353,7 +353,7 @@ def _reset_all(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @click.argument(
     "date",
     type=click.STRING,
@@ -430,7 +430,7 @@ def parse_date_arg(console: Console, date: datetime) -> None:
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @click.option(
     "-d",
     "--date",
@@ -469,7 +469,7 @@ def parse_date_opt(console: Console, date: datetime) -> None:
     short_help="Diff between 2 datetime.",
     no_args_is_help=True,
 )
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @click.argument(
     "date_start",
     type=click.STRING,

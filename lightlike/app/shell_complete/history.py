@@ -7,7 +7,7 @@ from prompt_toolkit.history import ThreadedHistory
 from rich import get_console
 
 from lightlike.internal import appdir
-from lightlike.internal.utils import _match_str
+from lightlike.internal.utils import match_str
 
 if t.TYPE_CHECKING:
     from prompt_toolkit.completion import CompleteEvent
@@ -34,7 +34,7 @@ class HistoryCompleter(Completer):
             history = unique_everseen(list(map(lambda s: s.strip(), history_strings)))
             console_width = get_console().width
 
-            match_word_before_cursor = lambda l: _match_str(
+            match_word_before_cursor = lambda l: match_str(
                 text_before_cursor, l, method="startswith"
             )
             matches = list(filter(match_word_before_cursor, history))

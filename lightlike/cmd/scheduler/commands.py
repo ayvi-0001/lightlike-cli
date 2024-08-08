@@ -80,7 +80,7 @@ def available_executors(
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
 @click.option(
     "--func",
@@ -372,7 +372,7 @@ def add_job(
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
 @click.option(
     "-i",
@@ -403,7 +403,7 @@ def get_job(
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
 @click.pass_context
 def print_jobs(ctx: click.Context) -> None:
@@ -434,7 +434,7 @@ def print_jobs(ctx: click.Context) -> None:
     )
 
     def _job_id(job: Job) -> str:
-        job_id: str | None = ""
+        job_id: str = ""
         if job.id != job.name:
             job_id = job.id + " "
         return job_id
@@ -470,7 +470,7 @@ def print_jobs(ctx: click.Context) -> None:
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
 @click.option(
     "-i",
@@ -584,7 +584,7 @@ def modify_job(
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
 @click.option(
     "-i",
@@ -613,7 +613,7 @@ def pause_job(
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
 @click.argument("jobstore", type=click.STRING, shell_complete=available_jobstores)
 @click.pass_context
@@ -624,7 +624,7 @@ def remove_all_jobs(ctx: click.Context, jobstore: str) -> None:
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
 @click.option(
     "-i",
@@ -655,7 +655,7 @@ def remove_job(
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
 @click.option(
     "-i",
@@ -842,7 +842,7 @@ def reschedule_job(
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
 @click.option(
     "-i",
@@ -871,7 +871,7 @@ def resume_job(
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
 @click.pass_context
 def shutdown(ctx: click.Context) -> None:
@@ -883,7 +883,7 @@ def shutdown(ctx: click.Context) -> None:
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
 @click.pass_context
 def start(ctx: click.Context) -> None:
@@ -895,7 +895,7 @@ def start(ctx: click.Context) -> None:
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
 @click.pass_context
 def status(ctx: click.Context) -> None:

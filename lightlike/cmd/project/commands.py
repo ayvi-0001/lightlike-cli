@@ -53,7 +53,7 @@ __all__: t.Sequence[str] = (
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not archive projects.")),
 )
 @click.argument(
@@ -221,7 +221,7 @@ def archive(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not create project.")),
 )
 @click.option(
@@ -338,7 +338,7 @@ def create(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not delete projects.")),
 )
 @click.argument(
@@ -672,7 +672,7 @@ def set_() -> None:
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not update project.")),
 )
 @click.argument(
@@ -771,7 +771,7 @@ def set_project_name(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not update project.")),
 )
 @click.argument(
@@ -868,7 +868,7 @@ def set_project_description(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not update project.")),
 )
 @click.argument(
@@ -941,7 +941,7 @@ def set_project_default_billable(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not unarchive project.")),
 )
 @click.argument(
