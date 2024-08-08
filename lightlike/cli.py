@@ -22,6 +22,7 @@
 
 import sys
 import typing as t
+import warnings
 from functools import partial
 
 import click
@@ -30,10 +31,12 @@ from fasteners import InterProcessLock, try_lock
 from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.styles import Style
 from pytz import timezone
+from pytz_deprecation_shim._exceptions import PytzUsageWarning
 from rich import get_console
 from rich.traceback import install
 
 install(suppress=[click])
+warnings.filterwarnings("ignore", category=PytzUsageWarning)
 
 from lightlike import _console
 from lightlike.__about__ import (

@@ -1,6 +1,5 @@
 import importlib
 import typing as t
-import warnings
 from pathlib import Path
 from types import ModuleType
 
@@ -43,8 +42,7 @@ def create_or_replace_default_jobs(
                 mod, job_object_name
             )
 
-            with warnings.catch_warnings(action="ignore"):
-                scheduler.add_job(**job_kwargs())
+            scheduler.add_job(**job_kwargs())
 
         except Exception as error:
             appdir._log().error(
