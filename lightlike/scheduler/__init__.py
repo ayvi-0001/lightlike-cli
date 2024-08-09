@@ -31,7 +31,8 @@ def get_scheduler(*args: P.args, **kwargs: P.kwargs) -> BackgroundScheduler:
         scheduler_config: dict[str, t.Any] = {}
 
         if appdir.SCHEDULER_CONFIG.exists():
-            scheduler_config = rtoml.load(appdir.SCHEDULER_CONFIG).get("scheduler", {})
+            config = rtoml.load(appdir.SCHEDULER_CONFIG)
+            scheduler_config = config.get("scheduler", {})
 
         SCHEDULER = BackgroundScheduler(scheduler_config)
 

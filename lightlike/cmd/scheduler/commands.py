@@ -47,9 +47,8 @@ def available_functions(
     completions = []
 
     if appdir.SCHEDULER_CONFIG.exists():
-        for k, v in (
-            rtoml.load(appdir.SCHEDULER_CONFIG)["jobs"].get("functions", {}).items()
-        ):
+        config = rtoml.load(appdir.SCHEDULER_CONFIG)
+        for k, v in config["jobs"].get("functions", {}).items():
             completions.append(CompletionItem(value=k, help=str(v)))
 
     return completions
@@ -276,15 +275,12 @@ def add_job(
 ) -> None:
     scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
     trigger_kwargs: dict[str, t.Any] = {}
-    tzinfo = timezone(AppConfig().get("settings", "timezone"))
+    tzinfo = AppConfig().tzinfo
 
     job_kwargs: dict[str, t.Any] = {}
     if appdir.SCHEDULER_CONFIG.exists():
-        job_kwargs["func"] = (
-            rtoml.load(appdir.SCHEDULER_CONFIG)["jobs"]
-            .get("functions", {})
-            .get(func, func)
-        )
+        config = rtoml.load(appdir.SCHEDULER_CONFIG)
+        job_kwargs["func"] = config["jobs"].get("functions", {}).get(func, func)
     else:
         job_kwargs["func"] = func
 
@@ -360,7 +356,7 @@ def add_job(
     if max_instances is not None:
         job_kwargs["max_instances"] = max_instances
     if next_run_time is not None:
-        tzinfo = timezone(AppConfig().get("settings", "timezone"))
+        tzinfo = AppConfig().tzinfo
         job_kwargs["next_run_time"] = parse_date(next_run_time, tzinfo=tzinfo)
 
     try:
@@ -573,7 +569,7 @@ def modify_job(
     if max_instances is not None:
         job_modify_kwargs["max_instances"] = max_instances
     if next_run_time is not None:
-        tzinfo = timezone(AppConfig().get("settings", "timezone"))
+        tzinfo = AppConfig().tzinfo
         job_modify_kwargs["next_run_time"] = parse_date(next_run_time, tzinfo=tzinfo)
 
     job: Job = scheduler.modify_job(
@@ -781,7 +777,7 @@ def reschedule_job(
     end_date: str,
 ) -> None:
     scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
-    tzinfo = timezone(AppConfig().get("settings", "timezone"))
+    tzinfo = AppConfig().tzinfo
 
     trigger_kwargs: dict[str, t.Any] = {}
 

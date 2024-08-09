@@ -44,6 +44,7 @@ __all__: t.Sequence[str] = (
     "update_dict",
     "update_toml_document",
     "print_message_and_clear_buffer",
+    "file_empty_or_not_exists",
 )
 
 
@@ -118,11 +119,11 @@ def get_local_timezone_string(default: None = None) -> str | None: ...
 
 def get_local_timezone_string(default: str | None = None) -> str | None:
     if os.name == "nt":
-        from tzlocal import get_localzone_name
+        from tzlocal import get_localzone_name  # type: ignore[import-missing]
 
         default_timezone = get_localzone_name()
     else:
-        from tzlocal.unix import _get_localzone_name
+        from tzlocal.unix import _get_localzone_name  # type: ignore[import-missing]
 
         default_timezone = _get_localzone_name()
 
@@ -373,3 +374,7 @@ def print_message_and_clear_buffer(message: str) -> None:
     with patch_stdout(raw=True):
         rprint(markup.dimmed(f"{message}."))
         get_app().current_buffer.text = ""
+
+
+def file_empty_or_not_exists(path: Path) -> bool:
+    return not path.exists() ^ (path.exists() and path.read_text().splitlines() == [""])

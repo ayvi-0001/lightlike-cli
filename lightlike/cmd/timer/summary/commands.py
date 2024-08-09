@@ -402,7 +402,7 @@ def summary_table(
         )
         if current_week:
             date_params = dates.get_relative_week(
-                now, AppConfig().get("settings", "week_start")
+                now, AppConfig().get("settings", "week_start", default=0)
             )
         elif current_month:
             date_params = dates.get_month_to_date(now)
@@ -653,7 +653,7 @@ def summary_csv(
         )
         if current_week:
             date_params = dates.get_relative_week(
-                now, AppConfig().get("settings", "week_start")
+                now, AppConfig().get("settings", "week_start", default=0)
             )
         elif current_month:
             date_params = dates.get_month_to_date(now)
@@ -924,7 +924,7 @@ def summary_json(
         )
         if current_week:
             date_params = dates.get_relative_week(
-                now, AppConfig().get("settings", "week_start")
+                now, AppConfig().get("settings", "week_start", default=0)
             )
         elif current_month:
             date_params = dates.get_month_to_date(now)

@@ -50,7 +50,7 @@ def query_repl(ctx: click.Context, console: Console) -> None:
 
 
 def _run_query_repl(console: Console) -> None:
-    query_settings = AppConfig().get("settings", "query")
+    query_settings: dict[str, bool] = AppConfig().get("settings", "query", default={})
     mouse_support: bool = query_settings.get("mouse_support", True)
     save_txt: bool = query_settings.get("save_txt", False)
     save_query_info: bool = query_settings.get("save_query_info", False)

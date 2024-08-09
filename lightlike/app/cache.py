@@ -13,7 +13,6 @@ import click
 import rtoml
 from more_itertools import first, locate, map_except, one, unique_everseen
 from prompt_toolkit.patch_stdout import patch_stdout
-from pytz import timezone
 from rich import box, get_console
 from rich.markup import escape
 from rich.measure import Measurement
@@ -28,6 +27,8 @@ from lightlike.client import CliQueryRoutines
 from lightlike.internal import appdir, factory, markup, utils
 
 if t.TYPE_CHECKING:
+    from datetime import _TzInfo
+
     from google.cloud.bigquery import QueryJob
     from google.cloud.bigquery.table import Row
     from rich.console import Console, ConsoleOptions, RenderResult
@@ -194,7 +195,7 @@ class EntriesInMemory(_Entries, metaclass=factory._Singleton):
 class TimeEntryCache(_Entries):
     __slots__: t.Sequence[str] = ("_entries", "_path")
 
-    @_fasteners.interprocess_read_locked(appdir.CACHE_LOCK, logger=appdir._log())
+    @_fasteners.interprocess_read_locked(appdir.CACHE_LOCK, logger=appdir.log())
     def __init__(self, path: Path = appdir.CACHE) -> None:
         self._path = path
         self._entries = rtoml.load(self._path)
@@ -203,7 +204,7 @@ class TimeEntryCache(_Entries):
     def __rich_console__(
         self, console: "Console", options: "ConsoleOptions"
     ) -> "RenderResult":
-        now: datetime = dates.now(timezone(AppConfig().get("settings", "timezone")))
+        now: datetime = dates.now(AppConfig().tzinfo)
 
         fields = [
             "id",
@@ -279,7 +280,7 @@ class TimeEntryCache(_Entries):
     ) -> Measurement:
         return Measurement(140, options.max_width)
 
-    @_fasteners.interprocess_locked(appdir.CACHE_LOCK, logger=appdir._log())
+    @_fasteners.interprocess_locked(appdir.CACHE_LOCK, logger=appdir.log())
     @contextmanager
     def rw(self) -> t.Generator[TimeEntryCache, t.Any, None]:
         try:
@@ -504,8 +505,7 @@ class TimeEntryCache(_Entries):
         running_entries: list[dict[str, t.Any]] = []
         paused_entries: list[dict[str, t.Any]] = []
 
-        tzinfo = timezone(AppConfig().get("settings", "timezone"))
-
+        tzinfo: "_TzInfo" = AppConfig().tzinfo
         active_index: str | None = self.active["id"] if self else None
 
         for row in list(running_entries_to_cache):
@@ -676,7 +676,7 @@ class TimeEntryIdList(metaclass=factory._Singleton):
         try:
             self.clear()
         except Exception as error:
-            appdir._log().error(f"Error resetting session ids: {error}")
+            appdir.log().error(f"Error resetting session ids: {error}")
         self.ids
 
     def add(self, input_id: str, debug: bool = False) -> None:
@@ -760,7 +760,7 @@ class TimeEntryAppData:
             try:
                 appdata[__key][p].update({"notes": self._unique_notes(p, rows)})
             except Exception as error:
-                appdir._log().error(
+                appdir.log().error(
                     f"Error attempting to map appdata notes - {error!r}: {error!s}"
                 )
             return appdata

@@ -5,7 +5,6 @@ from os import getenv
 from pathlib import Path
 
 from prompt_toolkit.formatted_text import fragment_list_width
-from pytz import timezone
 from rich import get_console
 
 from lightlike.app.cache import EntriesInMemory
@@ -33,10 +32,10 @@ StyleAndTextTuples = list[OneStyleAndTextTuple]
 
 USERNAME: str = AppConfig().get("user", "name")
 HOSTNAME: str = AppConfig().get("user", "host")
-GCP_PROJECT: str = AppConfig().get("client", "active_project")
-BRANCH: str = AppConfig().get("git", "branch")
-PATH: str = AppConfig().get("git", "path")
-TIMEZONE: "_TzInfo" = timezone(AppConfig().get("settings", "timezone"))
+GCP_PROJECT: str | None = AppConfig().get("client", "active_project")
+BRANCH: str | None = AppConfig().get("git", "branch")
+PATH: str | None = AppConfig().get("git", "path")
+TIMEZONE: "_TzInfo" = AppConfig().tzinfo
 
 
 def build(message: str | None = None) -> str:
@@ -51,7 +50,7 @@ def build(message: str | None = None) -> str:
         cwd: Path = Path.cwd()
 
         _extend_base(cursor, cwd)
-        _extend_active_project(cursor, GCP_PROJECT)
+        GCP_PROJECT and _extend_active_project(cursor, GCP_PROJECT)
         _extend_git_branch(cursor, cwd)
 
         if cache := EntriesInMemory():
@@ -68,7 +67,7 @@ def build(message: str | None = None) -> str:
         cwd: Path = Path.cwd()
 
         _extend_base(cursor, cwd)
-        _extend_active_project(cursor, GCP_PROJECT)
+        GCP_PROJECT and _extend_active_project(cursor, GCP_PROJECT)
         _extend_git_branch(cursor, cwd)
 
         if cache := EntriesInMemory():
@@ -141,7 +140,7 @@ def rprompt() -> t.Callable[..., StyleAndTextTuples]:
 
 def _extend_git_branch(cursor: StyleAndTextTuples, cwd: Path) -> None:
     global BRANCH, PATH
-    if BRANCH:
+    if BRANCH and PATH:
         if not cwd.is_relative_to(PATH):
             PATH, BRANCH = "", ""
             with AppConfig().rw() as config:

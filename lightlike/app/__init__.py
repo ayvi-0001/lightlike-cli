@@ -11,11 +11,11 @@ def call_on_close(ctx: click.Context | None = None) -> t.NoReturn:
     from lightlike.scheduler import get_scheduler
 
     get_client().close()
-    appdir._log().debug("Closed Bigquery client HTTPS connection.")
+    appdir.log().debug("Closed Bigquery client HTTPS connection.")
 
     if (scheduler := get_scheduler()).running:
         scheduler.shutdown()
 
     logging.shutdown()
-    appdir._log().debug("Exiting gracefully.")
+    appdir.log().debug("Exiting gracefully.")
     sys.exit(0)

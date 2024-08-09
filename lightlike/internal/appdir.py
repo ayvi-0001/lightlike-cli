@@ -2,6 +2,7 @@ import logging
 import sys
 import typing as t
 from datetime import datetime
+from inspect import cleandoc
 from pathlib import Path
 
 import rtoml
@@ -10,6 +11,7 @@ from prompt_toolkit.history import FileHistory, ThreadedHistory
 from rich import get_console
 from rich import print as rprint
 from rich.console import Console
+from rich.markdown import Markdown
 from rich.text import Text
 
 from lightlike import _console, _fasteners
@@ -37,7 +39,7 @@ __all__: t.Sequence[str] = (
     "LOGS",
     "SCHEDULER_CONFIG",
     "rmtree",
-    "_log",
+    "log",
     "console_log_error",
 )
 
@@ -80,7 +82,7 @@ logging.basicConfig(
 )
 
 
-def _log() -> logging.Logger:
+def log() -> logging.Logger:
     return logging.getLogger(__appname_sc__)
 
 
@@ -93,14 +95,12 @@ def rmtree(appdata: Path = __appdir__) -> t.NoReturn:
     sys.exit(1)
 
 
-@_fasteners.interprocess_locked(__appdir__ / "config.lock", logger=_log())
+@_fasteners.interprocess_locked(__appdir__ / "config.lock", logger=log())
 def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
     console = get_console()
     _console.if_not_quiet_start(console.log)("Validating app directory")
 
-    if not __config__.exists() ^ (
-        __config__.exists() and __config__.read_text().splitlines() == [""]
-    ):
+    if utils.file_empty_or_not_exists(__config__):
         console.log(f"{__config__} not found")
         console.log("Initializing app directory")
         return _initial_build()
@@ -162,12 +162,10 @@ def _initial_build() -> None | t.NoReturn:
         import getpass
         import os
         import socket
-        from inspect import cleandoc
 
         from prompt_toolkit.validation import Validator
         from pytz import all_timezones
         from rich.console import NewLine
-        from rich.markdown import Markdown
         from rich.padding import Padding
 
         from lightlike.app import _questionary
@@ -175,38 +173,9 @@ def _initial_build() -> None | t.NoReturn:
         console = get_console()
         default_config = rtoml.load(constant.DEFAULT_CONFIG)
 
-        _license = Markdown(
-            markup=cleandoc(
-                """
-            MIT License
-
-            Copyright (c) 2024 ayvi-0001
-
-            Permission is hereby granted, free of charge, to any person obtaining a copy
-            of this software and associated documentation files (the "Software"), to deal
-            in the Software without restriction, including without limitation the rights
-            to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-            copies of the Software, and to permit persons to whom the Software is
-            furnished to do so, subject to the following conditions:
-
-            The above copyright notice and this permission notice shall be included in all
-            copies or substantial portions of the Software.
-
-            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-            IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-            FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-            AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-            LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-            SOFTWARE.
-                """
-            ),
-            justify="left",
-        )
-
         console.rule(style="#9146ff")
         _console.reconfigure(height=17)
-        console.print(Padding(_license, (0, 0, 1, 1)))
+        console.print(Padding(_get_license(), (0, 0, 1, 1)))
         _console.reconfigure(height=None)
         _questionary.press_any_key_to_continue(message="Press any key to continue.")
 
@@ -388,3 +357,34 @@ def _initial_build() -> None | t.NoReturn:
         rprint(markup.failure("Failed build:"), error)
         rprint(markup.failure("Deleting app directory."))
         rmtree()
+
+
+def _get_license() -> Markdown:
+    return Markdown(
+        markup=cleandoc(
+            """
+            MIT License
+
+            Copyright (c) 2024 ayvi-0001
+
+            Permission is hereby granted, free of charge, to any person obtaining a copy
+            of this software and associated documentation files (the "Software"), to deal
+            in the Software without restriction, including without limitation the rights
+            to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+            copies of the Software, and to permit persons to whom the Software is
+            furnished to do so, subject to the following conditions:
+
+            The above copyright notice and this permission notice shall be included in all
+            copies or substantial portions of the Software.
+
+            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+            IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+            FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+            AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+            LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+            SOFTWARE.
+                """
+        ),
+        justify="left",
+    )

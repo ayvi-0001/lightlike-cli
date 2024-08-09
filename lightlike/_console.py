@@ -28,12 +28,11 @@ QUIET_START: bool = False
 
 
 @_fasteners.interprocess_locked(__appdir__ / "config.lock")
-def _set_quiet_start(config: Path) -> None:
+def _set_quiet_start(config_path: Path) -> None:
     try:
-        if config.exists():
-            quiet_start: bool = t.cast(
-                bool, rtoml.load(config)["settings"].get("quiet_start")
-            )
+        if config_path.exists():
+            config = rtoml.load(config_path)
+            quiet_start: bool = t.cast(bool, config["settings"].get("quiet_start"))
 
             global QUIET_START
             if len(sys.argv) > 1:
@@ -41,7 +40,7 @@ def _set_quiet_start(config: Path) -> None:
             elif quiet_start is not None:
                 QUIET_START = bool(quiet_start)
     except Exception as error:
-        appdir._log().error(f"Failed to configure quiet start: {error}")
+        appdir.log().error(f"Failed to configure quiet start: {error}")
 
 
 _set_quiet_start(__config__)
@@ -60,7 +59,7 @@ class ConsoleConfig:
         self.theme = Theme(**self.config["theme"])
 
 
-CONSOLE_CONFIG = ConsoleConfig(rtoml.loads(constant.CONSOLE))
+CONSOLE_CONFIG = ConsoleConfig(rtoml.load(constant.CONSOLE))
 
 GROUP_COMMANDS = r"(?P<command>((%s)))" % "|".join(
     [

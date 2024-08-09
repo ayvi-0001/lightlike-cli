@@ -2,7 +2,6 @@ import typing as t
 
 import click
 from click.shell_completion import CompletionItem
-from pytz import timezone
 
 from lightlike.app import dates
 from lightlike.app.cache import TimeEntryCache
@@ -19,7 +18,7 @@ __all__: t.Sequence[str] = ("paused", "all_")
 def paused(
     ctx: click.Context, param: click.Parameter, incomplete: str
 ) -> list[CompletionItem]:
-    now: "datetime" = dates.now(timezone(AppConfig().get("settings", "timezone")))
+    now: "datetime" = dates.now(AppConfig().tzinfo)
     cache = TimeEntryCache()
     completions = []
 
@@ -37,7 +36,7 @@ def paused(
 def all_(
     ctx: click.Context, param: click.Parameter, incomplete: str
 ) -> list[CompletionItem]:
-    now: "datetime" = dates.now(timezone(AppConfig().get("settings", "timezone")))
+    now: "datetime" = dates.now(AppConfig().tzinfo)
     cache = TimeEntryCache()
     completions = []
 

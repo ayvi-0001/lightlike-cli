@@ -8,7 +8,6 @@ from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.shortcuts import PromptSession
 from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import Validator
-from pytz import timezone
 
 from lightlike.app import cursor, dates, shell_complete, validate
 from lightlike.app.autosuggest import threaded_autosuggest
@@ -80,9 +79,7 @@ class PromptFactory(PromptSession[t.Any]):
         )
         session_pk.update(**prompt_kwargs)
         date = session.prompt(**session_pk)
-        parsed_date = dates.parse_date(
-            date, tzinfo=timezone(AppConfig().get("settings", "timezone"))
-        )
+        parsed_date = dates.parse_date(date, tzinfo=AppConfig().tzinfo)
         return parsed_date
 
     @classmethod

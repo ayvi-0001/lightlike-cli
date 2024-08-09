@@ -32,14 +32,18 @@ class Notes(Completer):
 
     def get(self, project: str | None = None) -> list[str]:
         notes = []
-        active_projects = rtoml.load(self.path)["active"]
+        active_projects = self.data["active"]
         project_notes = active_projects.get(project or self.project)
         if project_notes and "notes" in project_notes:
             notes = project_notes.get("notes", [])
         return notes
 
+    @property
+    def data(self) -> dict[str, t.Any]:
+        return rtoml.load(self.path)
+
     def get_all(self) -> dict[str, list[str]]:
-        active_projects = rtoml.load(self.path)["active"]
+        active_projects = self.data["active"]
         notes = {}
         for project in active_projects.keys():
             notes[project] = active_projects[project]["notes"]

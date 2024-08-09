@@ -37,12 +37,13 @@ P = t.ParamSpec("P")
 
 class CliQueryRoutines:
     _client: t.Callable[..., "Client"] = get_client
-    dataset: str = AppConfig().get("bigquery", "dataset")
-    table_timesheet: str = AppConfig().get("bigquery", "timesheet")
-    table_projects: str = AppConfig().get("bigquery", "projects")
+    _mapping: dict[str, str] = AppConfig().get("bigquery", default={})
+    dataset: str = _mapping["dataset"]
+    table_timesheet: str = _mapping["timesheet"]
+    table_projects: str = _mapping["projects"]
     timesheet_id: str = f"{dataset}.{table_timesheet}"
     projects_id: str = f"{dataset}.{table_projects}"
-    tz_name: str = AppConfig().get("settings", "timezone")
+    tz_name: str = AppConfig().tzname
 
     def _query_and_wait(
         self,

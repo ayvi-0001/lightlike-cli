@@ -1,7 +1,6 @@
 import typing as t
 
 import click
-from pytz import timezone
 from rich import print as rprint
 from rich.table import Table
 
@@ -20,6 +19,10 @@ if t.TYPE_CHECKING:
     from lightlike.client import CliQueryRoutines
 
 __all__: t.Sequence[str] = ("snapshots",)
+
+
+def _default_snapshot_table_name() -> str:
+    return f"timesheet_{dates.now(AppConfig().tzinfo).strftime('%Y-%m-%dT%H_%M_%S')}"
 
 
 @click.command(
@@ -42,9 +45,7 @@ __all__: t.Sequence[str] = ("snapshots",)
     default=None,
     callback=None,
     metavar=None,
-    shell_complete=lambda c, p, i: [
-        f"timesheet_{dates.now(timezone(AppConfig().get('settings', 'timezone'))).strftime('%Y-%m-%dT%H_%M_%S')}"
-    ],
+    shell_complete=lambda c, p, i: [_default_snapshot_table_name()],
 )
 @click.option(
     "-e",
@@ -152,7 +153,7 @@ def list_(console: "Console", routine: "CliQueryRoutines") -> None:
 @_pass.client
 def delete(client: "Client", console: "Console") -> None:
     """Drop a snapshot."""
-    dataset = AppConfig().get("bigquery", "dataset")
+    dataset: str = AppConfig().get("bigquery", default={})["dataset"]
 
     snapshots = list(
         filter(

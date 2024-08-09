@@ -155,12 +155,12 @@ def provision_bigquery_resources(
                 for k in updates:
                     config["updates"][k] = True
 
-    mapping: dict[str, t.Any] = AppConfig().get("bigquery")
+    mapping: dict[str, t.Any] = AppConfig().get("bigquery", default={})
     bq_patterns = {
         "${DATASET.NAME}": mapping["dataset"],
         "${TABLES.TIMESHEET}": mapping["timesheet"],
         "${TABLES.PROJECTS}": mapping["projects"],
-        "${TIMEZONE}": f"{timezone(AppConfig().get('settings', 'timezone'))}",
+        "${TIMEZONE}": AppConfig().tzname,
     }
 
     if force:
@@ -204,7 +204,8 @@ def update_routine_diff(client: bigquery.Client) -> None:
         console = get_console()
         routine = CliQueryRoutines()
 
-        dataset = AppConfig().get("bigquery", "dataset")
+        mapping: dict[str, str] = AppConfig().get("bigquery", default={})
+        dataset: str = mapping["dataset"]
         list_routines = client.list_routines(dataset=dataset)
         existing_routines = list(map(_get.routine_id, list_routines))
         removed = set(existing_routines).difference(list(routine._all_routines_ids))
@@ -223,12 +224,11 @@ def update_routine_diff(client: bigquery.Client) -> None:
                     console.log(markup.bg("Dropped routine:"), routine)
 
             if missing:
-                mapping: dict[str, t.Any] = AppConfig().get("bigquery")
                 bq_patterns = {
                     "${DATASET.NAME}": mapping["dataset"],
                     "${TABLES.TIMESHEET}": mapping["timesheet"],
                     "${TABLES.PROJECTS}": mapping["projects"],
-                    "${TIMEZONE}": f"{timezone(AppConfig().get('settings', 'timezone'))}",
+                    "${TIMEZONE}": AppConfig().tzname,
                 }
                 console.log("Creating missing procedures")
 

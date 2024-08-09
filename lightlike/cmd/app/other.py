@@ -5,7 +5,6 @@ import click
 import rtoml
 from prompt_toolkit import prompt
 from prompt_toolkit.styles import Style
-from pytz import timezone
 from rich import box
 from rich import print as rprint
 from rich.align import Align
@@ -117,13 +116,8 @@ def eval_(args: list[str], multiline_prompt: bool) -> None:
             EVAL_LOCALS.pop("eval_args", None)
 
     if multiline_prompt:
-        _execute_eval(
-            prompt(
-                message="",
-                multiline=True,
-                style=Style.from_dict(rtoml.load(constant.PROMPT_STYLE)),
-            )
-        )
+        style: Style = Style.from_dict(rtoml.load(constant.PROMPT_STYLE))
+        _execute_eval(prompt(message="", multiline=True, style=style))
     else:
         _execute_eval(" ".join(args))
 
@@ -155,7 +149,7 @@ def calendar(year: int, firstweekday: int) -> None:
 
     from lightlike.app.config import AppConfig
 
-    today = dates.now(timezone(AppConfig().get("settings", "timezone")))
+    today = dates.now(AppConfig().tzinfo)
     year = int(year)
     cal = calendar.Calendar(firstweekday)
     today_tuple = today.day, today.month, today.year

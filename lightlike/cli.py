@@ -30,7 +30,6 @@ import rtoml
 from fasteners import InterProcessLock, try_lock
 from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.styles import Style
-from pytz import timezone
 from pytz_deprecation_shim._exceptions import PytzUsageWarning
 from rich import get_console
 from rich.traceback import install
@@ -56,7 +55,7 @@ from lightlike.internal import appdir, constant, utils
 __all__: t.Sequence[str] = ("main",)
 
 
-LOCK: InterProcessLock = InterProcessLock(__lock__, logger=appdir._log())
+LOCK: InterProcessLock = InterProcessLock(__lock__, logger=appdir.log())
 
 
 def main() -> None:
@@ -122,11 +121,7 @@ def run_cli(name: str = "lightlike") -> None:
     from lightlike.client import get_client
     from lightlike.scheduler import create_or_replace_default_jobs, get_scheduler
 
-    _console.reconfigure(
-        get_datetime=partial(
-            dates.now, tzinfo=timezone(AppConfig().get("settings", "timezone"))
-        )
-    )
+    _console.reconfigure(get_datetime=partial(dates.now, tzinfo=AppConfig().tzinfo))
 
     repl_kwargs: dict[str, t.Any] = dict(
         prompt_kwargs=dict(
@@ -245,6 +240,6 @@ def _add_to_path(paths: list[str] | None) -> None:
     for path in paths:
         try:
             sys.path.append(path)
-            appdir._log().debug(f"{path} added to path")
+            appdir.log().debug(f"{path} added to path")
         except Exception as error:
-            appdir._log().error(error)
+            appdir.log().error(error)

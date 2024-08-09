@@ -9,7 +9,6 @@ from google.cloud import bigquery
 from google.oauth2 import service_account
 from rich import get_console, print
 from rich.console import Console, NewLine
-from rich.text import Text
 
 from lightlike import _console
 from lightlike.app import _questionary
@@ -36,7 +35,11 @@ def _get_credentials_from_config(
     prompt_for_project: bool = True,
 ) -> google.auth.credentials.Credentials:
     credentials: google.auth.credentials.Credentials
-    credentials_source: str = appconfig.get("client", "credentials_source")
+    credentials_source: str = appconfig.get(
+        "client",
+        "credentials_source",
+        default=CredentialsSource.not_set,
+    )
 
     match credentials_source:
         case CredentialsSource.from_service_account_key:
@@ -89,7 +92,11 @@ def _get_credentials_from_config(
             with appconfig.rw() as config:
                 config["client"].update(
                     credentials_source=_select_credential_source(
-                        current_setting=appconfig.get("client", "credentials_source")
+                        current_setting=appconfig.get(
+                            "client",
+                            "credentials_source",
+                            default=CredentialsSource.not_set,
+                        )
                     )
                 )
 
@@ -104,11 +111,11 @@ def service_account_key_flow(appconfig: AppConfig) -> tuple[bytes, bytes]:
     encrypted_key: bytes | None = None
     salt: bytes | None = None
 
-    encrypted_key_from_config: bytearray = appconfig.get(
+    encrypted_key_from_config: bytearray | None = appconfig.get(
         "client",
         "service_account_key",
     )
-    salt_from_config: bytearray = appconfig.get(
+    salt_from_config: bytearray | None = appconfig.get(
         "user",
         "salt",
     )

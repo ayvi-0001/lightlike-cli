@@ -64,7 +64,7 @@ def check_latest_release(v_package: str, repo: str) -> None:
                         ),
                     )
     except Exception as error:
-        appdir._log().error(f"Failed to retrieve latest release: {error}")
+        appdir.log().error(f"Failed to retrieve latest release: {error}")
 
 
 def default_job_check_latest_release() -> JobKwargs:

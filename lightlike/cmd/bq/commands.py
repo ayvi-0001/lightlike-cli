@@ -92,7 +92,9 @@ def init(console: "Console") -> None:
     )
 
     credentials_source: CredentialsSource = AppConfig().get(
-        "client", "credentials_source"
+        "client",
+        "credentials_source",
+        default=CredentialsSource.not_set,
     )
 
     option = _questionary.select(

@@ -6,7 +6,6 @@ from apscheduler.triggers.interval import IntervalTrigger
 from google.cloud.bigquery import Row
 from more_itertools import first
 from prompt_toolkit.patch_stdout import patch_stdout
-from pytz import timezone
 from rich import get_console
 from rich.console import Console, NewLine
 
@@ -16,6 +15,8 @@ from lightlike.client import CliQueryRoutines
 from lightlike.cmd.scheduler.jobs.types import JobKwargs
 
 if t.TYPE_CHECKING:
+    from datetime import _TzInfo
+
     from lightlike.app.dates import DateParams
 
 __all__: t.Sequence[str] = (
@@ -27,10 +28,10 @@ __all__: t.Sequence[str] = (
 def print_daily_total_hours() -> None:
     console: Console = get_console()
     routine: CliQueryRoutines = CliQueryRoutines()
-
-    today: datetime = now(timezone(AppConfig().get("settings", "timezone")))
+    tzinfo: "_TzInfo" = AppConfig().tzinfo
+    today: datetime = now(tzinfo)
     date_params: "DateParams" = get_relative_week(
-        today, AppConfig().get("settings", "week_start")
+        today, AppConfig().get("settings", "week_start", default=0)
     )
 
     base_query: str = cleandoc(
