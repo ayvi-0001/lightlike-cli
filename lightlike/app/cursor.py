@@ -1,3 +1,5 @@
+import getpass
+import socket
 import typing as t
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -30,8 +32,8 @@ OneStyleAndTextTuple = t.Union[
 StyleAndTextTuples = list[OneStyleAndTextTuple]
 
 
-USERNAME: str = AppConfig().get("user", "name")
-HOSTNAME: str = AppConfig().get("user", "host")
+USERNAME: str = AppConfig().get("user", "name", default=getpass.getuser())
+HOSTNAME: str = AppConfig().get("user", "host", default=socket.gethostname())
 GCP_PROJECT: str | None = AppConfig().get("client", "active_project")
 BRANCH: str | None = AppConfig().get("git", "branch")
 PATH: str | None = AppConfig().get("git", "path")

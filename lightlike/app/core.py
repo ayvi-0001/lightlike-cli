@@ -116,26 +116,32 @@ class AliasedGroup(click.Group):
         self.syntax = syntax
 
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
-        rv = click.Group.get_command(self, ctx, cmd_name)
-        if rv is not None:
+        if (rv := click.Group.get_command(self, ctx, cmd_name)) is not None:
             return rv
-        matches = []
+
+        matches: list[click.Command] = []
         for m in self.list_commands(ctx):
             if m.startswith(cmd_name):
-                command = self.get_command(ctx, m)
-                if (
-                    getattr(command, "allow_name_alias", None) is False
-                    and cmd_name != m
-                ):
-                    return None
-                if not (command and command.hidden):
-                    matches.append(m)
+                command: click.Command | None = self.get_command(ctx, m)
+                if not command:
+                    continue
+                if command.hidden:
+                    continue
+                if getattr(command, "allow_name_alias", False) is False:
+                    if cmd_name == m:
+                        matches.append(command)
+                    continue
+                matches.append(command)
+
         if not matches:
             return None
         elif len(matches) == 1:
-            return click.Group.get_command(self, ctx, first(matches))
+            return first(matches)
         else:
-            ctx.fail(f"Too many matches: {', '.join(sorted(matches))}")
+            possible_names: list[str] = sorted(
+                map(lambda m: m.name or "", matches),
+            )
+            ctx.fail(f"Too many matches: {', '.join(possible_names)}")
 
     def resolve_command(
         self, ctx: click.Context, args: t.Any

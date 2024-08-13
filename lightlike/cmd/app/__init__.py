@@ -14,7 +14,7 @@ lazy_subcommands: dict[str, str] = {
     "parse-date-opt": "lightlike.cmd.app.commands:parse_date_opt",
     "parse-date-arg": "lightlike.cmd.app.commands:parse_date_arg",
     "date-diff": "lightlike.cmd.app.commands:date_diff",
-    "locate-source": "lightlike.cmd.app.commands:locate_source",
+    "source-dir": "lightlike.cmd.app.commands:source_dir",
 }
 
 if getenv("LIGHTLIKE_CLI_DEV"):

@@ -1,3 +1,4 @@
+import sys
 import typing as t
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -86,6 +87,16 @@ def config() -> None:
     """
 
 
+def _probably_start_cmd() -> str:
+    # This is only used to display, not run the actual command.
+    if sys.platform.startswith("darwin"):
+        return "open"
+    elif sys.platform.startswith("win"):
+        return "start"  # "explorer"
+    elif sys.platform.startswith("cygwin"):
+        return "cygstart"
+
+
 @click.command(
     cls=FormattedCommand,
     name="dir",
@@ -110,7 +121,7 @@ def config() -> None:
     flag_value=False,
     multiple=False,
     type=click.BOOL,
-    help="Default opens with cmd `start`.",
+    help=f"Default opens with cmd `{_probably_start_cmd()}`.",
     required=False,
     default=True,
     callback=None,
@@ -266,6 +277,8 @@ def sync(
     These tables should only ever be altered through the procedures in this cli.
     If the local files are out of sync with BigQuery, or if logging in from a new location, can use this command to re-sync them.
     """
+    if appdata is False and cache is False:
+        return None
     if quiet:
         _appdata.sync()
         _cache.sync()
@@ -468,6 +481,7 @@ def parse_date_opt(console: Console, date: datetime) -> None:
     name="date-diff",
     short_help="Diff between 2 datetime.",
     no_args_is_help=True,
+    allow_name_alias=False,
 )
 @utils.handle_keyboard_interrupt()
 @click.argument(
@@ -508,6 +522,11 @@ def date_diff(
     console.print("Hours:", hours)
 
 
-@click.command(name="locate-source", cls=FormattedCommand, hidden=True)
-def locate_source() -> None:
-    rprint(Path(__file__).parents[2].resolve())
+@click.command(
+    name="source-dir",
+    cls=FormattedCommand,
+    hidden=True,
+    allow_name_alias=False,
+)
+def source_dir() -> None:
+    rprint(Path(__file__).parents[2].resolve().as_uri())

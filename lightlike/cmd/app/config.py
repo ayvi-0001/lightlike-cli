@@ -1,7 +1,9 @@
+import os
 import typing as t
 from contextlib import suppress
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 
 import click
 import pytz
@@ -16,6 +18,7 @@ from lightlike.app.cache import TimeEntryAppData
 from lightlike.app.config import AppConfig
 from lightlike.app.core import AliasedGroup, FormattedCommand
 from lightlike.cmd import _pass
+from lightlike.cmd.app.commands import _probably_start_cmd
 from lightlike.internal import markup, utils
 from lightlike.internal.enums import CredentialsSource
 
@@ -43,9 +46,13 @@ P = t.ParamSpec("P")
 @_pass.console
 def edit(console: Console) -> None:
     """Edit the config file located in the users home directory using the default text editor."""
-    path = __config__.resolve()
-    uri = path.as_uri()
-    editor = AppConfig().get("settings", "editor", default=None)
+    path: Path = __config__.resolve()
+    uri: str = path.as_uri()
+    editor: str | None = AppConfig().get(
+        "settings",
+        "editor",
+        default=os.environ.get("EDITOR"),
+    )
 
     if editor:
         click.edit(
@@ -54,7 +61,8 @@ def edit(console: Console) -> None:
         console.print("$", editor, markup.link(uri, uri))
     else:
         click.launch(f"{path}")
-        console.print("$ start", markup.link(uri, uri))
+        console.print(markup.dimmed("EDITOR not set"))
+        console.print(f"$ {_probably_start_cmd()}", markup.link(uri, uri))
 
 
 @click.command(

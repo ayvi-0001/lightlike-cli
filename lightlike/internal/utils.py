@@ -45,6 +45,7 @@ __all__: t.Sequence[str] = (
     "update_toml_document",
     "print_message_and_clear_buffer",
     "file_empty_or_not_exists",
+    "merge_default_dict_into_current_dict",
 )
 
 
@@ -119,11 +120,11 @@ def get_local_timezone_string(default: None = None) -> str | None: ...
 
 def get_local_timezone_string(default: str | None = None) -> str | None:
     if os.name == "nt":
-        from tzlocal import get_localzone_name  # type: ignore[import-missing]
+        from tzlocal import get_localzone_name
 
         default_timezone = get_localzone_name()
     else:
-        from tzlocal.unix import _get_localzone_name  # type: ignore[import-missing]
+        from tzlocal.unix import _get_localzone_name
 
         default_timezone = _get_localzone_name()
 
@@ -359,8 +360,7 @@ def ns_time_diff(ns: int) -> float:
 
 
 def update_dict(
-    original: dict[str, t.Any],
-    updates: dict[str, t.Any],
+    original: dict[str, t.Any], updates: dict[str, t.Any]
 ) -> dict[str, t.Any]:
     for __key, __val in updates.items():
         if isinstance(__val, dict):
@@ -368,6 +368,48 @@ def update_dict(
         else:
             original[__key] = __val
     return original
+
+
+def merge_default_dict_into_current_dict(
+    current: dict[str, t.Any],
+    default: dict[str, t.Any],
+    key_path: str | None = None,
+    paths: list[str] | None = None,
+    update_paths: list[str] | None = None,
+    force_update_paths: list[str] | None = None,
+) -> dict[str, t.Any]:
+    paths = paths or []
+    for k, v in default.items():
+        current_path = "%s%s" % (f"{key_path}." if key_path else "", k)
+        paths.append(current_path)
+
+        if isinstance(v, dict):
+            current[k] = merge_default_dict_into_current_dict(
+                current.get(k, {}),
+                v,
+                key_path=current_path,
+                paths=paths,
+                update_paths=update_paths,
+                force_update_paths=force_update_paths,
+            )
+        else:
+            k_in_update_paths = current_path in (update_paths or [])
+            k_in_force_update_paths = current_path in (force_update_paths or [])
+            if not any([k_in_update_paths, k_in_force_update_paths]):
+                continue
+
+            if k_in_force_update_paths:
+                current[k] = v
+            elif k_in_update_paths:
+                if k in current:
+                    if any([current[k] is None, current[k] == "null", not current[k]]):
+                        current[k] = v
+                else:
+                    current[k] = v
+
+        if k in current and not current[k]:
+            current.pop(k)
+    return current
 
 
 def print_message_and_clear_buffer(message: str) -> None:

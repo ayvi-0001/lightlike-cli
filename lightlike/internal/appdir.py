@@ -95,6 +95,44 @@ def rmtree(appdata: Path = __appdir__) -> t.NoReturn:
     sys.exit(1)
 
 
+CONFIG_UPDATE_PATHS: list[str] = [
+    "app.name",
+    "bigquery.dataset",
+    "bigquery.projects",
+    "bigquery.resources_provisioned",
+    "bigquery.timesheet",
+    "bigquery",
+    "client.credentials_source",
+    "completers.default",
+    "keys.completers.commands",
+    "keys.completers.exec",
+    "keys.completers.history",
+    "keys.completers.path",
+    "keys.completers",
+    "keys.exit",
+    "keys.system-command",
+    "scheduler",
+    "settings.complete_style",
+    "settings.dateparser.additional_date_formats",
+    "settings.dateparser.prefer_dates_from",
+    "settings.dateparser.prefer_day_of_month",
+    "settings.dateparser.prefer_locale_date_order",
+    "settings.dateparser.prefer_month_of_year",
+    "settings.editor",
+    "settings.note_history.days",
+    "settings.quiet_start",
+    "settings.reserve_space_for_menu",
+    "settings.timer_add_min",
+    "settings.week_start",
+    "user.host",
+    "user.name",
+    "user.stay_logged_in",
+]
+CONFIG_FORCE_UPDATE_PATHS: list[str] = [
+    "app.version",
+]
+
+
 @_fasteners.interprocess_locked(__appdir__ / "config.lock", logger=log())
 def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
     console = get_console()
@@ -116,11 +154,12 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
                 "->", f"[repr.number]{v_package}[/]",  # fmt: skip
             )
 
-            updated_config = utils.update_dict(
-                rtoml.load(constant.DEFAULT_CONFIG), local_config
-            )
-            updated_config["app"].update(version=__version__)
-            local_config = updated_config
+        local_config = utils.merge_default_dict_into_current_dict(
+            local_config,
+            rtoml.load(constant.DEFAULT_CONFIG),
+            update_paths=CONFIG_UPDATE_PATHS,
+            force_update_paths=CONFIG_FORCE_UPDATE_PATHS,
+        )
 
         __config__.write_text(utils.format_toml(local_config))
 

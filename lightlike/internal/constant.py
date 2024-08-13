@@ -1,4 +1,9 @@
+import getpass
+import os
+import socket
 import typing as t
+
+from lightlike.__about__ import __appname__, __appname_sc__, __version__
 
 __all__: t.Sequence[str] = (
     "DEFAULT_CONFIG",
@@ -9,23 +14,23 @@ __all__: t.Sequence[str] = (
 )
 
 
-DEFAULT_CONFIG: str = """\
+DEFAULT_CONFIG: str = f"""\
 [app]
-name = ""
-version = ""
-term = ""
+name = "{__appname_sc__}"
+version = "{__version__}"
+term = "{os.getenv("TERM", "unknown")}"
 last_checked_release = ""
 
 [user]
-name = "null"
-host = "null"
+name = "{getpass.getuser()}"
+host = "{socket.gethostname()}"
 stay_logged_in = false
 password = ""
 salt = []
 
 [settings]
 complete_style = "COLUMN"
-editor = ""
+editor = "{os.environ.get("EDITOR")}"
 note_required = "not-implemented"
 quiet_start = false
 reserve_space_for_menu = 12
@@ -57,7 +62,7 @@ save_svg = false
 save_txt = false
 
 [bigquery]
-dataset = "null"
+dataset = "{__appname_sc__}"
 timesheet = "timesheet"
 projects = "projects"
 resources_provisioned = false

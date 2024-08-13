@@ -10,7 +10,7 @@ from prompt_toolkit.application import get_app
 from rich import print as rprint
 
 if sys.platform.startswith("win"):
-    import win32console  # type:ignore
+    import win32console
 else:
     import termios
 
@@ -177,7 +177,9 @@ def _prepend_exec_to_cmd(
     return _cmd
 
 
-class ExitRepl(Exception): ...
+class ExitRepl(Exception):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
 
 
 def exit_repl() -> t.NoReturn:
