@@ -16,6 +16,7 @@ from lightlike.cmd import _pass
 from lightlike.internal import markup, utils
 
 if t.TYPE_CHECKING:
+    from google.cloud.bigquery import QueryJob
     from rich.console import Console
 
     from lightlike.app.cache import TimeEntryAppData, TimeEntryCache
@@ -307,7 +308,7 @@ def create(
         "[DEBUG]", "project default billable set to", default_billable
     )
 
-    routine._create_project(
+    query_job: "QueryJob" = routine._create_project(
         name=name,
         description=description or "",
         default_billable=default_billable,
@@ -315,7 +316,8 @@ def create(
         render=True,
         status_renderable=markup.status_message("Creating project"),
     )
-    threads.spawn(ctx, appdata.sync, dict(debug=debug))
+
+    threads.spawn(ctx, appdata.sync, dict(trigger_query_job=query_job, debug=debug))
     console.print("Created new project:", markup.code(name))
 
 

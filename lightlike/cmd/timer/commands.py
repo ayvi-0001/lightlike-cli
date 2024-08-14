@@ -250,16 +250,18 @@ def add(
 
     time_entry_id = sha1(f"{project}{note}{start_local}".encode()).hexdigest()
 
-    status_renderable = markup.status_message("Adding time entry")
-    with console.status(status_renderable) as status:
-        query_job: "QueryJob" = routine._add_time_entry(
-            id=time_entry_id,
-            project=project,
-            note=note,
-            start_time=start_local,
-            end_time=end_local,
-            billable=billable or project_default_billable,
-            wait=True,
+    query_job: "QueryJob" = routine._add_time_entry(
+        id=time_entry_id,
+        project=project,
+        note=note,
+        start_time=start_local,
+        end_time=end_local,
+        billable=billable or project_default_billable,
+    )
+
+    sync_kwargs = dict(trigger_query_job=query_job, debug=debug)
+    threads.spawn(ctx, id_list.add, dict(input_id=time_entry_id, debug=debug))
+    note != "None" and threads.spawn(ctx, appdata.sync, sync_kwargs)
 
     console.print(
         "Added record:",
@@ -442,20 +444,13 @@ def delete(
             elif cache.exists(cache.paused_entries, [id_match]):
                 cache.remove([cache.paused_entries], "id", [id_match])
 
-        query_job: "QueryJob" = routine._delete_time_entry(
-            matched_ids,
-            wait=True,
-            render=True,
-            status=status,
-            status_renderable=markup.status_message("Deleting entries"),
-        )
+        query_job: "QueryJob" = routine._delete_time_entry(matched_ids)
 
         console.print("Deleted time entries")
-        threads.spawn(ctx, appdata.sync, dict(trigger_query_job=query_job, debug=debug))
-        threads.spawn(ctx, id_list.reset)
 
-        if debug:
-            query_job.result()
+        kwargs = dict(trigger_query_job=query_job, debug=debug)
+        threads.spawn(ctx, appdata.sync, kwargs)
+        threads.spawn(ctx, id_list.reset, kwargs)
 
 
 def _get_entry_edits(
@@ -888,10 +883,6 @@ def edit(
             start=edits["start_time"].time() if "start_time" in edits else None,
             end=edits["end_time"].time() if "end_time" in edits else None,
             date=edits.get("date"),
-            wait=True,
-            render=True,
-            status=status,
-            status_renderable=status_renderable,
         )
 
         original_records = []
@@ -925,11 +916,8 @@ def edit(
             "records:" if len(matched_ids) > 1 else "record:",
             render.create_table_diff(original_records, new_records),
         )
-        threads.spawn(
-            ctx,
-            appdata.sync,
-            dict(trigger_query_job=query_job, debug=debug),
-        )
+        sync_kwargs = dict(trigger_query_job=query_job, debug=debug)
+        threads.spawn(ctx, appdata.sync, sync_kwargs)
 
 
 @click.command(
@@ -969,8 +957,12 @@ def get(
     query_job: "QueryJob" = routine._get_time_entries(
         [id_list.match_id(time_entry_id)], wait=True, render=True
     )
-    data = {k: v for k, v in one(query_job.result()).items()}
-    console.print_json(data=data, default=str, indent=4)
+    rows: list["Row"] = list(query_job.result())
+    if not rows:
+        console.print(markup.dimmed("Id not found"))
+    else:
+        data = {k: v for k, v in one(rows).items()}
+        console.print_json(data=data, default=str, indent=4)
 
 
 @click.command(
@@ -1392,14 +1384,12 @@ def list_(
             previous_week=False,
             ctx=ctx,
         )
+        week_start: int = AppConfig().get("settings", "week_start", default=0)
+
         if current_week:
-            date_params = dates.get_relative_week(
-                now, AppConfig().get("settings", "week_start")
-            )
+            date_params = dates.get_relative_week(now, week_start)
         elif previous_week:
-            date_params = dates.get_relative_week(
-                now, AppConfig().get("settings", "week_start"), week="previous"
-            )
+            date_params = dates.get_relative_week(now, week_start, week="previous")
         elif current_month:
             date_params = dates.get_month_to_date(now)
         elif current_year:
@@ -1574,7 +1564,8 @@ def update_notes(
         status_renderable=markup.status_message("Updating notes"),
     )
 
-    threads.spawn(ctx, appdata.sync, dict(trigger_query_job=query_job, debug=debug))
+    sync_kwargs = dict(trigger_query_job=query_job, debug=debug)
+    threads.spawn(ctx, appdata.sync, sync_kwargs)
     console.print("Updated notes for", markup.code(project))
 
 
@@ -1959,7 +1950,8 @@ def run(
         query_job.result()
         console.log("[DEBUG]", f"started entry {time_entry_id}")
 
-    threads.spawn(ctx, appdata.sync, dict(trigger_query_job=query_job, debug=debug))
+    sync_kwargs = dict(trigger_query_job=query_job, debug=debug)
+    threads.spawn(ctx, appdata.sync, sync_kwargs)
     threads.spawn(ctx, id_list.add, dict(input_id=time_entry_id, debug=debug))
 
 
@@ -2360,27 +2352,19 @@ def update(
         ):
             console.print(markup.dimmed("No valid fields to update, nothing happened."))
             return
-        else:
-            query_job: "QueryJob" = routine._update_time_entries(
-                ids=[cache.id],
-                project=edits.get("project"),
-                note=edits.get("note"),
-                billable=edits.get("billable"),
-                start=edits["start"].time() if "start" in edits else None,
-                wait=True,
-                render=True,
-                status=status,
-                status_renderable=status_renderable,
-            )
 
         if stop_ and cache:
             ctx.invoke(stop)
-
-        threads.spawn(
-            ctx,
-            appdata.sync,
-            dict(trigger_query_job=query_job, debug=debug),
+        query_job: "QueryJob" = routine._update_time_entries(
+            ids=[cache.id],
+            project=edits.get("project"),
+            note=edits.get("note"),
+            billable=edits.get("billable"),
+            start=edits["start"].time() if "start" in edits else None,
         )
+
+        sync_kwargs = dict(trigger_query_job=query_job, debug=debug)
+        threads.spawn(ctx, appdata.sync, sync_kwargs)
 
         original_record = {
             "id": copy["id"][:7],

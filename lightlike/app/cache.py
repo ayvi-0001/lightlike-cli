@@ -673,8 +673,14 @@ class TimeEntryIdList(metaclass=factory._Singleton):
         match = first(matching)
         return match
 
-    def reset(self) -> None:
+    def reset(
+        self,
+        trigger_query_job: "QueryJob | None" = None,
+        debug: bool = False,
+    ) -> None:
         try:
+            if trigger_query_job and not trigger_query_job.done():
+                trigger_query_job.result()
             self.clear()
         except Exception as error:
             appdir.log().error(f"Error resetting session ids: {error}")
