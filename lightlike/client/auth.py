@@ -43,15 +43,16 @@ class _Auth:
         return b64encode(key_derivation)
 
 
+AUTH_BINDINGS: KeyBindings = KeyBindings()
+AUTH_KEY_HIDDEN: list[bool] = [True]
+
+
+@AUTH_BINDINGS.add(Keys.ControlT, eager=True)
+def _(event: KeyPressEvent) -> None:
+    AUTH_KEY_HIDDEN[0] = not AUTH_KEY_HIDDEN[0]
+
+
 class AuthPromptSession:
-    auth_keybinds: KeyBindings = KeyBindings()
-    hidden: list[bool] = [True]
-
-    @staticmethod
-    @auth_keybinds.add(Keys.ControlT, eager=True)
-    def _(event: KeyPressEvent) -> None:
-        AuthPromptSession.hidden[0] = not AuthPromptSession.hidden[0]
-
     def decrypt_key(
         self,
         salt: bytes,
@@ -155,8 +156,8 @@ class AuthPromptSession:
             multiline=True,
             refresh_interval=1,
             erase_when_done=True,
-            key_bindings=self.auth_keybinds,
-            is_password=Condition(lambda: self.hidden[0]),
+            key_bindings=AUTH_BINDINGS,
+            is_password=Condition(lambda: AUTH_KEY_HIDDEN[0]),
             validator=Validator.from_callable(
                 lambda d: False if not d else True,
                 error_message="Input cannot be None.",

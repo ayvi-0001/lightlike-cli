@@ -27,9 +27,6 @@ __all__: t.Sequence[str] = (
 )
 
 
-C = t.TypeVar("C", bound=dict[str, t.Any])
-
-
 def _get_credentials_from_config(
     appconfig: AppConfig,
     prompt_for_project: bool = True,

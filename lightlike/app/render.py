@@ -213,6 +213,8 @@ def map_column_style(
     if not console_width:
         console_width = get_console().width
 
+    _datetime_types: list[str] = [*datetime_ctype, *date_ctype, *time_ctype]
+
     if key in bool_ctype or isinstance(value, bool):
         kwargs |= dict(
             justify="left",
@@ -244,14 +246,7 @@ def map_column_style(
             kwargs |= dict(
                 header_style="green",
             )
-    elif key in [
-        *datetime_ctype,
-        *date_ctype,
-        *time_ctype,
-    ] or isinstance(
-        value,
-        (date, datetime, time, timedelta),
-    ):
+    elif key in _datetime_types or isinstance(value, (date, datetime, time, timedelta)):
         kwargs |= dict(
             justify="left",
             overflow="crop",

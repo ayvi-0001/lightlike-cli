@@ -25,7 +25,11 @@ __all__: t.Sequence[str] = (
     "run_bq",
     "inspect_console",
     "sync",
-    "test",
+    "_reset_all",
+    "parse_date_arg",
+    "parse_date_opt",
+    "date_diff",
+    "source_dir",
 )
 
 

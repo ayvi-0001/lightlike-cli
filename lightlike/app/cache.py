@@ -669,8 +669,9 @@ class TimeEntryIdList(metaclass=factory._Singleton):
                     "Cannot find entry id: ", markup.repr_str(input_id)
                 ).markup
             )
-        else:
-            return first(matching)
+
+        match = first(matching)
+        return match
 
     def reset(self) -> None:
         try:

@@ -5,6 +5,9 @@ import click
 
 from lightlike.app.core import LazyAliasedGroup
 
+__all__: t.Sequence[str] = ("app",)
+
+
 lazy_subcommands: dict[str, str] = {
     "config": "lightlike.cmd.app.commands:config",
     "dir": "lightlike.cmd.app.commands:dir_",
@@ -30,6 +33,3 @@ if getenv("LIGHTLIKE_CLI_DEV"):
 @click.option("-d", "--debug", is_flag=True, hidden=True)
 def app(debug: bool) -> None:
     """Cli internal settings & commands."""
-
-
-__all__: t.Sequence[str] = ("app",)

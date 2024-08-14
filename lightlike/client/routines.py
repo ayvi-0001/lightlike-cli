@@ -34,15 +34,21 @@ __all__: t.Sequence[str] = ("CliQueryRoutines",)
 
 P = t.ParamSpec("P")
 
+_MAPPING: dict[str, str] = AppConfig()["bigquery"]
+DATASET: str = _MAPPING["dataset"]
+TABLE_TIMESHEET: str = _MAPPING["timesheet"]
+TABLE_PROJECTS: str = _MAPPING["projects"]
+TIMESHEET_ID: str = f"{DATASET}.{TABLE_TIMESHEET}"
+PROJECTS_ID: str = f"{DATASET}.{TABLE_PROJECTS}"
+
 
 class CliQueryRoutines:
     _client: t.Callable[..., "Client"] = get_client
-    _mapping: dict[str, str] = AppConfig().get("bigquery", default={})
-    dataset: str = _mapping["dataset"]
-    table_timesheet: str = _mapping["timesheet"]
-    table_projects: str = _mapping["projects"]
-    timesheet_id: str = f"{dataset}.{table_timesheet}"
-    projects_id: str = f"{dataset}.{table_projects}"
+    dataset: str = DATASET
+    table_timesheet: str = TABLE_TIMESHEET
+    table_projects: str = TABLE_PROJECTS
+    timesheet_id: str = TIMESHEET_ID
+    projects_id: str = PROJECTS_ID
     tz_name: str = AppConfig().tzname
 
     def _query_and_wait(
@@ -1551,8 +1557,7 @@ class CliQueryRoutines:
             ns = time() - query_job.started.timestamp()
 
         w, d = str(round(ns, 4)).split(".")
-        elapsed = f"{w}.{'0' * (4 - len(d)) + d}"
-        return f"{elapsed}"
+        return f"{w}.{'0' * (4 - len(d)) + d}"
 
     def _update_elapsed_time(
         self,
