@@ -27,6 +27,7 @@ STATE_STOPPED = 0
         "start": "lightlike.cmd.scheduler.commands:start",
         "shutdown": "lightlike.cmd.scheduler.commands:shutdown",
         "status": "lightlike.cmd.scheduler.commands:status",
+        "system-command": "lightlike.cmd.scheduler.commands:system_command",
     },
     short_help="Apscheduler commands.",
 )

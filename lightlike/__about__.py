@@ -39,7 +39,7 @@ __all__: Sequence[str] = (
     "__cli_help__",
 )
 
-__version__: Final[str] = "v0.11.0b5"
+__version__: Final[str] = "v0.11.0b6"
 
 _ENV: str | None = os.getenv("LIGHTLIKE_CLI_ENV")
 LIGHTLIKE_CLI_APPDIR_PATH = os.getenv("LIGHTLIKE_CLI_APPDIR_PATH")
