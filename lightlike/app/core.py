@@ -127,7 +127,7 @@ class AliasedGroup(click.Group):
                     continue
                 if command.hidden:
                     continue
-                if getattr(command, "allow_name_alias", False) is False:
+                if getattr(command, "allow_name_alias", None) is False:
                     if cmd_name == m:
                         matches.append(command)
                     continue
@@ -173,7 +173,9 @@ class LazyAliasedGroup(AliasedGroup):
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
         if cmd_name in self.lazy_subcommands:
             return self._lazy_load(cmd_name)
-        matches = [m for m in self.list_commands(ctx) if m.startswith(cmd_name)]
+        matches: list[str] = [
+            m for m in self.list_commands(ctx) if m.startswith(cmd_name)
+        ]
         if not matches:
             return None
         elif len(matches) == 1 and (match := first(matches)) in self.lazy_subcommands:

@@ -39,7 +39,7 @@ timezone = "null"
 week_start = 1
 
 [settings.dateparser]
-additional_date_formats = ["%I%p", "%I:%M%p", "%H:%M:%S"]
+additional_date_formats = ["%I%p", "%I:%M%p", "%I%M%p", "%H%M", "%H%M%S", "%H:%M", "%H:%M:%S"]
 cache_size_limit = 0
 date_order = "MDY"
 default_languages = ["en"]

@@ -86,7 +86,7 @@ DEFAULT_PARSER_SETTINGS: dict[str, t.Any] = {
 }
 
 ADDITIONAL_DATE_FORMATS: list[str] = dateparser_settings.get(
-    "ADDITIONAL_DATE_FORMATS", ["%I%p", "%I:%M%p", "%H:%M:%S"]
+    "additional_date_formats", ["%I%p", "%I:%M%p", "%H:%M:%S"]
 )
 
 del dateparser_settings
@@ -99,7 +99,8 @@ def parse_date(
 ) -> datetime:
     if isinstance(tzinfo, str):
         tzinfo = pytz.timezone(tzinfo)
-    elif tzinfo is None:
+
+    if tzinfo is None:
         tzinfo = pytz.timezone(get_local_timezone_string(default="UTC"))
 
     _settings = DEFAULT_PARSER_SETTINGS.copy()
