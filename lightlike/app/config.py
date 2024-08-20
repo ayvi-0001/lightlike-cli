@@ -32,7 +32,7 @@ class AppConfig(metaclass=factory._Singleton):
     @staticmethod
     def ensure_config(fn: t.Callable[..., T]) -> t.Callable[..., T]:
         @wraps(fn)
-        def inner(self, *args: P.args, **kwargs: P.kwargs) -> T:
+        def inner(self: t.Self, *args: P.args, **kwargs: P.kwargs) -> T:
             self.config = self.load
             r: T = fn(self, *args, **kwargs)
             self.config = self.load

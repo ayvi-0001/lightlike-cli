@@ -206,11 +206,18 @@ class LazyAliasedGroup(AliasedGroup):
                     "a non-command object"
                 )
             return cmd_object
-        except Exception as error:
+        except Exception as e:
             self.lazy_subcommands.pop(cmd_name, None)
+            error = f"{e}"
             logging.error(
                 f"Failed to load subcommand: {cmd_name} from {import_path}. Error: {error}"
             )
+            if "not enough values to unpack" in error:
+                logging.error(
+                    f"The final part in the path must be separated by a semicolon (:). "
+                    "e.g `command-name-in-cli.module-name.file-name:command-object"
+                )
+
             return None
 
 

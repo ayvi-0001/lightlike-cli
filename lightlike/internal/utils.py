@@ -183,8 +183,8 @@ def prerun_autocomplete() -> None:
         b.start_completion(select_first=False)
 
 
-def regexp_replace(patterns: t.Mapping[str, str], text: str) -> str:
-    mapped: dict[str, str] = dict((re.escape(k), v) for k, v in patterns.items())
+def regexp_replace(patterns: t.Mapping[str, str | None], text: str) -> str:
+    mapped: dict[str, str] = dict((re.escape(k), v or "") for k, v in patterns.items())
     pattern: re.Pattern[str] = re.compile("|".join(mapped.keys()))
     escape: t.Callable[..., str] = lambda m: mapped[re.escape(m.group(0))]
     replaced: str = pattern.sub(escape, text)
@@ -402,13 +402,11 @@ def merge_default_dict_into_current_dict(
                 current[k] = v
             elif k_in_update_paths:
                 if k in current:
-                    if any([current[k] is None, current[k] == "null", not current[k]]):
+                    if any([current[k] is None, current[k] == "null"]):
                         current[k] = v
                 else:
                     current[k] = v
 
-        if k in current and not current[k]:
-            current.pop(k)
     return current
 
 
