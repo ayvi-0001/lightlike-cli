@@ -242,19 +242,19 @@ regex_engine = click.option(
     short_help="Renders a table in terminal. Optional svg download.",
     syntax=Syntax(
         code="""\
-        $ summary table --current-month --round where project = \"lightlike-cli\"
-        $ s t -cm -r where project = \"lightlike-cli\"
+        $ timer summary table --current-month --round where project = \"lightlike-cli\"
+        $ t s t -cm -r where project = \"lightlike-cli\"
     
         # case insensitive regex match - re2
-        $ summary table --current-year --output path/to/file.svg --regex-engine re2 --match-note (?i)task.*
-        $ s t -cy -o path/to/file.svg -re re2 -Rn (?i)task.*
+        $ timer summary table --current-year --output path/to/file.svg --regex-engine re2 --match-note (?i)task.*
+        $ t s t -cy -o path/to/file.svg -re re2 -Rn (?i)task.*
         
         # case insensitive regex match - ECMAScript
-        $ summary table --current-year --output path/to/file.svg --match-note task.* --modifiers ig
-        $ s t -cy -o path/to/file.svg -Rn task.* -Mig
+        $ timer summary table --current-year --output path/to/file.svg --match-note task.* --modifiers ig
+        $ t s t -cy -o path/to/file.svg -Rn task.* -Mig
 
-        $ summary table --start -15d --end monday
-        $ s t -s -15d -e mon\
+        $ timer summary table --start -15d --end monday
+        $ t s t -s -15d -e mon\
         """,
         lexer="fishshell",
         dedent=True,
@@ -463,16 +463,16 @@ def summary_table(
     short_help="Save/Print summary to a csv file.",
     syntax=Syntax(
         code="""\
-        $ summary csv --start jan1 --end jan31 --round --print
-        $ s c -s jan1 -e jan31 -r -p
+        $ timer summary csv --start jan1 --end jan31 --round --print
+        $ t s c -s jan1 -e jan31 -r -p
     
         # case insensitive regex match - re2
-        $ summary csv --current-year --output path/to/file.svg --regex-engine re2 --match-note (?i)task.*
-        $ s c -cy -o path/to/file.svg -re re2 -Rn (?i)task.*
+        $ timer summary csv --current-year --output path/to/file.svg --regex-engine re2 --match-note (?i)task.*
+        $ t s c -cy -o path/to/file.svg -re re2 -Rn (?i)task.*
         
         # case insensitive regex match - ECMAScript
-        $ summary csv --current-year --output path/to/file.svg --match-note task.* --modifiers ig
-        $ s c -cy -o path/to/file.svg -Rn task.* -Mig\
+        $ timer summary csv --current-year --output path/to/file.svg --match-note task.* --modifiers ig
+        $ t s c -cy -o path/to/file.svg -Rn task.* -Mig\
         """,
         lexer="fishshell",
         dedent=True,
@@ -721,19 +721,19 @@ def summary_csv(
     short_help="Save/Print summary to a json file.",
     syntax=Syntax(
         code="""\
-        $ summary json --start "6 days ago" --end today --print
-        $ s j -s -6d -e now -p
+        $ timer summary json --start "6 days ago" --end today --print
+        $ t s j -s -6d -e now -p
     
-        $ summary json --current-week --orient index where billable is false
-        $ s j -cw -o index -w\
+        $ timer summary json --current-week --orient index where billable is false
+        $ t s j -cw -o index -w\
         
         # case insensitive regex match - re2
-        $ summary json --current-year --output path/to/file.svg --orient index --regex-engine re2 --match-note (?i)task.*
-        $ s j -cy -o path/to/file.svg -o index -re re2 -Rn (?i)task.*
+        $ timer summary json --current-year --output path/to/file.svg --orient index --regex-engine re2 --match-note (?i)task.*
+        $ t s j -cy -o path/to/file.svg -o index -re re2 -Rn (?i)task.*
         
         # case insensitive regex match - ECMAScript
-        $ summary json --current-year --output path/to/file.svg --orient index --match-note task.* --modifiers ig
-        $ s j -cy -o path/to/file.svg -o index -Rn task.* -Mig\
+        $ timer summary json --current-year --output path/to/file.svg --orient index --match-note task.* --modifiers ig
+        $ t s j -cy -o path/to/file.svg -o index -Rn task.* -Mig\
         """,
         lexer="fishshell",
         dedent=True,

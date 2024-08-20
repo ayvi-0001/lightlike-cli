@@ -438,7 +438,8 @@ def delete(
         for id_match in matched_ids:
             if cache.id == id_match:
                 cache._clear_active()
-                console.set_window_title(__appname_sc__)
+                if AppConfig().get("settings", "update-terminal-title", default=True):
+                    console.set_window_title(__appname_sc__)
             elif cache.exists(cache.running_entries, [id_match]):
                 cache.remove([cache.running_entries], "id", [id_match])
             elif cache.exists(cache.paused_entries, [id_match]):
@@ -1605,7 +1606,8 @@ def pause(
     time_entry_id: str = cache.id
     query_job: "QueryJob" = routine._pause_time_entry(time_entry_id, now, wait=debug)
     cache.pause_entry(0, now)
-    console.set_window_title(__appname_sc__)
+    if AppConfig().get("settings", "update-terminal-title", default=True):
+        console.set_window_title(__appname_sc__)
 
     if debug:
         query_job.result()
@@ -2033,7 +2035,8 @@ def stop(
 
     routine._stop_time_entry(cache.id, now, wait=debug)
     cache._clear_active()
-    console.set_window_title(__appname_sc__)
+    if AppConfig().get("settings", "update-terminal-title", default=True):
+        console.set_window_title(__appname_sc__)
 
 
 @click.command(

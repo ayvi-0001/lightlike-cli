@@ -12,6 +12,7 @@ from rich.table import Table
 from rich.text import Text
 
 from lightlike.__about__ import __appdir__, __appname_sc__, __config__, __version__
+from lightlike.app.config import AppConfig
 from lightlike.internal import appdir, markup
 
 if t.TYPE_CHECKING:
@@ -31,7 +32,8 @@ __all__: t.Sequence[str] = (
 
 def cli_info() -> None:
     console = get_console()
-    console.set_window_title(__appname_sc__)
+    if AppConfig().get("settings", "update-terminal-title", default=True):
+        console.set_window_title(__appname_sc__)
 
     console.log(f"__appname__[b][red]=[/red][repr.str]{__appname_sc__}")
     console.log(f"__version__[b][red]=[/red][repr.number]{__version__}")

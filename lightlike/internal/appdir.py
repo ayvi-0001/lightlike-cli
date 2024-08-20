@@ -124,6 +124,7 @@ CONFIG_UPDATE_PATHS: list[str] = [
     "settings.reserve_space_for_menu",
     "settings.timer_add_min",
     "settings.week_start",
+    "settings.update-terminal-title",
     "user.host",
     "user.name",
     "user.stay_logged_in",
@@ -208,6 +209,7 @@ def _initial_build() -> None | t.NoReturn:
         from rich.padding import Padding
 
         from lightlike.app import _questionary
+        from lightlike.app.config import AppConfig
 
         console = get_console()
         default_config = rtoml.load(constant.DEFAULT_CONFIG)
@@ -232,7 +234,8 @@ def _initial_build() -> None | t.NoReturn:
             markup.repr_attrib_value(__version__),
             sep="",
         )
-        console.set_window_title(__appname_sc__)
+        if AppConfig().get("settings", "update-terminal-title", default=True):
+            console.set_window_title(__appname_sc__)
 
         term = os.getenv("TERM", "unknown")
         console.log(

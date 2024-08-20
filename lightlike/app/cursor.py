@@ -38,15 +38,12 @@ GCP_PROJECT: str | None = AppConfig().get("client", "active_project")
 BRANCH: str | None = AppConfig().get("git", "branch")
 PATH: str | None = AppConfig().get("git", "path")
 TIMEZONE: "_TzInfo" = AppConfig().tzinfo
+UPDATE_TERMINAL_TITLE: bool = AppConfig().get(
+    "settings", "update-terminal-title", default=True
+)
 
 
-def build(message: str | None = None) -> str:
-    """
-    The actual return for this function is either a sequence of tuples, or a callable returning a sequence of tuples.
-    The return value is casted as a string only to signal to the type checker
-    that the return value has the required type for :param: `message` in :class: `prompt_toolkit.shortcuts.PromptSession`.
-    It should only be used in that context.
-    """
+def build(message: str | None = None) -> t.Callable[[], StyleAndTextTuples]:
     if not message:
         cursor: StyleAndTextTuples = []
         cwd: Path = Path.cwd()
@@ -57,12 +54,14 @@ def build(message: str | None = None) -> str:
 
         if cache := EntriesInMemory():
             timer: str = _timer(cache)
-            get_console().set_window_title(f"{timer} | {cache.project}")
+            UPDATE_TERMINAL_TITLE and get_console().set_window_title(
+                f"{timer} | {cache.project}"
+            )
             _extend_timer(cursor, timer)
 
         _extend_cursor_pointer(cursor)
 
-        return t.cast(str, cursor)
+        return lambda: cursor
 
     def build_with_message(message: str | None = message) -> StyleAndTextTuples:
         cursor: StyleAndTextTuples = []
@@ -74,14 +73,16 @@ def build(message: str | None = None) -> str:
 
         if cache := EntriesInMemory():
             timer: str = _timer(cache)
-            get_console().set_window_title(f"{timer} | {cache.project}")
+            UPDATE_TERMINAL_TITLE and get_console().set_window_title(
+                f"{timer} | {cache.project}"
+            )
             _extend_timer(cursor, timer)
 
         _extend_cursor_pointer(cursor, message or "")
 
         return cursor
 
-    return t.cast(str, build_with_message)
+    return build_with_message
 
 
 def bottom_toolbar() -> t.Callable[..., StyleAndTextTuples]:

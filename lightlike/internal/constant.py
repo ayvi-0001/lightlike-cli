@@ -37,6 +37,7 @@ reserve_space_for_menu = 12
 timer_add_min = -6
 timezone = "null"
 week_start = 1
+update-terminal-title = true
 
 [settings.dateparser]
 additional_date_formats = ["%I%p", "%I:%M%p", "%I%M%p", "%H%M", "%H%M%S", "%H:%M", "%H:%M:%S"]

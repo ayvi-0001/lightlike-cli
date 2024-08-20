@@ -541,7 +541,8 @@ class TimeEntryCache(_Entries):
                 )
             )
 
-        get_console().set_window_title(__appname_sc__)
+        if AppConfig().get("settings", "update-terminal-title", default=True):
+            get_console().set_window_title(__appname_sc__)
         with self.rw() as cache:
             cache.running_entries = running_entries
             cache.paused_entries = paused_entries
