@@ -31,13 +31,21 @@ if t.TYPE_CHECKING:
 
 __all__: t.Sequence[str] = (
     "add_job",
-    "print_jobs",
+    "get_job",
     "modify_job",
     "pause_job",
+    "pause",
+    "print_jobs",
     "remove_all_jobs",
     "remove_job",
     "reschedule_job",
     "resume_job",
+    "resume",
+    "run",
+    "shutdown",
+    "start",
+    "status",
+    "system_command",
 )
 
 
@@ -67,7 +75,7 @@ def available_jobstores(
 ) -> list[CompletionItem]:
     completions = []
 
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     for k, v in scheduler._jobstores.items():
         completions.append(CompletionItem(value=k, help=f"{v!r}"))
 
@@ -79,7 +87,7 @@ def available_executors(
 ) -> list[CompletionItem]:
     completions = []
 
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     for k, v in scheduler._executors.items():
         completions.append(CompletionItem(value=k, help=f"{v!r}"))
 
@@ -319,7 +327,7 @@ def add_job(
     start_date: str,
     end_date: str,
 ) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     tzinfo = AppConfig().tzinfo
 
     job_kwargs: dict[str, t.Any] = {}
@@ -379,7 +387,7 @@ def get_job(
     job_id: str,
     jobstore: str,
 ) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     job: Job | None = scheduler.get_job(job_id=job_id, jobstore=jobstore)
     if not job:
         print("[dimmed]Job not found")
@@ -392,7 +400,7 @@ def get_job(
 @utils.pretty_print_exception
 @click.pass_context
 def print_jobs(ctx: click.Context) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
 
     jobstore_table = Table(
         box=box.HORIZONTALS,
@@ -416,6 +424,7 @@ def print_jobs(ctx: click.Context) -> None:
         justify="left",
         no_wrap=False,
         overflow="fold",
+        min_width=3,
     )
     jobstore_table.add_column(
         ratio=3,
@@ -433,7 +442,7 @@ def print_jobs(ctx: click.Context) -> None:
                     scheduler._pending_jobs
                 ):
                     if jobstore in (None, jobstore_alias):
-                        jobstore_table.add_row(f"\[{idx + 1}]", job.id, f"{job!s}")
+                        jobstore_table.add_row(f"\[{idx + 1}] {job.id}", "", f"{job!s}")
             else:
                 jobstore_table.add_row("[dimmed]No pending jobs")
         else:
@@ -445,7 +454,7 @@ def print_jobs(ctx: click.Context) -> None:
                         jobstore_table.add_row("[dimmed]No scheduled jobs")
                         continue
                     for idx, (job) in enumerate(jobs):
-                        jobstore_table.add_row(f"\[{idx + 1}]", job.id, f"{job!s}")
+                        jobstore_table.add_row(f"\[{idx + 1}] {job.id}", "", f"{job!s}")
 
     print(jobstore_table)
 
@@ -479,7 +488,7 @@ def modify_job(
     max_instances: int,
     next_run_time: str,
 ) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     job_modify_kwargs: dict[str, t.Any] = {}
 
     if id_ is not None:
@@ -520,7 +529,7 @@ def pause_job(
     job_id: str,
     jobstore: str,
 ) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     job: Job = scheduler.pause_job(job_id=job_id, jobstore=jobstore)
     print(f"Paused job:")
     print(_job_info(job, show_jobstore=True))
@@ -532,7 +541,7 @@ def pause_job(
 @click.argument("jobstore", type=click.STRING, shell_complete=available_jobstores)
 @click.pass_context
 def remove_all_jobs(ctx: click.Context, jobstore: str) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     scheduler.remove_all_jobs(jobstore=jobstore)
     print(f"Removed all jobs from jobstore `{jobstore}`")
 
@@ -548,7 +557,7 @@ def remove_job(
     job_id: str,
     jobstore: str,
 ) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     try:
         scheduler.remove_job(job_id=job_id, jobstore=jobstore)
         print(f"Removed job `{job_id}` from jobstore `{jobstore}`")
@@ -601,7 +610,7 @@ def reschedule_job(
     start_date: str,
     end_date: str,
 ) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     tzinfo = AppConfig().tzinfo
 
     # fmt: off
@@ -630,7 +639,7 @@ def resume_job(
     job_id: str,
     jobstore: str,
 ) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     job: Job = scheduler.resume_job(job_id=job_id, jobstore=jobstore)
     print(f"Resumed job:")
     print(_job_info(job, show_jobstore=True))
@@ -641,7 +650,7 @@ def resume_job(
 @utils.pretty_print_exception
 @click.pass_context
 def shutdown(ctx: click.Context) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     if scheduler.state == STATE_STOPPED:
         print("[dimmed]Scheduler already stopped")
     else:
@@ -653,7 +662,7 @@ def shutdown(ctx: click.Context) -> None:
 @utils.pretty_print_exception
 @click.pass_context
 def start(ctx: click.Context) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     if scheduler.state == STATE_RUNNING:
         print("[dimmed]Scheduler already running")
     else:
@@ -664,8 +673,32 @@ def start(ctx: click.Context) -> None:
 @utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
 @click.pass_context
+def pause(ctx: click.Context) -> None:
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
+    if scheduler.state == STATE_PAUSED:
+        print("[dimmed]Scheduler already paused")
+    else:
+        scheduler.pause()
+
+
+@click.command(cls=FormattedCommand)
+@utils.handle_keyboard_interrupt()
+@utils.pretty_print_exception
+@click.pass_context
+def resume(ctx: click.Context) -> None:
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
+    if scheduler.state == STATE_RUNNING:
+        print("[dimmed]Scheduler already running")
+    else:
+        scheduler.resume()
+
+
+@click.command(cls=FormattedCommand)
+@utils.handle_keyboard_interrupt()
+@utils.pretty_print_exception
+@click.pass_context
 def status(ctx: click.Context) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     if scheduler.state == STATE_RUNNING:
         print("Scheduler is running.")
     else:
@@ -722,7 +755,7 @@ def run(*args: t.Any, **kwargs: t.Any) -> None:
         result.returncode,
     )
 
-    with patch_stdout(True):
+    with patch_stdout(raw=True):
         if result.stdout:
             message += " | STDOUT:"
             console.log(message)
@@ -800,7 +833,7 @@ def system_command(
     start_date: str,
     end_date: str,
 ) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
 
     tzinfo = AppConfig().tzinfo
 
