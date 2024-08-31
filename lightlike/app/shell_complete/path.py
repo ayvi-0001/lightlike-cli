@@ -1,3 +1,4 @@
+import os
 import re
 import typing as t
 from contextlib import suppress
@@ -7,6 +8,7 @@ import click
 from click.shell_completion import CompletionItem
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.formatted_text import FormattedText
+from rich import get_console
 
 from lightlike.internal.enums import ActiveCompleter
 from lightlike.internal.utils import alter_str
@@ -14,9 +16,18 @@ from lightlike.internal.utils import alter_str
 if t.TYPE_CHECKING:
     from prompt_toolkit.completion import CompleteEvent
     from prompt_toolkit.document import Document
+    from prompt_toolkit.mouse_events import MouseEvent
+
+    NotImplementedOrNone = object
 
 __all__: t.Sequence[str] = ("path", "PathCompleter")
 
+
+OneStyleAndTextTuple = t.Union[
+    tuple[str, str], tuple[str, str, t.Callable[["MouseEvent"], "NotImplementedOrNone"]]
+]
+
+StyleAndTextTuples = list[OneStyleAndTextTuple]
 
 TYPED_DIR = re.compile(r"^(.*)(?:\\|\/)", flags=re.IGNORECASE)
 TYPED_STEM = re.compile(r"^.*(?:\\|\/)+(.*)$", flags=re.IGNORECASE)
@@ -79,17 +90,27 @@ def _yield_paths(incomplete: str, dir_only: bool = False) -> t.Iterator[Path]:
         )
 
 
+def _is_link(path: Path) -> bool:
+    return path.absolute() != path.resolve()
+
+
 def _path_str_contents(path: Path) -> FormattedText:
-    contents = []
-    if path.is_dir():
-        with suppress(*_E):
+    contents: StyleAndTextTuples = []
+
+    with suppress(*_E):
+        if _is_link(path):
+            resolved: Path = path.resolve()
+            if os.name == "nt":
+                drive = f"/{resolved.drive.lower().replace(':', '')}"
+                full_path = resolved.as_posix().replace(resolved.drive, drive)
+            else:
+                full_path = f"{resolved}"
+
+            contents.extend([("#81beb1", f"{path.name} -> {full_path}")])
+
+        if path.is_dir():
             for sub in path.iterdir():
-                contents.extend(
-                    [
-                        ("ansibrightcyan", sub.name),
-                        ("bold #000000", " | "),
-                    ]
-                )
+                contents.extend([("#7f9fcf", sub.name), ("bold #000000", " | ")])
 
     return FormattedText(contents)
 
@@ -131,6 +152,9 @@ class PathCompleter(Completer):
     def get_completions(
         self, document: "Document", complete_event: "CompleteEvent"
     ) -> t.Iterable[Completion]:
+        console = get_console()
+        console_width = console.width
+
         try:
             if "\\" in document.text:
                 count = len(document.find_all("\\")) + 1
@@ -153,8 +177,16 @@ class PathCompleter(Completer):
                 yield Completion(
                     text=value,
                     start_position=start_position,
+                    display=self._display(value, console_width),
                     display_meta=_path_str_contents(path),
-                    style="ansibrightcyan",
+                    style="cyan",
                 )
         except:
             yield from []
+
+    def _display(self, text: str, console_width: int) -> str:
+        half_console_width = int(console_width / 3)
+        if len(text) > half_console_width:
+            return f"{text[:half_console_width]}…"
+        else:
+            return text
