@@ -234,8 +234,6 @@ def _initial_build() -> None | t.NoReturn:
             markup.repr_attrib_value(__version__),
             sep="",
         )
-        if AppConfig().get("settings", "update-terminal-title", default=True):
-            console.set_window_title(__appname_sc__)
 
         term = os.getenv("TERM", "unknown")
         console.log(
@@ -359,6 +357,7 @@ def _initial_build() -> None | t.NoReturn:
         default_config["client"].update(
             credentials_source=repr(client_credential_source)
         )
+
         default_config["cli"].update(add_to_path=[__appdir__.as_posix()])
 
         console.log("Building app directory")

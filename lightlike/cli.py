@@ -39,6 +39,7 @@ warnings.filterwarnings("ignore", category=PytzUsageWarning)
 
 from lightlike import _console
 from lightlike.__about__ import (
+    __appname_sc__,
     __cli_help__,
     __config__,
     __lock__,
@@ -190,6 +191,9 @@ def run_cli(name: str = "lightlike") -> None:
         call_on_close=call_on_close,
         obj=dict(get_scheduler=get_scheduler),
     )
+
+    if AppConfig().get("settings", "update-terminal-title", default=True):
+        get_console().set_window_title(__appname_sc__)
 
     # If no invoked subcommand, cli is launched through REPL,
     # Don't show cli name in help/usage contexts.

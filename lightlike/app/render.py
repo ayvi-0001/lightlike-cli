@@ -32,8 +32,6 @@ __all__: t.Sequence[str] = (
 
 def cli_info() -> None:
     console = get_console()
-    if AppConfig().get("settings", "update-terminal-title", default=True):
-        console.set_window_title(__appname_sc__)
 
     console.log(f"__appname__[b][red]=[/red][repr.str]{__appname_sc__}")
     console.log(f"__version__[b][red]=[/red][repr.number]{__version__}")
