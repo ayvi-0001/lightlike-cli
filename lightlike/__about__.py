@@ -39,7 +39,7 @@ __all__: Sequence[str] = (
     "__cli_help__",
 )
 
-__version__: Final[str] = "v0.11.0b8"
+__version__: Final[str] = "v0.11.0b12"
 
 _ENV: str | None = os.getenv("LIGHTLIKE_CLI_ENV")
 LIGHTLIKE_CLI_APPDIR_PATH = os.getenv("LIGHTLIKE_CLI_APPDIR_PATH")
@@ -67,7 +67,19 @@ LIGHTLIKE_CLI_DEV_USERNAME = os.getenv("LIGHTLIKE_CLI_DEV_USERNAME")
 # #################################################################################################
 
 
-def appdir_path(appname: str) -> Path:
+def _append_env_to_path(env: str | None = None, posix: bool = False) -> str:
+    if posix:
+        path = "lightlike-cli"
+        if env is not None:
+            path += f"-{env.lower()}"
+    else:
+        path = "Lightlike Cli"
+        if env is not None:
+            path += f" {env}"
+    return path
+
+
+def appdir_path(appname: str, env: str | None = None, posix: bool = False) -> Path:
     if LIGHTLIKE_CLI_APPDIR_PATH:
         path_to_appdir = Path(LIGHTLIKE_CLI_APPDIR_PATH).resolve()
         if path_to_appdir.exists() and not path_to_appdir.is_dir():
@@ -78,7 +90,15 @@ def appdir_path(appname: str) -> Path:
             )
             sys.exit(2)
     else:
-        path_to_appdir = Path(get_app_dir(appname))
+        if os.name == "nt":
+            if posix:
+                path_to_appdir = Path.home() / f".{_append_env_to_path(env,  posix)}"
+            else:
+                path_to_appdir = Path(get_app_dir(appname))
+        else:
+            path_to_appdir = Path(
+                get_app_dir(appname, force_posix=LIGHTLIKE_CLI_APPDIR_FORCE_POSIX)
+            )
 
     return path_to_appdir
 
@@ -94,12 +114,13 @@ def config_path(env: str | None = None) -> Path:
             )
             sys.exit(2)
     else:
-        _user_config = Path.home() / ".config"
-        _user_config.mkdir(exist_ok=True)
+        _USER_CONFIG = Path.home() / ".config"
+        _USER_CONFIG.mkdir(exist_ok=True)
         if env is not None:
-            _config_dir = _user_config / f"lightlike-cli-{env.lower()}"
+            _config_dir = _USER_CONFIG / f"lightlike-cli-{env.lower()}"
         else:
-            _config_dir = _user_config / f"lightlike-cli"
+            _config_dir = _USER_CONFIG / f"lightlike-cli"
+
         _config_dir.mkdir(exist_ok=True)
         path_to_config = _config_dir / "config.toml"
 
@@ -109,7 +130,7 @@ def config_path(env: str | None = None) -> Path:
 
 # fmt: off
 __appname__: Final[str] = f"Lightlike CLI%s" % (f" {_ENV}" if _ENV else "")
-__appdir__: Final[Path] = appdir_path(__appname__)
+__appdir__: Final[Path] = appdir_path(__appname__, _ENV, LIGHTLIKE_CLI_APPDIR_FORCE_POSIX)
 __appname_sc__: Final[str] = "".join(c if c.isalnum() else "_" for c in __appname__.lower())
 __config__: Final[Path] = config_path(_ENV)
 __repo__: Final[str] = "https://github.com/ayvi-0001/lightlike-cli"
