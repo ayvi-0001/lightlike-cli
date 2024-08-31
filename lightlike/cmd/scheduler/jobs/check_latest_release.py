@@ -1,6 +1,8 @@
 import re
 import typing as t
+from contextlib import suppress
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import httpx
 from apscheduler.triggers.date import DateTrigger
@@ -8,8 +10,7 @@ from packaging.version import Version
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import get_console
 
-from lightlike.__about__ import __repo__, __version__
-from lightlike.app.config import AppConfig
+from lightlike.__about__ import __appdir__, __repo__, __version__
 from lightlike.cmd.scheduler.jobs.types import JobKwargs
 from lightlike.internal import appdir, markup
 
@@ -38,31 +39,43 @@ def get_version_from_github_release(repo: str) -> Version:
 
 def check_latest_release(v_package: str, repo: str) -> None:
     try:
-        last_checked_release: datetime | None = None
-        last_checked_release = AppConfig().get("app", "last_checked_release")
+        path_last_release_check: Path = __appdir__ / ".last_release_check"
 
-        if not last_checked_release or (
-            last_checked_release
-            and last_checked_release.date() < datetime.today().date()
+        last_release_check: datetime | None = None
+        with suppress(Exception):
+            if path_last_release_check.exists():
+                str_date: str = (
+                    path_last_release_check.read_text("utf-8").splitlines().pop(0)
+                )
+                if str_date:
+                    last_release_check = datetime.strptime(
+                        str_date, "%Y-%m-%d %H:%M:%S"
+                    )
+
+        if not last_release_check or (
+            last_release_check.date() < datetime.today().date()
         ):
-            console = get_console()
             latest_version: Version = get_version_from_github_release(repo)
-
-            with AppConfig().rw() as config:
-                config["app"].update(last_checked_release=datetime.now())
 
             if Version(v_package) < latest_version:
                 with patch_stdout(raw=True):
-                    console.log(
-                        markup.bg("New Release available:"),
-                        markup.repr_number(f"v{latest_version}"),
-                    )
-                    console.log(
-                        "Install update with command:",
-                        markup.code(
-                            f'$ pip install -U "lightlike @ git+{repo}@v{latest_version}"'
-                        ),
-                    )
+                    with get_console() as console:
+                        console.log(
+                            markup.bg("New Release available:"),
+                            markup.repr_number(f"v{latest_version}"),
+                        )
+                        console.log(
+                            "Install update with command:",
+                            markup.code(
+                                f'$ pip install -U "lightlike @ git+{repo}@v{latest_version}"'
+                            ),
+                        )
+
+            path_last_release_check.touch(exist_ok=True)
+            path_last_release_check.write_text(
+                datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            )
+
     except Exception as error:
         appdir.log().error(f"Failed to retrieve latest release: {error}")
 

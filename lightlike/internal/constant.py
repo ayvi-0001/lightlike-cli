@@ -19,7 +19,6 @@ DEFAULT_CONFIG: str = f"""\
 name = "{__appname_sc__}"
 version = "{__version__}"
 term = "{os.getenv("TERM", "unknown")}"
-last_checked_release = ""
 
 [user]
 name = "{getpass.getuser()}"
