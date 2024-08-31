@@ -283,7 +283,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def _delete_time_entry(
+    def _delete_time_entries(
         self,
         ids: list[str],
         use_query_cache: bool = True,
@@ -297,9 +297,7 @@ class CliQueryRoutines:
             use_query_cache=use_query_cache,
             use_legacy_sql=use_legacy_sql,
             query_parameters=[
-                ArrayQueryParameter(
-                    "ids", SqlParameterScalarTypes.STRING, [i for i in ids]
-                ),
+                ArrayQueryParameter("ids", SqlParameterScalarTypes.STRING, ids),
             ],
         )
 
@@ -478,7 +476,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def _delete_time_entries(
+    def _delete_time_entries_by_project(
         self,
         project: str,
         use_query_cache: bool = True,
@@ -550,6 +548,7 @@ class CliQueryRoutines:
 
         target: str = cleandoc(
             f"""
+            SET @@time_zone = "{self.tz_name}";
             UPDATE
               {self.timesheet_id}
             SET
@@ -611,11 +610,12 @@ class CliQueryRoutines:
 
         target: str = cleandoc(
             f"""
+            SET @@time_zone = "{self.tz_name}";
             UPDATE
               {self.timesheet_id}
             SET
               timestamp_end = TIMESTAMP_TRUNC(@end, SECOND),
-              `end` = DATETIME_TRUNC(EXTRACT(DATETIME FROM @end AT TIME ZONE "{self.tz_name}"), SECOND),
+              `end` = DATETIME_TRUNC(EXTRACT(DATETIME FROM @end), SECOND),
               hours = ROUND(
                 SAFE_CAST(SAFE_DIVIDE(TIMESTAMP_DIFF(IFNULL(@end, {self.dataset}.current_timestamp()), timestamp_start, SECOND), 3600) AS NUMERIC)
                 - SAFE_CAST(IF(paused = TRUE, SAFE_DIVIDE(TIMESTAMP_DIFF(@end, timestamp_paused, SECOND), 3600), 0) + IFNULL(paused_hours, 0) AS NUMERIC),

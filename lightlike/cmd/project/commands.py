@@ -426,7 +426,7 @@ def delete(
                 ),
             )
             threads.spawn(ctx, appdata.sync, dict(debug=debug))
-            routine._delete_time_entries(
+            routine._delete_time_entries_by_project(
                 project,
                 wait=True,
                 render=True,

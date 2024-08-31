@@ -445,7 +445,7 @@ def delete(
             elif cache.exists(cache.paused_entries, [id_match]):
                 cache.remove([cache.paused_entries], "id", [id_match])
 
-        query_job: "QueryJob" = routine._delete_time_entry(matched_ids)
+        query_job: "QueryJob" = routine._delete_time_entries(matched_ids, wait=True)
 
         console.print("Deleted time entries")
 
@@ -543,15 +543,23 @@ def _get_entry_edits(
         if duration.total_seconds() < 0 or copysign(1, duration.days) == -1:
             matched_ids.pop(matched_ids.index(entry_row.id))
 
+            _compare_start = (
+                f"original start = {entry_row.start.strftime('%Y-%m-%d %H:%M:%S')}"
+                f" | new start {new_start.strftime('%Y-%m-%d %H:%M:%S')}"
+            )
+            _compare_end = (
+                f"original end = {entry_row.end.strftime('%Y-%m-%d %H:%M:%S')}"
+                f" | new end {new_end.strftime('%Y-%m-%d %H:%M:%S')}"
+            )
             console.print(
                 cleandoc(
                     f"""
-                [code]{entry_row.id}[/code] updates failed: Negative Duration.
-                original start = {entry_row.start.strftime('%Y-%m-%d %H:%M:%S')} | new start {new_start.strftime('%Y-%m-%d %H:%M:%S')}
-                original end = {entry_row.end.strftime('%Y-%m-%d %H:%M:%S')} | new end = {new_end.strftime('%Y-%m-%d %H:%M:%S')}
-                paused_hours = [repr.number]{entry_row.paused_hours}[/repr.number]
-                duration = {duration}
-                Removed from edits.
+            [code]{entry_row.id}[/code] updates failed: Negative Duration.
+            {_compare_start}
+            {_compare_end}
+            paused_hours = [repr.number]{entry_row.paused_hours}[/repr.number]
+            duration = {duration}
+            Removed from edits.
                 """
                 )
             )
@@ -870,8 +878,7 @@ def edit(
         )
 
         if not all_edits:
-            console.print(markup.dimmed("Nothing to edit."))
-            return
+            ctx.fail("Nothing to edit.")
 
         edits = first(all_edits)
         status.update(status_renderable)
@@ -889,13 +896,29 @@ def edit(
         original_records = []
         new_records = []
 
-        for entry_row, edits in zip(matched_entries, all_edits):
+        for entry_row, edits in t.cast(
+            t.Sequence[tuple["Row", dict[str, t.Any]]],
+            zip(matched_entries, all_edits),
+        ):
+            _start_datetime = entry_row.start
+            _end_datetime = entry_row.end
+
+            try:
+                _start_time = _start_datetime.time()
+                _end_time = _end_datetime.time()
+            except Exception:
+                ctx.fail(
+                    "Failed to retrieve start/end times. Possible there is "
+                    "still an job running on one of these records. "
+                    "Please wait a moment and try again."
+                )
+
             original_record = {
                 "id": entry_row.id[:7],
                 "project": entry_row.project,
                 "date": entry_row.date,
-                "start_time": entry_row.start.time(),
-                "end_time": entry_row.end.time(),
+                "start_time": _start_time,
+                "end_time": _end_time,
                 "note": entry_row.note,
                 "billable": entry_row.billable,
                 "paused_hours": entry_row.paused_hours or 0,
@@ -2353,11 +2376,11 @@ def update(
         if not any(
             filter(lambda k: k in edits, ["project", "note", "billable", "start"])
         ):
-            console.print(markup.dimmed("No valid fields to update, nothing happened."))
-            return
+            ctx.fail("No fields to update.")
 
         if stop_ and cache:
             ctx.invoke(stop)
+
         query_job: "QueryJob" = routine._update_time_entries(
             ids=[cache.id],
             project=edits.get("project"),

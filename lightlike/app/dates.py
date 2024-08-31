@@ -10,7 +10,6 @@ import pytz
 from rich.text import Text
 
 from lightlike.app.config import AppConfig
-from lightlike.internal.utils import get_local_timezone_string
 
 if t.TYPE_CHECKING:
     from datetime import _TzInfo
