@@ -1,3 +1,4 @@
+import os
 import subprocess
 import typing as t
 
@@ -860,8 +861,9 @@ def system_command(
 
     func_kwargs = {
         "args": _CMD,
-        "shell": True,
         "capture_output": True,
+        "env": os.environ,
+        "shell": True,
         "text": True,
     }
     func_kwargs |= kwargs
