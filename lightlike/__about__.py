@@ -20,8 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os
 import sys
+from os import getenv
 from pathlib import Path
 from typing import Final, Sequence
 
@@ -32,145 +32,117 @@ __all__: Sequence[str] = (
     "__appdir__",
     "__appname__",
     "__appname_sc__",
+    "__cli_help__",
     "__config__",
+    "__configdir__",
     "__lock__",
     "__repo__",
     "__version__",
-    "__cli_help__",
 )
 
-__version__: Final[str] = "v0.11.0b12"
+__version__: Final[str] = "v0.11.0b14"
 
-_ENV: str | None = os.getenv("LIGHTLIKE_CLI_ENV")
-LIGHTLIKE_CLI_APPDIR_PATH = os.getenv("LIGHTLIKE_CLI_APPDIR_PATH")
-LIGHTLIKE_CLI_APPDIR_FORCE_POSIX = bool(
-    os.getenv("LIGHTLIKE_CLI_APPDIR_FORCE_POSIX", False)
+__appname__: str = f"lightlike-cli"
+
+LIGHTLIKE_ENV: str | None = getenv("LIGHTLIKE_ENV")
+LIGHTLIKE_APP_DIR: str | Path = getenv(
+    "LIGHTLIKE_APP_DIR", default=Path(get_app_dir(__appname__))
 )
-LIGHTLIKE_CLI_CONFIG = os.getenv("LIGHTLIKE_CLI_CONFIG")
-LIGHTLIKE_CLI_DEV_USERNAME = os.getenv("LIGHTLIKE_CLI_DEV_USERNAME")
+LIGHTLIKE_CONFIG_DIR: str | Path = getenv(
+    "LIGHTLIKE_CONFIG_DIR", default=Path.home() / ".config" / "lightlike-cli"
+)
+LIGHTLIKE_CONFIG_FILE: str = getenv("LIGHTLIKE_CONFIG_FILE", default="config.toml")
 
 # #################################################################################################
 # ENVIRONMENT VARIABLES:
-# LIGHTLIKE_CLI_APPDIR_FORCE_POSIX: From click.get_app_dir - if this is set to True then on any
-#                                   POSIX system the folder will be stored in the home folder with
-#                                   a leading dot instead of the XDG config home or darwin's
-#                                   application support folder.
-# LIGHTLIKE_CLI_APPDIR_PATH:        Path to application directory.
-# LIGHTLIKE_CLI_CONFIG:             Path to application config.
-# LIGHTLIKE_CLI_DEV:                Enables dev features.
-# LIGHTLIKE_CLI_DEV_EXPORT_HELP:    Help commands printed to an svg in the current directory.
-# LIGHTLIKE_CLI_DEV_GCP_PROJECT:    Overrides the displayed gcp project in the cursor,
-#                                   does _not_ override the actual project used.
-# LIGHTLIKE_CLI_DEV_HOSTNAME:       Overrides the hostname in the cursor (for demos/videos).
-# LIGHTLIKE_CLI_DEV_USERNAME:       Overrides the username in the cursor (for demos/videos).
-# LIGHTLIKE_CLI_ENV:                If set, $LIGHTLIKE_CLI_ENV appended to the appdir and config.
+# LIGHTLIKE_ENV:                  If set, $LIGHTLIKE_ENV appended to appdir/config, and
+#                                 dataset/tables in BigQuery. This is essentially a new environment
+#                                 for the cli, and will run independently of other environments.
+# LIGHTLIKE_CONFIG_DIR:           Directory for config. Must be absolute path.
+# LIGHTLIKE_CONFIG_FILE:          Name of config file, relative to config dir.
+# LIGHTLIKE_APP_DIR:              Directory for app data. Must be absolute path.
+# LIGHTLIKE_CLI_DEV:              Enables dev features.
+# LIGHTLIKE_CLI_DEV_EXPORT_HELP:  Output of help commands are saved to an svg in the current directory.
+#                                 svg's are saved as the name of the command.
 # #################################################################################################
 
 
-def _append_env_to_path(env: str | None = None, posix: bool = False) -> str:
-    if posix:
-        path = "lightlike-cli"
-        if env is not None:
-            path += f"-{env.lower()}"
-    else:
-        path = "Lightlike Cli"
-        if env is not None:
-            path += f" {env}"
-    return path
+def get_appdir_path(env: str | None = None) -> Path:
+    global LIGHTLIKE_APP_DIR
+    appdir: Path | None = None
+
+    if isinstance(LIGHTLIKE_APP_DIR, str):
+        LIGHTLIKE_APP_DIR = Path(LIGHTLIKE_APP_DIR)
+
+    appdir = LIGHTLIKE_APP_DIR.resolve()
+
+    if appdir.exists() and not appdir.is_dir():
+        print(
+            "[b][red]EnvironmentVariableError[/]: "
+            "[code]LIGHTLIKE_APP_DIR[/] must point to a directory: "
+            f"{LIGHTLIKE_APP_DIR}"
+        )
+        sys.exit(2)
+
+    if env is not None:
+        appdir = appdir.parent / f"{appdir.name}-{env.lower()}"
+
+    return appdir
 
 
-def appdir_path(appname: str, env: str | None = None, posix: bool = False) -> Path:
-    if LIGHTLIKE_CLI_APPDIR_PATH:
-        path_to_appdir = Path(LIGHTLIKE_CLI_APPDIR_PATH).resolve()
-        if path_to_appdir.exists() and not path_to_appdir.is_dir():
-            print(
-                "[b][red]EnvironmentVariableError[/]: "
-                "[code]LIGHTLIKE_CLI_APPDIR_PATH[/] must point to a directory.\n"
-                f"{path_to_appdir} pointing to a non-directory file."
-            )
-            sys.exit(2)
-    else:
-        if os.name == "nt":
-            if posix:
-                path_to_appdir = Path.home() / f".{_append_env_to_path(env,  posix)}"
-            else:
-                path_to_appdir = Path(get_app_dir(appname))
-        else:
-            path_to_appdir = Path(
-                get_app_dir(appname, force_posix=LIGHTLIKE_CLI_APPDIR_FORCE_POSIX)
-            )
+def get_config_dir(env: str | None = None) -> Path:
+    global LIGHTLIKE_CONFIG_DIR
+    config_dir: Path | None = None
 
-    return path_to_appdir
+    if isinstance(LIGHTLIKE_CONFIG_DIR, str):
+        LIGHTLIKE_CONFIG_DIR = Path(LIGHTLIKE_CONFIG_DIR)
 
+    config_dir = LIGHTLIKE_CONFIG_DIR.resolve()
 
-def config_path(env: str | None = None) -> Path:
-    if LIGHTLIKE_CLI_CONFIG:
-        path_to_config = Path(LIGHTLIKE_CLI_CONFIG).resolve()
-        if path_to_config.exists() and not path_to_config.is_file():
-            print(
-                "[b][red]EnvironmentVariableError[/]: "
-                "[code]LIGHTLIKE_CLI_CONFIG[/] must point to a file.\n"
-                f"{path_to_config} not pointing to file."
-            )
-            sys.exit(2)
-    else:
-        _USER_CONFIG = Path.home() / ".config"
-        _USER_CONFIG.mkdir(exist_ok=True)
-        if env is not None:
-            _config_dir = _USER_CONFIG / f"lightlike-cli-{env.lower()}"
-        else:
-            _config_dir = _USER_CONFIG / f"lightlike-cli"
+    if config_dir.exists() and not config_dir.is_dir():
+        print(
+            "[b][red]EnvironmentVariableError[/]: "
+            "[code]LIGHTLIKE_CONFIG_DIR[/] must point to a directory: "
+            f"{LIGHTLIKE_CONFIG_DIR}"
+        )
+        sys.exit(2)
 
-        _config_dir.mkdir(exist_ok=True)
-        path_to_config = _config_dir / "config.toml"
+    if env is not None:
+        config_dir = config_dir.parent / f"{config_dir.name}-{env.lower()}"
 
-    # Do not touch path. Check for whether path exists in lightlike/internal/appdir.py
-    return path_to_config
+    config_dir.mkdir(exist_ok=True, parents=True)
+
+    return config_dir
 
 
 # fmt: off
-__appname__: Final[str] = f"Lightlike CLI%s" % (f" {_ENV}" if _ENV else "")
-__appdir__: Final[Path] = appdir_path(__appname__, _ENV, LIGHTLIKE_CLI_APPDIR_FORCE_POSIX)
+# appname redefined from line 45, env appended
+__appdir__: Final[Path] = get_appdir_path(LIGHTLIKE_ENV)
+__appname__: Final[str] = f"{__appname__}%s" % (f"-{LIGHTLIKE_ENV}" if LIGHTLIKE_ENV else "")
 __appname_sc__: Final[str] = "".join(c if c.isalnum() else "_" for c in __appname__.lower())
-__config__: Final[Path] = config_path(_ENV)
-__repo__: Final[str] = "https://github.com/ayvi-0001/lightlike-cli"
+__configdir__: Final[Path] = get_config_dir(LIGHTLIKE_ENV)
+__config__: Final[Path] = __configdir__ / LIGHTLIKE_CONFIG_FILE
 __lock__: Final[Path] = __appdir__ / "cli.lock"
+__repo__: Final[str] = "https://github.com/ayvi-0001/lightlike-cli"
 # fmt: on
 
 
 __cli_help__: str = f"""\
-[repr.attrib_name]__appname__[/][b][red]=[/red][repr.str]{
-        (
-            "lightlike_cli"
-            if LIGHTLIKE_CLI_DEV_USERNAME
-            else __appname_sc__
-        )
-    }[/b][/repr.str]
-[repr.attrib_name]__version__[/][b][red]=[/red][repr.number]{__version__}[/b][/repr.number]
-[repr.attrib_name]__config__[/][b][red]=[/red][repr.path]{
-        (
-            "/%s/.lightlike-cli/config.toml" % LIGHTLIKE_CLI_DEV_USERNAME
-            if LIGHTLIKE_CLI_DEV_USERNAME
-            else __config__.as_posix()
-        )
-    }[/b][/repr.path]
-[repr.attrib_name]__appdir__[/][b][red]=[/red][repr.path]{
-        (
-            "/%s/.lightlike-cli" % LIGHTLIKE_CLI_DEV_USERNAME
-            if LIGHTLIKE_CLI_DEV_USERNAME
-            else __appdir__.as_posix()
-        )
-    }[/b][/repr.path]
+__appname__ = {__appname_sc__}
+__version__ = {__version__}
+__config__  = {__config__.as_posix()}
+__appdir__  = {__appdir__.as_posix()}
 
-github: [repr.url]{__repo__}[/]
+[b]Repo[/b]:
+    [repr.url][link={__repo__}]{__repo__}[/link][/]
 
-HELP:
+[b]Help[/b]:
     add --help / -h to command/group.
 
-EXIT:
+[b]Exit[/b]:
     type [code]exit[/code] | press [code]:q[/code] | press [code]ctrl q[/code]
 
-COMPLETION:
+[b]Completion[/b]:
     press [code]ctrl space[/code] or [code]tab[/code] to display.
     [code]:c{{1 | 2 | 3 | 4}}[/code] to add/remove completions from the global completer.
     {", ".join(
@@ -183,19 +155,19 @@ COMPLETION:
     )}
     path autocompletion is automatic for [code]cd[/code].
 
-COMMANDS:
+[b]Commands[/b]:
     commands are aliased, use the shortest unique string of the command path.
     add/remove commands in the config file -> cli.commands.
     commands not recognized by the available top-level commands paths are passed to the shell.
     [yellow]see[/] app:config:set:general:shell --help / -h to configure what shell is used.
 
-TIME ENTRY IDS:
+[b]Time entry ids[/b]:
     time entry ids are the sha1 hash of the project, note, and start timestamp.
     if any fields are later edited, the id will not change.
     for commands using an id, supply the first several characters,
     as long as it is unique, a matching id will be found.
 
-DATE/TIME FIELDS:
+[b]Date/time fields[/b]:
     arguments/options for date/time use the dateparser module to parse the input.
     if it's unable too parse the string, an error will raise.
     unless explicitly stated in the string or customized in the config,

@@ -3,7 +3,6 @@ import sys
 import typing as t
 from datetime import datetime, timedelta
 from decimal import Decimal
-from os import getenv
 from pathlib import Path
 from subprocess import list2cmdline
 
@@ -41,14 +40,6 @@ WIN = sys.platform.startswith("win")
 P = t.ParamSpec("P")
 
 
-if LIGHTLIKE_CLI_DEV_USERNAME := getenv("LIGHTLIKE_CLI_DEV_USERNAME"):
-    __config = f"/{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike-cli/config.toml"
-    __appdir = f"/{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike-cli"
-else:
-    __config = __config__.as_posix()
-    __appdir = __appdir__.as_posix()
-
-
 @click.group(
     name="config",
     cls=LazyAliasedGroup,
@@ -58,7 +49,7 @@ else:
         "open": "lightlike.cmd.app.config:open_",
         "list": "lightlike.cmd.app.config:list_",
     },
-    short_help=f"Cli config file and settings. {__config}",
+    short_help=f"Cli config file and settings. {__config__.as_posix()}",
     syntax=Syntax(
         code="""\
         $ app config edit
@@ -152,7 +143,7 @@ def _start_command(url: str, wait: bool = False, locate: bool = False) -> str:
     cls=FormattedCommand,
     name="dir",
     options_metavar="[LAUNCH OPTION]",
-    short_help=f"Open cli dir: {__appdir}",
+    short_help=f"Open cli dir: {__appdir__.as_posix()}",
     syntax=Syntax(
         code="""\
         $ app dir

@@ -6,11 +6,13 @@ import typing as t
 from lightlike.__about__ import __appname__, __appname_sc__, __version__
 
 __all__: t.Sequence[str] = (
+    "_CONSOLE_SVG_FORMAT",
+    "BQ_UPDATES_CONFIG",
+    "CONSOLE",
     "DEFAULT_CONFIG",
     "DEFAULT_SCHEDULER_TOML",
-    "CONSOLE",
+    "LICENSE",
     "PROMPT_STYLE",
-    "_CONSOLE_SVG_FORMAT",
 )
 
 
@@ -37,6 +39,7 @@ timer_add_min = -6
 timezone = "null"
 week_start = 1
 update-terminal-title = true
+rprompt-date-format = "[%H:%M:%S]"
 
 [settings.dateparser]
 additional_date_formats = ["%I%p", "%I:%M%p", "%I%M%p", "%H%M", "%H%M%S", "%H:%M", "%H:%M:%S"]
@@ -119,10 +122,6 @@ exec = [[":", "c", "4"]]
 
 [system-command]
 shell = []
-
-[git]
-branch = ""
-path = ""
 """
 
 
@@ -158,7 +157,7 @@ default_job_check_latest_release = "lightlike.cmd.scheduler.jobs:default_job_che
 """
 
 
-CONSOLE: str = """
+CONSOLE: str = """\
 [style]
 color = "#f0f0ff"
 bold = false
@@ -228,7 +227,7 @@ repr_uuid = "not bold bright_yellow"
 """
 
 
-PROMPT_STYLE: str = """
+PROMPT_STYLE: str = """\
 "" = "fg:#f0f0ff"
 prompt = "fg:#f0f0ff"
 "prompt.user" = "fg:#bfabff bold"
@@ -286,6 +285,36 @@ completion-menu = "fg:#f0f0ff bg:default"
 
 "control-character" = 'bold ansired'
 "validation-toolbar" = "bg:#550000 #ffffff"
+"""
+
+
+LICENSE: str = """\
+MIT License
+
+Copyright (c) 2024 ayvi-0001
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
+BQ_UPDATES_CONFIG: str = """\
+[versions]
+"v0.11.0b13" = false
 """
 
 _CONSOLE_SVG_FORMAT = """\

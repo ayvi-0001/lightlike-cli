@@ -20,6 +20,7 @@ from lightlike.__about__ import (
     __appname__,
     __appname_sc__,
     __config__,
+    __configdir__,
     __lock__,
     __repo__,
     __version__,
@@ -27,25 +28,26 @@ from lightlike.__about__ import (
 from lightlike.internal import constant, enums, markup, utils
 
 __all__: t.Sequence[str] = (
-    "CACHE",
+    "BQ_UPDATES",
     "CACHE_LOCK",
-    "ENTRY_APPDATA",
-    "SQL_HISTORY",
-    "SQL_FILE_HISTORY",
-    "REPL_HISTORY",
-    "REPL_FILE_HISTORY",
-    "QUERIES",
-    "TIMER_LIST_CACHE",
-    "LOGS",
-    "SCHEDULER_CONFIG",
-    "rmtree",
-    "log",
+    "CACHE",
     "console_log_error",
+    "ENTRY_APPDATA",
+    "log",
+    "LOGS",
+    "QUERIES",
+    "REPL_FILE_HISTORY",
+    "REPL_HISTORY",
+    "rmtree",
+    "SCHEDULER_CONFIG",
+    "SQL_FILE_HISTORY",
+    "SQL_HISTORY",
+    "TIMER_LIST_CACHE",
 )
 
 
 # fmt: off
-__appdir__.mkdir(exist_ok=True)
+__appdir__.mkdir(exist_ok=True, parents=True)
 
 CACHE: t.Final[Path] = __appdir__ / ".local_entries"
 CACHE.touch(exist_ok=True)
@@ -63,9 +65,8 @@ QUERIES: t.Final[Path] = __appdir__ / "queries"
 TIMER_LIST_CACHE: t.Final[Path] = __appdir__ / ".tl_ids_latest.json"
 LOGS: t.Final[Path] = __appdir__ / "logs"
 LOGS.mkdir(exist_ok=True)
-SCHEDULER_CONFIG: t.Final[Path] = __appdir__ / "scheduler.toml"
-APSCHEDULER_DB: t.Final[Path] = __appdir__ / "apscheduler.db"
-APSCHEDULER_DB.touch(exist_ok=True)
+SCHEDULER_CONFIG: t.Final[Path] = __configdir__ / "scheduler.toml"
+BQ_UPDATES: t.Final[Path] = __config__ / ".bq_updates"
 # fmt: on
 
 
@@ -123,8 +124,8 @@ CONFIG_UPDATE_PATHS: list[str] = [
     "settings.quiet_start",
     "settings.reserve_space_for_menu",
     "settings.timer_add_min",
-    "settings.week_start",
     "settings.update-terminal-title",
+    "settings.week_start",
     "user.host",
     "user.name",
     "user.stay_logged_in",
@@ -155,6 +156,10 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
                 "->", f"[repr.number]{v_package}[/]",  # fmt: skip
             )
 
+            # No live updates to check for yet.
+            # if not BQ_UPDATES.exists():
+            #     BQ_UPDATES.write_text(constant.BQ_UPDATES_CONFIG)
+
         local_config = utils.merge_default_dict_into_current_dict(
             local_config,
             rtoml.load(constant.DEFAULT_CONFIG),
@@ -183,10 +188,10 @@ def console_log_error(error: Exception, notify: bool, patch_stdout: bool) -> Non
     if notify:
         notice: str = (
             f"\n[b][red]Encountered an unexpected error:[/] {error!r}."
-            "\nIf you'd like to create an issue for this, you can submit @ "
-            "[repr.url]https://github.com/ayvi-0001/lightlike-cli/issues/new[/repr.url]."
-            "\nPlease include any relevant info in the traceback found at:"
-            f"\n[repr.url]{error_log.as_uri()}[/repr.url]\n"
+            f"\nIf you'd like to create an issue for this, you can submit @ "
+            f"[repr.url]{__repo__}/issues/new[/repr.url]."
+            f"\nPlease include any relevant info in the traceback found at:"
+            f"\n[repr.url]{error_log.as_posix()}[/repr.url]\n"
         )
         if patch_stdout:
             from prompt_toolkit.patch_stdout import patch_stdout as _patch_stdout
@@ -209,14 +214,14 @@ def _initial_build() -> None | t.NoReturn:
         from rich.padding import Padding
 
         from lightlike.app import _questionary
-        from lightlike.app.config import AppConfig
 
         console = get_console()
         default_config = rtoml.load(constant.DEFAULT_CONFIG)
+        license = Markdown(markup=cleandoc(constant.LICENSE), justify="left")
 
         console.rule(style="#9146ff")
         _console.reconfigure(height=17)
-        console.print(Padding(_get_license(), (0, 0, 1, 1)))
+        console.print(Padding(license, (0, 0, 1, 1)))
         _console.reconfigure(height=None)
         _questionary.press_any_key_to_continue(message="Press any key to continue.")
 
@@ -398,34 +403,3 @@ def _initial_build() -> None | t.NoReturn:
         rprint(markup.failure("Failed build:"), error)
         rprint(markup.failure("Deleting app directory."))
         rmtree()
-
-
-def _get_license() -> Markdown:
-    return Markdown(
-        markup=cleandoc(
-            """
-            MIT License
-
-            Copyright (c) 2024 ayvi-0001
-
-            Permission is hereby granted, free of charge, to any person obtaining a copy
-            of this software and associated documentation files (the "Software"), to deal
-            in the Software without restriction, including without limitation the rights
-            to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-            copies of the Software, and to permit persons to whom the Software is
-            furnished to do so, subject to the following conditions:
-
-            The above copyright notice and this permission notice shall be included in all
-            copies or substantial portions of the Software.
-
-            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-            IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-            FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-            AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-            LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-            SOFTWARE.
-                """
-        ),
-        justify="left",
-    )

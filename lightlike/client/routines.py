@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 import typing as t
 from inspect import classify_class_attrs, cleandoc
-from os import getenv
 from time import perf_counter_ns, sleep, time
 
 import click
@@ -1611,17 +1610,6 @@ class CliQueryRoutines:
             )
 
     def _query_job_url(self, query_job: "QueryJob") -> str:
-        if LIGHTLIKE_CLI_DEV_GCP_PROJECT := getenv("LIGHTLIKE_CLI_DEV_GCP_PROJECT"):
-            from uuid import uuid4
-
-            return "{base_url}project={project_id}&j=bq:{region}:{job_id}&{end_point}".format(
-                base_url="https://console.cloud.google.com/bigquery?",
-                project_id=LIGHTLIKE_CLI_DEV_GCP_PROJECT,
-                region=query_job.location,
-                job_id=uuid4(),
-                end_point="page=queryresults",
-            )
-
         return (
             "{base_url}project={project_id}&j=bq:{region}:{job_id}&{end_point}".format(
                 base_url="https://console.cloud.google.com/bigquery?",

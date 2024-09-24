@@ -3,12 +3,13 @@ import socket
 import typing as t
 from datetime import datetime, timedelta
 from decimal import Decimal
-from os import getenv
 from pathlib import Path
 
+import rtoml
 from prompt_toolkit.formatted_text import fragment_list_width
 from rich import get_console
 
+from lightlike.__about__ import __appdir__
 from lightlike.app.cache import EntriesInMemory
 from lightlike.app.config import AppConfig
 from lightlike.app.dates import now, seconds_to_time_parts
@@ -35,11 +36,12 @@ StyleAndTextTuples = list[OneStyleAndTextTuple]
 USERNAME: str = AppConfig().get("user", "name", default=getpass.getuser())
 HOSTNAME: str = AppConfig().get("user", "host", default=socket.gethostname())
 GCP_PROJECT: str | None = AppConfig().get("client", "active_project")
-BRANCH: str | None = AppConfig().get("git", "branch")
-PATH: str | None = AppConfig().get("git", "path")
 TIMEZONE: "_TzInfo" = AppConfig().tzinfo
 UPDATE_TERMINAL_TITLE: bool = AppConfig().get(
     "settings", "update-terminal-title", default=True
+)
+RPROMPT_DATE_FORMAT: str = AppConfig().get(
+    "settings", "rprompt-date-format", default="[%H:%M:%S]"
 )
 
 
@@ -141,19 +143,35 @@ def rprompt() -> t.Callable[..., StyleAndTextTuples]:
     return lambda: [("", f"\n"), ("class:rprompt.clock", "[%s]" % timestamp)]
 
 
+GIT_INFO_PATH: t.Final[Path] = __appdir__ / ".gitinfo"
+
+if not GIT_INFO_PATH.exists():
+    rtoml.dump(
+        {"branch": "", "path": ""},
+        GIT_INFO_PATH,
+    )
+
+GIT_INFO: dict[str, str] = rtoml.load(GIT_INFO_PATH)
+
+BRANCH: str | None = GIT_INFO.get("branch")
+PATH: str | None = GIT_INFO.get("path")
+
+
 def _extend_git_branch(cursor: StyleAndTextTuples, cwd: Path) -> None:
-    global BRANCH, PATH
+    global BRANCH, PATH, GIT_INFO
     if BRANCH and PATH:
         if not cwd.is_relative_to(PATH):
             PATH, BRANCH = "", ""
-            with AppConfig().rw() as config:
-                config["git"].update(path=PATH, branch=BRANCH)
+            GIT_INFO["branch"] = ""
+            GIT_INFO["path"] = ""
+            rtoml.dump(GIT_INFO, GIT_INFO_PATH)
     else:
         if (head_dir := cwd / ".git" / "HEAD").exists():
             PATH = head_dir.parent.parent.resolve().as_posix()
             BRANCH = head_dir.read_text().splitlines()[0].partition("refs/heads/")[2]
-            with AppConfig().rw() as config:
-                config["git"].update(path=PATH, branch=BRANCH)
+            GIT_INFO["branch"] = BRANCH
+            GIT_INFO["path"] = PATH
+            rtoml.dump(GIT_INFO, GIT_INFO_PATH)
 
     BRANCH and cursor.extend(
         [
@@ -186,96 +204,44 @@ def _timer(cache: EntriesInMemory) -> str:
         return f" {now(TIMEZONE) - start} "
 
 
-if all(
-    [
-        LIGHTLIKE_CLI_DEV_USERNAME := getenv("LIGHTLIKE_CLI_DEV_USERNAME"),
-        LIGHTLIKE_CLI_DEV_HOSTNAME := getenv("LIGHTLIKE_CLI_DEV_HOSTNAME"),
-    ]
-):
+def _extend_base(cursor: StyleAndTextTuples, cwd: Path) -> None:
+    home: Path = cwd.home()
+    home_drive: str = home.drive
+    cwd_drive: str = cwd.drive
 
-    def _extend_base(cursor: StyleAndTextTuples, cwd: Path) -> None:
-        home: Path = cwd.home()
-        home_drive: str = home.drive
-        cwd_drive: str = cwd.drive
+    if home_drive.startswith(cwd_drive):
+        path_prefix: str = " ~"
+        drive = home_drive
+    else:
+        path_prefix = " /"
+        drive = cwd_drive
 
-        if home_drive.startswith(cwd_drive):
-            path_prefix: str = " ~"
-            drive: str = home_drive
-        else:
-            path_prefix = " /"
-            drive = cwd_drive
+    path_name: str = (
+        cwd.as_posix()
+        .removeprefix(f"{home.as_posix()}")
+        .replace(drive, drive.lower().replace(":", ""))
+    )
 
-        path_name: str = (
-            cwd.as_posix()
-            .removeprefix(f"{home.as_posix()}")
-            .replace(drive, drive.lower().replace(":", ""))
-        )
-
-        cursor.extend(
-            [
-                ("", "\n"),
-                ("class:prompt.user", LIGHTLIKE_CLI_DEV_USERNAME or ""),
-                ("class:prompt.at", "@"),
-                ("class:prompt.host", LIGHTLIKE_CLI_DEV_HOSTNAME or ""),
-                ("class:prompt.path.prefix", path_prefix),
-                ("class:prompt.path.name", path_name or "/"),
-            ]
-        )
-
-else:
-
-    def _extend_base(cursor: StyleAndTextTuples, cwd: Path) -> None:
-        home: Path = cwd.home()
-        home_drive: str = home.drive
-        cwd_drive: str = cwd.drive
-
-        if home_drive.startswith(cwd_drive):
-            path_prefix: str = " ~"
-            drive = home_drive
-        else:
-            path_prefix = " /"
-            drive = cwd_drive
-
-        path_name: str = (
-            cwd.as_posix()
-            .removeprefix(f"{home.as_posix()}")
-            .replace(drive, drive.lower().replace(":", ""))
-        )
-
-        global USERNAME, HOSTNAME
-        cursor.extend(
-            [
-                ("", "\n"),
-                ("class:prompt.user", USERNAME),
-                ("class:prompt.at", "@"),
-                ("class:prompt.host", HOSTNAME),
-                ("class:prompt.path.prefix", path_prefix),
-                ("class:prompt.path.name", path_name or "/"),
-            ]
-        )
+    cursor.extend(
+        [
+            ("", "\n"),
+            ("class:prompt.user", USERNAME),
+            ("class:prompt.at", "@"),
+            ("class:prompt.host", HOSTNAME),
+            ("class:prompt.path.prefix", path_prefix),
+            ("class:prompt.path.name", path_name or "/"),
+        ]
+    )
 
 
-if LIGHTLIKE_CLI_DEV_GCP_PROJECT := getenv("LIGHTLIKE_CLI_DEV_GCP_PROJECT"):
-
-    def _extend_active_project(cursor: StyleAndTextTuples, project: str) -> None:
-        cursor.extend(
-            [
-                ("class:prompt.project.parenthesis", " ("),
-                ("class:prompt.project.name", LIGHTLIKE_CLI_DEV_GCP_PROJECT or ""),
-                ("class:prompt.project.parenthesis", ") "),
-            ]
-        )
-
-else:
-
-    def _extend_active_project(cursor: StyleAndTextTuples, project: str) -> None:
-        cursor.extend(
-            [
-                ("class:prompt.project.parenthesis", " ("),
-                ("class:prompt.project.name", project),
-                ("class:prompt.project.parenthesis", ") "),
-            ]
-        )
+def _extend_active_project(cursor: StyleAndTextTuples, project: str) -> None:
+    cursor.extend(
+        [
+            ("class:prompt.project.parenthesis", " ("),
+            ("class:prompt.project.name", project),
+            ("class:prompt.project.parenthesis", ") "),
+        ]
+    )
 
 
 # CONSOLE_WIDTH: int = get_console().width

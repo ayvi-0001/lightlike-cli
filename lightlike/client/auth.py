@@ -93,7 +93,7 @@ class AuthPromptSession:
                     "[b][red]Saved credentials failed.",
                     "Password input required.",
                 )
-            elif type(error) == InvalidToken:
+            elif isinstance(error, InvalidToken):
                 if not _saved_password:
                     rprint("[b][red]Incorrect password.")
             else:

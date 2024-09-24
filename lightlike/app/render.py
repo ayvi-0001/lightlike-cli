@@ -3,7 +3,6 @@ from contextlib import suppress
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from functools import reduce
-from os import getenv
 
 from more_itertools import one
 from rich import box, get_console
@@ -12,7 +11,6 @@ from rich.table import Table
 from rich.text import Text
 
 from lightlike.__about__ import __appdir__, __appname_sc__, __config__, __version__
-from lightlike.app.config import AppConfig
 from lightlike.internal import appdir, markup
 
 if t.TYPE_CHECKING:
@@ -32,43 +30,36 @@ __all__: t.Sequence[str] = (
 
 def cli_info() -> None:
     console = get_console()
-
     console.log(f"__appname__[b][red]=[/red][repr.str]{__appname_sc__}")
     console.log(f"__version__[b][red]=[/red][repr.number]{__version__}")
     console.log(f"__config__[b][red]=[/red][repr.path]{__config__.as_posix()}")
+    console.log(f"__appdir__[b][red]=[/][repr.path]{__appdir__.as_posix()}")
 
-    if LIGHTLIKE_CLI_DEV_USERNAME := getenv("LIGHTLIKE_CLI_DEV_USERNAME"):
-        console.log(
-            f"__appdir__[b red]=[/][repr.path]/{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike-cli"
-        )
-    else:
-        console.log(f"__appdir__[b][red]=[/][repr.path]{__appdir__.as_posix()}")
+    # width = (
+    #     f"[b][green]{console.width}[/]"
+    #     if console.width >= 140
+    #     else f"[b][red]{console.width}[/]"
+    # )
+    # height = (
+    #     f"[b][green]{console.height}[/]"
+    #     if console.height >= 40
+    #     else f"[b][red]{console.height}[/]"
+    # )
 
-    width = (
-        f"[b][green]{console.width}[/]"
-        if console.width >= 140
-        else f"[b][red]{console.width}[/]"
-    )
-    height = (
-        f"[b][green]{console.height}[/]"
-        if console.height >= 40
-        else f"[b][red]{console.height}[/]"
-    )
-
-    console.log(
-        f"console_width[b][red]=[/]{width}",
-        "[dim][red](recommended width </ 140)" if console.width < 140 else "",
-    )
-    console.log(
-        f"console_height[b][red]=[/]{height}",
-        "[dim][red](recommended height </ 40)" if console.height < 40 else "",
-    )
+    # console.log(
+    #     f"console_width[b][red]=[/]{width}",
+    #     "[dim][red](recommended width </ 140)" if console.width < 140 else "",
+    # )
+    # console.log(
+    #     f"console_height[b][red]=[/]{height}",
+    #     "[dim][red](recommended height </ 40)" if console.height < 40 else "",
+    # )
 
 
 def query_start_render(
     query_config: dict[str, bool],
     timestamp: str,
-    print_output_dir: bool = False,
+    print_output_path: bool = False,
 ) -> None:
     table = Table(
         show_edge=False,
@@ -98,17 +89,13 @@ def query_start_render(
     table.add_row(*general, *query)
     rprint(table)
 
-    if print_output_dir:
-        appdir.QUERIES.mkdir(exist_ok=True)
-        _dest = appdir.QUERIES.joinpath(timestamp).resolve()
-        _dest.mkdir(exist_ok=True)
-        uri = _dest.as_uri()
-
-        if LIGHTLIKE_CLI_DEV_USERNAME := getenv("LIGHTLIKE_CLI_DEV_USERNAME"):
-            uri = f"{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike-cli/queries/{timestamp}"
-            rprint(f" Queries saved to: [repr.url][link={uri}]{uri}")
-        else:
-            rprint(f" Queries saved to: [repr.url][link={uri}]{uri}")
+    if print_output_path:
+        output_path = appdir.QUERIES.joinpath(timestamp).resolve()
+        output_path.mkdir(exist_ok=True, parents=True)
+        rprint(
+            f" Queries saved to: [repr.url]"
+            f"[link={output_path.as_uri()}]{output_path.as_posix()}"
+        )
 
 
 def map_sequence_to_rich_table(

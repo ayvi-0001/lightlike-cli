@@ -62,7 +62,7 @@ def _run_query_repl(console: Console) -> None:
     render.query_start_render(
         query_config=query_settings,
         timestamp=TS,
-        print_output_dir=save_txt or save_svg,
+        print_output_path=save_txt or save_svg,
     )
 
     with console.status(markup.status_message("Loading BigQuery Resources")):

@@ -5,10 +5,10 @@ from pathlib import Path
 
 import google.auth
 import google.auth.credentials
+import rtoml
 from google.auth.exceptions import DefaultCredentialsError
 from google.cloud import bigquery
 from more_itertools import flatten, interleave_longest
-from pytz import timezone
 from rich import get_console
 from rich import print as rprint
 from rich.console import Console
@@ -17,16 +17,17 @@ from rich.padding import Padding
 from rich.panel import Panel
 
 from lightlike import _console
+from lightlike.__about__ import __appdir__
 from lightlike.app import _get, _questionary
 from lightlike.app.config import AppConfig
 from lightlike.client._credentials import _get_credentials_from_config
-from lightlike.internal import markup, utils
+from lightlike.internal import appdir, markup, utils
 
 __all__: t.Sequence[str] = (
-    "get_client",
-    "reconfigure",
     "authorize_bigquery_client",
+    "get_client",
     "provision_bigquery_resources",
+    "reconfigure",
 )
 
 
@@ -73,12 +74,15 @@ def authorize_bigquery_client() -> bigquery.Client:
         _console.if_not_quiet_start(console.log)("bigquery.Client authenticated")
 
         resources_provisioned = appconfig.get("bigquery", "resources_provisioned")
-        updates = appconfig.get("updates")
 
         if not resources_provisioned:
             provision_bigquery_resources(client)
-        elif updates and any([updates[k] is False for k in updates]):
-            provision_bigquery_resources(client, updates=updates)
+        else:
+            if appdir.BQ_UPDATES.exists():
+                bq_updates: dict[dict[str, bool]] = rtoml.load(appdir.BQ_UPDATES)
+                versions: dict[str, bool] = bq_updates["versions"]
+                if versions and any([versions[k] is False for k in versions]):
+                    provision_bigquery_resources(client, updates=versions)
 
         _update_cursor_global_project(locals())
         return client
@@ -146,14 +150,16 @@ def provision_bigquery_resources(
         rprint(Padding(confirm_panel, (1, 0, 1, 1)))
 
     def update_config() -> None:
-        updates = AppConfig().get("updates")
-
         with AppConfig().rw() as config:
             config["bigquery"].update(resources_provisioned=True)
 
-            if updates and any([updates[k] is False for k in updates]):
-                for k in updates:
-                    config["updates"][k] = True
+        if appdir.BQ_UPDATES.exists():
+            bq_updates: dict[dict[str, bool]] = rtoml.load(appdir.BQ_UPDATES)
+            versions: dict[str, bool] = bq_updates["versions"]
+            if versions and any([versions[k] is False for k in versions]):
+                for k in versions:
+                    bq_updates["versions"][k] = True
+                rtoml.dump(bq_updates, appdir.BQ_UPDATES)
 
     mapping: dict[str, t.Any] = AppConfig().get("bigquery", default={})
     bq_patterns = {

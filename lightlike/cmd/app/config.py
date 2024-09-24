@@ -146,7 +146,7 @@ def list_(console: Console, keys: t.Sequence[str], json_: bool) -> None:
 @_pass.console
 def open_(console: Console) -> None:
     """Open location of config file."""
-    path: str = f"{__config__.resolve().as_posix()}"
+    path: str = f"{__config__.resolve()}"
     click.launch(path, locate=True)
     console.print(f"$ {_start_command(path, locate=True)}")
 

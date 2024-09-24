@@ -62,17 +62,20 @@ LOCK: InterProcessLock = InterProcessLock(__lock__, logger=appdir.log())
 def main() -> None:
     _check_lock(LOCK)
     _console.if_not_quiet_start(render.cli_info)()
+    log_error: partial[None] = partial(
+        appdir.console_log_error, notify=True, patch_stdout=True
+    )
 
     try:
         appdir.validate(__version__, __config__)
     except Exception as error:
-        appdir.console_log_error(error, notify=True, patch_stdout=True)
+        log_error(error)
         sys.exit(2)
 
     try:
         run_cli()
     except Exception as error:
-        appdir.console_log_error(error, notify=True, patch_stdout=True)
+        log_error(error)
     finally:
         if len(sys.argv) > 1:
             from lightlike.cmd.scheduler.jobs import check_latest_release
@@ -223,7 +226,7 @@ def _check_lock(lock: InterProcessLock) -> None | t.NoReturn:
 def _build_lazy_subcommands(config: dict[str, str] | None = None) -> dict[str, str]:
     # Nothing imports from the `cmd` module.
     # Commands are all added either by default here, or from the config file.
-    if not config:
+    if config is None:
         config = {}
 
     default = {
