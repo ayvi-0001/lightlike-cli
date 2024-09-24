@@ -1,9 +1,11 @@
+import os
 import sys
 import typing as t
 from datetime import datetime, timedelta
 from decimal import Decimal
 from os import getenv
 from pathlib import Path
+from subprocess import list2cmdline
 
 import click
 from rich import print as rprint
@@ -33,6 +35,9 @@ __all__: t.Sequence[str] = (
 )
 
 
+CYGWIN = sys.platform.startswith("cygwin")
+WIN = sys.platform.startswith("win")
+
 P = t.ParamSpec("P")
 
 
@@ -50,6 +55,7 @@ else:
     lazy_subcommands={
         "edit": "lightlike.cmd.app.config:edit",
         "set": "lightlike.cmd.app.config:set_",
+        "open": "lightlike.cmd.app.config:open_",
         "list": "lightlike.cmd.app.config:list_",
     },
     short_help=f"Cli config file and settings. {__config}",
@@ -57,6 +63,9 @@ else:
         code="""\
         $ app config edit
         $ a c e
+        
+        $ app config open
+        $ a c o
     
         $ app config list
         $ a c l
@@ -91,14 +100,52 @@ def config() -> None:
     """
 
 
-def _probably_start_cmd() -> str:
-    # This is only used to display, not run the actual command.
-    if sys.platform.startswith("darwin"):
-        return "open"
-    elif sys.platform.startswith("win"):
-        return "start"  # "explorer"
-    elif sys.platform.startswith("cygwin"):
-        return "cygstart"
+# This is a copy of click._termui_impl:open_url, except it only returns the args.
+def _start_command(url: str, wait: bool = False, locate: bool = False) -> str:
+    def _unquote_file(url: str) -> str:
+        from urllib.parse import unquote
+
+        if url.startswith("file://"):
+            url = unquote(url[7:])
+
+        return url
+
+    if sys.platform == "darwin":
+        args = ["open"]
+        if wait:
+            args.append("-W")
+        if locate:
+            args.append("-R")
+        args.append(_unquote_file(url))
+
+    elif WIN:
+        if locate:
+            url = _unquote_file(url.replace('"', ""))
+            args = f'explorer /select,"{url}"'
+            return args
+        else:
+            url = url.replace('"', "")
+            wait_str = "/WAIT" if wait else ""
+            args = f'start {wait_str} "" "{url}"'
+            return args
+
+    elif CYGWIN:
+        if locate:
+
+            url = os.path.dirname(_unquote_file(url).replace('"', ""))
+            args = f'cygstart "{url}"'
+        else:
+            url = url.replace('"', "")
+            wait_str = "-w" if wait else ""
+            args = f'cygstart {wait_str} "{url}"'
+            return args
+
+    if locate:
+        url = os.path.dirname(_unquote_file(url)) or "."
+    else:
+        url = _unquote_file(url)
+
+    return list2cmdline(["xdg-open", url])
 
 
 @click.command(
@@ -125,7 +172,7 @@ def _probably_start_cmd() -> str:
     flag_value=False,
     multiple=False,
     type=click.BOOL,
-    help=f"Default opens with cmd `{_probably_start_cmd()}`.",
+    help=f"Default opens with cmd `{_start_command('{uri}', locate=True)}`.",
     required=False,
     default=True,
     callback=None,
@@ -145,21 +192,23 @@ def dir_(console: Console, start: bool) -> None:
             open the app directory using the configured text-editor.
             configure text-editor with app:config:set:general:editor.
     """
-    uri = __appdir__.as_uri()
-    path = __appdir__.as_posix()
+    path: str = f"{__appdir__.resolve()}"
 
     if start:
         click.launch(path)
-        console.print("$ start", markup.link(uri, uri))
+        console.print(f"$ {_start_command(path, locate=True)}")
     else:
-        editor = AppConfig().get("settings", "editor", default=None) or None
+        default_editor = os.environ.get("EDITOR")
+        editor: str | None = (
+            AppConfig().get("settings", "editor", default=default_editor) or None
+        )
         if editor:
             click.edit(editor=editor, filename=path, require_save=False)
-            console.print("$", editor, markup.link(uri, uri))
+            console.print("$", editor, markup.link(path, path))
         else:
             console.print("editor not set.")
             click.launch(path)
-            console.print("$ start", markup.link(uri, uri))
+            console.print(f"$ {_start_command(path, locate=True)}")
 
 
 @click.command(

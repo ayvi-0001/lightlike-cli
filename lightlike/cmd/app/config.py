@@ -3,13 +3,13 @@ import typing as t
 from contextlib import suppress
 from dataclasses import dataclass
 from functools import partial
-from pathlib import Path
 
 import click
 import pytz
+import rtoml
 from more_itertools import nth, one
 from rich import print as rprint
-from rich.console import Console, NewLine
+from rich.console import Console
 from rich.syntax import Syntax
 
 from lightlike.__about__ import __appdir__, __config__
@@ -18,11 +18,11 @@ from lightlike.app.cache import TimeEntryAppData
 from lightlike.app.config import AppConfig
 from lightlike.app.core import AliasedGroup, FormattedCommand
 from lightlike.cmd import _pass
-from lightlike.cmd.app.commands import _probably_start_cmd
+from lightlike.cmd.app.commands import _start_command
 from lightlike.internal import markup, utils
 from lightlike.internal.enums import CredentialsSource
 
-__all__: t.Sequence[str] = ("edit", "list_", "set_")
+__all__: t.Sequence[str] = ("edit", "list_", "open_", "set_")
 
 
 P = t.ParamSpec("P")
@@ -46,23 +46,19 @@ P = t.ParamSpec("P")
 @_pass.console
 def edit(console: Console) -> None:
     """Edit the config file located in the users home directory using the default text editor."""
-    path: Path = __config__.resolve()
-    uri: str = path.as_uri()
-    editor: str | None = AppConfig().get(
-        "settings",
-        "editor",
-        default=os.environ.get("EDITOR"),
+    path: str = f"{__config__.resolve().as_posix()}"
+    default_editor = os.environ.get("EDITOR")
+    editor: str | None = (
+        AppConfig().get("settings", "editor", default=default_editor) or None
     )
 
     if editor:
-        click.edit(
-            editor=editor, filename=f"{path}", extension=".toml", require_save=False
-        )
-        console.print("$", editor, markup.link(uri, uri))
+        click.edit(editor=editor, filename=path, extension=".toml", require_save=False)
+        console.print("$", editor, markup.link(path, path))
     else:
-        click.launch(f"{path}")
+        click.launch(path)
         console.print(markup.dimmed("EDITOR not set"))
-        console.print(f"$ {_probably_start_cmd()}", markup.link(uri, uri))
+        console.print(f"$ {_start_command(path)}")
 
 
 @click.command(
@@ -83,24 +79,76 @@ def edit(console: Console) -> None:
         background_color="#131310",
     ),
 )
+@click.argument(
+    "keys",
+    type=click.STRING,
+    required=False,
+    default=None,
+    callback=None,
+    nargs=-1,
+    metavar=None,
+    expose_value=True,
+    is_eager=False,
+    shell_complete=None,
+)
+@click.option(
+    "-j",
+    "--json",
+    "json_",
+    show_default=True,
+    is_flag=True,
+    flag_value=True,
+    multiple=False,
+    type=click.BOOL,
+    help=None,
+    required=False,
+    hidden=True,
+    default=None,
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
 @_pass.console
-def list_(console: Console) -> None:
+def list_(console: Console, keys: t.Sequence[str], json_: bool) -> None:
     """Show current config file in terminal."""
-    console.print(
-        Syntax(
-            __config__.read_text(),
+    if keys:
+        content = AppConfig().get(*keys)
+    else:
+        content = AppConfig().config
+
+    if json_:
+        console.print_json(data=content, default=str, indent=4)
+    else:
+        syntax: Syntax = Syntax(
+            rtoml.dumps(content),
             lexer="toml",
             line_numbers=True,
             background_color="#131310",
-        ),
-    )
-    console.print(
-        NewLine(),
-        "location:",
-        __config__.resolve()
-        .as_posix()
-        .replace(__config__.drive, __config__.drive.lower().replace(":", "")),
-    )
+        )
+        console.print(syntax)
+
+
+@click.command(
+    cls=FormattedCommand,
+    name="open",
+    short_help="Open location of config file.",
+    syntax=Syntax(
+        code="""\
+        $ app config open
+        $ a c o\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
+)
+@_pass.console
+def open_(console: Console) -> None:
+    """Open location of config file."""
+    path: str = f"{__config__.resolve().as_posix()}"
+    click.launch(path, locate=True)
+    console.print(f"$ {_start_command(path, locate=True)}")
 
 
 @click.group(
@@ -254,17 +302,19 @@ system_command_shell = SettingsCommand(
     unix: ["sh", "-c"] / ["bash", "-c"]
     windows: ["cmd", "/C"]
 
+    if setting was set to ["bash", "-c"] and the command is `ls`,
+    then it will be executed as
+    $ bash -c "ls"
+
     When setting value, enclose list in single quotes, and use double quotes for string values.
     """,
     syntax=Syntax(
         code="""\
-        # if setting was set to ["bash", "-c"]
-        # and the command is `ls`
-        # then it will be executed as
-        $ bash -c "ls"
-
-        # example setting config key
-        $ app config set general shell '["bash", "-c"]'\
+        # example setting config key.
+        $ app config set general shell '["bash", "-c"]'
+        
+        # login to shell and read rc file.
+        $ app config set general shell '["bash", "--rcfile", "~/.bashrc", "-ic", "-c"]'\
         """,
         lexer="fishshell",
         dedent=True,
