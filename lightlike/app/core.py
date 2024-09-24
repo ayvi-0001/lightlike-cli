@@ -395,7 +395,7 @@ def _group_commands(
 
     if table.row_count != 0:
         yield rich.console.NewLine()
-        yield Text("Commands", style="bold underline")
+        yield Text("Commands:", style="bold underline")
         yield Padding(table, (0, 0, 0, 2))
 
 
@@ -408,7 +408,7 @@ class OptionGroups(t.TypedDict):
 def _group_options(
     obj: click.Command, ctx: click.Context
 ) -> t.Iterable[rich.console.RenderableType]:
-    groups: list[OptionGroups] = [{"name": "Options", "items": []}]
+    groups: list[OptionGroups] = [{"name": "Options:", "items": []}]
     arguments: list[str] = []
     params: list[click.Parameter] = obj.get_params(ctx)
 
@@ -421,7 +421,7 @@ def _group_options(
             groups[0]["items"].append(param.opts[0])
 
     if len(arguments) > 0:
-        extra_option_group = OptionGroups(name="Arguments", items=arguments)
+        extra_option_group = OptionGroups(name="Arguments:", items=arguments)
         groups.insert(len(groups) - 1, extra_option_group)
 
     for group in groups:
@@ -538,11 +538,12 @@ def _(param: click.Argument, ctx: click.Context) -> Columns:
     if param.default or ctx.show_default:
         help_record = param.get_help_record(ctx)
         if help_record:
-            default_str_match = re.search(
+            default_str_match: re.Match[str] | None = re.search(
                 r"\[(?:.+; )?default: (.*)\]", last(help_record)
             )
             if default_str_match:
-                default_str = default_str_match.group(1).replace("; required", "")
+                default_str_group: str = default_str_match.group(1)
+                default_str: str = default_str_group.replace("; required", "")
                 items.append(Text(f"[default={default_str}]", style="dimmed"))
 
     if param.required:

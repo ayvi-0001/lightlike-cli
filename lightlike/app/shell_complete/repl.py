@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import typing as t
-from shlex import shlex
 
 import click
 from click.shell_completion import CompletionItem
@@ -181,7 +180,7 @@ class ReplCompleter(Completer):
     ) -> t.Iterable[Completion]:
         try:
             text_before_cursor: str = document.text_before_cursor
-            args: list[str] = split_arg_string(text_before_cursor, posix=False)
+            args: list[str] = click.parser.split_arg_string(text_before_cursor)
 
             choices: list[Completion] = []
             chained_command_choices: list[Completion] = []
@@ -308,18 +307,3 @@ def _resolve_context(args: list[str], ctx: click.Context) -> click.Context:
             )
 
     return ctx
-
-
-def split_arg_string(string: str, posix: bool = True) -> list[str]:
-    lex: shlex = shlex(string, posix=posix)
-    lex.whitespace_split = True
-    lex.commenters = ""
-    out: list[str] = []
-
-    try:
-        for token in lex:
-            out.append(token)
-    except ValueError:
-        out.append(lex.token)
-
-    return out

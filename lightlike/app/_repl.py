@@ -1,6 +1,6 @@
+import os
 import sys
 import typing as t
-from shlex import shlex
 from subprocess import list2cmdline, run
 
 import click
@@ -62,7 +62,11 @@ def repl(
     if scheduler:
         scheduler().start()
         if default_jobs_callable and callable(default_jobs_callable):
-            default_jobs_callable()
+            try:
+                default_jobs_callable()
+            except AttributeError as error:
+                if not "'NoneType' object has no attribute 'items'" in f"{error}":
+                    raise error
 
     try:
         while 1:
@@ -71,7 +75,7 @@ def repl(
             except (KeyboardInterrupt, EOFError):
                 continue
 
-            args: list[str] = split_arg_string(command, posix=True)
+            args: list[str] = click.parser.split_arg_string(command)
             if not args:
                 continue
 
@@ -147,7 +151,7 @@ def _execute_system_command(
         buffer.delete_before_cursor(len(_CMD))
 
         _CMD = _prepend_exec_to_cmd(_CMD, shell_cmd_callable)
-        run(_CMD, shell=True)
+        run(_CMD, shell=True, env=os.environ)
 
     except KeyboardInterrupt:
         rprint("[#888888]Command killed by keyboard interrupt.")
@@ -184,18 +188,3 @@ class ExitRepl(Exception):
 
 def exit_repl() -> t.NoReturn:
     raise ExitRepl()
-
-
-def split_arg_string(string: str, posix: bool = True) -> list[str]:
-    lex: shlex = shlex(string, posix=posix)
-    lex.whitespace_split = True
-    lex.commenters = ""
-    out: list[str] = []
-
-    try:
-        for token in lex:
-            out.append(token)
-    except ValueError:
-        out.append(lex.token)
-
-    return out
