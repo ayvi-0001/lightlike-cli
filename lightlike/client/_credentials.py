@@ -10,7 +10,6 @@ from google.oauth2 import service_account
 from rich import get_console, print
 from rich.console import Console, NewLine
 
-from lightlike import _console
 from lightlike.app import _questionary
 from lightlike.app.config import AppConfig
 from lightlike.client.auth import AuthPromptSession, _Auth
@@ -118,9 +117,7 @@ def service_account_key_flow(appconfig: AppConfig) -> tuple[bytes, bytes]:
     )
 
     if not (encrypted_key_from_config and salt_from_config):
-        _console.if_not_quiet_start(console.log)(
-            "Initializing new service-account config"
-        )
+        console.log("Initializing new service-account config")
 
         print(NewLine())
         print(

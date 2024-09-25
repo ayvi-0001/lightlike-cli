@@ -167,7 +167,10 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
             force_update_paths=CONFIG_FORCE_UPDATE_PATHS,
         )
 
-        __config__.write_text(utils.format_toml(local_config))
+        __config__.write_text(
+            utils.format_toml(local_config),
+            encoding="utf-8",
+        )
 
     return None
 
@@ -367,7 +370,10 @@ def _initial_build() -> None | t.NoReturn:
 
         console.log("Building app directory")
         console.log("Saving config")
-        __config__.write_text(utils.format_toml(default_config))
+        __config__.write_text(
+            utils.format_toml(default_config),
+            encoding="utf-8",
+        )
         __config__.touch(exist_ok=True)
         console.log(f"Writing {__config__}")
         console.log(f"Writing {REPL_HISTORY}")
@@ -380,7 +386,8 @@ def _initial_build() -> None | t.NoReturn:
             % (
                 timezone,
                 "sqlite:///" + __appdir__.joinpath("apscheduler.db").as_posix(),
-            )
+            ),
+            encoding="utf-8",
         )
         console.log(f"Writing {ENTRY_APPDATA}")
         ENTRY_APPDATA.write_text(
@@ -392,7 +399,8 @@ def _initial_build() -> None | t.NoReturn:
                 default_billable = false
                 notes = []
                 """
-            )
+            ),
+            encoding="utf-8",
         )
         console.log("Directory build complete")
 

@@ -1487,7 +1487,8 @@ def list_(
         console.print(table)
 
     appdir.TIMER_LIST_CACHE.write_text(
-        dumps({idx: row.get("id") for idx, row in enumerate(rows)})
+        dumps({idx: row.get("id") for idx, row in enumerate(rows)}),
+        encoding="utf-8",
     )
 
 
@@ -1553,7 +1554,7 @@ def update_notes(
     try:
         notes_to_edit: t.Sequence[str] = _questionary.checkbox(
             message="Select notes to edit",
-            choices=shell_complete.notes.Notes().get(project),
+            choices=sorted(shell_complete.notes.Notes().get(project)),
         )
     except AttributeError:
         console.print(
@@ -1767,8 +1768,8 @@ def resume(
         $ timer run
         $ t ru
 
-        $ timer run --project lightlike-cli --note readme --start -1hr --billable False
-        $ t ru -plightlike-cli -nreadme -s-1hr -b0\
+        $ timer run --project lightlike-cli --note readme --start 1h --billable False
+        $ t ru -plightlike-cli -nreadme -s1h -b0\
         """,
         lexer="fishshell",
         dedent=True,
@@ -1950,6 +1951,7 @@ def run(
 
     start_local: datetime = start or now
     time_entry_id: str = sha1(f"{project}{note}{start_local}".encode()).hexdigest()
+
     query_job: "QueryJob" = routine._start_time_entry(
         time_entry_id, project, note, start_local, billable or project_default_billable
     )

@@ -29,7 +29,6 @@ __all__: t.Sequence[str] = (
     "nl_async",
     "nl_start",
     "get_local_timezone_string",
-    "get_config_if_exists",
     "identical_vectors",
     "pretty_print_exception",
     "log_exception",
@@ -129,15 +128,6 @@ def get_local_timezone_string(default: str | None = None) -> str | None:
         default_timezone = _get_localzone_name()
 
     return default_timezone or default
-
-
-def get_config_if_exists(
-    config_path: Path, default: dict[str, t.Any]
-) -> dict[str, t.Any]:
-    if config_path.exists():
-        config: dict[str, t.Any] = rtoml.load(config_path)
-        return config
-    return default
 
 
 def identical_vectors(l1: list[t.Any], l2: list[t.Any]) -> bool:

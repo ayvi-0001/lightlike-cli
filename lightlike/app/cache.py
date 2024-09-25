@@ -286,7 +286,7 @@ class TimeEntryCache(_Entries):
         try:
             yield self
         finally:
-            self._path.write_text(self._serialize)
+            self._path.write_text(self._serialize, encoding="utf-8")
             self._entries = rtoml.load(self._path)
             EntriesInMemory().update(self._entries)
 
@@ -774,7 +774,7 @@ class TimeEntryAppData:
             return appdata
 
         reduce(_map_notes, projects, appdata)
-        self.path.write_text(rtoml.dumps(appdata), encoding="utf-8")
+        self.path.write_text(rtoml.dumps(appdata, pretty=True), encoding="utf-8")
 
         debug and patch_stdout(raw=True)(console.log)(
             "[DEBUG]", "entry appdata sync complete"

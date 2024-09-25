@@ -19,12 +19,12 @@ if t.TYPE_CHECKING:
 
 __all__: t.Sequence[str] = (
     "cli_info",
-    "query_start_render",
-    "map_sequence_to_rich_table",
+    "create_row_diff",
+    "create_table_diff",
     "map_cell_style",
     "map_column_style",
-    "create_table_diff",
-    "create_row_diff",
+    "map_sequence_to_rich_table",
+    "query_start_render",
 )
 
 

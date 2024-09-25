@@ -128,20 +128,6 @@ __repo__: Final[str] = "https://github.com/ayvi-0001/lightlike-cli"
 
 
 __cli_help__: str = f"""\
-__appname__ = {__appname_sc__}
-__version__ = {__version__}
-__config__  = {__config__.as_posix()}
-__appdir__  = {__appdir__.as_posix()}
-
-[b]Repo[/b]:
-    [repr.url][link={__repo__}]{__repo__}[/link][/]
-
-[b]Help[/b]:
-    add --help / -h to command/group.
-
-[b]Exit[/b]:
-    type [code]exit[/code] | press [code]:q[/code] | press [code]ctrl q[/code]
-
 [b]Completion[/b]:
     press [code]ctrl space[/code] or [code]tab[/code] to display.
     [code]:c{{1 | 2 | 3 | 4}}[/code] to add/remove completions from the global completer.
@@ -174,4 +160,15 @@ __appdir__  = {__appdir__.as_posix()}
     dates are relative to today and prefer the past.
     [yellow]see[/] app:parse-date-arg / app:parse-date-opt 
     to see examples of strings to pass to parser.
+
+[b]Help[/b]: add --help / -h to command/group.
+
+[b]Exit[/b]: type [code]exit[/code] | press [code]:q[/code] | press [code]ctrl q[/code]
+
+[b]Repo[/b]: [repr.url][link={__repo__}]{__repo__}[/link][/]
+
+__appname__ = {__appname_sc__}
+__version__ = {__version__}
+__config__  = {__config__.as_posix()}
+__appdir__  = {__appdir__.as_posix()}
 """

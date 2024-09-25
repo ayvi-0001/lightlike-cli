@@ -56,9 +56,10 @@ def build(message: str | None = None) -> t.Callable[[], StyleAndTextTuples]:
 
         if cache := EntriesInMemory():
             timer: str = _timer(cache)
-            UPDATE_TERMINAL_TITLE and get_console().set_window_title(
-                f"{timer} | {cache.project}"
-            )
+
+            if UPDATE_TERMINAL_TITLE:
+                get_console().set_window_title(f"{timer} | {cache.project}")
+
             _extend_timer(cursor, timer)
 
         _extend_cursor_pointer(cursor)
@@ -75,9 +76,10 @@ def build(message: str | None = None) -> t.Callable[[], StyleAndTextTuples]:
 
         if cache := EntriesInMemory():
             timer: str = _timer(cache)
-            UPDATE_TERMINAL_TITLE and get_console().set_window_title(
-                f"{timer} | {cache.project}"
-            )
+
+            if UPDATE_TERMINAL_TITLE:
+                get_console().set_window_title(f"{timer} | {cache.project}")
+
             _extend_timer(cursor, timer)
 
         _extend_cursor_pointer(cursor, message or "")
@@ -139,17 +141,14 @@ def bottom_toolbar() -> t.Callable[..., StyleAndTextTuples]:
 
 def rprompt() -> t.Callable[..., StyleAndTextTuples]:
     global TIMEZONE
-    timestamp: str = now(TIMEZONE).strftime("%H:%M:%S")
-    return lambda: [("", f"\n"), ("class:rprompt.clock", "[%s]" % timestamp)]
+    timestamp: str = now(TIMEZONE).strftime(RPROMPT_DATE_FORMAT)
+    return lambda: [("", f"\n"), ("class:rprompt.clock", timestamp)]
 
 
 GIT_INFO_PATH: t.Final[Path] = __appdir__ / ".gitinfo"
 
 if not GIT_INFO_PATH.exists():
-    rtoml.dump(
-        {"branch": "", "path": ""},
-        GIT_INFO_PATH,
-    )
+    rtoml.dump({"branch": "", "path": ""}, GIT_INFO_PATH)
 
 GIT_INFO: dict[str, str] = rtoml.load(GIT_INFO_PATH)
 
