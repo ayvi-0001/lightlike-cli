@@ -285,7 +285,7 @@ def create(
     The name [code]no-project[/code] is reserved for the default setting.
 
     --name / -n:
-        must match regex [code]^\[a-zA-Z0-9-\\_]{3,25}$[/code].
+        must match regex [code]^\[a-zA-Z0-9-\\_\\.]{3,30}$[/code].
     """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
@@ -736,7 +736,7 @@ def set_project_name(
     """
     Update a project's name.
 
-    Name must match regex [code]^\[a-zA-Z0-9-\\_]{3,25}$[/code].
+    Name must match regex [code]^\[a-zA-Z0-9-\\_\\.]{3,30}$[/code].
     The name [code]no-project[/code] is reserved for the default setting.
     """
     ctx, parent = ctx_group

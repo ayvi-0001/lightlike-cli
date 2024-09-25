@@ -28,7 +28,7 @@ class ExistingProject(Validator):
                 cursor_position=0,
                 message="Input cannot be none.",
             )
-        elif not re.match(r"^[a-zA-Z0-9-\_]+$", document.text):
+        elif not re.match(r"^[a-zA-Z0-9-\_\.]{3,30}$", document.text):
             raise ValidationError(
                 cursor_position=0,
                 message="Invalid project name.",
@@ -70,7 +70,7 @@ class NewProject(Validator):
                 cursor_position=0,
                 message="Name too long.",
             )
-        elif not re.match(r"^[a-zA-Z0-9-\_]{3,25}$", document.text):
+        elif not re.match(r"^[a-zA-Z0-9-\_\.]{3,30}$", document.text):
             raise ValidationError(
                 cursor_position=0,
                 message="Invalid characters.",
