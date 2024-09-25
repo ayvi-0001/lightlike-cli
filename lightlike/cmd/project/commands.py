@@ -495,12 +495,12 @@ def delete(
     shell_complete=None,
 )
 @click.option(
-    "-Rn",
+    "-rn",
     "--match-name",
     show_default=True,
-    multiple=False,
+    multiple=True,
     type=click.STRING,
-    help="Expression to match project name.",
+    help="Expressions to match project name.",
     required=False,
     default=None,
     callback=None,
@@ -508,12 +508,12 @@ def delete(
     shell_complete=None,
 )
 @click.option(
-    "-Rd",
+    "-rd",
     "--match-description",
     show_default=True,
-    multiple=False,
+    multiple=True,
     type=click.STRING,
-    help="Expression to match project description.",
+    help="Expressions to match project description.",
     required=False,
     default=None,
     callback=None,
@@ -552,8 +552,8 @@ def list_(
     console: "Console",
     routine: "CliQueryRoutines",
     all_: bool,
-    match_name: str,
-    match_description: str,
+    match_name: t.Sequence[str] | None,
+    match_description: t.Sequence[str] | None,
     modifiers: str,
     regex_engine: str,
 ) -> None:
@@ -563,11 +563,13 @@ def list_(
     --all / -a:
         include archived projects.
 
-    --match-name / -Rp:
+    --match-name / -rp:
         match a regular expression against project names.
+        this option can be repeated, with each pattern being separated by `|`.
 
-    --match-description/ -Rd:
+    --match-description/ -rd:
         match a regular expression against project description.
+        this option can be repeated, with each pattern being separated by `|`.
 
     --modifiers / -M:
         modifiers to pass to RegExp. (ECMAScript only)
@@ -595,20 +597,34 @@ def list_(
 
     if not all_:
         where.append("archived is null")
+
     if match_name:
+        name_expressions: list[str] = []
+        for pattern in match_name:
+            name_expressions.append(pattern)
+
+        name_expression: str = "|".join(name_expressions)
+
         where.append(
             routine._format_regular_expression(
                 field="name",
-                expression=match_name,
+                expression=name_expression,
                 modifiers=modifiers,
                 regex_engine=regex_engine,
             )
         )
+
     if match_description:
+        description_expressions: list[str] = []
+        for pattern in match_name:
+            description_expressions.append(pattern)
+
+        description_expression: str = "|".join(description_expressions)
+
         where.append(
             routine._format_regular_expression(
                 field="description",
-                expression=match_description,
+                expression=description_expression,
                 modifiers=modifiers,
                 regex_engine=regex_engine,
             )

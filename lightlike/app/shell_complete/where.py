@@ -1,5 +1,6 @@
 import re
 import typing as t
+from inspect import cleandoc
 
 from prompt_toolkit.completion import (
     Completion,
@@ -165,7 +166,7 @@ def _parse_click_options(
     console: "Console",
     routine: CliQueryRoutines,
 ) -> str:
-    where_clause: str = ""
+    clause: str | None = None
 
     if not args:
         if flag:
@@ -176,17 +177,21 @@ def _parse_click_options(
                     routine.dataset, routine.table_timesheet
                 ),
             )
-            where_clause = session.prompt(
-                default="WHERE ",
-                pre_run=utils.prerun_autocomplete,
-                bottom_toolbar=shell_complete.where._bottom_toolbar(console),
+            clause = cleandoc(
+                session.prompt(
+                    default="WHERE ",
+                    pre_run=utils.prerun_autocomplete,
+                    bottom_toolbar=shell_complete.where._bottom_toolbar(console),
+                )
             )
     else:
-        where_clause = " ".join(args)
+        clause = cleandoc(" ".join(args))
 
-    if where_clause:
-        match = WHERE_CLAUSE.match(where_clause)
+    if clause is not None:
+        match = WHERE_CLAUSE.match(clause)
         if match:
-            where_clause = match.group(1)
+            clause = match.group(1)
+            if clause.lower().startswith("where"):
+                clause = re.sub("where", "", clause, flags=re.I)
 
-    return where_clause
+    return clause or ""

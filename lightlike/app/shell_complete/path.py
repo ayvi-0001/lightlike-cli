@@ -10,6 +10,8 @@ from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.formatted_text import FormattedText
 from rich import get_console
 
+from lightlike.app import dates
+from lightlike.app.config import AppConfig
 from lightlike.internal.enums import ActiveCompleter
 from lightlike.internal.utils import alter_str
 
@@ -20,7 +22,11 @@ if t.TYPE_CHECKING:
 
     NotImplementedOrNone = object
 
-__all__: t.Sequence[str] = ("path", "PathCompleter")
+__all__: t.Sequence[str] = (
+    "path",
+    "PathCompleter",
+    "snapshot",
+)
 
 
 OneStyleAndTextTuple = t.Union[
@@ -190,3 +196,28 @@ class PathCompleter(Completer):
             return f"{text[:half_console_width]}…"
         else:
             return text
+
+
+def snapshot(
+    prefix: str, suffix: str = ""
+) -> t.Callable[..., t.Sequence[CompletionItem]]:
+    completion_items: list[CompletionItem] = []
+    date_format: str = "%Y-%m-%dT%H_%M_%S"
+    timestamp: str = dates.now(AppConfig().tzinfo).strftime(date_format)
+    name = f"{prefix}_{timestamp}{suffix}"
+    completion_items.append(CompletionItem(value=name))
+
+    def inner(
+        ctx: click.Context,
+        param: click.Parameter,
+        incomplete: str,
+    ) -> t.Sequence[CompletionItem]:
+        nonlocal completion_items
+        matches: list[CompletionItem] = []
+
+        for item in completion_items:
+            if item.value.startswith(incomplete):
+                matches.append(item)
+        return matches
+
+    return inner

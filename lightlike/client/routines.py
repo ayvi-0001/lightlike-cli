@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import typing as t
 from inspect import classify_class_attrs, cleandoc
+from operator import truth
 from time import perf_counter_ns, sleep, time
 
 import click
@@ -1227,8 +1228,8 @@ class CliQueryRoutines:
         start_date: "date | None" = None,
         end_date: "date | None" = None,
         where: str | None = None,
-        match_project: str | None = None,
-        match_note: str | None = None,
+        match_project: t.Sequence[str] | None = None,
+        match_note: t.Sequence[str] | None = None,
         modifiers: str | None = None,
         regex_engine: t.Literal["ECMAScript", "re2"] | str | None = "ECMAScript",
         limit: int | None = None,
@@ -1258,20 +1259,35 @@ class CliQueryRoutines:
             ],
         )
 
-        fmt_match_project = self._format_regular_expression(
-            field="project",
-            expression=match_project,
-            modifiers=modifiers,
-            regex_engine=regex_engine,
-            and_=True,
-        )
-        fmt_match_note = self._format_regular_expression(
-            field="note",
-            expression=match_note,
-            modifiers=modifiers,
-            regex_engine=regex_engine,
-            and_=True,
-        )
+        fmt_match_project: str = ""
+        if match_project:
+            project_expressions: list[str] = []
+            for pattern in match_project:
+                project_expressions.append(pattern)
+
+            project_expression: str = "|".join(project_expressions)
+            fmt_match_project = self._format_regular_expression(
+                field="project",
+                expression=project_expression,
+                modifiers=modifiers,
+                regex_engine=regex_engine,
+                and_=True,
+            )
+
+        fmt_match_note: str = ""
+        if match_note:
+            note_expressions: list[str] = []
+            for pattern in match_note:
+                note_expressions.append(pattern)
+
+            note_expression: str = "|".join(note_expressions)
+            fmt_match_note = self._format_regular_expression(
+                field="note",
+                expression=note_expression,
+                modifiers=modifiers,
+                regex_engine=regex_engine,
+                and_=True,
+            )
 
         target: str = cleandoc(
             f"""
@@ -1286,17 +1302,51 @@ class CliQueryRoutines:
           billable,
           active,
           paused,
-          ROUND(SAFE_CAST(IF(paused = TRUE, SAFE_DIVIDE(TIMESTAMP_DIFF({self.dataset}.current_timestamp(), timestamp_paused, SECOND), 3600), 0) + IFNULL(paused_hours, 0) AS NUMERIC), 4) AS paused_hours,
+          ROUND(
+            SAFE_CAST(
+              IF(paused = TRUE, SAFE_DIVIDE(TIMESTAMP_DIFF({self.dataset}.current_timestamp(), timestamp_paused, SECOND), 3600), 0)
+              AS NUMERIC
+            )
+            + IFNULL(paused_hours, 0), 4
+          ) AS paused_hours,
           CASE
-            WHEN paused THEN ROUND(SAFE_CAST(SAFE_DIVIDE(TIMESTAMP_DIFF(timestamp_paused, timestamp_start, SECOND), 3600) AS NUMERIC) - IFNULL(paused_hours, 0), 4)
-            WHEN active THEN ROUND(SAFE_CAST(SAFE_DIVIDE(TIMESTAMP_DIFF(IFNULL(timestamp_end, {self.dataset}.current_timestamp()), timestamp_start, SECOND), 3600) AS NUMERIC) - IFNULL(paused_hours, 0), 4)
+            WHEN paused THEN
+              ROUND(
+                SAFE_CAST(
+                  SAFE_DIVIDE(TIMESTAMP_DIFF(timestamp_paused, timestamp_start, SECOND), 3600)
+                  AS NUMERIC
+                )
+                - IFNULL(paused_hours, 0), 4
+              )
+            WHEN active THEN
+              ROUND(
+                SAFE_CAST(
+                  SAFE_DIVIDE(TIMESTAMP_DIFF(IFNULL(timestamp_end, {self.dataset}.current_timestamp()), timestamp_start, SECOND), 3600)
+                  AS NUMERIC
+                )
+                - IFNULL(paused_hours, 0), 4
+              )
             ELSE hours
           END AS hours,
           ROUND(
             SUM(
               CASE
-                WHEN paused THEN ROUND(SAFE_CAST(SAFE_DIVIDE(TIMESTAMP_DIFF(timestamp_paused, timestamp_start, SECOND), 3600) AS NUMERIC) - IFNULL(paused_hours, 0), 4)
-                WHEN active THEN ROUND(SAFE_CAST(SAFE_DIVIDE(TIMESTAMP_DIFF(IFNULL(timestamp_end, {self.dataset}.current_timestamp()), timestamp_start, SECOND), 3600) AS NUMERIC) - IFNULL(paused_hours, 0), 4)
+                WHEN paused THEN
+                  ROUND(
+                    SAFE_CAST(
+                      SAFE_DIVIDE(TIMESTAMP_DIFF(timestamp_paused, timestamp_start, SECOND), 3600)
+                      AS NUMERIC
+                    )
+                    - IFNULL(paused_hours, 0), 4
+                  )
+                WHEN active THEN
+                  ROUND(
+                    SAFE_CAST(
+                      SAFE_DIVIDE(TIMESTAMP_DIFF(IFNULL(timestamp_end, {self.dataset}.current_timestamp()), timestamp_start, SECOND), 3600)
+                      AS NUMERIC
+                    )
+                    - IFNULL(paused_hours, 0), 4
+                  )
                 ELSE hours
               END
             ) OVER(timer),
@@ -1355,10 +1405,11 @@ class CliQueryRoutines:
         start_date: "date | None" = None,
         end_date: "date | None" = None,
         where: str | None = None,
-        round_: bool | None = False,
+        round_: str | None = None,
+        show_null_values: bool = True,
         is_file: bool | None = False,
-        match_project: str | None = None,
-        match_note: str | None = None,
+        match_project: t.Sequence[str] | None = None,
+        match_note: t.Sequence[str] | None = None,
         modifiers: str | None = None,
         regex_engine: t.Literal["ECMAScript", "re2"] | str | None = "ECMAScript",
         use_query_cache: bool = True,
@@ -1379,33 +1430,61 @@ class CliQueryRoutines:
                 ScalarQueryParameter("match_project", SqlParameterScalarTypes.STRING, match_project),
                 ScalarQueryParameter("match_note", SqlParameterScalarTypes.STRING, match_note),
                 ScalarQueryParameter("modifiers", SqlParameterScalarTypes.STRING, modifiers),
-                ScalarQueryParameter("round_", SqlParameterScalarTypes.BOOL, round_),
+                ScalarQueryParameter("round_", SqlParameterScalarTypes.STRING, round_),
                 ScalarQueryParameter("is_file", SqlParameterScalarTypes.BOOL, is_file),
                 # fmt: on
             ],
         )
 
-        fmt_match_project = self._format_regular_expression(
-            field="project",
-            expression=match_project,
-            modifiers=modifiers,
-            regex_engine=regex_engine,
-            and_=True,
-        )
-        fmt_match_note = self._format_regular_expression(
-            field="note",
-            expression=match_note,
-            modifiers=modifiers,
-            regex_engine=regex_engine,
-            and_=True,
-        )
+        fmt_match_project: str = ""
+        if match_project:
+            project_expressions: list[str] = []
+            for pattern in match_project:
+                project_expressions.append(pattern)
+
+            project_expression: str = "|".join(project_expressions)
+            fmt_match_project = self._format_regular_expression(
+                field="project",
+                expression=project_expression,
+                modifiers=modifiers,
+                regex_engine=regex_engine,
+                and_=True,
+            )
+
+        fmt_match_note: str = ""
+        if match_note:
+            note_expressions: list[str] = []
+            for pattern in match_note:
+                note_expressions.append(pattern)
+
+            note_expression: str = "|".join(note_expressions)
+            fmt_match_note = self._format_regular_expression(
+                field="note",
+                expression=note_expression,
+                modifiers=modifiers,
+                regex_engine=regex_engine,
+                and_=True,
+            )
+
+        round_factor: int | None = None
+        match round_:
+            case ".05":
+                round_factor = 5
+            case ".1":
+                round_factor = 10
+            case ".25":
+                round_factor = 25
+            case ".5":
+                round_factor = 50
+            case "1":
+                round_factor = 100
 
         target: str = cleandoc(
             f"""
         SELECT DISTINCT
-          ROUND(SUM(hours) OVER(), 4) AS total_summary,
-          ROUND(SUM(hours) OVER(PARTITION BY project), 4) AS total_project,
-          ROUND(SUM(hours) OVER(PARTITION BY date), 4) AS total_day,
+          ROUND(SUM(hours) OVER(ORDER BY date, project, billable), 4) AS total_summary,
+          ROUND(SUM(hours) OVER(PARTITION BY project ORDER BY date, project, billable), 4) AS total_project,
+          ROUND(SUM(hours) OVER(PARTITION BY date ORDER BY date, project, billable), 4) AS total_day,
           date,
           project,
           billable,
@@ -1420,11 +1499,7 @@ class CliQueryRoutines:
               note,
               CASE %s /* round */
                 WHEN TRUE THEN
-                  IF(
-                    {self.dataset}.rounding_step(SUM(hours) - FLOOR(SUM(hours))) = 1,
-                    ROUND(SUM(hours)),
-                    FLOOR(SUM(hours)) + {self.dataset}.rounding_step(SUM(hours) - FLOOR(SUM(hours)))
-                  )
+                  ROUND(SUM(hours) / %s, 2) * %s
                 ELSE
                   SUM(hours)
               END AS hours,
@@ -1443,11 +1518,9 @@ class CliQueryRoutines:
               date,
               billable,
               note
-            HAVING
-              hours != 0
+            %s
           )
-        QUALIFY
-          total_day != 0
+        %s
         ORDER BY
           date,
           project
@@ -1455,11 +1528,13 @@ class CliQueryRoutines:
             % (
                 # fmt: off
                 ", " if is_file else "\\n",
-                round_ or False,
+                truth(round_), round_factor or 1, round_factor or 1,
                 f"AND date BETWEEN \"{start_date}\" AND \"{end_date}\"" if start_date and end_date else "",
                 fmt_match_project,
                 fmt_match_note,
                 f"AND {where}" if where else "",
+                'HAVING hours != 0' if show_null_values else "",
+                'QUALIFY total_day != 0' if show_null_values else "",
                 # fmt: on
             )
         )
@@ -1531,7 +1606,6 @@ class CliQueryRoutines:
     def _all_routines_ids(self) -> list[str]:
         functions = [
             "current_datetime",
-            "rounding_step",
             "current_timestamp",
             "js_regex_contains",
         ]

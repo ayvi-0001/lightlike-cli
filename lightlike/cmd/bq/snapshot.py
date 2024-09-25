@@ -4,7 +4,7 @@ import click
 from rich import print as rprint
 from rich.table import Table
 
-from lightlike.app import _get, _questionary, dates, render, validate
+from lightlike.app import _get, _questionary, render, shell_complete, validate
 from lightlike.app.config import AppConfig
 from lightlike.app.core import FormattedCommand
 from lightlike.cmd import _pass
@@ -19,10 +19,6 @@ if t.TYPE_CHECKING:
     from lightlike.client import CliQueryRoutines
 
 __all__: t.Sequence[str] = ("snapshots",)
-
-
-def _default_snapshot_table_name() -> str:
-    return f"timesheet_{dates.now(AppConfig().tzinfo).strftime('%Y-%m-%dT%H_%M_%S')}"
 
 
 @click.command(
@@ -45,7 +41,7 @@ def _default_snapshot_table_name() -> str:
     default=None,
     callback=None,
     metavar=None,
-    shell_complete=lambda c, p, i: [_default_snapshot_table_name()],
+    shell_complete=shell_complete.snapshot("timesheet"),
 )
 @click.option(
     "-e",

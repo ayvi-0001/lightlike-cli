@@ -40,7 +40,7 @@ __all__: Sequence[str] = (
     "__version__",
 )
 
-__version__: Final[str] = "v0.11.0b14"
+__version__: Final[str] = "v0.11.0b15"
 
 __appname__: str = f"lightlike-cli"
 

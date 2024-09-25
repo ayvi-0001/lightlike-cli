@@ -55,7 +55,6 @@ __all__: t.Sequence[str] = (
     "run",
     "show",
     "stop",
-    "end",
     "switch",
     "update",
 )
@@ -1000,28 +999,28 @@ def get(
 
         $ timer list --all active is true # where clause as arguments
         $ t l -a active is true
-        
+
         $ timer list --today
         $ t l -t
-        
+
         $ timer list --yesterday --prompt-where # interactive prompt for where clause
         $ t l -yw
 
         $ timer list --current-week billable is false
         $ t l -cw billable is false
-        
+
         # case insensitive regex match - re2
         $ timer list --date -2d --regex-engine re2 --match-note (?i)task.*
-        $ t l -d-2d -re re2 -Rn (?i)task.*
-        
+        $ t l -d-2d -re re2 -rn (?i)task.*
+
         # case insensitive regex match - ECMAScript
         $ timer list --date -2d --match-note task.* --modifiers ig
-        $ t l -d-2d -Rn task.* -Mig
+        $ t l -d-2d -rn task.* -Mig
 
-        $ t l -t -Rp ^(?!demo) # exclude projects containing word "demo"
-        
+        $ t l -t -rp ^(?!demo) # exclude projects containing word "demo"
+
         $ timer list --current-month "project = 'lightlike-cli' and note like any ('something%', 'else%')"
-        
+
         $ timer list --all time(start) >= \\"18:29:09\\"
         $ t l -a time(start) >= \\"18:29:09\\"\
         """,
@@ -1182,12 +1181,12 @@ def get(
     shell_complete=None,
 )
 @click.option(
-    "-Rp",
+    "-rp",
     "--match-project",
     show_default=True,
-    multiple=False,
+    multiple=True,
     type=click.STRING,
-    help="Expression to match project name.",
+    help="Expressions to match project name.",
     required=False,
     default=None,
     callback=None,
@@ -1195,12 +1194,12 @@ def get(
     shell_complete=None,
 )
 @click.option(
-    "-Rn",
+    "-rn",
     "--match-note",
     show_default=True,
-    multiple=False,
+    multiple=True,
     type=click.STRING,
-    help="Expression to match note.",
+    help="Expressions to match note.",
     required=False,
     default=None,
     callback=None,
@@ -1320,8 +1319,8 @@ def list_(
     current_month: bool,
     current_year: bool,
     all_: bool,
-    match_project: str,
-    match_note: str,
+    match_project: t.Sequence[str],
+    match_note: t.Sequence[str],
     modifiers: str,
     regex_engine: str,
     limit: int | None,
@@ -1342,11 +1341,13 @@ def list_(
         flags are processed before other date options.
         configure week start dates with app:config:set:general:week_start
 
-    --match-project / -Rp:
+    --match-project / -rp:
         match a regular expression against project names.
+        this option can be repeated, with each pattern being separated by `|`.
 
-    --match-note / -Rn:
+    --match-note / -rn:
         match a regular expression against entry notes.
+        this option can be repeated, with each pattern being separated by `|`.
 
     --modifiers / -M:
         modifiers to pass to RegExp. (ECMAScript only)
@@ -1365,14 +1366,13 @@ def list_(
         filter results with a where clause.
         interactive prompt that launches after command runs.
         prompt includes autocompletions for projects and notes.
-        note autocompletions will only populate for a project if that project name appears in the string.
+        note autocompletions will only populate for a project
+        if that project name appears in the string.
 
     [bold #34e2e2]WHERE[/]:
-        where clause can also be written as the last argument to this command.
-        it can be a single string, or individual words separated by a space,
-        as long as characters are properly escaped if necessary.
-        it must either begin with the word "WHERE" (case-insensitive),
-        or it must be the string immediately proceeding the word "WHERE".
+        all remaining arguments at the end of this command are
+        joined together by a space to form the where clause.
+        the word "WHERE" is stripped from the start of the string, if it exists.
     """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
@@ -2012,10 +2012,11 @@ def run(
 @_pass.console
 def show(console: "Console", cache: "TimeEntryCache", json_: bool) -> None:
     """
-    Show tables of all local running and paused time entries.
-    If there is an active entry, it will be in bold, in the first row.
-    Other running entries will be in the following rows.
-    If there are paused entries, they will be dimmed, and in the last row(s).
+    Display a table of local running/paused time entries.
+    Entries are sorted top-down from active ->running ->paused.
+    The active entry is bolded in the first row.
+    Running entries are not bolded.
+    Paused entries are dimmed.
     """
     if json_:
         console.print_json(data=cache._entries, default=str, indent=4)
@@ -2074,8 +2075,8 @@ def stop(
         $ timer switch 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46
         $ t s 36c9fe
     
-        $ timer switch 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46 --force
-        $ t s 36c9fe -f\
+        $ timer switch 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46 --continue
+        $ t s 36c9fe -c\
         """,
         lexer="fishshell",
         dedent=True,
@@ -2127,7 +2128,7 @@ def switch(
     """
     Switch the active time entry.
 
-        --force / -u:
+        --continue / -c:
             do not pause the active entry during switch.
 
         [b]See[/]:

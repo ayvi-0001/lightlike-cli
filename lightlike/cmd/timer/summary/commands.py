@@ -127,13 +127,25 @@ round_option = click.option(
     "--round",
     "round_",
     show_default=True,
+    multiple=False,
+    type=click.Choice([".05", ".1", ".25", ".5", "1"]),
+    help="Round hours to the nearest decimal value",
+    required=False,
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
+show_null_values = click.option(
+    "--null-values/--no-null-values",
+    "show_null_values",
+    show_default=True,
     is_flag=True,
-    flag_value=True,
+    flag_value=False,
     multiple=False,
     type=click.BOOL,
-    help="Rounds totals to nearest 0.25.",
+    help="If rounding, show values which have been rounded down to 0.",
     required=False,
-    default=None,
+    default=True,
     callback=None,
     metavar=None,
     shell_complete=None,
@@ -182,12 +194,12 @@ print_option = click.option(
     shell_complete=None,
 )
 match_project = click.option(
-    "-Rp",
+    "-rp",
     "--match-project",
     show_default=True,
-    multiple=False,
+    multiple=True,
     type=click.STRING,
-    help="Expression to match project name.",
+    help="Expressions to match project name.",
     required=False,
     default=None,
     callback=None,
@@ -195,12 +207,12 @@ match_project = click.option(
     shell_complete=None,
 )
 match_note = click.option(
-    "-Rn",
+    "-rn",
     "--match-note",
     show_default=True,
-    multiple=False,
+    multiple=True,
     type=click.STRING,
-    help="Expression to match note.",
+    help="Expressions to match note.",
     required=False,
     default=None,
     callback=None,
@@ -242,19 +254,19 @@ regex_engine = click.option(
     short_help="Renders a table in terminal. Optional svg download.",
     syntax=Syntax(
         code="""\
-        $ timer summary table --current-month --round where project = \"lightlike-cli\"
-        $ t s t -cm -r where project = \"lightlike-cli\"
+        $ timer summary table --current-month --round .25 project = lightlike-cli
+        $ t s t -cm -r.25 project = lightlike-cli
     
         # case insensitive regex match - re2
         $ timer summary table --current-year --output path/to/file.svg --regex-engine re2 --match-note (?i)task.*
-        $ t s t -cy -o path/to/file.svg -re re2 -Rn (?i)task.*
+        $ t s t -cy -o path/to/file.svg -re re2 -rn (?i)task.*
         
         # case insensitive regex match - ECMAScript
         $ timer summary table --current-year --output path/to/file.svg --match-note task.* --modifiers ig
-        $ t s t -cy -o path/to/file.svg -Rn task.* -Mig
+        $ t s t -cy -o path/to/file.svg -rn task.* -Mig
 
-        $ timer summary table --start -15d --end monday
-        $ t s t -s -15d -e mon\
+        $ timer summary table --start 15d --end monday
+        $ t s t -s15d -e mon\
         """,
         lexer="fishshell",
         dedent=True,
@@ -270,6 +282,7 @@ regex_engine = click.option(
 @current_month_option
 @current_year_option
 @round_option
+@show_null_values
 @match_project
 @match_note
 @modifiers
@@ -304,10 +317,11 @@ def summary_table(
     current_week: bool,
     current_month: bool,
     current_year: bool,
-    round_: bool,
+    round_: str,
+    show_null_values: bool,
     output: Path | None,
-    match_project: str,
-    match_note: str,
+    match_project: t.Sequence[str],
+    match_note: t.Sequence[str],
     modifiers: str,
     regex_engine: str,
     prompt_where: bool,
@@ -319,13 +333,13 @@ def summary_table(
     [yellow][b][u]Note: running & paused entries are not included in summaries.[/b][/u][/yellow]
 
     [b]Fields[/]:
-    - total_summary: The total sum of hours over the entire summary.
-    - total_project: The total sum of hours over the entire summary, partitioned by project.
-    - total_day: The total sum of hours on each day, partitioned by day.
+    - total_summary: The sum of hours, ordered by date, project, billable.
+    - total_project: the sum of hours, partitioned by project, ordered by date, project, billable.
+    - total_day: the sum of hours, partitioned by day, ordered by date, project, billable.
     - date: Date.
     - project: Project.
     - billable: Billable.
-    - timer: The total sum of hours for a project on that day.
+    - timer: The sum of hours for a project on a given day.
     - notes: String aggregate of all notes on that day. Sum of hours appened to the end.
 
     --output / -d:
@@ -335,7 +349,7 @@ def summary_table(
         if the path ends in any suffix other than what's expected, an error will raise.
 
     --round / -r:
-        round totals to the nearest 0.25.
+        round totals to the nearest 0.05 / 0.10 / 0.25 / 0.50 / 1.
 
     --current-week / -cw:
     --current-month / -cm:
@@ -343,11 +357,13 @@ def summary_table(
         flags are processed before other date options.
         configure week start dates with app:config:set:general:week_start.
 
-    --match-project / -Rp:
+    --match-project / -rp:
         match a regular expression against project names.
+        this option can be repeated, with each pattern being separated by `|`.
 
-    --match-note / -Rn:
+    --match-note / -rn:
         match a regular expression against entry notes.
+        this option can be repeated, with each pattern being separated by `|`.
 
     --modifiers / -M:
         modifiers to pass to RegExp. (ECMAScript only)
@@ -366,14 +382,13 @@ def summary_table(
         filter results with a where clause.
         interactive prompt that launches after command runs.
         prompt includes autocompletions for projects and notes.
-        note autocompletions will only populate for a project if that project name appears in the string.
+        note autocompletions will only populate for a project
+        if that project name appears in the string.
 
     [bold #34e2e2]WHERE[/]:
-        where clause can also be written as the last argument to this command.
-        it can be a single string, or individual words separated by a space,
-        as long as characters are properly escaped if necessary.
-        it must either begin with the word "WHERE" (case-insensitive),
-        or it must be the string immediately proceeding the word "WHERE".
+        all remaining arguments at the end of this command are
+        joined together by a space to form the where clause.
+        the word "WHERE" is stripped from the start of the string, if it exists.
     """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
@@ -390,6 +405,7 @@ def summary_table(
             modifiers=modifiers,
             regex_engine=regex_engine,
             round_=round_,
+            show_null_values=not show_null_values,
             is_file=False,
         )
     else:
@@ -427,6 +443,7 @@ def summary_table(
             modifiers=modifiers,
             regex_engine=regex_engine,
             round_=round_,
+            show_null_values=not show_null_values,
             is_file=False,
         )
 
@@ -463,16 +480,16 @@ def summary_table(
     short_help="Save/Print summary to a csv file.",
     syntax=Syntax(
         code="""\
-        $ timer summary csv --start jan1 --end jan31 --round --print
-        $ t s c -s jan1 -e jan31 -r -p
+        $ timer summary csv --start jan1 --end jan31 --round .1 --print
+        $ t s c -s jan1 -e jan31 -r.1 -p
     
         # case insensitive regex match - re2
         $ timer summary csv --current-year --output path/to/file.svg --regex-engine re2 --match-note (?i)task.*
-        $ t s c -cy -o path/to/file.svg -re re2 -Rn (?i)task.*
+        $ t s c -cy -o path/to/file.svg -re re2 -rn (?i)task.*
         
         # case insensitive regex match - ECMAScript
         $ timer summary csv --current-year --output path/to/file.svg --match-note task.* --modifiers ig
-        $ t s c -cy -o path/to/file.svg -Rn task.* -Mig\
+        $ t s c -cy -o path/to/file.svg -rn task.* -Mig\
         """,
         lexer="fishshell",
         dedent=True,
@@ -488,6 +505,7 @@ def summary_table(
 @current_month_option
 @current_year_option
 @round_option
+@show_null_values
 @print_option
 @match_project
 @match_note
@@ -506,7 +524,7 @@ def summary_table(
     default=None,
     callback=validate.callbacks.summary_path,
     metavar="CSV",
-    shell_complete=shell_complete.path,
+    shell_complete=shell_complete.snapshot("timesheet", ".csv"),
 )
 @click.option(
     "--quoting",
@@ -538,11 +556,12 @@ def summary_csv(
     current_month: bool,
     current_year: bool,
     output: Path | None,
-    round_: bool,
+    round_: str,
+    show_null_values: bool,
     print_: bool,
     quoting: str,
-    match_project: str,
-    match_note: str,
+    match_project: t.Sequence[str],
+    match_note: t.Sequence[str],
     modifiers: str,
     regex_engine: str,
     prompt_where: bool,
@@ -554,13 +573,13 @@ def summary_csv(
     [yellow][b][u]Note: running & paused entries are not included in summaries.[/b][/u][/yellow]
 
     [b]Fields[/]:
-    - total_summary: The total sum of hours over the entire summary.
-    - total_project: The total sum of hours over the entire summary, partitioned by project.
-    - total_day: The total sum of hours on each day, partitioned by day.
+    - total_summary: The sum of hours, ordered by date, project, billable.
+    - total_project: the sum of hours, partitioned by project, ordered by date, project, billable.
+    - total_day: the sum of hours, partitioned by day, ordered by date, project, billable.
     - date: Date.
     - project: Project.
     - billable: Billable.
-    - timer: The total sum of hours for a project on that day.
+    - timer: The sum of hours for a project on a given day.
     - notes: String aggregate of all notes on that day. Sum of hours appened to the end.
 
     --print / -p:
@@ -578,7 +597,7 @@ def summary_csv(
         if the path ends in any suffix other than what's expected, an error will raise.
 
     --round / -r:
-        round totals to the nearest 0.25.
+        round totals to the nearest 0.05 / 0.10 / 0.25 / 0.50 / 1.
 
     --current-week / -cw:
     --current-month / -cm:
@@ -586,11 +605,13 @@ def summary_csv(
         flags are processed before other date options.
         configure week start dates with app:config:set:general:week_start.
 
-    --match-project / -Rp:
+    --match-project / -rp:
         match a regular expression against project names.
+        this option can be repeated, with each pattern being separated by `|`.
 
-    --match-note / -Rn:
+    --match-note / -rn:
         match a regular expression against entry notes.
+        this option can be repeated, with each pattern being separated by `|`.
 
     --modifiers / -M:
         modifiers to pass to RegExp. (ECMAScript only)
@@ -609,14 +630,13 @@ def summary_csv(
         filter results with a where clause.
         interactive prompt that launches after command runs.
         prompt includes autocompletions for projects and notes.
-        note autocompletions will only populate for a project if that project name appears in the string.
+        note autocompletions will only populate for a project
+        if that project name appears in the string.
 
     [bold #34e2e2]WHERE[/]:
-        where clause can also be written as the last argument to this command.
-        it can be a single string, or individual words separated by a space,
-        as long as characters are properly escaped if necessary.
-        it must either begin with the word "WHERE" (case-insensitive),
-        or it must be the string immediately proceeding the word "WHERE".
+        all remaining arguments at the end of this command are
+        joined together by a space to form the where clause.
+        the word "WHERE" is stripped from the start of the string, if it exists.
     """
     if "android" in platform.release():
         console.print(
@@ -641,6 +661,7 @@ def summary_csv(
             modifiers=modifiers,
             regex_engine=regex_engine,
             round_=round_,
+            show_null_values=not show_null_values,
             is_file=False,
         )
     else:
@@ -678,6 +699,7 @@ def summary_csv(
             modifiers=modifiers,
             regex_engine=regex_engine,
             round_=round_,
+            show_null_values=not show_null_values,
             is_file=True,
         )
 
@@ -721,19 +743,19 @@ def summary_csv(
     short_help="Save/Print summary to a json file.",
     syntax=Syntax(
         code="""\
-        $ timer summary json --start "6 days ago" --end today --print
-        $ t s j -s -6d -e now -p
+        $ timer summary json --start 6d --end now --print
+        $ t s j -s6d -en -p # n expands to now
     
-        $ timer summary json --current-week --orient index where billable is false
+        $ timer summary json --current-week --orient index billable is false
         $ t s j -cw -o index -w\
         
         # case insensitive regex match - re2
         $ timer summary json --current-year --output path/to/file.svg --orient index --regex-engine re2 --match-note (?i)task.*
-        $ t s j -cy -o path/to/file.svg -o index -re re2 -Rn (?i)task.*
+        $ t s j -cy -o path/to/file.svg -o index -re re2 -rn (?i)task.*
         
         # case insensitive regex match - ECMAScript
         $ timer summary json --current-year --output path/to/file.svg --orient index --match-note task.* --modifiers ig
-        $ t s j -cy -o path/to/file.svg -o index -Rn task.* -Mig\
+        $ t s j -cy -o path/to/file.svg -o index -rn task.* -Mig\
         """,
         lexer="fishshell",
         dedent=True,
@@ -749,6 +771,7 @@ def summary_csv(
 @current_month_option
 @current_year_option
 @round_option
+@show_null_values
 @match_project
 @match_note
 @modifiers
@@ -766,7 +789,7 @@ def summary_csv(
     default=None,
     callback=validate.callbacks.summary_path,
     metavar="JSON",
-    shell_complete=shell_complete.path,
+    shell_complete=shell_complete.snapshot("timesheet", ".json"),
 )
 @print_option
 @click.option(
@@ -799,11 +822,12 @@ def summary_json(
     current_month: bool,
     current_year: bool,
     output: Path | None,
-    round_: bool,
+    round_: str,
+    show_null_values: bool,
     print_: bool,
     orient: str,
-    match_project: str,
-    match_note: str,
+    match_project: t.Sequence[str],
+    match_note: t.Sequence[str],
     modifiers: str,
     regex_engine: str,
     prompt_where: bool,
@@ -815,13 +839,13 @@ def summary_json(
     [yellow][b][u]Note: running & paused entries are not included in summaries.[/b][/u][/yellow]
 
     [b]Fields[/]:
-    - total_summary: The total sum of hours over the entire summary.
-    - total_project: The total sum of hours over the entire summary, partitioned by project.
-    - total_day: The total sum of hours on each day, partitioned by day.
+    - total_summary: The sum of hours, ordered by date, project, billable.
+    - total_project: the sum of hours, partitioned by project, ordered by date, project, billable.
+    - total_day: the sum of hours, partitioned by day, ordered by date, project, billable.
     - date: Date.
     - project: Project.
     - billable: Billable.
-    - timer: The total sum of hours for a project on that day.
+    - timer: The sum of hours for a project on a given day.
     - notes: String aggregate of all notes on that day. Sum of hours appened to the end.
 
     --print / -p:
@@ -839,7 +863,7 @@ def summary_json(
         if the path ends in any suffix other than what's expected, an error will raise.
 
     --round / -r:
-        round totals to the nearest 0.25.
+        round totals to the nearest 0.05 / 0.10 / 0.25 / 0.50 / 1.
 
     --current-week / -cw:
     --current-month / -cm:
@@ -857,11 +881,13 @@ def summary_json(
             values = just the values array
             table = dict like {"schema": {schema}, "data": {data}}
 
-    --match-project / -Rp:
+    --match-project / -rp:
         match a regular expression against project names.
+        this option can be repeated, with each pattern being separated by `|`.
 
-    --match-note / -Rn:
+    --match-note / -rn:
         match a regular expression against entry notes.
+        this option can be repeated, with each pattern being separated by `|`.
 
     --modifiers / -M:
         modifiers to pass to RegExp. (ECMAScript only)
@@ -880,14 +906,13 @@ def summary_json(
         filter results with a where clause.
         interactive prompt that launches after command runs.
         prompt includes autocompletions for projects and notes.
-        note autocompletions will only populate for a project if that project name appears in the string.
+        note autocompletions will only populate for a project
+        if that project name appears in the string.
 
     [bold #34e2e2]WHERE[/]:
-        where clause can also be written as the last argument to this command.
-        it can be a single string, or individual words separated by a space,
-        as long as characters are properly escaped if necessary.
-        it must either begin with the word "WHERE" (case-insensitive),
-        or it must be the string immediately proceeding the word "WHERE".
+        all remaining arguments at the end of this command are
+        joined together by a space to form the where clause.
+        the word "WHERE" is stripped from the start of the string, if it exists.
     """
     if "android" in platform.release():
         console.print(
@@ -912,6 +937,7 @@ def summary_json(
             modifiers=modifiers,
             regex_engine=regex_engine,
             round_=round_,
+            show_null_values=not show_null_values,
             is_file=False,
         )
     else:
@@ -949,6 +975,7 @@ def summary_json(
             modifiers=modifiers,
             regex_engine=regex_engine,
             round_=round_,
+            show_null_values=not show_null_values,
             is_file=True,
         )
 
