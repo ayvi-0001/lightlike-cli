@@ -166,7 +166,7 @@ def eval_(args: list[str], multiline_prompt: bool) -> None:
 def calendar(
     year: int,
     firstweekday: int,
-    color_today: str | None,
+    color_today: str,
     color_weekdays: str,
     color_weekends: str | None,
 ) -> None:

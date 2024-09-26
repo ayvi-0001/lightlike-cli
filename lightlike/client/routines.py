@@ -1244,19 +1244,6 @@ class CliQueryRoutines:
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
             use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                # fmt: off
-                ScalarQueryParameter("date", SqlParameterScalarTypes.DATE, date),
-                ScalarQueryParameter("start_date", SqlParameterScalarTypes.DATE, start_date),
-                ScalarQueryParameter("end_date", SqlParameterScalarTypes.DATE, end_date),
-                ScalarQueryParameter("where", SqlParameterScalarTypes.STRING, where),
-                ScalarQueryParameter("match_project", SqlParameterScalarTypes.STRING, match_project),
-                ScalarQueryParameter("match_note", SqlParameterScalarTypes.STRING, match_note),
-                ScalarQueryParameter("modifiers", SqlParameterScalarTypes.STRING, modifiers),
-                ScalarQueryParameter("limit", SqlParameterScalarTypes.INT64, limit),
-                ScalarQueryParameter("offset", SqlParameterScalarTypes.INT64, offset),
-                # fmt: on
-            ],
         )
 
         fmt_match_project: str = ""
@@ -1422,18 +1409,6 @@ class CliQueryRoutines:
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
             use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                # fmt: off
-                ScalarQueryParameter("start_date", SqlParameterScalarTypes.DATE, start_date),
-                ScalarQueryParameter("end_date", SqlParameterScalarTypes.DATE, end_date),
-                ScalarQueryParameter("where", SqlParameterScalarTypes.STRING, where),
-                ScalarQueryParameter("match_project", SqlParameterScalarTypes.STRING, match_project),
-                ScalarQueryParameter("match_note", SqlParameterScalarTypes.STRING, match_note),
-                ScalarQueryParameter("modifiers", SqlParameterScalarTypes.STRING, modifiers),
-                ScalarQueryParameter("round_", SqlParameterScalarTypes.STRING, round_),
-                ScalarQueryParameter("is_file", SqlParameterScalarTypes.BOOL, is_file),
-                # fmt: on
-            ],
         )
 
         fmt_match_project: str = ""

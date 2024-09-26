@@ -171,7 +171,7 @@ def map_sequence_to_rich_table(
     return table
 
 
-def map_cell_style(values: "dict_values[str, t.Any]") -> "map[str]":  # type: ignore
+def map_cell_style(values: "dict_values[str, t.Any]") -> "map[str]":
     display_values: list[t.Any] = []
     for value in values:
         if not value or value in ("null", "None"):

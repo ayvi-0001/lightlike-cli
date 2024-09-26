@@ -6,13 +6,14 @@ import re
 import typing as t
 from contextlib import ContextDecorator, suppress
 from functools import reduce, wraps
-from operator import getitem
+from operator import getitem, truth
 from pathlib import Path
 from time import perf_counter_ns
 from types import FunctionType
 
 import click
 import rtoml
+from fuzzyfinder import fuzzyfinder
 from prompt_toolkit.application import get_app, in_terminal
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import get_console
@@ -202,6 +203,10 @@ def reduce_keys(
         return default
 
 
+RE_QUOTE: re.Pattern[str] = re.compile(r"(\"|')")
+RE_PARENTHESIS: re.Pattern[str] = re.compile(r"(\(|\))")
+
+
 @t.overload
 def alter_str(
     string: t.Any,
@@ -236,25 +241,23 @@ def alter_str(
     add_quotes: bool = False,
 ) -> str | list[str]:
     if not isinstance(string, str):
-        string = f"{string}"
+        string: str = f"{string}"
 
     if lower:
         string = string.lower()
     if strip_quotes:
-        string = re.compile(r"(\"|')").sub("", string)
+        string = re.sub(RE_QUOTE, "", string)
     if strip_parenthesis:
-        string = re.compile(r"(\(|\))").sub("", string)
+        string = re.sub(RE_PARENTHESIS, "", string)
     if strip:
         string = string.strip()
     if add_quotes:
         string = f'"{string}"'
 
     if split:
-        new_list: list[str] = string.split(split)
-        return new_list
+        return t.cast(list[str], string.split(split))
     else:
-        new_string: str = f"{string}"
-        return new_string
+        return t.cast(str, string)
 
 
 def split_and_alter_str(
@@ -275,7 +278,7 @@ def split_and_alter_str(
     if lower:
         iter_map_fn.append(str.lower)
     if strip_quotes:
-        iter_map_fn.append(lambda s: re.compile(r"(\"|')").sub("", s))
+        iter_map_fn.append(lambda s: RE_QUOTE.sub("", s))
     if map_fns:
         for fn in map_fns:
             iter_map_fn.append(fn)
@@ -300,7 +303,7 @@ def match_str(
     strip_parenthesis: bool = False,
     strip: bool = False,
     case_sensitive: bool = False,
-    method: t.Literal["in", "startswith", "endswith"] = "in",
+    method: t.Literal["in", "fuzzy", "re", "startswith", "endswith"] = "in",
     replace_patterns: t.Mapping[str, str] | None = None,
 ) -> bool:
     if not isinstance(string_to_check, str):
@@ -312,11 +315,11 @@ def match_str(
         string_to_check = string_to_check.lower()
         string_to_match = string_to_match.lower()
     if strip_quotes:
-        string_to_check = re.compile(r"(\"|')").sub("", string_to_check)
-        string_to_match = re.compile(r"(\"|')").sub("", string_to_match)
+        string_to_check = re.sub(RE_QUOTE, "", string_to_check)
+        string_to_match = re.sub(RE_QUOTE, "", string_to_match)
     if strip_parenthesis:
-        string_to_check = re.compile(r"(\(|\))").sub("", string_to_check)
-        string_to_match = re.compile(r"(\(|\))").sub("", string_to_match)
+        string_to_check = re.sub(RE_PARENTHESIS, "", string_to_check)
+        string_to_match = re.sub(RE_PARENTHESIS, "", string_to_match)
     if strip:
         string_to_check = string_to_check.strip()
         string_to_match = string_to_match.strip()
@@ -331,18 +334,21 @@ def match_str(
             patterns=replace_patterns, text=string_to_match
         )
 
-    is_matched: bool
     match method:
         case "in":
-            is_matched = string_to_check in string_to_match
+            return string_to_check in string_to_match
+        case "fuzzy":
+            return truth(fuzzyfinder(string_to_check, string_to_match))
+        case "re":
+            return truth(re.match(string_to_check, string_to_match))
         case "startswith":
-            is_matched = string_to_match.startswith(string_to_check)
+            return string_to_match.startswith(string_to_check)
         case "endswith":
-            is_matched = string_to_match.endswith(string_to_check)
+            return string_to_match.endswith(string_to_check)
         case _:
             raise ValueError("Invalid method for string match.")
 
-    return is_matched
+    return False
 
 
 def ns_time_diff(ns: int) -> float:

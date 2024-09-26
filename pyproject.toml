@@ -21,6 +21,7 @@ dependencies = [
   "dateparser==1.2.0",
   "db-dtypes>=1.2.0; 'android' not in platform_release",
   "fasteners==0.19",
+  "fuzzyfinder>=2.2.0",
   "google-api-core>=2.17.1",
   "google-auth>=2.28.2",
   "google-cloud-bigquery>=3.18.0",

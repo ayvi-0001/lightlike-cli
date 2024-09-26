@@ -79,7 +79,7 @@ def authorize_bigquery_client() -> bigquery.Client:
             provision_bigquery_resources(client)
         else:
             if appdir.BQ_UPDATES.exists():
-                bq_updates: dict[dict[str, bool]] = rtoml.load(appdir.BQ_UPDATES)
+                bq_updates: dict[str, dict[str, bool]] = rtoml.load(appdir.BQ_UPDATES)
                 versions: dict[str, bool] = bq_updates["versions"]
                 if versions and any([versions[k] is False for k in versions]):
                     provision_bigquery_resources(client, updates=versions)
@@ -154,7 +154,7 @@ def provision_bigquery_resources(
             config["bigquery"].update(resources_provisioned=True)
 
         if appdir.BQ_UPDATES.exists():
-            bq_updates: dict[dict[str, bool]] = rtoml.load(appdir.BQ_UPDATES)
+            bq_updates: dict[str, dict[str, bool]] = rtoml.load(appdir.BQ_UPDATES)
             versions: dict[str, bool] = bq_updates["versions"]
             if versions and any([versions[k] is False for k in versions]):
                 for k in versions:
