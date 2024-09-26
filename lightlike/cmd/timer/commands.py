@@ -64,7 +64,7 @@ P = t.ParamSpec("P")
 
 
 def default_timer_add(config: AppConfig) -> str:
-    timer_add_min: int = config.get("settings", "timer_add_min", default=-6)
+    timer_add_min: int = config.get("settings", "timer-add-min", default=-6)
     minutes = -timer_add_min if copysign(1, timer_add_min) != -1 else timer_add_min
     return f"{minutes} minutes"
 
@@ -193,7 +193,7 @@ def add(
     --start / -s:
         set the entry to start at this time.
         defaults to -6 minutes (1/10th of an hour).
-        update the default value using app:config:set:general:timer_add_min.
+        update the default value using app:config:set:general:timer-add-min.
 
     --end / -e:
         set the entry to end at this time.
@@ -204,7 +204,7 @@ def add(
         if not provided, the default setting for the project is used.
         set project default billable value when first creating a project
         with project:create, using --default-billable / -b,
-        or update an existing project's with project:set:default_billable.
+        or update an existing project's with project:set:default-billable.
     """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
@@ -1339,7 +1339,7 @@ def list_(
     --current-month / -cm:
     --current-year / -cy:
         flags are processed before other date options.
-        configure week start dates with app:config:set:general:week_start
+        configure week start dates with app:config:set:general:week-start
 
     --match-project / -rp:
         match a regular expression against project names.
@@ -1408,7 +1408,7 @@ def list_(
             previous_week=False,
             ctx=ctx,
         )
-        week_start: int = AppConfig().get("settings", "week_start", default=0)
+        week_start: int = AppConfig().get("settings", "week-start", default=0)
 
         if current_week:
             date_params = dates.get_relative_week(now, week_start)
@@ -1546,7 +1546,7 @@ def update_notes(
     Select which notes to replace with [code]space[/code]. Press [code]enter[/code] to continue with the selection.
     Enter a new note, and all selected notes will be replaced.
     There is a lookback window so old notes do not clutter the autocompletions.
-    Update how many days to look back with app:config:set:general:note_history.
+    Update how many days to look back with app:config:set:general:note-history.
     """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
@@ -1562,7 +1562,7 @@ def update_notes(
             "has no notes to edit.",
             "If this was not the expected outcome,",
             "Try adjusting the lookback window with",
-            "app:config:set:general:note_history",
+            "app:config:set:general:note-history",
         )
         return
 
@@ -1907,7 +1907,7 @@ def run(
         if not provided, the default setting for the project is used.
         set project default billable value when first creating a project
         with project:create, using --default-billable / -b,
-        or update an existing project with project:set:default_billable.
+        or update an existing project with project:set:default-billable.
 
     --start / -s:
         start the entry at an earlier time.

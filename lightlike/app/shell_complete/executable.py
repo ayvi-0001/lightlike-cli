@@ -25,7 +25,7 @@ class ExecutableCompleter(Completer):
     ignore_patterns: list[str] = AppConfig().get(
         "completers",
         "exec",
-        "ignore_patterns",
+        "ignore-patterns",
         default=[],
     )
 

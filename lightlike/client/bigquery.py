@@ -67,13 +67,15 @@ def authorize_bigquery_client() -> bigquery.Client:
 
         with appconfig.rw() as config:
             config["client"].update(
-                active_project=getattr(credentials, "quota_project_id", None)
-                or getattr(credentials, "project_id", None),
+                {
+                    "active-project": getattr(credentials, "quota_project_id", None)
+                    or getattr(credentials, "project_id", None)
+                }
             )
 
         _console.if_not_quiet_start(console.log)("bigquery.Client authenticated")
 
-        resources_provisioned = appconfig.get("bigquery", "resources_provisioned")
+        resources_provisioned = appconfig.get("bigquery", "resources-provisioned")
 
         if not resources_provisioned:
             provision_bigquery_resources(client)
@@ -151,7 +153,7 @@ def provision_bigquery_resources(
 
     def update_config() -> None:
         with AppConfig().rw() as config:
-            config["bigquery"].update(resources_provisioned=True)
+            config["bigquery"].update({"resources-provisioned": True})
 
         if appdir.BQ_UPDATES.exists():
             bq_updates: dict[str, dict[str, bool]] = rtoml.load(appdir.BQ_UPDATES)

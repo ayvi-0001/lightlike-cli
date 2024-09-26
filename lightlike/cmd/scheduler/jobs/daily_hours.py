@@ -33,7 +33,7 @@ def print_daily_total_hours() -> None:
         tzinfo: "_TzInfo" = AppConfig().tzinfo
         today: datetime = now(tzinfo)
         date_params: "DateParams" = get_relative_week(
-            today, AppConfig().get("settings", "week_start", default=0)
+            today, AppConfig().get("settings", "week-start", default=0)
         )
 
         base_query: str = cleandoc(

@@ -32,7 +32,7 @@ def _set_quiet_start(config_path: Path) -> None:
     try:
         if config_path.exists():
             config = rtoml.load(config_path)
-            quiet_start: bool = t.cast(bool, config["settings"].get("quiet_start"))
+            quiet_start: bool = t.cast(bool, config["settings"].get("quiet-start"))
 
             global QUIET_START
             if len(sys.argv) > 1:
@@ -82,7 +82,7 @@ GROUP_COMMANDS = r"(?P<command>((%s)))" % "|".join(
         "project:unarchive",
         "project:set:name",
         "project:set:description",
-        "project:set:default_billable",
+        "project:set:default-billable",
         "project:set",
         "project:list",
         "project:delete",
@@ -107,19 +107,19 @@ GROUP_COMMANDS = r"(?P<command>((%s)))" % "|".join(
         "app:config:edit",
         "app:config:list",
         "app:config:set:general:editor",
-        "app:config:set:general:note_history",
-        "app:config:set:general:quiet_start",
+        "app:config:set:general:note-history",
+        "app:config:set:general:quiet-start",
         "app:config:set:general:shell",
-        "app:config:set:general:stay_logged_in",
-        "app:config:set:general:timer_add_min",
+        "app:config:set:general:stay-logged-in",
+        "app:config:set:general:timer-add-min",
         "app:config:set:general:timezone",
-        "app:config:set:general:week_start",
+        "app:config:set:general:week-start",
         "app:config:set:general",
-        "app:config:set:query:hide_table_render",
-        "app:config:set:query:mouse_support",
-        "app:config:set:query:save_query_info",
-        "app:config:set:query:save_svg",
-        "app:config:set:query:save_txt",
+        "app:config:set:query:hide-table-render",
+        "app:config:set:query:mouse-support",
+        "app:config:set:query:save-query-info",
+        "app:config:set:query:save-svg",
+        "app:config:set:query:save-txt",
         "app:config:set:query",
         "app:config:set",
         "app:config",

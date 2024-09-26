@@ -51,11 +51,11 @@ def query_repl(ctx: click.Context, console: Console) -> None:
 
 def _run_query_repl(console: Console) -> None:
     query_settings: dict[str, bool] = AppConfig().get("settings", "query", default={})
-    mouse_support: bool = query_settings.get("mouse_support", True)
-    save_txt: bool = query_settings.get("save_txt", False)
-    save_query_info: bool = query_settings.get("save_query_info", False)
-    save_svg: bool = query_settings.get("save_svg", False)
-    hide_table_render: bool = query_settings.get("hide_table_render", False)
+    mouse_support: bool = query_settings.get("mouse-support", True)
+    save_txt: bool = query_settings.get("save-txt", False)
+    save_query_info: bool = query_settings.get("save-query-info", False)
+    save_svg: bool = query_settings.get("save-svg", False)
+    hide_table_render: bool = query_settings.get("hide-table-render", False)
 
     TS = f"{int(datetime.combine(datetime.today(), datetime.min.time()).timestamp())}"
 

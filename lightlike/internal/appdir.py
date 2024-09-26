@@ -100,10 +100,10 @@ CONFIG_UPDATE_PATHS: list[str] = [
     "app.name",
     "bigquery.dataset",
     "bigquery.projects",
-    "bigquery.resources_provisioned",
+    "bigquery.resources-provisioned",
     "bigquery.timesheet",
     "bigquery",
-    "client.credentials_source",
+    "client.credentials-source",
     "completers.default",
     "keys.completers.commands",
     "keys.completers.exec",
@@ -113,23 +113,23 @@ CONFIG_UPDATE_PATHS: list[str] = [
     "keys.exit",
     "keys.system-command",
     "scheduler",
-    "settings.complete_style",
-    "settings.dateparser.additional_date_formats",
-    "settings.dateparser.prefer_dates_from",
-    "settings.dateparser.prefer_day_of_month",
-    "settings.dateparser.prefer_locale_date_order",
-    "settings.dateparser.prefer_month_of_year",
+    "settings.complete-style",
+    "settings.dateparser.additional-date-formats",
+    "settings.dateparser.prefer-dates-from",
+    "settings.dateparser.prefer-day-of-month",
+    "settings.dateparser.prefer-locale-date-order",
+    "settings.dateparser.prefer-month-of-year",
     "settings.editor",
-    "settings.note_history.days",
-    "settings.quiet_start",
-    "settings.reserve_space_for_menu",
+    "settings.note-history.days",
+    "settings.quiet-start",
+    "settings.reserve-space-for-menu",
     "settings.rprompt-date-format",
-    "settings.timer_add_min",
+    "settings.timer-add-min",
     "settings.update-terminal-title",
-    "settings.week_start",
+    "settings.week-start",
     "user.host",
     "user.name",
-    "user.stay_logged_in",
+    "user.stay-logged-in",
 ]
 CONFIG_FORCE_UPDATE_PATHS: list[str] = [
     "app.version",
@@ -364,10 +364,10 @@ def _initial_build() -> None | t.NoReturn:
 
         default_config["bigquery"].update(dataset=dataset_name)
         default_config["client"].update(
-            credentials_source=repr(client_credential_source)
+            {"credentials-source": repr(client_credential_source)}
         )
 
-        default_config["cli"].update(add_to_path=[__appdir__.as_posix()])
+        default_config["cli"].update({"add-to-path": [__appdir__.as_posix()]})
 
         console.log("Building app directory")
         console.log("Saving config")

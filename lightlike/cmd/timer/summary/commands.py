@@ -371,7 +371,7 @@ def summary_table(
     --current-month / -cm:
     --current-year / -cy:
         flags are processed before other date options.
-        configure week start dates with app:config:set:general:week_start.
+        configure week start dates with app:config:set:general:week-start.
 
     --match-project / -rp:
         match a regular expression against project names.
@@ -434,7 +434,7 @@ def summary_table(
         )
         if current_week:
             date_params = dates.get_relative_week(
-                now, AppConfig().get("settings", "week_start", default=0)
+                now, AppConfig().get("settings", "week-start", default=0)
             )
         elif current_month:
             date_params = dates.get_month_to_date(now)
@@ -620,7 +620,7 @@ def summary_csv(
     --current-month / -cm:
     --current-year / -cy:
         flags are processed before other date options.
-        configure week start dates with app:config:set:general:week_start.
+        configure week start dates with app:config:set:general:week-start.
 
     --match-project / -rp:
         match a regular expression against project names.
@@ -691,7 +691,7 @@ def summary_csv(
         )
         if current_week:
             date_params = dates.get_relative_week(
-                now, AppConfig().get("settings", "week_start", default=0)
+                now, AppConfig().get("settings", "week-start", default=0)
             )
         elif current_month:
             date_params = dates.get_month_to_date(now)
@@ -886,7 +886,7 @@ def summary_json(
     --current-month / -cm:
     --current-year / -cy:
         flags are processed before other date options.
-        configure week start dates with app:config:set:general:week_start.
+        configure week start dates with app:config:set:general:week-start.
 
     --orient / -o:
         default is [code]records[/code].
@@ -967,7 +967,7 @@ def summary_json(
         )
         if current_week:
             date_params = dates.get_relative_week(
-                now, AppConfig().get("settings", "week_start", default=0)
+                now, AppConfig().get("settings", "week-start", default=0)
             )
         elif current_month:
             date_params = dates.get_month_to_date(now)

@@ -35,7 +35,7 @@ StyleAndTextTuples = list[OneStyleAndTextTuple]
 
 USERNAME: str = AppConfig().get("user", "name", default=getpass.getuser())
 HOSTNAME: str = AppConfig().get("user", "host", default=socket.gethostname())
-GCP_PROJECT: str | None = AppConfig().get("client", "active_project")
+GCP_PROJECT: str | None = AppConfig().get("client", "active-project")
 TIMEZONE: "_TzInfo" = AppConfig().tzinfo
 UPDATE_TERMINAL_TITLE: bool = AppConfig().get(
     "settings", "update-terminal-title", default=True

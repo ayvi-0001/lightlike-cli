@@ -93,7 +93,7 @@ def init(console: "Console") -> None:
 
     credentials_source: CredentialsSource = AppConfig().get(
         "client",
-        "credentials_source",
+        "credentials-source",
         default=CredentialsSource.not_set,
     )
 
@@ -109,7 +109,7 @@ def init(console: "Console") -> None:
         project_id = _select_project(client._credentials)
 
         with AppConfig().rw() as config:
-            config["client"].update(active_project=project_id)
+            config["client"].update({"active-project": project_id})
 
     elif ClientInitOptions.UPDATE_AUTH % credentials_source:
         source = _select_credential_source(credentials_source)
@@ -117,13 +117,12 @@ def init(console: "Console") -> None:
         match source:
             case CredentialsSource.from_service_account_key:
                 with AppConfig().rw() as config:
-                    config["client"].update(credentials_source=source)
+                    config["client"].update({"credentials-source": source})
 
             case CredentialsSource.from_environment:
                 with AppConfig().rw() as config:
                     config["client"].update(
-                        credentials_source=source,
-                        active_project=None,
+                        {"credentials-source": source, "active-project": None}
                     )
 
     reconfigure()
@@ -207,14 +206,18 @@ def reset(ctx: click.Context, console: "Console") -> bool:
         if _questionary.confirm(message="Continue?", auto_enter=True):
             with AppConfig().rw() as config:
                 config["user"].update(
-                    password="null",
-                    salt=[],
-                    stay_logged_in=False,
+                    {
+                        "password": "null",
+                        "salt": [],
+                        "stay_logged_in": False,
+                    }
                 )
                 config["client"].update(
-                    active_project="null",
-                    credentials_source=CredentialsSource.not_set,
-                    service_account_key=[],
+                    {
+                        "active-project": "null",
+                        "credentials-source": CredentialsSource.not_set,
+                        "service-account-key": [],
+                    }
                 )
 
             return True

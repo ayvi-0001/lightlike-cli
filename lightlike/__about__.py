@@ -40,9 +40,9 @@ __all__: Sequence[str] = (
     "__version__",
 )
 
-__version__: Final[str] = "v0.11.0b16"
+__version__: Final[str] = "v0.12.0b0"
 
-__appname__: str = f"lightlike-cli"
+__appname__: str = "lightlike-cli"
 
 LIGHTLIKE_ENV: str | None = getenv("LIGHTLIKE_ENV")
 LIGHTLIKE_APP_DIR: str | Path = getenv(

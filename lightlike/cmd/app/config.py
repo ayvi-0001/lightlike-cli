@@ -256,7 +256,7 @@ def create_settings_fn(
 
 
 note_history = SettingsCommand(
-    name="note_history",
+    name="note-history",
     argument=click.argument("days", type=click.INT),
     help="""
     Days to store note history.
@@ -279,7 +279,7 @@ note_history = SettingsCommand(
 
 
 quiet_start = SettingsCommand(
-    name="quiet_start",
+    name="quiet-start",
     argument=value_arg,
     short_help="Hide logs when starting REPL.",
     config_keys=["settings"],
@@ -370,7 +370,7 @@ timezone = SettingsCommand(
 
 
 week_start = SettingsCommand(
-    name="week_start",
+    name="week-start",
     argument=click.argument(
         "dayofweek",
         type=click.Choice(["Sunday", "Monday"]),
@@ -378,7 +378,7 @@ week_start = SettingsCommand(
     ),
     short_help="Update week start for option --current-week / -cw.",
     syntax=Syntax(
-        code="$ app config set week_start Sunday",
+        code="$ app config set week-start Sunday",
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
@@ -389,7 +389,7 @@ week_start = SettingsCommand(
 
 
 timer_add_min = SettingsCommand(
-    name="timer_add_min",
+    name="timer-add-min",
     argument=click.argument("minutes", type=click.INT),
     short_help="Default minutes for cmd timer:add.",
     config_keys=["settings"],
@@ -403,8 +403,8 @@ editor = SettingsCommand(
     short_help=f"Default text editor. Current: {AppConfig().get('settings', 'editor', default='not-set')}",
     syntax=Syntax(
         code="""\
-        $ app config set general editor code
-    
+        $ app config set general editor code # vscode
+        $ app config set general editor hx # helix
         $ app config set general editor vim\
         """,
         lexer="fishshell",
@@ -433,12 +433,12 @@ for cmd in t.cast(
 
 
 mouse_support = SettingsCommand(
-    name="mouse_support",
+    name="mouse-support",
     argument=value_arg,
     help="Controls mouse support in bq:query.",
     short_help="Control mouse support in cmd bq:query",
     syntax=Syntax(
-        code="$ app config set query mouse_support true",
+        code="$ app config set query mouse-support true",
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
@@ -449,12 +449,12 @@ mouse_support = SettingsCommand(
 
 
 save_txt = SettingsCommand(
-    name="save_txt",
+    name="save-txt",
     argument=value_arg,
     help="Queries using bq:query will save the rendered result to a [code].txt[/code] file in the app directory.",
     short_help="Queries using bq:query save the rendered table to a .txt in appdir.",
     syntax=Syntax(
-        code="$ app config set query save_txt true",
+        code="$ app config set query save-txt true",
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
@@ -465,7 +465,7 @@ save_txt = SettingsCommand(
 
 
 save_query_info = SettingsCommand(
-    name="save_query_info",
+    name="save-query-info",
     argument=value_arg,
     help="""
     Include query info when saving to file.
@@ -483,7 +483,7 @@ save_query_info = SettingsCommand(
     """,
     short_help="Include query info when saving to file.",
     syntax=Syntax(
-        code="$ app config set query save_query_info true",
+        code="$ app config set query save-query-info true",
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
@@ -494,12 +494,12 @@ save_query_info = SettingsCommand(
 
 
 save_svg = SettingsCommand(
-    name="save_svg",
+    name="save-svg",
     argument=value_arg,
     help="Queries using bq:query will save the rendered result to an [code].svg[/code] file in the app directory.",
     short_help="Queries using bq:query save the rendered table to an svg in appdir.",
     syntax=Syntax(
-        code="$ app config set query save_svg true",
+        code="$ app config set query save-svg true",
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
@@ -510,16 +510,16 @@ save_svg = SettingsCommand(
 
 
 hide_table_render = SettingsCommand(
-    name="hide_table_render",
+    name="hide-table-render",
     argument=value_arg,
     help="""
-    If save_text or save_svg is enabled, enable/disable table render in console.
+    If save_text or save-svg is enabled, enable/disable table render in console.
 
-    If save_text or save_svg is disabled, this option does not have any affect.
+    If save_text or save-svg is disabled, this option does not have any affect.
     """,
-    short_help="If save_text | save_svg, enable/disable table render in console.",
+    short_help="If save_text | save-svg, enable/disable table render in console.",
     syntax=Syntax(
-        code="$ app config set query hide_table_render true",
+        code="$ app config set query hide-table-render true",
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
@@ -535,13 +535,13 @@ for cmd in [mouse_support, save_txt, save_query_info, save_svg, hide_table_rende
 
 
 if (
-    AppConfig().get("client", "credentials_source")
+    AppConfig().get("client", "credentials-source")
     == CredentialsSource.from_service_account_key
 ):
 
     @update_general_settings.command(
         cls=FormattedCommand,
-        name="stay_logged_in",
+        name="stay-logged-in",
         no_args_is_help=True,
         help="""
         Save login password.
@@ -551,7 +551,7 @@ if (
         """,
         short_help="Save login password.",
         syntax=Syntax(
-            code="$ app config set general stay_logged_in true",
+            code="$ app config set general stay-logged-in true",
             lexer="fishshell",
             dedent=True,
             line_numbers=True,
@@ -591,11 +591,11 @@ if (
                     AppConfig()._update_user_credentials(
                         password=input_password, stay_logged_in=value
                     )
-                    rprint("Set", markup.scope_key("stay_logged_in"), "to", value)
+                    rprint("Set", markup.scope_key("stay-logged-in"), "to", value)
 
             else:
                 rprint(
-                    markup.dimmed(f"`stay_logged_in` is already set to `{value}`,"),
+                    markup.dimmed(f"`stay-logged-in` is already set to `{value}`,"),
                     markup.dimmed("nothing happened."),
                 )
 
@@ -607,4 +607,4 @@ if (
                 AppConfig()._update_user_credentials(
                     password="null", stay_logged_in=False
                 )
-                rprint("Set", markup.scope_key("stay_logged_in"), "to", False)
+                rprint("Set", markup.scope_key("stay-logged-in"), "to", False)

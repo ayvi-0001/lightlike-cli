@@ -92,7 +92,7 @@ class AppConfig(metaclass=factory._Singleton):
 
     @property
     def stay_logged_in(self) -> bool | None:
-        stay_logged_in: bool | None = self.get("user", "stay_logged_in")
+        stay_logged_in: bool | None = self.get("user", "stay-logged-in")
         return stay_logged_in
 
     @property
@@ -124,4 +124,4 @@ class AppConfig(metaclass=factory._Singleton):
             if salt:
                 config["user"].update(salt=salt)
             if stay_logged_in is not None:
-                config["user"].update(stay_logged_in=stay_logged_in)
+                config["user"].update({"stay-logged-in": stay_logged_in})

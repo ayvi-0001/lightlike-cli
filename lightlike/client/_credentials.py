@@ -33,7 +33,7 @@ def _get_credentials_from_config(
     credentials: google.auth.credentials.Credentials
     credentials_source: str = appconfig.get(
         "client",
-        "credentials_source",
+        "credentials-source",
         default=CredentialsSource.not_set,
     )
 
@@ -62,7 +62,7 @@ def _get_credentials_from_config(
 
         case CredentialsSource.from_environment:
             quota_project_id: str | None
-            quota_project_id = appconfig.get("client", "active_project")
+            quota_project_id = appconfig.get("client", "active-project")
 
             if quota_project_id == "null":
                 quota_project_id = None
@@ -85,16 +85,18 @@ def _get_credentials_from_config(
         case _:
             print("credentials configuration not found")
 
-            with appconfig.rw() as config:
-                config["client"].update(
-                    credentials_source=_select_credential_source(
-                        current_setting=appconfig.get(
-                            "client",
-                            "credentials_source",
-                            default=CredentialsSource.not_set,
-                        )
+            new_credentials_source = {
+                "credentials-source": _select_credential_source(
+                    current_setting=appconfig.get(
+                        "client",
+                        "credentials-source",
+                        default=CredentialsSource.not_set,
                     )
                 )
+            }
+
+            with appconfig.rw() as config:
+                config["client"].update(**new_credentials_source)
 
             return _get_credentials_from_config(appconfig, prompt_for_project)
 
@@ -109,7 +111,7 @@ def service_account_key_flow(appconfig: AppConfig) -> tuple[bytes, bytes]:
 
     encrypted_key_from_config: bytearray | None = appconfig.get(
         "client",
-        "service_account_key",
+        "service-account-key",
     )
     salt_from_config: bytearray | None = appconfig.get(
         "user",
@@ -151,7 +153,7 @@ def service_account_key_flow(appconfig: AppConfig) -> tuple[bytes, bytes]:
 
         appconfig._update_user_credentials(salt=salt)
         with appconfig.rw() as config:
-            config["client"].update(service_account_key=encrypted_key)
+            config["client"].update({"service-account-key": encrypted_key})
 
         del password
         del key_derivation

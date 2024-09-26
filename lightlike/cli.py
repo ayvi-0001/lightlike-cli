@@ -148,11 +148,11 @@ def run_cli(name: str = "lightlike") -> None:
             enable_open_in_editor=True,
             reserve_space_for_menu=AppConfig().get(
                 "settings",
-                "reserve_space_for_menu",
+                "reserve-space-for-menu",
                 default=10,
             ),
             complete_style=AppConfig().get(
-                "settings", "complete_style", default="COLUMN"
+                "settings", "complete-style", default="COLUMN"
             ),
         ),
         completer_callable=lambda g, c, e: shell_complete.global_completer(
@@ -175,7 +175,7 @@ def run_cli(name: str = "lightlike") -> None:
     _console.if_not_quiet_start(get_console().log)("Validating cache")
     TimeEntryCache().validate()
 
-    _add_to_path(paths=AppConfig().get("cli", "add_to_path"))
+    _add_to_path(paths=AppConfig().get("cli", "add-to-path"))
 
     get_client()
 

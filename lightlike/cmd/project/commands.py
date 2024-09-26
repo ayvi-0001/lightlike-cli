@@ -655,14 +655,14 @@ def list_(
 @click.group(
     cls=AliasedGroup,
     name="set",
-    short_help="Update a project's name/description/default_billable.",
+    short_help="Update a project's name/description/default-billable.",
     syntax=Syntax(
         code="""\
         $ project set name lightlike-cli …
     
         $ project set description lightlike-cli …
 
-        $ project set default_billable lightlike-cli …\
+        $ project set default-billable lightlike-cli …\
         """,
         lexer="fishshell",
         dedent=True,
@@ -876,10 +876,10 @@ def set_project_description(
 
 @set_.command(
     cls=FormattedCommand,
-    name="default_billable",
+    name="default-billable",
     syntax=Syntax(
         code="""\
-        $ project set default_billable lightlike-cli true
+        $ project set default-billable lightlike-cli true
         $ p s def lightlike-cli true\
         """,
         lexer="fishshell",

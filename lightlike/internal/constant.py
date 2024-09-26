@@ -25,58 +25,58 @@ term = "{os.getenv("TERM", "unknown")}"
 [user]
 name = "{getpass.getuser()}"
 host = "{socket.gethostname()}"
-stay_logged_in = false
+stay-logged-in = false
 password = ""
 salt = []
 
 [settings]
-complete_style = "COLUMN"
+complete-style = "COLUMN"
 editor = "{os.environ.get("EDITOR")}"
-note_required = "not-implemented"
-quiet_start = false
-reserve_space_for_menu = 12
-timer_add_min = -6
+note-required = "not-implemented"
+quiet-start = false
+reserve-space-for-menu = 12
+timer-add-min = -6
 timezone = "null"
-week_start = 1
+week-start = 1
 update-terminal-title = true
 rprompt-date-format = "[%H:%M:%S]"
 
 [settings.dateparser]
-additional_date_formats = ["%I%p", "%I:%M%p", "%I%M%p", "%H%M", "%H%M%S", "%H:%M", "%H:%M:%S"]
-cache_size_limit = 0
-date_order = "MDY"
-default_languages = ["en"]
-language_detection_confidence_threshold = 0.5
+additional-date-formats = ["%I%p", "%I:%M%p", "%I%M%p", "%H%M", "%H%M%S", "%H:%M", "%H:%M:%S"]
+cache-size-limit = 0
+date-order = "MDY"
+default-languages = ["en"]
+language-detection-confidence-threshold = 0.5
 normalize = true
-prefer_dates_from = "current_period"
-prefer_day_of_month = "current"
-prefer_locale_date_order = true
-prefer_month_of_year = "current"
-strict_parsing = false
+prefer-dates-from = "current_period"
+prefer-day-of-month = "current"
+prefer-locale-date-order = true
+prefer-month-of-year = "current"
+strict-parsing = false
 
-[settings.note_history]
+[settings.note-history]
 days = 90
 
 [settings.query]
-hide_table_render = false
-mouse_support = false
-save_query_info = false
-save_svg = false
-save_txt = false
+hide-table-render = false
+mouse-support = false
+save-query-info = false
+save-svg = false
+save-txt = false
 
 [bigquery]
 dataset = "{__appname_sc__}"
 timesheet = "timesheet"
 projects = "projects"
-resources_provisioned = false
+resources-provisioned = false
 
 [client]
-active_project = "null"
-credentials_source = "not-set"
-service_account_key = []
+active-project = "null"
+credentials-source = "not-set"
+service-account-key = []
 
 [cli]
-add_to_path = []
+add-to-path = []
 
 [cli.commands]
 calendar = "lightlike.cmd.app.other:calendar"
@@ -108,7 +108,7 @@ cursor = "fg:#f0f0ff"
 default = ["CMD"]
 
 [completers.exec]
-ignore_patterns = []
+ignore-patterns = []
 
 [keys]
 exit = [[":", "q"], ["c-q"]]
