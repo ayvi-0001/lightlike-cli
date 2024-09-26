@@ -302,6 +302,21 @@ regex_engine = click.option(
     metavar="SVG",
     shell_complete=shell_complete.path,
 )
+@click.option(
+    "-l",
+    "--show-lines",
+    show_default=True,
+    is_flag=True,
+    flag_value=True,
+    multiple=False,
+    type=click.BOOL,
+    help="Show lines between rows",
+    required=False,
+    default=None,
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
 @_pass.routine
 @_pass.console
 @_pass.ctx_group(parents=1)
@@ -319,6 +334,7 @@ def summary_table(
     current_year: bool,
     round_: str,
     show_null_values: bool,
+    show_lines: bool,
     output: Path | None,
     match_project: t.Sequence[str],
     match_note: t.Sequence[str],
@@ -455,6 +471,7 @@ def summary_table(
         datetime_ctype=[""],
         time_ctype=["start", "end"],
         date_ctype=["date"],
+        table_kwargs={"show_lines": show_lines},
     )
     if not table.row_count:
         rprint(markup.dimmed("No results"))

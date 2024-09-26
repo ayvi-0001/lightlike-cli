@@ -143,8 +143,33 @@ def eval_(args: list[str], multiline_prompt: bool) -> None:
     show_default=True,
     default=0,
     required=False,
+    help="0 = Monday, 6 = Sunday",
 )
-def calendar(year: int, firstweekday: int) -> None:
+@click.option(
+    "--color-weekends",
+    type=click.STRING,
+    show_default=True,
+    default=None,
+)
+@click.option(
+    "--color-weekdays",
+    type=click.STRING,
+    show_default=True,
+    default="#f0f0ff",
+)
+@click.option(
+    "--color-today",
+    type=click.STRING,
+    show_default=True,
+    default="on red",
+)
+def calendar(
+    year: int,
+    firstweekday: int,
+    color_today: str | None,
+    color_weekdays: str,
+    color_weekends: str | None,
+) -> None:
     import calendar
 
     from lightlike.app.config import AppConfig
@@ -171,11 +196,11 @@ def calendar(year: int, firstweekday: int) -> None:
         for weekdays in month_days:
             days = []
             for index, day in enumerate(weekdays):
-                day_label = Text(str(day or ""), style="#f0f0ff")
-                if index in (5, 6):
-                    day_label.stylize("blue")
+                day_label = Text(str(day or ""), style=color_weekdays)
+                if index in (5, 6) and color_weekends:
+                    day_label.stylize(color_weekends)
                 if day and (day, month, year) == today_tuple:
-                    day_label.stylize("on red")
+                    day_label.stylize(color_today)
                 days.append(day_label)
             table.add_row(*days)
 

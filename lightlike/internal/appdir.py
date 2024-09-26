@@ -123,6 +123,7 @@ CONFIG_UPDATE_PATHS: list[str] = [
     "settings.note_history.days",
     "settings.quiet_start",
     "settings.reserve_space_for_menu",
+    "settings.rprompt-date-format",
     "settings.timer_add_min",
     "settings.update-terminal-title",
     "settings.week_start",
