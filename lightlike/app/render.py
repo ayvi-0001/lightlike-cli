@@ -30,30 +30,29 @@ __all__: t.Sequence[str] = (
 
 def cli_info() -> None:
     console = get_console()
-    console.log(f"__appname__[b][red]=[/red][repr.str]{__appname_sc__}")
-    console.log(f"__version__[b][red]=[/red][repr.number]{__version__}")
-    console.log(f"__config__[b][red]=[/red][repr.path]{__config__.as_posix()}")
-    console.log(f"__appdir__[b][red]=[/][repr.path]{__appdir__.as_posix()}")
+    console.log(f'[repr.str]"{__appname_sc__}" [repr.number]{__version__}')
+    console.log(f"Checking config in {__config__.as_posix()}")
+    console.log(f"Checking appdir in {__appdir__.as_posix()}")
 
-    # width = (
-    #     f"[b][green]{console.width}[/]"
-    #     if console.width >= 140
-    #     else f"[b][red]{console.width}[/]"
-    # )
-    # height = (
-    #     f"[b][green]{console.height}[/]"
-    #     if console.height >= 40
-    #     else f"[b][red]{console.height}[/]"
-    # )
+    width = (
+        f"[green]{console.width}[/]"
+        if console.width >= 140
+        else f"[red]{console.width}[/]"
+    )
+    height = (
+        f"[green]{console.height}[/]"
+        if console.height >= 40
+        else f"[red]{console.height}[/]"
+    )
 
-    # console.log(
-    #     f"console_width[b][red]=[/]{width}",
-    #     "[dim][red](recommended width </ 140)" if console.width < 140 else "",
-    # )
-    # console.log(
-    #     f"console_height[b][red]=[/]{height}",
-    #     "[dim][red](recommended height </ 40)" if console.height < 40 else "",
-    # )
+    console.log(
+        f"[#f0f0ff]console_width=[/]{width}[#888888][red]",
+        "(recommended width >= 140)" if console.width < 140 else "",
+    )
+    console.log(
+        f"[#f0f0ff]console_height=[/]{height}[#888888][red]",
+        "(recommended height >= 40)" if console.height < 40 else "",
+    )
 
 
 def query_start_render(
@@ -172,7 +171,7 @@ def map_sequence_to_rich_table(
     return table
 
 
-def map_cell_style(values: "dict_values[str, t.Any]") -> "map":  # type: ignore
+def map_cell_style(values: "dict_values[str, t.Any]") -> "map[str]":  # type: ignore
     display_values: list[t.Any] = []
     for value in values:
         if not value or value in ("null", "None"):
@@ -208,7 +207,7 @@ def map_column_style(
         )
         if not no_color:
             kwargs |= dict(
-                header_style="red",
+                # header_style="red",
             )
         if console_width <= 150:
             kwargs |= dict(
@@ -223,7 +222,7 @@ def map_column_style(
         )
         if not no_color:
             kwargs |= dict(
-                header_style="cyan",
+                # header_style="cyan",
             )
     elif key in string_ctype or isinstance(value, str):
         kwargs |= dict(
@@ -231,7 +230,7 @@ def map_column_style(
         )
         if not no_color:
             kwargs |= dict(
-                header_style="green",
+                # header_style="green",
             )
     elif key in _datetime_types or isinstance(value, (date, datetime, time, timedelta)):
         kwargs |= dict(
@@ -241,7 +240,7 @@ def map_column_style(
         )
         if not no_color:
             kwargs |= dict(
-                header_style="yellow",
+                # header_style="yellow",
             )
         if key in date_ctype or isinstance(value, date):
             kwargs |= dict(
@@ -254,7 +253,7 @@ def map_column_style(
     else:
         kwargs |= dict(
             justify="left",
-            header_style="dim",
+            # header_style="dim",
         )
 
     if items[0] == "row":
@@ -293,7 +292,7 @@ def create_table_diff(
             if k in new:
                 diff[k] = new[k]
 
-            if (diff.get(k) is None or diff.get(k) == 0) and diff.get(k) is not False:
+            if diff.get(k) is not False and not diff.get(k):
                 table.add_column(
                     k,
                     **map_column_style(
@@ -308,7 +307,7 @@ def create_table_diff(
                 if f"{original[k]}" == f"{diff[k]}":
                     table.add_column(
                         k,
-                        header_style="yellow",
+                        # header_style="yellow",
                         **map_column_style(
                             one({k: diff[k]}.items()),
                             console_width=console_width,
@@ -319,16 +318,15 @@ def create_table_diff(
                 else:
                     table.add_column(
                         k,
-                        header_style="green",
+                        # header_style="green",
                         **map_column_style(
                             one({k: diff[k]}.items()),
                             console_width=console_width,
                             no_color=True,
                         ),
                     )
-                    new_record[k] = Text.assemble(
-                        markup.sdr(original[k]), " ", markup.bg(diff[k])
-                    ).markup
+                    nk = markup.sdr(original[k]), " ", markup.bg(diff[k])
+                    new_record[k] = Text.assemble(*nk).markup
 
         new_records.append(new_record)
         final_table.columns = table.columns
@@ -369,7 +367,7 @@ def create_row_diff(original: dict[str, t.Any], new: dict[str, t.Any]) -> Table:
             if f"{original[k]}" == f"{diff[k]}":
                 table.add_column(
                     k,
-                    header_style="yellow",
+                    # header_style="yellow",
                     **map_column_style(
                         one({k: diff[k]}.items()),
                         console_width=console_width,
@@ -380,16 +378,15 @@ def create_row_diff(original: dict[str, t.Any], new: dict[str, t.Any]) -> Table:
             else:
                 table.add_column(
                     k,
-                    header_style="green",
+                    # header_style="green",
                     **map_column_style(
                         one({k: diff[k]}.items()),
                         console_width=console_width,
                         no_color=True,
                     ),
                 )
-                new_record[k] = Text.assemble(
-                    markup.sdr(original[k]), " ", markup.bg(diff[k])
-                ).markup
+                nk = markup.sdr(original[k]), " ", markup.bg(diff[k])
+                new_record[k] = Text.assemble(*nk).markup
 
     table.add_row(*map_cell_style(new_record.values()))
     return table
