@@ -580,7 +580,7 @@ class TimeEntryCache(_Entries):
 
         if field in ("project", "note"):
             _kwargs |= dict(
-                header_style="green",
+                # header_style="green",
                 overflow="ellipsis",
             )
             if field == "project":
@@ -595,14 +595,14 @@ class TimeEntryCache(_Entries):
                 )
         elif field == "id":
             _kwargs |= dict(
-                header_style="green",
+                # header_style="green",
                 overflow="crop",
                 min_width=7,
                 max_width=7,
             )
         elif field in ("start", "timestamp_paused"):
             _kwargs |= dict(
-                header_style="yellow",
+                # header_style="yellow",
                 justify="left",
                 overflow="crop",
                 min_width=19,
@@ -610,7 +610,7 @@ class TimeEntryCache(_Entries):
             )
         elif field in ("billable", "paused"):
             _kwargs |= dict(
-                header_style="red",
+                # header_style="red",
                 justify="left",
             )
             if console_width < 150:
@@ -621,7 +621,7 @@ class TimeEntryCache(_Entries):
                 )
         elif field in ("paused_hours", "hours"):
             _kwargs |= dict(
-                header_style="cyan",
+                # header_style="cyan",
                 justify="right",
                 overflow="crop",
                 max_width=12,
