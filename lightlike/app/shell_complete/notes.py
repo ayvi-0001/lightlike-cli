@@ -56,8 +56,12 @@ class Notes(Completer):
 
         start_position: int = -len(document.text_before_cursor)
 
-        for match in fuzzyfinder(document.text, self.get(self.project)):
-            completions.append(Completion(text=match, start_position=start_position))
+        matches: list[str] = fuzzyfinder(
+            document.text, self.get(self.project), sort_results=False
+        )
+        for match in matches:
+            completion = Completion(text=match, start_position=start_position)
+            completions.append(completion)
 
         yield from completions
 
@@ -82,13 +86,15 @@ def from_param(
         target_project = ctx.protected_args[opt_idx + 1]
 
     if target_project:
-        for note in fuzzyfinder(incomplete, completer.get(target_project)):
-            completions.append(
-                CompletionItem(
-                    value=alter_str(note, add_quotes=True),
-                    help=f"project: {project}",
-                )
+        matches: list[str] = fuzzyfinder(
+            incomplete, completer.get(target_project), sort_results=False
+        )
+        for note in matches:
+            completion = CompletionItem(
+                value=alter_str(note, add_quotes=True),
+                help=f"project: {project}",
             )
+            completions.append(completion)
 
     if not completions:
         buffer: str = get_app().current_buffer.document.text
@@ -112,13 +118,13 @@ def from_cache(
     if not notes:
         return completions
 
-    for note in fuzzyfinder(incomplete, notes):
-        completions.append(
-            CompletionItem(
-                value=alter_str(note, add_quotes=True),
-                help=f"project: {cache.project}",
-            )
+    matches: list[str] = fuzzyfinder(incomplete, notes, sort_results=False)
+    for note in matches:
+        completion = CompletionItem(
+            value=alter_str(note, add_quotes=True),
+            help=f"project: {cache.project}",
         )
+        completions.append(completion)
 
     return completions
 
@@ -136,12 +142,14 @@ def from_chained_cmd(
     if not (project_location and project):
         return completions
 
-    for note in fuzzyfinder(incomplete, Notes().get(project)):
-        completions.append(
-            CompletionItem(
-                value=alter_str(note, add_quotes=True),
-                help=f"project: {project}",
-            )
+    matches: list[str] = fuzzyfinder(
+        incomplete, Notes().get(project), sort_results=False
+    )
+    for note in matches:
+        completion = CompletionItem(
+            value=alter_str(note, add_quotes=True),
+            help=f"project: {project}",
         )
+        completions.append(completion)
 
     return completions
