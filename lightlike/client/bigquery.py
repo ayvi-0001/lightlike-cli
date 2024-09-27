@@ -17,7 +17,7 @@ from rich.padding import Padding
 from rich.panel import Panel
 
 from lightlike import _console
-from lightlike.__about__ import __appdir__
+from lightlike.__about__ import __appdir__, __version__
 from lightlike.app import _get, _questionary
 from lightlike.app.config import AppConfig
 from lightlike.client._credentials import _get_credentials_from_config
@@ -166,9 +166,10 @@ def provision_bigquery_resources(
     mapping: dict[str, t.Any] = AppConfig().get("bigquery", default={})
     bq_patterns = {
         "${DATASET.NAME}": mapping["dataset"],
-        "${TABLES.TIMESHEET}": mapping["timesheet"],
         "${TABLES.PROJECTS}": mapping["projects"],
+        "${TABLES.TIMESHEET}": mapping["timesheet"],
         "${TIMEZONE}": AppConfig().tzname,
+        "${VERSION}": __version__.replace(".", "-"),
     }
 
     if force:
@@ -234,9 +235,10 @@ def update_routine_diff(client: bigquery.Client) -> None:
             if missing:
                 bq_patterns = {
                     "${DATASET.NAME}": mapping["dataset"],
-                    "${TABLES.TIMESHEET}": mapping["timesheet"],
                     "${TABLES.PROJECTS}": mapping["projects"],
+                    "${TABLES.TIMESHEET}": mapping["timesheet"],
                     "${TIMEZONE}": AppConfig().tzname,
+                    "${VERSION}": __version__.replace(".", "-"),
                 }
                 console.log("Creating missing procedures")
 

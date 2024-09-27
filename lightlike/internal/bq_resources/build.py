@@ -33,12 +33,8 @@ class Build:
 
     @property
     def scripts(self) -> t.Sequence[Path]:
-        return tuple(
-            filter(
-                lambda p: p.suffix == ".sql" and not p.name.startswith("_"),
-                self.path.iterdir(),
-            )
-        )
+        filter_fn = lambda p: p.suffix == ".sql" and not p.name.startswith("_")
+        return tuple(filter(filter_fn, self.path.iterdir()))
 
     @property
     def names(self) -> t.Sequence[str]:
