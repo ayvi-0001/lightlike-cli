@@ -40,7 +40,7 @@ __all__: Sequence[str] = (
     "__version__",
 )
 
-__version__: Final[str] = "v0.12.0b2"
+__version__: Final[str] = "v0.12.0b3"
 
 
 LIGHTLIKE_ENV: str | None = getenv("LIGHTLIKE_ENV")
