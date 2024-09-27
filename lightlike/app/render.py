@@ -31,8 +31,8 @@ __all__: t.Sequence[str] = (
 def cli_info() -> None:
     console = get_console()
     console.log(f'[repr.str]"{__appname_sc__}" [repr.number]{__version__}')
-    console.log(f"Checking config in {__config__.as_posix()}")
-    console.log(f"Checking appdir in {__appdir__.as_posix()}")
+    console.log(f"Checking config at [repr.path]{__config__.as_posix()}")
+    console.log(f"Checking appdir at [repr.path]{__appdir__.as_posix()}")
 
     width = (
         f"[green]{console.width}[/]"

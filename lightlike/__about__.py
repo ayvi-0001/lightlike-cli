@@ -40,18 +40,17 @@ __all__: Sequence[str] = (
     "__version__",
 )
 
-__version__: Final[str] = "v0.12.0b0"
+__version__: Final[str] = "v0.12.0b1"
 
-__appname__: str = "lightlike-cli"
 
 LIGHTLIKE_ENV: str | None = getenv("LIGHTLIKE_ENV")
 LIGHTLIKE_APP_DIR: str | Path = getenv(
-    "LIGHTLIKE_APP_DIR", default=Path(get_app_dir(__appname__))
+    "LIGHTLIKE_APP_DIR",
+    default=Path(get_app_dir("lightlike-cli", force_posix=True)),
 )
 LIGHTLIKE_CONFIG_DIR: str | Path = getenv(
     "LIGHTLIKE_CONFIG_DIR", default=Path.home() / ".config" / "lightlike-cli"
 )
-LIGHTLIKE_CONFIG_FILE: str = getenv("LIGHTLIKE_CONFIG_FILE", default="config.toml")
 
 # #################################################################################################
 # ENVIRONMENT VARIABLES:
@@ -59,7 +58,6 @@ LIGHTLIKE_CONFIG_FILE: str = getenv("LIGHTLIKE_CONFIG_FILE", default="config.tom
 #                                 dataset/tables in BigQuery. This is essentially a new environment
 #                                 for the cli, and will run independently of other environments.
 # LIGHTLIKE_CONFIG_DIR:           Directory for config. Must be absolute path.
-# LIGHTLIKE_CONFIG_FILE:          Name of config file, relative to config dir.
 # LIGHTLIKE_APP_DIR:              Directory for app data. Must be absolute path.
 # LIGHTLIKE_CLI_DEV:              Enables dev features.
 # LIGHTLIKE_CLI_DEV_EXPORT_HELP:  Output of help commands are saved to an svg in the current directory.
@@ -118,10 +116,10 @@ def get_config_dir(env: str | None = None) -> Path:
 # fmt: off
 # appname redefined from line 45, env appended
 __appdir__: Final[Path] = get_appdir_path(LIGHTLIKE_ENV)
-__appname__: Final[str] = f"{__appname__}%s" % (f"-{LIGHTLIKE_ENV}" if LIGHTLIKE_ENV else "")
+__appname__: Final[str] = "lightlike-cli%s" % (f"-{LIGHTLIKE_ENV}" if LIGHTLIKE_ENV else "")
 __appname_sc__: Final[str] = "".join(c if c.isalnum() else "_" for c in __appname__.lower())
 __configdir__: Final[Path] = get_config_dir(LIGHTLIKE_ENV)
-__config__: Final[Path] = __configdir__ / LIGHTLIKE_CONFIG_FILE
+__config__: Final[Path] = __configdir__ / "lightlike.toml"
 __lock__: Final[Path] = __appdir__ / "cli.lock"
 __repo__: Final[str] = "https://github.com/ayvi-0001/lightlike-cli"
 # fmt: on
@@ -167,8 +165,8 @@ __cli_help__: str = f"""\
 
 [b]Repo[/b]: [repr.url][link={__repo__}]{__repo__}[/link][/]
 
-__appname__ = {__appname_sc__}
-__version__ = {__version__}
-__config__  = {__config__.as_posix()}
-__appdir__  = {__appdir__.as_posix()}
+{'LIGHTLIKE_ENV: %s' % LIGHTLIKE_ENV if LIGHTLIKE_ENV else ''}
+VERSION = {__version__}
+LIGHTLIKE_APP_DIR = {LIGHTLIKE_APP_DIR.as_posix()}
+LIGHTLIKE_CONFIG_DIR = {LIGHTLIKE_CONFIG_DIR.as_posix()}
 """
