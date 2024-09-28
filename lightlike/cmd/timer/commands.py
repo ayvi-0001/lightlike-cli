@@ -72,17 +72,20 @@ def default_timer_add(config: AppConfig) -> str:
 @click.command(
     cls=FormattedCommand,
     name="add",
-    short_help="Insert a time entry.",
+    short_help="Add a completed time entry.",
     syntax=Syntax(
         code="""\
-        $ timer add --project lightlike-cli
-        $ t a -plightlike-cli
-        
         $ timer add # defaults to adding an entry under `no-project`, that started 6 minutes ago, ending now.
         $ t a       # this can be later updated using timer:update
+        
+        $ timer add --start 1h # started 1 hour ago, ends now
+        $ t a -s1h
 
-        $ timer add --project lightlike-cli --start jan1@9am --end jan1@1pm --note … --billable true
-        $ t a -plightlike-cli -sjan1@9am -ejan1@1pm -n… -b1\
+        $ timer add --project lightlike-cli --start 0900  --end 1130 # 9am -> 11:30am today
+        $ t a -plightlike-cli -s0900 -e1130
+        
+        $ timer add --project lightlike-cli --start jan1@9am --end jan1@1pm --note 'task description'
+        $ t a -plightlike-cli -sjan1@9am -ejan1@1pm -n'task description'\
         """,
         lexer="fishshell",
         dedent=True,
@@ -178,17 +181,19 @@ def add(
     billable: bool,
 ) -> None:
     """
-    Insert a new time entry.
+    Add a completed time entry.
 
     --project / -p:
         set the project for the time entry to this.
+        create new projects with project:create.
         projects can be searched for by name or description.
         projects are ordered in created time desc.
-        defaults to [code]no-project[/code].
 
     --note / -n:
-        set the note for the time entry to this.
-        if --project / -p is used, then autocomplete will include notes for the selected project.
+        set note for time entry. if --project / -p is called,
+        then notes for selected project will autocomplete. search with fuzzyfinder.
+        there is a lookback window so old notes do not clutter the autocompletions.
+        update how many days to look back with app:config:set:general:note-history.
 
     --start / -s:
         set the entry to start at this time.
@@ -196,15 +201,13 @@ def add(
         update the default value using app:config:set:general:timer-add-min.
 
     --end / -e:
-        set the entry to end at this time.
-        defaults to [code]now[/code].
+        set the entry to end at this time. defaults to [code]now[/code].
 
     --billable / -b:
-        set the entry as billable or not.
-        if not provided, the default setting for the project is used.
+        set billable field. if not provided, the default setting for the project is used.
         set project default billable value when first creating a project
-        with project:create, using --default-billable / -b,
-        or update an existing project's with project:set:default-billable.
+        with project:create, using --default-billable / -b
+        update an existing project's with project:set:default-billable.
     """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
@@ -300,7 +303,7 @@ def yank_flag_help() -> str:
     cls=FormattedCommand,
     name="delete",
     no_args_is_help=True,
-    short_help="Delete time entries by id.",
+    short_help="Delete time entries.",
     syntax=Syntax(
         code="""\
         $ timer delete --id b95eb89 --id 22b0140 --id b5b8e24
@@ -599,17 +602,17 @@ def _match_ids(
     short_help="Edit completed time entries.",
     syntax=Syntax(
         code="""\
-        $ timer edit --id b95eb89 --id 36c9fe5 --start 3pm --note …
-        $ t e -ib95eb89 -i36c9fe5 -s3pm -n…
+        $ timer edit --id b95eb89 --start 3pm # set start time to 3pm
+        $ t e -ib95eb89 -s3pm
 
-        $ timer edit --use-last-timer-list --note "rewrite task"
-        $ t e -u -n"rewrite task"
+        $ timer edit --use-last-timer-list --note 'rewrite task'
+        $ t e -u -n'rewrite task'
 
-        $ timer edit --yank 1 --yank 2 --end now
-        $ t e -y1 -y2 -enow
+        $ timer edit --yank 1 --yank 2 --end now # edit both time entries to end now
+        $ t e -y1 -y2 -en # `n` expands to `now`
         
-        $ timer edit --yank 1 --yank 2 --id 36c9fe5 --date -2d # set 3 entries to 2 days ago
-        $ t e -y1 -y2 -i36c9fe5 -d-2d\
+        $ timer edit --yank 1 --yank 2 --id 36c9fe5 --date 2d # set 3 entries to 2 days ago
+        $ t e -y1 -y2 -i36c9fe5 -d2d\
         """,
         lexer="fishshell",
         dedent=True,
@@ -793,15 +796,21 @@ def edit(
 
     --project / -p:
         set the project for all selected entries to this.
+        create new projects with project:create.
         projects can be searched for by name or description.
         projects are ordered in created time desc.
 
     --note / -n:
-        set the note for all selected entries to this.
-        if --project / -p is used, then autocomplete will include notes for the selected project.
+        set note for time entry. if --project / -p is called,
+        then notes for selected project will autocomplete. search with fuzzyfinder.
+        there is a lookback window so old notes do not clutter the autocompletions.
+        update how many days to look back with app:config:set:general:note-history.
 
     --billable / -b:
-        set the entry as billable or not.
+        set billable field. if not provided, the default setting for the project is used.
+        set project default billable value when first creating a project
+        with project:create, using --default-billable / -b
+        update an existing project's with project:set:default-billable.
 
     --start-time / -s / --end-time / -e:
         set the start/end time for all selected entries to this.
@@ -947,7 +956,7 @@ def edit(
     cls=FormattedCommand,
     name="get",
     no_args_is_help=True,
-    short_help="Retrieve a time entry by id.",
+    short_help="Retrieve a single time entry.",
     syntax=Syntax(
         code="""\
         $ timer get 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46
@@ -976,7 +985,7 @@ def get(
     routine: "CliQueryRoutines",
     time_entry_id: str,
 ) -> None:
-    """Retrieve a time entry by id."""
+    """Retrieve a single time entry."""
     query_job: "QueryJob" = routine._get_time_entries(
         [id_list.match_id(time_entry_id)], wait=True, render=True
     )
@@ -994,14 +1003,15 @@ def get(
     short_help="List time entries.",
     syntax=Syntax(
         code="""\
+        $ timer list --today
+        $ t l -t
+
         $ timer list --date jan1
         $ t l -djan1
 
         $ timer list --all active is true # where clause as arguments
         $ t l -a active is true
-
-        $ timer list --today
-        $ t l -t
+        # Note --all / -a flag will query entire timesheet
 
         $ timer list --yesterday --prompt-where # interactive prompt for where clause
         $ t l -yw
@@ -1010,19 +1020,24 @@ def get(
         $ t l -cw billable is false
 
         # case insensitive regex match - re2
-        $ timer list --date -2d --regex-engine re2 --match-note (?i)task.*
-        $ t l -d-2d -re re2 -rn (?i)task.*
+        $ timer list --date 2d --match-note (?i)task.* --regex-engine re2
+        $ t l -d2d -rn (?i)task.* -re re2
 
         # case insensitive regex match - ECMAScript
-        $ timer list --date -2d --match-note task.* --modifiers ig
-        $ t l -d-2d -rn task.* -Mig
+        $ timer list --date 2d --match-note task.* --modifiers ig
+        $ t l -d2d -rn task.* -Mig
 
-        $ t l -t -rp ^(?!demo) # exclude projects containing word "demo"
+        # regex 
+        $ t l -t -rp ^(?!demo) # exclude projects beginning with 'demo'
 
-        $ timer list --current-month "project = 'lightlike-cli' and note like any ('something%', 'else%')"
+        # list all entries this month from project 'myproject.example'
+        # with notes containing words 'docs' or 'tests'
+        $ timer list --current-month --match-project myproject.* --match-note docs --match-note tests
+        $ timer list -cm -rp myproject.* -rn docs -rn tests
 
-        $ timer list --all time(start) >= \\"18:29:09\\"
-        $ t l -a time(start) >= \\"18:29:09\\"\
+        # list entries today before 12:00:00
+        $ timer list --today time(start) >= \\"12:00:00\\"
+        $ t l -t time(start) >= \\"12:00:00\\"\
         """,
         lexer="fishshell",
         dedent=True,
@@ -1764,11 +1779,17 @@ def resume(
     short_help="Start a new time entry.",
     syntax=Syntax(
         code="""\
+        # create a running entry now under 'no-project' with no note
         $ timer run
         $ t ru
 
-        $ timer run --project lightlike-cli --note readme --start 1h --billable False
-        $ t ru -plightlike-cli -nreadme -s1h -b0\
+        # start entry with project and note
+        $ timer run --project lightlike-cli --note readme
+        $ t ru -plightlike-cli -nreadme\
+        
+        # create a running entry starting 1 hour ago, and override billable to false
+        $ timer run --project your-client --start 1h --billable False
+        $ t ru -p your-client -s1h -b0\
         """,
         lexer="fishshell",
         dedent=True,
@@ -1892,21 +1913,21 @@ def run(
 
     --project / -p:
         project to log time entry under.
-        defaults to [code]no-project[/code].
         create new projects with project:create.
         projects can be searched for by name or description.
         projects are ordered in created time desc.
 
     --note / -n:
-        note to attach to time entry.
-        if --project / -p is used, then autocomplete will include notes for the selected project.
+        set note for time entry. if --project / -p is called,
+        then notes for selected project will autocomplete. search with fuzzyfinder.
+        there is a lookback window so old notes do not clutter the autocompletions.
+        update how many days to look back with app:config:set:general:note-history.
 
     --billable / -b:
-        set the entry as billable or not.
-        if not provided, the default setting for the project is used.
+        sset billable field. if not provided, the default setting for the project is used.
         set project default billable value when first creating a project
-        with project:create, using --default-billable / -b,
-        or update an existing project with project:set:default-billable.
+        with project:create, using --default-billable / -b
+        update an existing project's with project:set:default-billable.
 
     --start / -s:
         start the entry at an earlier time.
@@ -2014,10 +2035,10 @@ def run(
 def show(console: "Console", cache: "TimeEntryCache", json_: bool) -> None:
     """
     Display a table of local running/paused time entries.
-    Entries are sorted top-down from active ->running ->paused.
-    The active entry is bolded in the first row.
-    Running entries are not bolded.
-    Paused entries are dimmed.
+    Entries are sorted top-down from active -> running -> paused:
+        The active entry is bolded in the first row.
+        Running entries are not bolded.
+        Paused entries are dimmed.
     """
     if json_:
         console.print_json(data=cache._entries, default=str, indent=4)
@@ -2129,6 +2150,8 @@ def switch(
     """
     Switch the active time entry.
 
+    Pauses the active entry and resumes the selected entry.
+
         --continue / -c:
             do not pause the active entry during switch.
 
@@ -2189,7 +2212,9 @@ def switch(
     short_help="Update active entry.",
     syntax=Syntax(
         code="""\
-        $ timer update --project lightlike-cli --start -30m
+        # update active entries project, and set start to 30 min ago
+        $ timer update --project lightlike-cli --start 30m
+        $ timer update -plightlike-cli -s30m
     
         $ timer update --billable true --note "redefine task"
         $ t u -b1 -n"redefine task"\

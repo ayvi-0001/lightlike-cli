@@ -21,14 +21,11 @@
     .lightlike-cli-3408596169-matrix {
         font-family: Fira Code, monospace;
         font-size: 20px;
-        line-height: 24.4px;
-        font-variant-east-asian: full-width;
     }
 
     .lightlike-cli-3408596169-title {
         font-size: 18px;
         font-weight: bold;
-        font-family: arial;
     }
 
     .lightlike-cli-3408596169-r1 { fill: #c5c8c6 }
@@ -111,10 +108,10 @@
 </text><text class="lightlike-cli-3408596169-r1" x="1464" y="215.2" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-8)">
 </text><text class="lightlike-cli-3408596169-r8" x="24.4" y="239.6" textLength="24.4" clip-path="url(#lightlike-cli-3408596169-line-9)">1&#160;</text><text class="lightlike-cli-3408596169-r9" x="48.8" y="239.6" textLength="24.4" clip-path="url(#lightlike-cli-3408596169-line-9)">$&#160;</text><text class="lightlike-cli-3408596169-r9" x="73.2" y="239.6" textLength="36.6" clip-path="url(#lightlike-cli-3408596169-line-9)">app</text><text class="lightlike-cli-3408596169-r9" x="122" y="239.6" textLength="73.2" clip-path="url(#lightlike-cli-3408596169-line-9)">config</text><text class="lightlike-cli-3408596169-r10" x="207.4" y="239.6" textLength="36.6" clip-path="url(#lightlike-cli-3408596169-line-9)">set</text><text class="lightlike-cli-3408596169-r9" x="256.2" y="239.6" textLength="85.4" clip-path="url(#lightlike-cli-3408596169-line-9)">general</text><text class="lightlike-cli-3408596169-r9" x="353.8" y="239.6" textLength="97.6" clip-path="url(#lightlike-cli-3408596169-line-9)">timezone</text><text class="lightlike-cli-3408596169-r9" x="463.6" y="239.6" textLength="36.6" clip-path="url(#lightlike-cli-3408596169-line-9)">UTC</text><text class="lightlike-cli-3408596169-r1" x="1464" y="239.6" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-9)">
 </text><text class="lightlike-cli-3408596169-r1" x="1464" y="264" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-10)">
-</text><text class="lightlike-cli-3408596169-r6" x="0" y="288.4" textLength="109.8" clip-path="url(#lightlike-cli-3408596169-line-11)">Arguments</text><text class="lightlike-cli-3408596169-r1" x="1464" y="288.4" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-11)">
+</text><text class="lightlike-cli-3408596169-r6" x="0" y="288.4" textLength="122" clip-path="url(#lightlike-cli-3408596169-line-11)">Arguments:</text><text class="lightlike-cli-3408596169-r1" x="1464" y="288.4" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-11)">
 </text><text class="lightlike-cli-3408596169-r11" x="12.2" y="312.8" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-12)">*</text><text class="lightlike-cli-3408596169-r3" x="48.8" y="312.8" textLength="97.6" clip-path="url(#lightlike-cli-3408596169-line-12)">TIMEZONE</text><text class="lightlike-cli-3408596169-r12" x="195.2" y="312.8" textLength="48.8" clip-path="url(#lightlike-cli-3408596169-line-12)">TEXT</text><text class="lightlike-cli-3408596169-r13" x="268.4" y="312.8" textLength="122" clip-path="url(#lightlike-cli-3408596169-line-12)">[required]</text><text class="lightlike-cli-3408596169-r1" x="1464" y="312.8" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-12)">
 </text><text class="lightlike-cli-3408596169-r1" x="1464" y="337.2" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-13)">
-</text><text class="lightlike-cli-3408596169-r6" x="0" y="361.6" textLength="85.4" clip-path="url(#lightlike-cli-3408596169-line-14)">Options</text><text class="lightlike-cli-3408596169-r1" x="1464" y="361.6" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-14)">
+</text><text class="lightlike-cli-3408596169-r6" x="0" y="361.6" textLength="97.6" clip-path="url(#lightlike-cli-3408596169-line-14)">Options:</text><text class="lightlike-cli-3408596169-r1" x="1464" y="361.6" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-14)">
 </text><text class="lightlike-cli-3408596169-r5" x="36.6" y="386" textLength="73.2" clip-path="url(#lightlike-cli-3408596169-line-15)">--help</text><text class="lightlike-cli-3408596169-r14" x="134.2" y="386" textLength="24.4" clip-path="url(#lightlike-cli-3408596169-line-15)">-h</text><text class="lightlike-cli-3408596169-r12" x="183" y="386" textLength="48.8" clip-path="url(#lightlike-cli-3408596169-line-15)">FLAG</text><text class="lightlike-cli-3408596169-r3" x="256.2" y="386" textLength="329.4" clip-path="url(#lightlike-cli-3408596169-line-15)">Show&#160;this&#160;message&#160;and&#160;exit.</text><text class="lightlike-cli-3408596169-r1" x="1464" y="386" textLength="12.2" clip-path="url(#lightlike-cli-3408596169-line-15)">
 </text>
     </g>

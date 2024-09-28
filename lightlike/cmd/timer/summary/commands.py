@@ -254,19 +254,20 @@ regex_engine = click.option(
     short_help="Renders a table in terminal. Optional svg download.",
     syntax=Syntax(
         code="""\
-        $ timer summary table --current-month --round .25 project = lightlike-cli
-        $ t s t -cm -r.25 project = lightlike-cli
+        # summary of entries starting 7 days ago, until today. hours rounded to nearest .25
+        $ timer summary table --start 7d --end now --round .25
+        $ t su t -s7d -en -r.25
     
         # case insensitive regex match - re2
-        $ timer summary table --current-year --output path/to/file.svg --regex-engine re2 --match-note (?i)task.*
-        $ t s t -cy -o path/to/file.svg -re re2 -rn (?i)task.*
+        $ timer summary table --current-year --output timesheet_%Y-%m-%dT%H_%M_%S.svg --regex-engine re2 --match-note (?i)task.*
+        $ t su t -cy -o timesheet_%Y-%m-%dT%H_%M_%S.svg -re re2 -rn (?i)task.*
         
         # case insensitive regex match - ECMAScript
-        $ timer summary table --current-year --output path/to/file.svg --match-note task.* --modifiers ig
-        $ t s t -cy -o path/to/file.svg -rn task.* -Mig
+        $ timer summary table --current-year --output timesheet_%Y-%m-%dT%H_%M_%S.svg --match-note task.* --modifiers ig
+        $ t su t -cy -o timesheet_%Y-%m-%dT%H_%M_%S.svg -rn task.* -Mig
 
-        $ timer summary table --start 15d --end monday
-        $ t s t -s15d -e mon\
+        $ timer summary table --start jan1 --end jul1 billable is true
+        $ t su t -sjan1 -ejul1 billable is true\
         """,
         lexer="fishshell",
         dedent=True,
@@ -300,7 +301,7 @@ regex_engine = click.option(
     default=None,
     callback=validate.callbacks.summary_path,
     metavar="SVG",
-    shell_complete=shell_complete.path,
+    shell_complete=shell_complete.snapshot("timesheet", ".svg"),
 )
 @click.option(
     "-l",
@@ -349,20 +350,22 @@ def summary_table(
     [yellow][b][u]Note: running & paused entries are not included in summaries.[/b][/u][/yellow]
 
     [b]Fields[/]:
-    - total_summary: The sum of hours, ordered by date, project, billable.
-    - total_project: the sum of hours, partitioned by project, ordered by date, project, billable.
-    - total_day: the sum of hours, partitioned by day, ordered by date, project, billable.
-    - date: Date.
-    - project: Project.
-    - billable: Billable.
-    - timer: The sum of hours for a project on a given day.
-    - notes: String aggregate of all notes on that day. Sum of hours appened to the end.
+        - total_summary:  The sum of hours, ordered by date, project, billable.
+        - total_project:  The sum of hours, partitioned by project, ordered by date, project, billable.
+        - total_day:      The sum of hours, partitioned by day, ordered by date, project, billable.
+        - date:           Date.
+        - project:        Project.
+        - billable:       Billable.
+        - timer:          The sum of hours for a project on a given day.
+        - notes:          String aggregate of all notes on that day. Notes separted by a newline.
+                        Sum of hours appended to the end [#888888]('$NOTE - $HOURS')[/]
 
     --output / -d:
         save the output of this command to this path.
         if the path does not have any suffix, then the expected suffix will be appended.
         if the path with the correct suffix already exists, a prompt will ask whether to overwrite or not.
         if the path ends in any suffix other than what's expected, an error will raise.
+        autocomplete format: [code]timesheet_%Y-%m-%dT%H_%M_%S.svg[/code]
 
     --round / -r:
         round totals to the nearest 0.05 / 0.10 / 0.25 / 0.50 / 1.
@@ -497,16 +500,20 @@ def summary_table(
     short_help="Save/Print summary to a csv file.",
     syntax=Syntax(
         code="""\
-        $ timer summary csv --start jan1 --end jan31 --round .1 --print
-        $ t s c -s jan1 -e jan31 -r.1 -p
+        # summary of entries starting 7 days ago, until today. hours rounded to nearest .25
+        $ timer summary csv --start 7d --end now --round .25 --print
+        $ t su c -s7d -en -r.25 -p
     
         # case insensitive regex match - re2
-        $ timer summary csv --current-year --output path/to/file.svg --regex-engine re2 --match-note (?i)task.*
-        $ t s c -cy -o path/to/file.svg -re re2 -rn (?i)task.*
+        $ timer summary csv --current-year --output timesheet_%Y-%m-%dT%H_%M_%S.csv --regex-engine re2 --match-note (?i)task.*
+        $ t su c -cy -o timesheet_%Y-%m-%dT%H_%M_%S.csv -re re2 -rn (?i)task.*
         
         # case insensitive regex match - ECMAScript
-        $ timer summary csv --current-year --output path/to/file.svg --match-note task.* --modifiers ig
-        $ t s c -cy -o path/to/file.svg -rn task.* -Mig\
+        $ timer summary csv --current-year --output timesheet_%Y-%m-%dT%H_%M_%S.csv --match-note task.* --modifiers ig
+        $ t su c -cy -o timesheet_%Y-%m-%dT%H_%M_%S.csv -rn task.* -Mig
+        
+        $ timer summary csv --start jan1 --end jul1 billable is true --print
+        $ t su c -sjan1 -ejul1 billable is true -p\
         """,
         lexer="fishshell",
         dedent=True,
@@ -590,28 +597,26 @@ def summary_csv(
     [yellow][b][u]Note: running & paused entries are not included in summaries.[/b][/u][/yellow]
 
     [b]Fields[/]:
-    - total_summary: The sum of hours, ordered by date, project, billable.
-    - total_project: the sum of hours, partitioned by project, ordered by date, project, billable.
-    - total_day: the sum of hours, partitioned by day, ordered by date, project, billable.
-    - date: Date.
-    - project: Project.
-    - billable: Billable.
-    - timer: The sum of hours for a project on a given day.
-    - notes: String aggregate of all notes on that day. Sum of hours appened to the end.
+        - total_summary:  The sum of hours, ordered by date, project, billable.
+        - total_project:  The sum of hours, partitioned by project, ordered by date, project, billable.
+        - total_day:      The sum of hours, partitioned by day, ordered by date, project, billable.
+        - date:           Date.
+        - project:        Project.
+        - billable:       Billable.
+        - timer:          The sum of hours for a project on a given day.
+        - notes:          String aggregate of all notes on that day. Notes separted by a newline.
+                        Sum of hours appended to the end [#888888]('$NOTE - $HOURS')[/]
 
     --print / -p:
         print output to terminal.
         either this, or --output / -d must be provided.
 
     --output / -d:
-        save the output of the command to this path.
-        either this, or --print / -p must be provided.
-
-    --output / -d:
         save the output of this command to this path.
         if the path does not have any suffix, then the expected suffix will be appended.
         if the path with the correct suffix already exists, a prompt will ask whether to overwrite or not.
         if the path ends in any suffix other than what's expected, an error will raise.
+        autocomplete format: [code]timesheet_%Y-%m-%dT%H_%M_%S.csv[/code]
 
     --round / -r:
         round totals to the nearest 0.05 / 0.10 / 0.25 / 0.50 / 1.
@@ -760,19 +765,23 @@ def summary_csv(
     short_help="Save/Print summary to a json file.",
     syntax=Syntax(
         code="""\
-        $ timer summary json --start 6d --end now --print
-        $ t s j -s6d -en -p # n expands to now
+        # summary of entries starting 7 days ago, until today. hours rounded to nearest .25
+        $ timer summary json --start 7d --end now --round .25 --print
+        $ t su j -s7d -en -r.25 -p
     
         $ timer summary json --current-week --orient index billable is false
-        $ t s j -cw -o index -w\
+        $ t su j -cw --orient index -w\
         
         # case insensitive regex match - re2
-        $ timer summary json --current-year --output path/to/file.svg --orient index --regex-engine re2 --match-note (?i)task.*
-        $ t s j -cy -o path/to/file.svg -o index -re re2 -rn (?i)task.*
+        $ timer summary json --current-year --output timesheet_%Y-%m-%dT%H_%M_%S.json --regex-engine re2 --match-note (?i)task.*
+        $ t su j -cy -o timesheet_%Y-%m-%dT%H_%M_%S.json -re re2 -rn (?i)task.*
         
         # case insensitive regex match - ECMAScript
-        $ timer summary json --current-year --output path/to/file.svg --orient index --match-note task.* --modifiers ig
-        $ t s j -cy -o path/to/file.svg -o index -rn task.* -Mig\
+        $ timer summary json --current-year --output timesheet_%Y-%m-%dT%H_%M_%S.json --match-note task.* --modifiers ig
+        $ t su j -cy -o timesheet_%Y-%m-%dT%H_%M_%S.json -rn task.* -Mig\
+        
+        $ timer summary json --start jan1 --end jul1 billable is true --print
+        $ t su j -sjan1 -ejul1 billable is true -p\
         """,
         lexer="fishshell",
         dedent=True,
@@ -856,28 +865,26 @@ def summary_json(
     [yellow][b][u]Note: running & paused entries are not included in summaries.[/b][/u][/yellow]
 
     [b]Fields[/]:
-    - total_summary: The sum of hours, ordered by date, project, billable.
-    - total_project: the sum of hours, partitioned by project, ordered by date, project, billable.
-    - total_day: the sum of hours, partitioned by day, ordered by date, project, billable.
-    - date: Date.
-    - project: Project.
-    - billable: Billable.
-    - timer: The sum of hours for a project on a given day.
-    - notes: String aggregate of all notes on that day. Sum of hours appened to the end.
+        - total_summary:  The sum of hours, ordered by date, project, billable.
+        - total_project:  The sum of hours, partitioned by project, ordered by date, project, billable.
+        - total_day:      The sum of hours, partitioned by day, ordered by date, project, billable.
+        - date:           Date.
+        - project:        Project.
+        - billable:       Billable.
+        - timer:          The sum of hours for a project on a given day.
+        - notes:          String aggregate of all notes on that day. Notes separted by a newline.
+                        Sum of hours appended to the end [#888888]('$NOTE - $HOURS')[/]
 
     --print / -p:
         print output to terminal.
         either this, or --output / -d must be provided.
 
     --output / -d:
-        save the output of the command to this path.
-        either this, or --print / -p must be provided.
-
-    --output / -d:
         save the output of this command to this path.
         if the path does not have any suffix, then the expected suffix will be appended.
         if the path with the correct suffix already exists, a prompt will ask whether to overwrite or not.
         if the path ends in any suffix other than what's expected, an error will raise.
+        autocomplete format: [code]timesheet_%Y-%m-%dT%H_%M_%S.json[/code]
 
     --round / -r:
         round totals to the nearest 0.05 / 0.10 / 0.25 / 0.50 / 1.

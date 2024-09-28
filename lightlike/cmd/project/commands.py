@@ -333,7 +333,8 @@ def create(
         $ p d lightlike-cli
 
         # delete multiple
-        $ project delete example-project1 example-project2 example-project3\
+        $ project delete example-project1 example-project2 example-project3
+        $ p d example-project1 example-project2 example-project3\
         """,
         lexer="fishshell",
         dedent=True,
@@ -953,7 +954,8 @@ def set_project_default_billable(
         $ p u lightlike-cli
 
         # unarchive multiple
-        $ project unarchive example-project1 example-project2 example-project3\
+        $ project unarchive example-project1 example-project2 example-project3
+        $ p u example-project1 example-project2 example-project3\
         """,
         lexer="fishshell",
         dedent=True,
