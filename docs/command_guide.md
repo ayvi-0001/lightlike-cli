@@ -217,13 +217,9 @@
 
 ![app_sync](/docs/assets/svg/app_sync.svg)
 
-### `app:parse-date-arg`
+### `app:parse-date`
 
-![app_parse_date_arg](/docs/assets/svg/app_parse-date-arg.svg)
-
-### `app:parse-date-opt`
-
-![app_parse_date_opt](/docs/assets/svg/app_parse-date-opt.svg)
+![app_parse_date](/docs/assets/svg/app_parse-date.svg)
 
 ### `app:date-diff`
 

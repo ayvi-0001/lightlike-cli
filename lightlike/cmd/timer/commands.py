@@ -1332,8 +1332,7 @@ def list_(
     """
     List time entries.
 
-    Run command app:parse-date-arg and app:parse-date-opt
-    to see examples of strings to pass to parser.
+    Run command app:parse-date to see examples of strings to pass to parser.
 
     --current-week / -cw:
     --current-month / -cm:

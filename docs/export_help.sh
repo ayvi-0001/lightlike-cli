@@ -18,6 +18,7 @@ _export_help() {
 
     python -m lightlike help || return # return if failed to acquire lock on 1st attempt
     mv help.svg "$dest"
+    
     # shellcheck disable=SC2086
     for cmd in "${commands[@]}"; do
         python -m lightlike $cmd --help
@@ -32,8 +33,7 @@ app_commands+=(
     "app"
     "app date-diff"
     "app dir"
-    "app parse-date-arg"
-    "app parse-date-opt"
+    "app parse-date"
     "app run-bq"
     "app sync"
 )

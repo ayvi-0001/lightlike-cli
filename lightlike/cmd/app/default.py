@@ -52,7 +52,7 @@ def cd_(path: Path) -> None:
         else:
             os.chdir(path.resolve())
     except Exception as error:
-        rprint(f"{error!r}; {str(path.resolve())!r}")
+        rprint(f"{error!r}; {path.resolve()}")
 
 
 @click.command(

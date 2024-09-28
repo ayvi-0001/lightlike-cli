@@ -156,8 +156,7 @@ __cli_help__: str = f"""\
     if it's unable too parse the string, an error will raise.
     unless explicitly stated in the string or customized in the config,
     dates are relative to today and prefer the past.
-    [yellow]see[/] app:parse-date-arg / app:parse-date-opt 
-    to see examples of strings to pass to parser.
+    [yellow]see[/] app:parse-date to see examples of strings to pass to parser.
 
 [b]Help[/b]: add --help / -h to command/group.
 

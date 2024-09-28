@@ -314,7 +314,7 @@ system_command_shell = SettingsCommand(
         $ app config set general shell '["bash", "-c"]'
         
         # login to shell and read rc file.
-        $ app config set general shell '["bash", "--rcfile", "~/.bashrc", "-ic", "-c"]'\
+        $ app config set general shell '["bash", "--rcfile", "~/.bashrc", "-il", "-c"]'\
         """,
         lexer="fishshell",
         dedent=True,

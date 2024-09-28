@@ -21,16 +21,15 @@ from lightlike.cmd import _pass
 from lightlike.internal import markup, utils
 
 __all__: t.Sequence[str] = (
+    "_reset",
     "config",
-    "dir_",
-    "run_bq",
-    "inspect_console",
-    "sync",
-    "_reset_all",
-    "parse_date_arg",
-    "parse_date_opt",
     "date_diff",
+    "dir_",
+    "inspect_console",
+    "parse_date",
+    "run_bq",
     "source_dir",
+    "sync",
 )
 
 
@@ -49,7 +48,7 @@ P = t.ParamSpec("P")
         "open": "lightlike.cmd.app.config:open_",
         "list": "lightlike.cmd.app.config:list_",
     },
-    short_help=f"Cli config file and settings. {__config__.as_posix()}",
+    short_help=f"App config file.",
     syntax=Syntax(
         code="""\
         $ app config edit
@@ -62,7 +61,7 @@ P = t.ParamSpec("P")
         $ a c l
     
         $ app config set
-        $ a c u\
+        $ a c s\
         """,
         lexer="fishshell",
         dedent=True,
@@ -143,7 +142,7 @@ def _start_command(url: str, wait: bool = False, locate: bool = False) -> str:
     cls=FormattedCommand,
     name="dir",
     options_metavar="[LAUNCH OPTION]",
-    short_help=f"Open cli dir: {__appdir__.as_posix()}",
+    short_help=f"Open app directory.",
     syntax=Syntax(
         code="""\
         $ app dir
@@ -173,7 +172,7 @@ def _start_command(url: str, wait: bool = False, locate: bool = False) -> str:
 @_pass.console
 def dir_(console: Console, start: bool) -> None:
     """
-    Open cli directory.
+    Open app directory.
 
         --start / -s:
             default option.
@@ -339,7 +338,7 @@ def sync(
 
 @click.command(
     cls=FormattedCommand,
-    name="reset-all",
+    name="reset",
     hidden=True,
     allow_name_alias=False,
 )
@@ -349,7 +348,7 @@ def sync(
 @_pass.cache
 @_pass.routine
 @_pass.console
-def _reset_all(
+def _reset(
     console: Console,
     routine: CliQueryRoutines,
     cache: TimeEntryCache,
@@ -379,30 +378,37 @@ def _reset_all(
 
 @click.command(
     cls=FormattedCommand,
-    name="parse-date-arg",
+    name="parse-date",
     short_help="Test parser on argument / See examples.",
     no_args_is_help=True,
     syntax=Syntax(
-        code="""\
-        $ app test parse-date-arg now # `0d` or `today` would give same result
-        $ app test parse-date-arg n # if the date string is the single character `n`, it will expand to `now`.
+        code=f"""\
+        $ app parse-date now # same as '0d' or 'today'
+        $ app parse-date n # if the date string is the single character `n`, it will expand to `now`.
         2024-08-05 07:00:00-07:00
 
+        # if a date is not explicitly stated in the string, it will be relative to today
+        $ app parse-date 12:00:00 # HH:MM:SS
+        2024-08-05 12:00:00-07:00
+        $ app parse-date 1200 # or just HHMM
+        2024-08-05 12:00:00-07:00
+        
+        # or %b%d@%H%M (month abbreviated name, day of month 0-padded , @ char, hour, minute)
+        $ app parse-date jan01@1200
+        2024-01-01 12:00:00-08:00
+        # or 
+        $ app parse-date jan01@12pm
+        2024-01-01 12:00:00-08:00
+
         # prefix with m (minutes), d (days), etc.
-        $ app test parse-date-arg 1d  # `yesterday` would give same result
+        $ app parse-date 1d  # same as 'yesterday'
         2024-08-04 07:00:00-07:00
 
-        $ app test parse-date-arg 1d@0:0 # or 1d@12am
-        2024-08-04 00:00:00-07:00
-
-        $ app test parse-date-arg 15m
+        $ app parse-date 15m
         2024-08-05 06:45:00-07:00
 
-        $ app test parse-date-arg +15m
+        $ app parse-date +15m
         2024-08-05 07:15:00-07:00
-
-        $ app test parse-date-arg jan1@1pm # or jan1@13:0
-        2024-01-01 13:00:00-08:00
         """,
         lexer="fishshell",
         dedent=True,
@@ -421,88 +427,7 @@ def _reset_all(
     shell_complete=None,
 )
 @_pass.console
-def parse_date_arg(console: Console, date: datetime) -> None:
-    """
-    Test the dateparser function.
-
-    See examples in syntax section below.
-
-    You can opt for more verbose strings if you prefer.
-    Strings such as "monday at 1pm", "january 1st", "15 minutes ago", "in 2 days",
-    or fully qualified dates, such as '2024-01-01' would all work as well.
-
-    Parsed dates prefer the past, unless prefixed with a plus operator.
-    Dates are relative to today, unless explicitely stated in the string.
-
-    An error will raise if the string fails to parse.
-
-    [b]Note:[/b] If the date is an argument, the minus operator needs to be escaped.
-    You can generally ignore adding a minus, as mentioned above.
-    e.g.
-    ```
-    $ command --option -2d
-    $ c -o-2d
-    $ command "\-2d" # argument
-    $ c "\-2d" # argument
-    ```
-    """
-    console.print(date)
-
-
-@click.command(
-    cls=FormattedCommand,
-    name="parse-date-opt",
-    short_help="Test parser on option / See examples.",
-    no_args_is_help=True,
-    syntax=Syntax(
-        code="""\
-        $ app test parse-date-opt --date now # `0d` or `today` would give same result
-        $ app test parse-date-opt -dn # if the date string is the single character `n`, it will expand to `now`.
-        2024-08-05 07:00:00-07:00
-
-        # prefix with m (minutes), d (days), etc.
-        $ app test parse-date-opt --date 1d  # `yesterday` would give same result
-        $ app test parse-date-opt -d1d  # short opt
-        2024-08-04 07:00:00-07:00
-
-        $ app test parse-date-opt --date 1d@0:0 # or 1d@12am
-        $ app test parse-date-opt -d1d@0:0  # short opt
-        2024-08-04 00:00:00-07:00
-
-        $ app test parse-date-opt --date 15m
-        $ app test parse-date-opt -d15m  # short opt
-        2024-08-05 06:45:00-07:00
-
-        $ app test parse-date-opt --date +15m
-        $ app test parse-date-opt -d+15m  # short opt
-        2024-08-05 07:15:00-07:00
-
-        $ app test parse-date-opt --date jan1@1pm  # or jan1@13:0
-        $ app test parse-date-opt -djan1@1pm  # short opt
-        2024-01-01 13:00:00-08:00
-        """,
-        lexer="fishshell",
-        dedent=True,
-        line_numbers=True,
-        background_color="#131310",
-    ),
-)
-@utils.handle_keyboard_interrupt()
-@click.option(
-    "-d",
-    "--date",
-    show_default=True,
-    multiple=False,
-    type=click.STRING,
-    help=None,
-    required=False,
-    default=None,
-    callback=validate.callbacks.datetime_parsed,
-    metavar=None,
-    shell_complete=None,
-)
-@_pass.console
-def parse_date_opt(console: Console, date: datetime) -> None:
+def parse_date(console: Console, date: datetime) -> None:
     """
     Test the dateparser function.
 
