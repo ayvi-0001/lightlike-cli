@@ -40,16 +40,21 @@ __all__: Sequence[str] = (
     "__version__",
 )
 
-__version__: Final[str] = "v0.12.0b3"
+__version__: Final[str] = "v0.12.0"
 
 
 LIGHTLIKE_ENV: str | None = getenv("LIGHTLIKE_ENV")
-LIGHTLIKE_APP_DIR: str | Path = getenv(
-    "LIGHTLIKE_APP_DIR",
-    default=Path(get_app_dir("lightlike-cli", force_posix=True)),
+LIGHTLIKE_APP_DIR: Path = Path(
+    getenv(
+        "LIGHTLIKE_APP_DIR",
+        default=get_app_dir("lightlike-cli", force_posix=True),
+    )
 )
-LIGHTLIKE_CONFIG_DIR: str | Path = getenv(
-    "LIGHTLIKE_CONFIG_DIR", default=Path.home() / ".config" / "lightlike-cli"
+LIGHTLIKE_CONFIG_DIR: Path = Path(
+    getenv(
+        "LIGHTLIKE_CONFIG_DIR",
+        default=f'{Path.home().joinpath(".config").joinpath("lightlike-cli")}',
+    )
 )
 
 # #################################################################################################
@@ -67,12 +72,7 @@ LIGHTLIKE_CONFIG_DIR: str | Path = getenv(
 
 def get_appdir_path(env: str | None = None) -> Path:
     global LIGHTLIKE_APP_DIR
-    appdir: Path | None = None
-
-    if isinstance(LIGHTLIKE_APP_DIR, str):
-        LIGHTLIKE_APP_DIR = Path(LIGHTLIKE_APP_DIR)
-
-    appdir = LIGHTLIKE_APP_DIR.resolve()
+    appdir: Path = LIGHTLIKE_APP_DIR.resolve()
 
     if appdir.exists() and not appdir.is_dir():
         print(
@@ -90,12 +90,7 @@ def get_appdir_path(env: str | None = None) -> Path:
 
 def get_config_dir(env: str | None = None) -> Path:
     global LIGHTLIKE_CONFIG_DIR
-    config_dir: Path | None = None
-
-    if isinstance(LIGHTLIKE_CONFIG_DIR, str):
-        LIGHTLIKE_CONFIG_DIR = Path(LIGHTLIKE_CONFIG_DIR)
-
-    config_dir = LIGHTLIKE_CONFIG_DIR.resolve()
+    config_dir: Path = LIGHTLIKE_CONFIG_DIR.resolve()
 
     if config_dir.exists() and not config_dir.is_dir():
         print(
