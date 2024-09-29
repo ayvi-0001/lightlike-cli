@@ -6,13 +6,14 @@ import re
 import typing as t
 from contextlib import ContextDecorator, suppress
 from functools import reduce, wraps
-from operator import getitem
+from operator import getitem, truth
 from pathlib import Path
 from time import perf_counter_ns
 from types import FunctionType
 
 import click
 import rtoml
+from fuzzyfinder import fuzzyfinder
 from prompt_toolkit.application import get_app, in_terminal
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import get_console
@@ -24,25 +25,27 @@ from lightlike.internal import markup
 
 __all__: t.Sequence[str] = (
     "exit_cmd_on_interrupt",
-    "_handle_keyboard_interrupt",
-    "_nl",
-    "_nl_async",
-    "_nl_start",
-    "_get_local_timezone_string",
-    "_get_config_if_exists",
-    "_identical_vectors",
+    "handle_keyboard_interrupt",
+    "nl",
+    "nl_async",
+    "nl_start",
+    "get_local_timezone_string",
+    "identical_vectors",
     "pretty_print_exception",
-    "_log_exception",
-    "_prerun_autocomplete",
-    "_regexp_replace",
-    "_format_toml",
+    "log_exception",
+    "prerun_autocomplete",
+    "regexp_replace",
+    "format_toml",
     "reduce_keys",
-    "_alter_str",
-    "_split_and_alter_str",
-    "_match_str",
+    "alter_str",
+    "split_and_alter_str",
+    "match_str",
     "ns_time_diff",
     "update_dict",
-    "_print_message_and_clear_buffer",
+    "update_toml_document",
+    "print_message_and_clear_buffer",
+    "file_empty_or_not_exists",
+    "merge_default_dict_into_current_dict",
 )
 
 
@@ -53,13 +56,13 @@ class exit_cmd_on_interrupt(ContextDecorator):
     def __enter__(self) -> exit_cmd_on_interrupt:
         try:
             return self
-        except (KeyboardInterrupt, EOFError):
-            raise click.exceptions.Exit
+        except (KeyboardInterrupt, EOFError) as error:
+            raise click.exceptions.Exit() from error
 
     def __exit__(self, *exc: t.Any) -> None: ...
 
 
-def _handle_keyboard_interrupt(
+def handle_keyboard_interrupt(
     callback: t.Callable[..., t.Any] | None = None
 ) -> t.Callable[..., t.Callable[..., t.Any]]:
     def decorator(fn: FunctionType) -> t.Callable[..., t.Any]:
@@ -82,24 +85,24 @@ def _handle_keyboard_interrupt(
     return decorator
 
 
-_nl: t.Callable[..., None] = lambda: rprint(NewLine())
+nl: t.Callable[..., None] = lambda: rprint(NewLine())
 
 
-async def _nl_async() -> None:
+async def nl_async() -> None:
     with suppress(Exception):
         async with in_terminal():
-            _nl()
+            nl()
 
 
-def _nl_start(
+def nl_start(
     after: bool = False, before: bool = False
 ) -> t.Callable[..., t.Callable[..., t.Any]]:
     def decorator(fn: FunctionType) -> t.Callable[..., t.Any]:
         @wraps(fn)
         def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
-            before and _nl()
+            before and nl()
             r = fn(*args, **kwargs)
-            after and _nl()
+            after and nl()
             return r
 
         return inner
@@ -108,14 +111,14 @@ def _nl_start(
 
 
 @t.overload
-def _get_local_timezone_string(default: str) -> str: ...
+def get_local_timezone_string(default: str) -> str: ...
 
 
 @t.overload
-def _get_local_timezone_string(default: None = None) -> str | None: ...
+def get_local_timezone_string(default: None = None) -> str | None: ...
 
 
-def _get_local_timezone_string(default: str | None = None) -> str | None:
+def get_local_timezone_string(default: str | None = None) -> str | None:
     if os.name == "nt":
         from tzlocal import get_localzone_name
 
@@ -128,16 +131,7 @@ def _get_local_timezone_string(default: str | None = None) -> str | None:
     return default_timezone or default
 
 
-def _get_config_if_exists(
-    config_path: Path, default: dict[str, t.Any]
-) -> dict[str, t.Any]:
-    if config_path.exists():
-        config: dict[str, t.Any] = rtoml.load(config_path)
-        return config
-    return default
-
-
-def _identical_vectors(l1: list[t.Any], l2: list[t.Any]) -> bool:
+def identical_vectors(l1: list[t.Any], l2: list[t.Any]) -> bool:
     return reduce(
         lambda b1, b2: b1 and b2,
         map(lambda e1, e2: e1 == e2, l1, l2),
@@ -160,7 +154,7 @@ def pretty_print_exception(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]
     return inner
 
 
-def _log_exception(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
+def log_exception(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
     @wraps(fn)
     def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
         try:
@@ -171,7 +165,7 @@ def _log_exception(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
     return inner
 
 
-def _prerun_autocomplete() -> None:
+def prerun_autocomplete() -> None:
     app = get_app()
     b = app.current_buffer
     if b.complete_state:
@@ -180,15 +174,15 @@ def _prerun_autocomplete() -> None:
         b.start_completion(select_first=False)
 
 
-def _regexp_replace(patterns: t.Mapping[str, str], text: str) -> str:
-    mapped: dict[str, str] = dict((re.escape(k), v) for k, v in patterns.items())
+def regexp_replace(patterns: t.Mapping[str, str | None], text: str) -> str:
+    mapped: dict[str, str] = dict((re.escape(k), v or "") for k, v in patterns.items())
     pattern: re.Pattern[str] = re.compile("|".join(mapped.keys()))
     escape: t.Callable[..., str] = lambda m: mapped[re.escape(m.group(0))]
     replaced: str = pattern.sub(escape, text)
     return replaced
 
 
-def _format_toml(toml_obj: t.MutableMapping[str, t.Any]) -> str:
+def format_toml(toml_obj: t.MutableMapping[str, t.Any]) -> str:
     toml_patterns = {
         '"\n[': '"\n\n[',
         "true\n[": "true\n\n[",
@@ -197,7 +191,7 @@ def _format_toml(toml_obj: t.MutableMapping[str, t.Any]) -> str:
         "\"'": '"',
         "'\"": '"',
     }
-    return _regexp_replace(toml_patterns, rtoml.dumps(toml_obj))
+    return regexp_replace(toml_patterns, rtoml.dumps(toml_obj))
 
 
 def reduce_keys(
@@ -209,8 +203,12 @@ def reduce_keys(
         return default
 
 
+RE_QUOTE: re.Pattern[str] = re.compile(r"(\"|')")
+RE_PARENTHESIS: re.Pattern[str] = re.compile(r"(\(|\))")
+
+
 @t.overload
-def _alter_str(
+def alter_str(
     string: t.Any,
     split: str,
     strip: bool = False,
@@ -222,7 +220,7 @@ def _alter_str(
 
 
 @t.overload
-def _alter_str(
+def alter_str(
     string: t.Any,
     split: None = None,
     strip: bool = False,
@@ -233,7 +231,7 @@ def _alter_str(
 ) -> str: ...
 
 
-def _alter_str(
+def alter_str(
     string: t.Any,
     split: str | None = None,
     strip: bool = False,
@@ -243,28 +241,26 @@ def _alter_str(
     add_quotes: bool = False,
 ) -> str | list[str]:
     if not isinstance(string, str):
-        string = f"{string}"
+        string: str = f"{string}"
 
     if lower:
         string = string.lower()
     if strip_quotes:
-        string = re.compile(r"(\"|')").sub("", string)
+        string = re.sub(RE_QUOTE, "", string)
     if strip_parenthesis:
-        string = re.compile(r"(\(|\))").sub("", string)
+        string = re.sub(RE_PARENTHESIS, "", string)
     if strip:
         string = string.strip()
     if add_quotes:
         string = f'"{string}"'
 
     if split:
-        new_list: list[str] = string.split(split)
-        return new_list
+        return t.cast(list[str], string.split(split))
     else:
-        new_string: str = f"{string}"
-        return new_string
+        return t.cast(str, string)
 
 
-def _split_and_alter_str(
+def split_and_alter_str(
     string: str,
     delimeter: str = " ",
     strip: bool = False,
@@ -282,7 +278,7 @@ def _split_and_alter_str(
     if lower:
         iter_map_fn.append(str.lower)
     if strip_quotes:
-        iter_map_fn.append(lambda s: re.compile(r"(\"|')").sub("", s))
+        iter_map_fn.append(lambda s: RE_QUOTE.sub("", s))
     if map_fns:
         for fn in map_fns:
             iter_map_fn.append(fn)
@@ -300,14 +296,14 @@ def _split_and_alter_str(
         return mapped_args
 
 
-def _match_str(
+def match_str(
     string_to_check: t.Any,
     string_to_match: t.Any,
     strip_quotes: bool = False,
     strip_parenthesis: bool = False,
     strip: bool = False,
     case_sensitive: bool = False,
-    method: t.Literal["in", "startswith", "endswith"] = "in",
+    method: t.Literal["in", "fuzzy", "re", "startswith", "endswith"] = "in",
     replace_patterns: t.Mapping[str, str] | None = None,
 ) -> bool:
     if not isinstance(string_to_check, str):
@@ -319,37 +315,40 @@ def _match_str(
         string_to_check = string_to_check.lower()
         string_to_match = string_to_match.lower()
     if strip_quotes:
-        string_to_check = re.compile(r"(\"|')").sub("", string_to_check)
-        string_to_match = re.compile(r"(\"|')").sub("", string_to_match)
+        string_to_check = re.sub(RE_QUOTE, "", string_to_check)
+        string_to_match = re.sub(RE_QUOTE, "", string_to_match)
     if strip_parenthesis:
-        string_to_check = re.compile(r"(\(|\))").sub("", string_to_check)
-        string_to_match = re.compile(r"(\(|\))").sub("", string_to_match)
+        string_to_check = re.sub(RE_PARENTHESIS, "", string_to_check)
+        string_to_match = re.sub(RE_PARENTHESIS, "", string_to_match)
     if strip:
         string_to_check = string_to_check.strip()
         string_to_match = string_to_match.strip()
     if replace_patterns:
-        if not isinstance(replace_patterns, t.Mapping):
+        if not isinstance(replace_patterns, dict):
             raise TypeError("Patterns must be a mapping.")
 
-        string_to_check = _regexp_replace(
+        string_to_check = regexp_replace(
             patterns=replace_patterns, text=string_to_check
         )
-        string_to_match = _regexp_replace(
+        string_to_match = regexp_replace(
             patterns=replace_patterns, text=string_to_match
         )
 
-    is_matched: bool
     match method:
         case "in":
-            is_matched = string_to_check in string_to_match
+            return string_to_check in string_to_match
+        case "fuzzy":
+            return truth(fuzzyfinder(string_to_check, string_to_match))
+        case "re":
+            return truth(re.match(string_to_check, string_to_match))
         case "startswith":
-            is_matched = string_to_match.startswith(string_to_check)
+            return string_to_match.startswith(string_to_check)
         case "endswith":
-            is_matched = string_to_match.endswith(string_to_check)
+            return string_to_match.endswith(string_to_check)
         case _:
             raise ValueError("Invalid method for string match.")
 
-    return is_matched
+    return False
 
 
 def ns_time_diff(ns: int) -> float:
@@ -360,7 +359,6 @@ def update_dict(
     original: dict[str, t.Any], updates: dict[str, t.Any]
 ) -> dict[str, t.Any]:
     for __key, __val in updates.items():
-
         if isinstance(__val, dict):
             original[__key] = update_dict(original.get(__key, {}), __val)
         else:
@@ -368,7 +366,51 @@ def update_dict(
     return original
 
 
-def _print_message_and_clear_buffer(message: str) -> None:
+def merge_default_dict_into_current_dict(
+    current: dict[str, t.Any],
+    default: dict[str, t.Any],
+    key_path: str | None = None,
+    paths: list[str] | None = None,
+    update_paths: list[str] | None = None,
+    force_update_paths: list[str] | None = None,
+) -> dict[str, t.Any]:
+    paths = paths or []
+    for k, v in default.items():
+        current_path = "%s%s" % (f"{key_path}." if key_path else "", k)
+        paths.append(current_path)
+
+        if isinstance(v, dict):
+            current[k] = merge_default_dict_into_current_dict(
+                current.get(k, {}),
+                v,
+                key_path=current_path,
+                paths=paths,
+                update_paths=update_paths,
+                force_update_paths=force_update_paths,
+            )
+        else:
+            k_in_update_paths = current_path in (update_paths or [])
+            k_in_force_update_paths = current_path in (force_update_paths or [])
+            if not any([k_in_update_paths, k_in_force_update_paths]):
+                continue
+
+            if k_in_force_update_paths:
+                current[k] = v
+            elif k_in_update_paths:
+                if k in current:
+                    if any([current[k] is None, current[k] == "null"]):
+                        current[k] = v
+                else:
+                    current[k] = v
+
+    return current
+
+
+def print_message_and_clear_buffer(message: str) -> None:
     with patch_stdout(raw=True):
         rprint(markup.dimmed(f"{message}."))
         get_app().current_buffer.text = ""
+
+
+def file_empty_or_not_exists(path: Path) -> bool:
+    return not path.exists() ^ (path.exists() and path.read_text().splitlines() == [""])

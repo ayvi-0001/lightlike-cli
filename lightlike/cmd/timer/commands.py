@@ -55,7 +55,6 @@ __all__: t.Sequence[str] = (
     "run",
     "show",
     "stop",
-    "end",
     "switch",
     "update",
 )
@@ -65,7 +64,7 @@ P = t.ParamSpec("P")
 
 
 def default_timer_add(config: AppConfig) -> str:
-    timer_add_min: int = config.get("settings", "timer_add_min", default=-6)
+    timer_add_min: int = config.get("settings", "timer-add-min", default=-6)
     minutes = -timer_add_min if copysign(1, timer_add_min) != -1 else timer_add_min
     return f"{minutes} minutes"
 
@@ -73,17 +72,20 @@ def default_timer_add(config: AppConfig) -> str:
 @click.command(
     cls=FormattedCommand,
     name="add",
-    short_help="Insert a time entry.",
+    short_help="Add a completed time entry.",
     syntax=Syntax(
         code="""\
-        $ timer add --project lightlike-cli
-        $ t a -plightlike-cli
-        
         $ timer add # defaults to adding an entry under `no-project`, that started 6 minutes ago, ending now.
         $ t a       # this can be later updated using timer:update
+        
+        $ timer add --start 1h # started 1 hour ago, ends now
+        $ t a -s1h
 
-        $ timer add --project lightlike-cli --start jan1@9am --end jan1@1pm --note "…" --billable true
-        $ t a -plightlike-cli -sjan1@9am -ejan1@1pm -n"…" -b1\
+        $ timer add --project lightlike-cli --start 0900  --end 1130 # 9am -> 11:30am today
+        $ t a -plightlike-cli -s0900 -e1130
+        
+        $ timer add --project lightlike-cli --start jan1@9am --end jan1@1pm --note 'task description'
+        $ t a -plightlike-cli -sjan1@9am -ejan1@1pm -n'task description'\
         """,
         lexer="fishshell",
         dedent=True,
@@ -91,7 +93,7 @@ def default_timer_add(config: AppConfig) -> str:
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not add time entry.")),
 )
 @click.option(
@@ -179,33 +181,33 @@ def add(
     billable: bool,
 ) -> None:
     """
-    Insert a new time entry.
+    Add a completed time entry.
 
     --project / -p:
         set the project for the time entry to this.
+        create new projects with project:create.
         projects can be searched for by name or description.
         projects are ordered in created time desc.
-        defaults to [code]no-project[/code].
 
     --note / -n:
-        set the note for the time entry to this.
-        if --project / -p is used, then autocomplete will include notes for the selected project.
+        set note for time entry. if --project / -p is called,
+        then notes for selected project will autocomplete. search with fuzzyfinder.
+        there is a lookback window so old notes do not clutter the autocompletions.
+        update how many days to look back with app:config:set:general:note-history.
 
     --start / -s:
         set the entry to start at this time.
         defaults to -6 minutes (1/10th of an hour).
-        update the default value using app:config:set:general:timer_add_min.
+        update the default value using app:config:set:general:timer-add-min.
 
     --end / -e:
-        set the entry to end at this time.
-        defaults to [code]now[/code].
+        set the entry to end at this time. defaults to [code]now[/code].
 
     --billable / -b:
-        set the entry as billable or not.
-        if not provided, the default setting for the project is used.
+        set billable field. if not provided, the default setting for the project is used.
         set project default billable value when first creating a project
-        with project:create, using --default-billable / -b,
-        or update an existing project's with project:set:default_billable.
+        with project:create, using --default-billable / -b
+        update an existing project's with project:set:default-billable.
     """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
@@ -250,27 +252,22 @@ def add(
 
     time_entry_id = sha1(f"{project}{note}{start_local}".encode()).hexdigest()
 
-    status_renderable = markup.status_message("Adding time entry")
-    with console.status(status_renderable) as status:
-        query_job: "QueryJob" = routine.add_time_entry(
-            id=time_entry_id,
-            project=project,
-            note=note,
-            start_time=start_local,
-            end_time=end_local,
-            billable=billable or project_default_billable,
-            wait=True,
-            render=True,
-            status=status,
-            status_renderable=status_renderable,
-        )
+    query_job: "QueryJob" = routine._add_time_entry(
+        id=time_entry_id,
+        project=project,
+        note=note,
+        start_time=start_local,
+        end_time=end_local,
+        billable=billable or project_default_billable,
+    )
 
-        threads.spawn(ctx, id_list.reset)
-        note != "None" and threads.spawn(
-            ctx, appdata.sync, dict(trigger_query_job=query_job, debug=debug)
-        )
+    sync_kwargs = dict(trigger_query_job=query_job, debug=debug)
+    threads.spawn(ctx, id_list.add, dict(input_id=time_entry_id, debug=debug))
+    note != "None" and threads.spawn(ctx, appdata.sync, sync_kwargs)
 
-        table: Table = render.map_sequence_to_rich_table(
+    console.print(
+        "Added record:",
+        render.map_sequence_to_rich_table(
             mappings=[
                 {
                     "id": time_entry_id[:7],
@@ -288,12 +285,8 @@ def add(
             num_ctype=["paused_hours", "hours"],
             time_ctype=["start", "end"],
             date_ctype=["date"],
-        )
-        if not table.row_count:
-            rprint(markup.dimmed("No results"))
-            raise click.exceptions.Exit
-
-    console.print("Added record:", table)
+        ),
+    )
 
 
 def yank_flag_help() -> str:
@@ -310,7 +303,7 @@ def yank_flag_help() -> str:
     cls=FormattedCommand,
     name="delete",
     no_args_is_help=True,
-    short_help="Delete time entries by id.",
+    short_help="Delete time entries.",
     syntax=Syntax(
         code="""\
         $ timer delete --id b95eb89 --id 22b0140 --id b5b8e24
@@ -403,7 +396,7 @@ def delete(
         e.g.
 
         ```
-            $ timer list --current-week
+        $ timer list --current-week
 
         | row | id      |   …
         |-----|---------|   …
@@ -447,26 +440,20 @@ def delete(
         for id_match in matched_ids:
             if cache.id == id_match:
                 cache._clear_active()
-                console.set_window_title(__appname_sc__)
+                if AppConfig().get("settings", "update-terminal-title", default=True):
+                    console.set_window_title(__appname_sc__)
             elif cache.exists(cache.running_entries, [id_match]):
                 cache.remove([cache.running_entries], "id", [id_match])
             elif cache.exists(cache.paused_entries, [id_match]):
                 cache.remove([cache.paused_entries], "id", [id_match])
 
-        query_job: "QueryJob" = routine._delete_time_entry(
-            matched_ids,
-            wait=True,
-            render=True,
-            status=status,
-            status_renderable=markup.status_message("Deleting entries"),
-        )
+        query_job: "QueryJob" = routine._delete_time_entries(matched_ids, wait=True)
 
         console.print("Deleted time entries")
-        threads.spawn(ctx, appdata.sync, dict(trigger_query_job=query_job, debug=debug))
-        threads.spawn(ctx, id_list.reset)
 
-        if debug:
-            query_job.result()
+        kwargs = dict(trigger_query_job=query_job, debug=debug)
+        threads.spawn(ctx, appdata.sync, kwargs)
+        threads.spawn(ctx, id_list.reset, kwargs)
 
 
 def _get_entry_edits(
@@ -510,7 +497,8 @@ def _get_entry_edits(
                 in_end=entry_row.end,
             )
             # Only include date.
-            # Procedure in BigQuery will handle updating each individual time entries start and end times.
+            # Procedure in BigQuery will handle updating each
+            # individual time entries start and end times.
             edits["date"] = new_date
         case True, False, True:
             new_date, new_start, new_end = dates.combine_new_date_into_end(
@@ -557,15 +545,23 @@ def _get_entry_edits(
         if duration.total_seconds() < 0 or copysign(1, duration.days) == -1:
             matched_ids.pop(matched_ids.index(entry_row.id))
 
+            _compare_start = (
+                f"original start = {entry_row.start.strftime('%Y-%m-%d %H:%M:%S')}"
+                f" | new start {new_start.strftime('%Y-%m-%d %H:%M:%S')}"
+            )
+            _compare_end = (
+                f"original end = {entry_row.end.strftime('%Y-%m-%d %H:%M:%S')}"
+                f" | new end {new_end.strftime('%Y-%m-%d %H:%M:%S')}"
+            )
             console.print(
                 cleandoc(
                     f"""
-                [code]{entry_row.id}[/code] updates failed: Negative Duration.
-                original start = {entry_row.start.strftime('%Y-%m-%d %H:%M:%S')} | new start {new_start.strftime('%Y-%m-%d %H:%M:%S')}
-                original end = {entry_row.end.strftime('%Y-%m-%d %H:%M:%S')} | new end = {new_end.strftime('%Y-%m-%d %H:%M:%S')}
-                paused_hours = [repr.number]{entry_row.paused_hours}[/repr.number]
-                duration = {duration}
-                Removed from edits.
+            [code]{entry_row.id}[/code] updates failed: Negative Duration.
+            {_compare_start}
+            {_compare_end}
+            paused_hours = [repr.number]{entry_row.paused_hours}[/repr.number]
+            duration = {duration}
+            Removed from edits.
                 """
                 )
             )
@@ -606,17 +602,17 @@ def _match_ids(
     short_help="Edit completed time entries.",
     syntax=Syntax(
         code="""\
-        $ timer edit --id b95eb89 --id 36c9fe5 --start 3pm --note "…"
-        $ t e -ib95eb89 -i36c9fe5 -s3pm -n"…"
+        $ timer edit --id b95eb89 --start 3pm # set start time to 3pm
+        $ t e -ib95eb89 -s3pm
 
-        $ timer edit --use-last-timer-list --note "rewrite task"
-        $ t e -u -n"rewrite task"
+        $ timer edit --use-last-timer-list --note 'rewrite task'
+        $ t e -u -n'rewrite task'
 
-        $ timer edit --yank 1 --yank 2 --end now
-        $ t e -y1 -y2 -enow
+        $ timer edit --yank 1 --yank 2 --end now # edit both time entries to end now
+        $ t e -y1 -y2 -en # `n` expands to `now`
         
-        $ timer edit --yank 1 --yank 2 --id 36c9fe5 --date -2d # set 3 entries to 2 days ago
-        $ t e -y1 -y2 -i36c9fe5 -d-2d\
+        $ timer edit --yank 1 --yank 2 --id 36c9fe5 --date 2d # set 3 entries to 2 days ago
+        $ t e -y1 -y2 -i36c9fe5 -d2d\
         """,
         lexer="fishshell",
         dedent=True,
@@ -624,7 +620,7 @@ def _match_ids(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not edit entries.")),
 )
 @click.option(
@@ -784,7 +780,7 @@ def edit(
         e.g.
 
         ```
-            $ timer list --current-week
+        $ timer list --current-week
 
         | row | id      |   …
         |-----|---------|   …
@@ -800,15 +796,21 @@ def edit(
 
     --project / -p:
         set the project for all selected entries to this.
+        create new projects with project:create.
         projects can be searched for by name or description.
         projects are ordered in created time desc.
 
     --note / -n:
-        set the note for all selected entries to this.
-        if --project / -p is used, then autocomplete will include notes for the selected project.
+        set note for time entry. if --project / -p is called,
+        then notes for selected project will autocomplete. search with fuzzyfinder.
+        there is a lookback window so old notes do not clutter the autocompletions.
+        update how many days to look back with app:config:set:general:note-history.
 
     --billable / -b:
-        set the entry as billable or not.
+        set billable field. if not provided, the default setting for the project is used.
+        set project default billable value when first creating a project
+        with project:create, using --default-billable / -b
+        update an existing project's with project:set:default-billable.
 
     --start-time / -s / --end-time / -e:
         set the start/end time for all selected entries to this.
@@ -851,7 +853,7 @@ def edit(
             matched_entries: "QueryJob" = routine._get_time_entries(matched_ids)
         except Exception as error:
             console.print(markup.br("Error:"), error)
-            raise click.exceptions.Exit
+            raise click.exceptions.Exit()
 
         debug and console.log("[DEBUG]", matched_entries)
 
@@ -884,13 +886,12 @@ def edit(
         )
 
         if not all_edits:
-            console.print(markup.dimmed("Nothing to edit."))
-            return
+            ctx.fail("Nothing to edit.")
 
         edits = first(all_edits)
         status.update(status_renderable)
 
-        query_job: "QueryJob" = routine.update_time_entries(
+        query_job: "QueryJob" = routine._update_time_entries(
             ids=matched_ids,
             project=edits.get("project"),
             note=edits.get("note"),
@@ -898,22 +899,34 @@ def edit(
             start=edits["start_time"].time() if "start_time" in edits else None,
             end=edits["end_time"].time() if "end_time" in edits else None,
             date=edits.get("date"),
-            wait=True,
-            render=True,
-            status=status,
-            status_renderable=status_renderable,
         )
 
         original_records = []
         new_records = []
 
-        for entry_row, edits in zip(matched_entries, all_edits):
+        for entry_row, edits in t.cast(
+            t.Sequence[tuple["Row", dict[str, t.Any]]],
+            zip(matched_entries, all_edits),
+        ):
+            _start_datetime = entry_row.start
+            _end_datetime = entry_row.end
+
+            try:
+                _start_time = _start_datetime.time()
+                _end_time = _end_datetime.time()
+            except Exception:
+                ctx.fail(
+                    "Failed to retrieve start/end times. Possible there is "
+                    "still an job running on one of these records. "
+                    "Please wait a moment and try again."
+                )
+
             original_record = {
                 "id": entry_row.id[:7],
                 "project": entry_row.project,
                 "date": entry_row.date,
-                "start_time": entry_row.start.time(),
-                "end_time": entry_row.end.time(),
+                "start_time": _start_time,
+                "end_time": _end_time,
                 "note": entry_row.note,
                 "billable": entry_row.billable,
                 "paused_hours": entry_row.paused_hours or 0,
@@ -935,18 +948,15 @@ def edit(
             "records:" if len(matched_ids) > 1 else "record:",
             render.create_table_diff(original_records, new_records),
         )
-        threads.spawn(
-            ctx,
-            appdata.sync,
-            dict(trigger_query_job=query_job, debug=debug),
-        )
+        sync_kwargs = dict(trigger_query_job=query_job, debug=debug)
+        threads.spawn(ctx, appdata.sync, sync_kwargs)
 
 
 @click.command(
     cls=FormattedCommand,
     name="get",
     no_args_is_help=True,
-    short_help="Retrieve a time entry by id.",
+    short_help="Retrieve a single time entry.",
     syntax=Syntax(
         code="""\
         $ timer get 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46
@@ -975,12 +985,16 @@ def get(
     routine: "CliQueryRoutines",
     time_entry_id: str,
 ) -> None:
-    """Retrieve a time entry by id."""
+    """Retrieve a single time entry."""
     query_job: "QueryJob" = routine._get_time_entries(
         [id_list.match_id(time_entry_id)], wait=True, render=True
     )
-    data = {k: v for k, v in one(query_job.result()).items()}
-    console.print_json(data=data, default=str, indent=4)
+    rows: list["Row"] = list(query_job.result())
+    if not rows:
+        console.print(markup.dimmed("Id not found"))
+    else:
+        data = {k: v for k, v in one(rows).items()}
+        console.print_json(data=data, default=str, indent=4)
 
 
 @click.command(
@@ -989,35 +1003,41 @@ def get(
     short_help="List time entries.",
     syntax=Syntax(
         code="""\
+        $ timer list --today
+        $ t l -t
+
         $ timer list --date jan1
         $ t l -djan1
 
         $ timer list --all active is true # where clause as arguments
         $ t l -a active is true
-        
-        $ timer list --today
-        $ t l -t
-        
+        # Note --all / -a flag will query entire timesheet
+
         $ timer list --yesterday --prompt-where # interactive prompt for where clause
         $ t l -yw
 
         $ timer list --current-week billable is false
         $ t l -cw billable is false
-        
-        # case insensitive regex match - re2
-        $ timer list --date -2d --regex-engine re2 --match-note (?i)task.*
-        $ t l -d-2d -re re2 -Rn (?i)task.*
-        
-        # case insensitive regex match - ECMAScript
-        $ timer list --date -2d --match-note task.* --modifiers ig
-        $ t l -d-2d -Rn task.* -Mig
 
-        $ t l -t -Rp ^(?!demo) # exclude projects containing word "demo"
-        
-        $ timer list --current-month "project = 'lightlike-cli' and note like any ('something%', 'else%')"
-        
-        $ timer list --all time(start) >= \\"18:29:09\\"
-        $ t l -a time(start) >= \\"18:29:09\\"\
+        # case insensitive regex match - re2
+        $ timer list --date 2d --match-note (?i)task.* --regex-engine re2
+        $ t l -d2d -rn (?i)task.* -re re2
+
+        # case insensitive regex match - ECMAScript
+        $ timer list --date 2d --match-note task.* --modifiers ig
+        $ t l -d2d -rn task.* -Mig
+
+        # regex 
+        $ t l -t -rp ^(?!demo) # exclude projects beginning with 'demo'
+
+        # list all entries this month from project 'myproject.example'
+        # with notes containing words 'docs' or 'tests'
+        $ timer list --current-month --match-project myproject.* --match-note docs --match-note tests
+        $ timer list -cm -rp myproject.* -rn docs -rn tests
+
+        # list entries today before 12:00:00
+        $ timer list --today time(start) >= \\"12:00:00\\"
+        $ t l -t time(start) >= \\"12:00:00\\"\
         """,
         lexer="fishshell",
         dedent=True,
@@ -1029,7 +1049,7 @@ def get(
         allow_interspersed_args=True,
     ),
 )
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @click.option(
     "-d",
     "--date",
@@ -1176,12 +1196,12 @@ def get(
     shell_complete=None,
 )
 @click.option(
-    "-Rp",
+    "-rp",
     "--match-project",
     show_default=True,
-    multiple=False,
+    multiple=True,
     type=click.STRING,
-    help="Expression to match project name.",
+    help="Expressions to match project name.",
     required=False,
     default=None,
     callback=None,
@@ -1189,12 +1209,12 @@ def get(
     shell_complete=None,
 )
 @click.option(
-    "-Rn",
+    "-rn",
     "--match-note",
     show_default=True,
-    multiple=False,
+    multiple=True,
     type=click.STRING,
-    help="Expression to match note.",
+    help="Expressions to match note.",
     required=False,
     default=None,
     callback=None,
@@ -1314,8 +1334,8 @@ def list_(
     current_month: bool,
     current_year: bool,
     all_: bool,
-    match_project: str,
-    match_note: str,
+    match_project: t.Sequence[str],
+    match_note: t.Sequence[str],
     modifiers: str,
     regex_engine: str,
     limit: int | None,
@@ -1327,40 +1347,21 @@ def list_(
     """
     List time entries.
 
-    DATE/TIME FIELDS:
-        arguments/options asking for datetime will attempt to parse the string provided.
-        error will raise if unable to parse.
-        dates are relative to today, unless explicitly stated in the string.
-
-        Example values to pass to the date parser:
-        | type             | examples                                                  |
-        |-----------------:|-----------------------------------------------------------|
-        | datetime         | jan1@2pm [d](January 1st current year at 2:00 PM)[/d]            |
-        | date (relative)  | today/now, yesterday, monday, 2 days ago, -2d | "\\-2d"    |
-        | time (relative)  | -15m [d](15 minutes ago)[/d], 1.25 hrs ago, -1.25hr | "\\-1.25hr" |
-        | date             | jan1, 01/01, 2024-01-01                                   |
-        | time             | 2pm, 14:30:00, 2:30pm                                     |
-
-        [b]Note:[/b] If the date is an argument, the minus operator needs to be escaped.
-        e.g.
-        ```
-        $ command --option -2d
-        $ c -o-2d
-        $ command \\-2d # argument
-        $ c \\-2d # argument
-        ```
+    Run command app:parse-date to see examples of strings to pass to parser.
 
     --current-week / -cw:
     --current-month / -cm:
     --current-year / -cy:
         flags are processed before other date options.
-        configure week start dates with app:config:set:general:week_start
+        configure week start dates with app:config:set:general:week-start
 
-    --match-project / -Rp:
+    --match-project / -rp:
         match a regular expression against project names.
+        this option can be repeated, with each pattern being separated by `|`.
 
-    --match-note / -Rn:
+    --match-note / -rn:
         match a regular expression against entry notes.
+        this option can be repeated, with each pattern being separated by `|`.
 
     --modifiers / -M:
         modifiers to pass to RegExp. (ECMAScript only)
@@ -1379,17 +1380,13 @@ def list_(
         filter results with a where clause.
         interactive prompt that launches after command runs.
         prompt includes autocompletions for projects and notes.
-        note autocompletions will only populate for a project if that project name appears in the string.
+        note autocompletions will only populate for a project
+        if that project name appears in the string.
 
     [bold #34e2e2]WHERE[/]:
-        where clause can also be written as the last argument to this command.
-        it can be a single string, or individual words separated by a space,
-        as long as characters are properly escaped if necessary.
-        it must either begin with the word "WHERE" (case-insensitive),
-        or it must be the string immediately proceeding the word "WHERE".
-
-    [b]See[/]:
-        test a string against the parser with app:test:date-parse.
+        all remaining arguments at the end of this command are
+        joined together by a space to form the where clause.
+        the word "WHERE" is stripped from the start of the string, if it exists.
     """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
@@ -1425,14 +1422,12 @@ def list_(
             previous_week=False,
             ctx=ctx,
         )
+        week_start: int = AppConfig().get("settings", "week-start", default=0)
+
         if current_week:
-            date_params = dates.get_relative_week(
-                now, AppConfig().get("settings", "week_start")
-            )
+            date_params = dates.get_relative_week(now, week_start)
         elif previous_week:
-            date_params = dates.get_relative_week(
-                now, AppConfig().get("settings", "week_start"), week="previous"
-            )
+            date_params = dates.get_relative_week(now, week_start, week="previous")
         elif current_month:
             date_params = dates.get_month_to_date(now)
         elif current_year:
@@ -1501,12 +1496,13 @@ def list_(
         )
         if not table.row_count:
             rprint(markup.dimmed("No results"))
-            raise click.exceptions.Exit
+            raise click.exceptions.Exit()
 
         console.print(table)
 
     appdir.TIMER_LIST_CACHE.write_text(
-        dumps({idx: row.get("id") for idx, row in enumerate(rows)})
+        dumps({idx: row.get("id") for idx, row in enumerate(rows)}),
+        encoding="utf-8",
     )
 
 
@@ -1544,7 +1540,7 @@ def notes() -> None: ...
     callback=validate.active_project,
     shell_complete=shell_complete.projects.from_argument,
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not update notes.")),
 )
 @_pass.routine
@@ -1564,7 +1560,7 @@ def update_notes(
     Select which notes to replace with [code]space[/code]. Press [code]enter[/code] to continue with the selection.
     Enter a new note, and all selected notes will be replaced.
     There is a lookback window so old notes do not clutter the autocompletions.
-    Update how many days to look back with app:config:set:general:note_history.
+    Update how many days to look back with app:config:set:general:note-history.
     """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
@@ -1572,7 +1568,7 @@ def update_notes(
     try:
         notes_to_edit: t.Sequence[str] = _questionary.checkbox(
             message="Select notes to edit",
-            choices=shell_complete.notes.Notes().get(project),
+            choices=sorted(shell_complete.notes.Notes().get(project)),
         )
     except AttributeError:
         console.print(
@@ -1580,7 +1576,7 @@ def update_notes(
             "has no notes to edit.",
             "If this was not the expected outcome,",
             "Try adjusting the lookback window with",
-            "app:config:set:general:note_history",
+            "app:config:set:general:note-history",
         )
         return
 
@@ -1589,7 +1585,7 @@ def update_notes(
         return
 
     notes_to_replace: str = "\n".join(
-        map(lambda n: utils._alter_str(n, add_quotes=True), notes_to_edit)
+        map(lambda n: utils.alter_str(n, add_quotes=True), notes_to_edit)
     )
 
     new_note = PromptFactory.prompt_note(
@@ -1598,7 +1594,7 @@ def update_notes(
         rprompt="\nReplacing %s notes:\n%s" % (project, notes_to_replace),
     )
 
-    query_job: "QueryJob" = routine.update_notes(
+    query_job: "QueryJob" = routine._update_notes(
         new_note=new_note,
         old_note="".join(["(", "|".join(n for n in notes_to_edit), ")"]),
         project=project,
@@ -1607,7 +1603,8 @@ def update_notes(
         status_renderable=markup.status_message("Updating notes"),
     )
 
-    threads.spawn(ctx, appdata.sync, dict(trigger_query_job=query_job, debug=debug))
+    sync_kwargs = dict(trigger_query_job=query_job, debug=debug)
+    threads.spawn(ctx, appdata.sync, sync_kwargs)
     console.print("Updated notes for", markup.code(project))
 
 
@@ -1645,9 +1642,10 @@ def pause(
     debug: bool = parent.params.get("debug", False)
 
     time_entry_id: str = cache.id
-    query_job: "QueryJob" = routine.pause_time_entry(time_entry_id, now, wait=debug)
+    query_job: "QueryJob" = routine._pause_time_entry(time_entry_id, now, wait=debug)
     cache.pause_entry(0, now)
-    console.set_window_title(__appname_sc__)
+    if AppConfig().get("settings", "update-terminal-title", default=True):
+        console.set_window_title(__appname_sc__)
 
     if debug:
         query_job.result()
@@ -1672,7 +1670,7 @@ def pause(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not resume time entry.")),
 )
 @click.argument(
@@ -1742,7 +1740,7 @@ def resume(
         )
         if not table.row_count:
             rprint(markup.dimmed("No results"))
-            raise click.exceptions.Exit
+            raise click.exceptions.Exit()
 
         console.print(table)
 
@@ -1753,7 +1751,7 @@ def resume(
 
         matched_id = select
         cache.resume_entry(matched_id, now)
-        query_job = routine.resume_time_entry(matched_id, now)
+        query_job = routine._resume_time_entry(matched_id, now)
     else:
         if len(entry) < 40:
             matched_id = id_list.match_id(entry)
@@ -1765,10 +1763,10 @@ def resume(
 
         if stop_:
             cache.remove([cache.paused_entries], "id", [matched_id])
-            routine.stop_time_entry(matched_id, now)
+            routine._stop_time_entry(matched_id, now)
         else:
             cache.resume_entry(matched_id, now)
-            query_job = routine.resume_time_entry(matched_id, now)
+            query_job = routine._resume_time_entry(matched_id, now)
 
     if debug:
         query_job.result()
@@ -1781,11 +1779,17 @@ def resume(
     short_help="Start a new time entry.",
     syntax=Syntax(
         code="""\
+        # create a running entry now under 'no-project' with no note
         $ timer run
         $ t ru
 
-        $ timer run --project lightlike-cli --note readme --start -1hr --billable False
-        $ t ru -plightlike-cli -nreadme -s-1hr -b0\
+        # start entry with project and note
+        $ timer run --project lightlike-cli --note readme
+        $ t ru -plightlike-cli -nreadme\
+        
+        # create a running entry starting 1 hour ago, and override billable to false
+        $ timer run --project your-client --start 1h --billable False
+        $ t ru -p your-client -s1h -b0\
         """,
         lexer="fishshell",
         dedent=True,
@@ -1793,7 +1797,7 @@ def resume(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not start time entry.")),
 )
 @click.option(
@@ -1893,7 +1897,7 @@ def run(
     console: "Console",
     routine: "CliQueryRoutines",
     cache: "TimeEntryCache",
-    billable: bool,
+    billable: bool | None,
     project: str,
     start: datetime,
     note: str,
@@ -1909,21 +1913,21 @@ def run(
 
     --project / -p:
         project to log time entry under.
-        defaults to [code]no-project[/code].
         create new projects with project:create.
         projects can be searched for by name or description.
         projects are ordered in created time desc.
 
     --note / -n:
-        note to attach to time entry.
-        if --project / -p is used, then autocomplete will include notes for the selected project.
+        set note for time entry. if --project / -p is called,
+        then notes for selected project will autocomplete. search with fuzzyfinder.
+        there is a lookback window so old notes do not clutter the autocompletions.
+        update how many days to look back with app:config:set:general:note-history.
 
     --billable / -b:
-        set the entry as billable or not.
-        if not provided, the default setting for the project is used.
+        sset billable field. if not provided, the default setting for the project is used.
         set project default billable value when first creating a project
-        with project:create, using --default-billable / -b,
-        or update an existing project with project:set:default_billable.
+        with project:create, using --default-billable / -b
+        update an existing project's with project:set:default-billable.
 
     --start / -s:
         start the entry at an earlier time.
@@ -1967,7 +1971,8 @@ def run(
 
     start_local: datetime = start or now
     time_entry_id: str = sha1(f"{project}{note}{start_local}".encode()).hexdigest()
-    query_job: "QueryJob" = routine.start_time_entry(
+
+    query_job: "QueryJob" = routine._start_time_entry(
         time_entry_id, project, note, start_local, billable or project_default_billable
     )
 
@@ -1975,7 +1980,7 @@ def run(
         if cache:
             entry_to_pause: str = copy(cache.id)
             cache.pause_entry(0, start_local)
-            routine.pause_time_entry(entry_to_pause, start_local, wait=debug)
+            routine._pause_time_entry(entry_to_pause, start_local, wait=debug)
         else:
             console.print("No active entry. --pause-active / -P ignored.")
     elif cache:
@@ -1992,7 +1997,8 @@ def run(
         query_job.result()
         console.log("[DEBUG]", f"started entry {time_entry_id}")
 
-    threads.spawn(ctx, appdata.sync, dict(trigger_query_job=query_job, debug=debug))
+    sync_kwargs = dict(trigger_query_job=query_job, debug=debug)
+    threads.spawn(ctx, appdata.sync, sync_kwargs)
     threads.spawn(ctx, id_list.add, dict(input_id=time_entry_id, debug=debug))
 
 
@@ -2028,10 +2034,11 @@ def run(
 @_pass.console
 def show(console: "Console", cache: "TimeEntryCache", json_: bool) -> None:
     """
-    Show tables of all local running and paused time entries.
-    If there is an active entry, it will be in bold, in the first row.
-    Other running entries will be in the following rows.
-    If there are paused entries, they will be dimmed, and in the last row(s).
+    Display a table of local running/paused time entries.
+    Entries are sorted top-down from active -> running -> paused:
+        The active entry is bolded in the first row.
+        Running entries are not bolded.
+        Paused entries are dimmed.
     """
     if json_:
         console.print_json(data=cache._entries, default=str, indent=4)
@@ -2072,9 +2079,10 @@ def stop(
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
-    routine.stop_time_entry(cache.id, now, wait=debug)
+    routine._stop_time_entry(cache.id, now, wait=debug)
     cache._clear_active()
-    console.set_window_title(__appname_sc__)
+    if AppConfig().get("settings", "update-terminal-title", default=True):
+        console.set_window_title(__appname_sc__)
 
 
 @click.command(
@@ -2089,8 +2097,8 @@ def stop(
         $ timer switch 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46
         $ t s 36c9fe
     
-        $ timer switch 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46 --force
-        $ t s 36c9fe -f\
+        $ timer switch 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46 --continue
+        $ t s 36c9fe -c\
         """,
         lexer="fishshell",
         dedent=True,
@@ -2098,7 +2106,7 @@ def stop(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not switch.")),
 )
 @click.argument(
@@ -2142,7 +2150,9 @@ def switch(
     """
     Switch the active time entry.
 
-        --force / -u:
+    Pauses the active entry and resumes the selected entry.
+
+        --continue / -c:
             do not pause the active entry during switch.
 
         [b]See[/]:
@@ -2155,7 +2165,7 @@ def switch(
 
     if len(entries) == 1:
         console.print(markup.dimmed("Nothing to switch."))
-        raise click.exceptions.Exit
+        raise click.exceptions.Exit()
 
     select: str
     if not entry:
@@ -2169,7 +2179,7 @@ def switch(
         )
         if not table.row_count:
             rprint(markup.dimmed("No results"))
-            raise click.exceptions.Exit
+            raise click.exceptions.Exit()
 
         console.print(table)
 
@@ -2186,11 +2196,11 @@ def switch(
         select = id_list.match_id(entry)
 
     if cache.index(cache.paused_entries, "id", [select]):
-        routine.resume_time_entry(select, now, wait=debug)
+        routine._resume_time_entry(select, now, wait=debug)
         debug and console.log("[DEBUG]", f"resuming entry {select}")
 
     if not continue_:
-        routine.pause_time_entry(cache.id, now, wait=debug)
+        routine._pause_time_entry(cache.id, now, wait=debug)
         debug and console.log("[DEBUG]", f"pausing entry {cache.id}")
 
     cache.switch_active_entry(select, now, continue_)
@@ -2202,7 +2212,9 @@ def switch(
     short_help="Update active entry.",
     syntax=Syntax(
         code="""\
-        $ timer update --project lightlike-cli --start -30m
+        # update active entries project, and set start to 30 min ago
+        $ timer update --project lightlike-cli --start 30m
+        $ timer update -plightlike-cli -s30m
     
         $ timer update --billable true --note "redefine task"
         $ t u -b1 -n"redefine task"\
@@ -2391,29 +2403,21 @@ def update(
         if not any(
             filter(lambda k: k in edits, ["project", "note", "billable", "start"])
         ):
-            console.print(markup.dimmed("No valid fields to update, nothing happened."))
-            return
-        else:
-            query_job: "QueryJob" = routine.update_time_entries(
-                ids=[cache.id],
-                project=edits.get("project"),
-                note=edits.get("note"),
-                billable=edits.get("billable"),
-                start=edits["start"].time() if "start" in edits else None,
-                wait=True,
-                render=True,
-                status=status,
-                status_renderable=status_renderable,
-            )
+            ctx.fail("No fields to update.")
 
         if stop_ and cache:
             ctx.invoke(stop)
 
-        threads.spawn(
-            ctx,
-            appdata.sync,
-            dict(trigger_query_job=query_job, debug=debug),
+        query_job: "QueryJob" = routine._update_time_entries(
+            ids=[cache.id],
+            project=edits.get("project"),
+            note=edits.get("note"),
+            billable=edits.get("billable"),
+            start=edits["start"].time() if "start" in edits else None,
         )
+
+        sync_kwargs = dict(trigger_query_job=query_job, debug=debug)
+        threads.spawn(ctx, appdata.sync, sync_kwargs)
 
         original_record = {
             "id": copy["id"][:7],

@@ -1,6 +1,6 @@
+import os
 import sys
 import typing as t
-from shlex import shlex
 from subprocess import list2cmdline, run
 
 import click
@@ -10,7 +10,7 @@ from prompt_toolkit.application import get_app
 from rich import print as rprint
 
 if sys.platform.startswith("win"):
-    import win32console  # type:ignore
+    import win32console
 else:
     import termios
 
@@ -62,40 +62,48 @@ def repl(
     if scheduler:
         scheduler().start()
         if default_jobs_callable and callable(default_jobs_callable):
-            default_jobs_callable()
+            try:
+                default_jobs_callable()
+            except AttributeError as error:
+                if not "'NoneType' object has no attribute 'items'" in f"{error}":
+                    raise error
 
-    while 1:
-        try:
-            command = session.prompt(in_thread=True)
-        except (KeyboardInterrupt, EOFError):
-            continue
-
-        args: list[str] = split_arg_string(command, posix=True)
-        if not args:
-            continue
-
-        try:
-            ctx.protected_args = args
-            ctx_command.invoke(ctx)
-        except click.UsageError as error1:
-            if _is_unknown_command(error1) and pass_unknown_commands_to_shell:
-                try:
-                    _execute_system_command(args, shell_cmd_callable)
-                except Exception as error2:
-                    print(error2)
-            else:
-                _show_click_exception(error1, format_click_exceptions_callable)
-        except click.ClickException as error3:
-            _show_click_exception(error3, format_click_exceptions_callable)
-        except (click.exceptions.Exit, SystemExit):
-            pass
-        except ExitRepl:
-            break
-        except Exception as error4:
-            if uncaught_exceptions_callable:
-                uncaught_exceptions_callable(error4)
-            else:
+    try:
+        while 1:
+            try:
+                command = session.prompt(in_thread=True)
+            except (KeyboardInterrupt, EOFError):
                 continue
+
+            args: list[str] = click.parser.split_arg_string(command)
+            if not args:
+                continue
+
+            try:
+                ctx.protected_args = args
+                ctx_command.invoke(ctx)
+            except click.UsageError as error1:
+                if _is_unknown_command(error1) and pass_unknown_commands_to_shell:
+                    try:
+                        _execute_system_command(args, shell_cmd_callable)
+                    except Exception as error2:
+                        print(error2)
+                else:
+                    _show_click_exception(error1, format_click_exceptions_callable)
+            except click.ClickException as error3:
+                _show_click_exception(error3, format_click_exceptions_callable)
+            except (click.exceptions.Exit, SystemExit):
+                pass
+            except ExitRepl:
+                break
+            except Exception as error4:
+                if uncaught_exceptions_callable:
+                    uncaught_exceptions_callable(error4)
+                else:
+                    continue
+    finally:
+        if scheduler and scheduler().running:
+            scheduler().shutdown()
 
 
 def _show_click_exception(
@@ -143,7 +151,7 @@ def _execute_system_command(
         buffer.delete_before_cursor(len(_CMD))
 
         _CMD = _prepend_exec_to_cmd(_CMD, shell_cmd_callable)
-        run(_CMD, shell=True)
+        run(_CMD, shell=True, env=os.environ)
 
     except KeyboardInterrupt:
         rprint("[#888888]Command killed by keyboard interrupt.")
@@ -160,11 +168,7 @@ def _execute_system_command(
 def _prepend_exec_to_cmd(
     _cmd: str, shell_cmd_callable: t.Callable[[], str] | None = None
 ) -> str:
-    if (
-        shell_cmd_callable
-        and callable(shell_cmd_callable)
-        and (shell := shell_cmd_callable()) is not None
-    ):
+    if shell_cmd_callable and (shell := shell_cmd_callable()) is not None:
         if isinstance(shell, str):
             cmd_exec = shell
         elif isinstance(shell, list):
@@ -177,23 +181,10 @@ def _prepend_exec_to_cmd(
     return _cmd
 
 
-class ExitRepl(Exception): ...
+class ExitRepl(Exception):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
 
 
 def exit_repl() -> t.NoReturn:
     raise ExitRepl()
-
-
-def split_arg_string(string: str, posix: bool = True) -> list[str]:
-    lex: shlex = shlex(string, posix=posix)
-    lex.whitespace_split = True
-    lex.commenters = ""
-    out: list[str] = []
-
-    try:
-        for token in lex:
-            out.append(token)
-    except ValueError:
-        out.append(lex.token)
-
-    return out

@@ -21,14 +21,11 @@
     .lightlike-cli-373687286-matrix {
         font-family: Fira Code, monospace;
         font-size: 20px;
-        line-height: 24.4px;
-        font-variant-east-asian: full-width;
     }
 
     .lightlike-cli-373687286-title {
         font-size: 18px;
         font-weight: bold;
-        font-family: arial;
     }
 
     .lightlike-cli-373687286-r1 { fill: #c5c8c6 }
@@ -102,7 +99,7 @@
 </text><text class="lightlike-cli-373687286-r1" x="1464" y="215.2" textLength="12.2" clip-path="url(#lightlike-cli-373687286-line-8)">
 </text><text class="lightlike-cli-373687286-r8" x="24.4" y="239.6" textLength="24.4" clip-path="url(#lightlike-cli-373687286-line-9)">1&#160;</text><text class="lightlike-cli-373687286-r9" x="48.8" y="239.6" textLength="24.4" clip-path="url(#lightlike-cli-373687286-line-9)">$&#160;</text><text class="lightlike-cli-373687286-r9" x="73.2" y="239.6" textLength="36.6" clip-path="url(#lightlike-cli-373687286-line-9)">app</text><text class="lightlike-cli-373687286-r9" x="122" y="239.6" textLength="73.2" clip-path="url(#lightlike-cli-373687286-line-9)">run-bq</text><text class="lightlike-cli-373687286-r1" x="1464" y="239.6" textLength="12.2" clip-path="url(#lightlike-cli-373687286-line-9)">
 </text><text class="lightlike-cli-373687286-r1" x="1464" y="264" textLength="12.2" clip-path="url(#lightlike-cli-373687286-line-10)">
-</text><text class="lightlike-cli-373687286-r6" x="0" y="288.4" textLength="85.4" clip-path="url(#lightlike-cli-373687286-line-11)">Options</text><text class="lightlike-cli-373687286-r1" x="1464" y="288.4" textLength="12.2" clip-path="url(#lightlike-cli-373687286-line-11)">
+</text><text class="lightlike-cli-373687286-r6" x="0" y="288.4" textLength="97.6" clip-path="url(#lightlike-cli-373687286-line-11)">Options:</text><text class="lightlike-cli-373687286-r1" x="1464" y="288.4" textLength="12.2" clip-path="url(#lightlike-cli-373687286-line-11)">
 </text><text class="lightlike-cli-373687286-r5" x="36.6" y="312.8" textLength="61" clip-path="url(#lightlike-cli-373687286-line-12)">--yes</text><text class="lightlike-cli-373687286-r10" x="134.2" y="312.8" textLength="24.4" clip-path="url(#lightlike-cli-373687286-line-12)">-y</text><text class="lightlike-cli-373687286-r11" x="183" y="312.8" textLength="48.8" clip-path="url(#lightlike-cli-373687286-line-12)">FLAG</text><text class="lightlike-cli-373687286-r3" x="256.2" y="312.8" textLength="219.6" clip-path="url(#lightlike-cli-373687286-line-12)">Accept&#160;all&#160;prompts</text><text class="lightlike-cli-373687286-r1" x="1464" y="312.8" textLength="12.2" clip-path="url(#lightlike-cli-373687286-line-12)">
 </text><text class="lightlike-cli-373687286-r5" x="36.6" y="337.2" textLength="73.2" clip-path="url(#lightlike-cli-373687286-line-13)">--help</text><text class="lightlike-cli-373687286-r10" x="134.2" y="337.2" textLength="24.4" clip-path="url(#lightlike-cli-373687286-line-13)">-h</text><text class="lightlike-cli-373687286-r11" x="183" y="337.2" textLength="48.8" clip-path="url(#lightlike-cli-373687286-line-13)">FLAG</text><text class="lightlike-cli-373687286-r3" x="256.2" y="337.2" textLength="329.4" clip-path="url(#lightlike-cli-373687286-line-13)">Show&#160;this&#160;message&#160;and&#160;exit.</text><text class="lightlike-cli-373687286-r1" x="1464" y="337.2" textLength="12.2" clip-path="url(#lightlike-cli-373687286-line-13)">
 </text>

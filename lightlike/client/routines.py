@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import typing as t
 from inspect import classify_class_attrs, cleandoc
-from os import getenv
+from operator import truth
 from time import perf_counter_ns, sleep, time
 
 import click
@@ -18,7 +18,7 @@ from rich import get_console
 from rich.text import Text
 
 from lightlike.app.config import AppConfig
-from lightlike.client._client import get_client
+from lightlike.client.bigquery import get_client
 from lightlike.internal import markup
 
 if t.TYPE_CHECKING:
@@ -34,14 +34,22 @@ __all__: t.Sequence[str] = ("CliQueryRoutines",)
 
 P = t.ParamSpec("P")
 
+_MAPPING: dict[str, str] = AppConfig()["bigquery"]
+DATASET: str = _MAPPING["dataset"]
+TABLE_TIMESHEET: str = _MAPPING["timesheet"]
+TABLE_PROJECTS: str = _MAPPING["projects"]
+TIMESHEET_ID: str = f"{DATASET}.{TABLE_TIMESHEET}"
+PROJECTS_ID: str = f"{DATASET}.{TABLE_PROJECTS}"
+
 
 class CliQueryRoutines:
     _client: t.Callable[..., "Client"] = get_client
-    dataset: str = AppConfig().get("bigquery", "dataset")
-    table_timesheet: str = AppConfig().get("bigquery", "timesheet")
-    table_projects: str = AppConfig().get("bigquery", "projects")
-    timesheet_id: str = f"{dataset}.{table_timesheet}"
-    projects_id: str = f"{dataset}.{table_projects}"
+    dataset: str = DATASET
+    table_timesheet: str = TABLE_TIMESHEET
+    table_projects: str = TABLE_PROJECTS
+    timesheet_id: str = TIMESHEET_ID
+    projects_id: str = PROJECTS_ID
+    tz_name: str = AppConfig().tzname
 
     def _query_and_wait(
         self,
@@ -131,7 +139,7 @@ class CliQueryRoutines:
 
             return query_job
 
-    def start_time_entry(
+    def _start_time_entry(
         self,
         id: str,
         project: str,
@@ -159,8 +167,39 @@ class CliQueryRoutines:
             # fmt:on
         )
 
+        target: str = cleandoc(
+            f"""
+            INSERT INTO
+              {self.timesheet_id} (
+                id,
+                date,
+                project,
+                note,
+                timestamp_start,
+                start,
+                billable,
+                active,
+                archived,
+                paused
+              )
+            VALUES
+              (
+                @id,
+                EXTRACT(DATE FROM @start_time AT TIME ZONE "{self.tz_name}"),
+                @project,
+                NULLIF(@note, "None"),
+                @start_time,
+                EXTRACT(DATETIME FROM @start_time AT TIME ZONE "{self.tz_name}"),
+                @billable,
+                TRUE,
+                FALSE,
+                FALSE
+              );
+            """
+        )
+
         return self._query(
-            target=f"CALL {self.dataset}.start_time_entry(@id, @project, @note, @start_time, @billable);",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -168,7 +207,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def add_time_entry(
+    def _add_time_entry(
         self,
         id: str,
         project: str,
@@ -198,8 +237,45 @@ class CliQueryRoutines:
             # fmt: on
         )
 
+        target: str = cleandoc(
+            f"""
+            INSERT INTO
+              {self.timesheet_id} (
+                id,
+                date,
+                project,
+                note,
+                timestamp_start,
+                start,
+                timestamp_end,
+                `end`,
+                active,
+                billable,
+                archived,
+                paused,
+                hours
+              )
+            VALUES
+              (
+                @id,
+                DATE(@start_time),
+                @project,
+                NULLIF(@note, "None"),
+                @start_time,
+                DATETIME_TRUNC(EXTRACT(DATETIME FROM @start_time AT TIME ZONE "{self.tz_name}"), SECOND),
+                @end_time,
+                DATETIME_TRUNC(EXTRACT(DATETIME FROM @end_time AT TIME ZONE "{self.tz_name}"), SECOND),
+                FALSE,
+                @billable,
+                FALSE,
+                FALSE,
+                ROUND(CAST(SAFE_DIVIDE(TIMESTAMP_DIFF(@end_time, @start_time, SECOND), 3600) AS NUMERIC), 4)
+              );
+            """
+        )
+
         return self._query(
-            target=f"CALL {self.dataset}.add_time_entry(@id, @project, @note, @start_time, @end_time, @billable);",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -207,7 +283,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def _delete_time_entry(
+    def _delete_time_entries(
         self,
         ids: list[str],
         use_query_cache: bool = True,
@@ -221,14 +297,14 @@ class CliQueryRoutines:
             use_query_cache=use_query_cache,
             use_legacy_sql=use_legacy_sql,
             query_parameters=[
-                ArrayQueryParameter(
-                    "ids", SqlParameterScalarTypes.STRING, [i for i in ids]
-                ),
+                ArrayQueryParameter("ids", SqlParameterScalarTypes.STRING, ids),
             ],
         )
 
+        target: str = f"DELETE FROM {self.timesheet_id} WHERE id IN UNNEST(@ids)"
+
         return self._query(
-            target=f"DELETE FROM {self.timesheet_id} WHERE id IN UNNEST(@ids)",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -236,7 +312,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def archive_project(
+    def _archive_project(
         self,
         name: str,
         use_query_cache: bool = True,
@@ -254,8 +330,19 @@ class CliQueryRoutines:
             ],
         )
 
+        target: str = cleandoc(
+            f"""
+            UPDATE
+              {self.projects_id}
+            SET
+              archived = {self.dataset}.current_datetime()
+            WHERE
+              name = @name;
+            """
+        )
+
         return self._query(
-            target=f"CALL {self.dataset}.archive_project(@name);",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -263,7 +350,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def archive_time_entries(
+    def _archive_time_entries(
         self,
         name: str,
         use_query_cache: bool = True,
@@ -281,8 +368,19 @@ class CliQueryRoutines:
             ],
         )
 
+        target: str = cleandoc(
+            f"""
+            UPDATE
+              {self.timesheet_id}
+            SET
+              archived = TRUE
+            WHERE
+              project = @name;
+            """
+        )
+
         return self._query(
-            target=f"CALL {self.dataset}.archive_time_entries(@name);",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -290,7 +388,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def create_project(
+    def _create_project(
         self,
         name: str,
         description: str,
@@ -314,8 +412,27 @@ class CliQueryRoutines:
             # fmt: on
         )
 
+        target: str = cleandoc(
+            f"""
+            INSERT INTO
+              {self.projects_id}(
+                name,
+                description,
+                default_billable,
+                created
+              )
+            VALUES
+              (
+                @name,
+                NULLIF(@description, ""),
+                @default_billable,
+                {self.dataset}.current_datetime()
+              );
+            """
+        )
+
         return self._query(
-            target=f"CALL {self.dataset}.create_project(@name, @description, @default_billable);",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -323,7 +440,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def delete_project(
+    def _delete_project(
         self,
         name: str,
         use_query_cache: bool = True,
@@ -341,8 +458,17 @@ class CliQueryRoutines:
             ],
         )
 
+        target: str = cleandoc(
+            f"""
+            DELETE FROM
+              {self.projects_id}
+            WHERE
+              name = @name;
+            """
+        )
+
         return self._query(
-            target=f"CALL {self.dataset}.delete_project(@name);",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -350,7 +476,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def delete_time_entries(
+    def _delete_time_entries_by_project(
         self,
         project: str,
         use_query_cache: bool = True,
@@ -370,8 +496,17 @@ class CliQueryRoutines:
             ],
         )
 
+        target: str = cleandoc(
+            f"""
+            DELETE FROM
+              {self.timesheet_id}
+            WHERE
+              project = @project;
+            """
+        )
+
         return self._query(
-            target=f"CALL {self.dataset}.delete_time_entries(@project);",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -379,7 +514,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def update_time_entries(
+    def _update_time_entries(
         self,
         ids: t.Sequence[str],
         project: str | None = None,
@@ -411,8 +546,41 @@ class CliQueryRoutines:
             ],
         )
 
+        target: str = cleandoc(
+            f"""
+            SET @@time_zone = "{self.tz_name}";
+            UPDATE
+              {self.timesheet_id}
+            SET
+              project = COALESCE(@project, project),
+              note = COALESCE(@note, note),
+              billable = COALESCE(@billable, billable),
+              timestamp_start = TIMESTAMP_TRUNC(TIMESTAMP(DATETIME(COALESCE(@date, EXTRACT(DATE from start)), COALESCE(@start, TIME(start)))), SECOND),
+              start = DATETIME_TRUNC(DATETIME(COALESCE(@date, EXTRACT(DATE from start)), COALESCE(@start, TIME(start))), SECOND),
+              timestamp_end = TIMESTAMP_TRUNC(TIMESTAMP(DATETIME(COALESCE(@date, EXTRACT(DATE from `end`)), COALESCE(@end, TIME(`end`)))), SECOND),
+              `end` = DATETIME_TRUNC(DATETIME(COALESCE(@date, EXTRACT(DATE from `end`)), COALESCE(@end, TIME(`end`))), SECOND),
+              date = COALESCE(@date, date),
+              hours = ROUND(
+                SAFE_CAST(
+                  SAFE_DIVIDE(
+                    TIMESTAMP_DIFF(
+                      DATETIME(COALESCE(@date, EXTRACT(DATE from `end`)), COALESCE(@end, TIME(`end`))),
+                      DATETIME(COALESCE(@date, EXTRACT(DATE from start)), COALESCE(@start, TIME(start))),
+                      SECOND
+                    ),
+                    3600
+                  ) - IFNULL(paused_hours, 0)
+                  AS NUMERIC
+                ),
+                4
+              )
+            WHERE
+              id IN UNNEST(@ids);
+            """
+        )
+
         return self._query(
-            target=f"CALL {self.dataset}.update_time_entries(@ids, @project, @note, @billable, @start, @end, @date);",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -420,7 +588,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def stop_time_entry(
+    def _stop_time_entry(
         self,
         id: str,
         end: datetime,
@@ -440,8 +608,30 @@ class CliQueryRoutines:
             ],
         )
 
+        target: str = cleandoc(
+            f"""
+            SET @@time_zone = "{self.tz_name}";
+            UPDATE
+              {self.timesheet_id}
+            SET
+              timestamp_end = TIMESTAMP_TRUNC(@end, SECOND),
+              `end` = DATETIME_TRUNC(EXTRACT(DATETIME FROM @end), SECOND),
+              hours = ROUND(
+                SAFE_CAST(SAFE_DIVIDE(TIMESTAMP_DIFF(IFNULL(@end, {self.dataset}.current_timestamp()), timestamp_start, SECOND), 3600) AS NUMERIC)
+                - SAFE_CAST(IF(paused = TRUE, SAFE_DIVIDE(TIMESTAMP_DIFF(@end, timestamp_paused, SECOND), 3600), 0) + IFNULL(paused_hours, 0) AS NUMERIC),
+                4
+              ),
+              paused_hours = ROUND(SAFE_CAST(IF(paused = TRUE, SAFE_DIVIDE(TIMESTAMP_DIFF(@end, timestamp_paused, SECOND), 3600), 0) + IFNULL(paused_hours, 0) AS NUMERIC), 4),
+              active = FALSE,
+              paused = FALSE,
+              timestamp_paused = NULL
+            WHERE
+              id = @id;
+            """
+        )
+
         return self._query(
-            target=f"CALL {self.dataset}.stop_time_entry(@id, @end);",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -469,8 +659,10 @@ class CliQueryRoutines:
             ],
         )
 
+        target: str = f"SELECT * FROM {self.timesheet_id} WHERE id IN UNNEST(@ids)"
+
         return self._query(
-            target=f"SELECT * FROM {self.timesheet_id} WHERE id IN UNNEST(@ids)",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -502,22 +694,22 @@ class CliQueryRoutines:
             ],
         )
 
-        query = cleandoc(
+        target: str = cleandoc(
             f"""
         CREATE SNAPSHOT TABLE
           {self.dataset}.`{name}`
         CLONE
           {self.timesheet_id}
-        """
+            """
         )
 
         if expiration_timestamp:
-            query += (
+            target += (
                 f"\nOPTIONS(expiration_timestamp=TIMESTAMP('{expiration_timestamp}'))"
             )
 
         return self._query(
-            target=query,
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -651,7 +843,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def resume_time_entry(
+    def _resume_time_entry(
         self,
         id: str,
         time_resume: "datetime",
@@ -673,8 +865,22 @@ class CliQueryRoutines:
             ],
         )
 
+        target: str = cleandoc(
+            f"""
+            UPDATE
+              {self.timesheet_id}
+            SET
+              paused = FALSE,
+              active = TRUE,
+              paused_hours = ROUND(SAFE_CAST(SAFE_DIVIDE(TIMESTAMP_DIFF(@time_resume, timestamp_paused, SECOND), 3600) + IFNULL(paused_hours, 0) AS NUMERIC), 4),
+              timestamp_paused = NULL
+            WHERE
+              id = @id;
+            """
+        )
+
         return self._query(
-            target=f"CALL {self.dataset}.resume_time_entry(@id, @time_resume);",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -682,7 +888,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def unarchive_project(
+    def _unarchive_project(
         self,
         name: str,
         use_query_cache: bool = True,
@@ -700,8 +906,19 @@ class CliQueryRoutines:
             ],
         )
 
+        target: str = cleandoc(
+            f"""
+            UPDATE
+              {self.projects_id}
+            SET
+              archived = NULL
+            WHERE
+              name = @name;
+            """
+        )
+
         return self._query(
-            target=f"CALL {self.dataset}.unarchive_project(@name);",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -709,7 +926,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def unarchive_time_entries(
+    def _unarchive_time_entries(
         self,
         name: str,
         use_query_cache: bool = True,
@@ -727,8 +944,19 @@ class CliQueryRoutines:
             ],
         )
 
+        target: str = cleandoc(
+            f"""
+            UPDATE
+              {self.timesheet_id}
+            SET
+              archived = FALSE
+            WHERE
+              project = @name;
+            """
+        )
+
         return self._query(
-            target=f"CALL {self.dataset}.unarchive_time_entries(@name);",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -736,7 +964,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def update_notes(
+    def _update_notes(
         self,
         new_note: str,
         old_note: str,
@@ -760,8 +988,20 @@ class CliQueryRoutines:
             # fmt: on
         )
 
+        target: str = cleandoc(
+            f"""
+            UPDATE
+              {self.timesheet_id}
+            SET
+              note = @new_note
+            WHERE
+              REGEXP_CONTAINS(note, @old_note)
+              AND project = @project;
+            """
+        )
+
         return self._query(
-            target=f"CALL {self.dataset}.update_notes(@new_note, @old_note, @project);",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -769,10 +1009,10 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def update_project_default_billable(
+    def _update_project_default_billable(
         self,
-        project: str,
-        value: bool,
+        name: str,
+        default_billable: bool,
         use_query_cache: bool = True,
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
@@ -785,14 +1025,25 @@ class CliQueryRoutines:
             use_legacy_sql=use_legacy_sql,
             query_parameters=[
                 # fmt:off
-                ScalarQueryParameter("project", SqlParameterScalarTypes.STRING, project),
-                ScalarQueryParameter("value", SqlParameterScalarTypes.BOOL, value),
+                ScalarQueryParameter("name", SqlParameterScalarTypes.STRING, name),
+                ScalarQueryParameter("default_billable", SqlParameterScalarTypes.BOOL, default_billable),
                 # fmt:on
             ],
         )
 
+        target: str = cleandoc(
+            f"""
+            UPDATE
+              {self.projects_id}
+            SET
+              default_billable = @default_billable
+            WHERE
+              name = @name;
+            """
+        )
+
         return self._query(
-            target=f"CALL {self.dataset}.update_project_default_billable(@project, @value);",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -800,10 +1051,10 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def update_project_description(
+    def _update_project_description(
         self,
         name: str,
-        desc: str,
+        description: str,
         use_query_cache: bool = True,
         use_legacy_sql: bool | None = False,
         wait: bool | None = False,
@@ -816,12 +1067,25 @@ class CliQueryRoutines:
             use_legacy_sql=use_legacy_sql,
             query_parameters=[
                 ScalarQueryParameter("name", SqlParameterScalarTypes.STRING, name),
-                ScalarQueryParameter("desc", SqlParameterScalarTypes.STRING, desc),
+                ScalarQueryParameter(
+                    "description", SqlParameterScalarTypes.STRING, description
+                ),
             ],
         )
 
+        target: str = cleandoc(
+            f"""
+            UPDATE
+              {self.projects_id}
+            SET
+              description = @description
+            WHERE
+              name = @name;
+            """
+        )
+
         return self._query(
-            target=f"CALL {self.dataset}.update_project_description(@name, @desc);",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -829,7 +1093,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def update_project_name(
+    def _update_project_name(
         self,
         name: str,
         new_name: str,
@@ -851,8 +1115,19 @@ class CliQueryRoutines:
             # fmt: on
         )
 
+        target: str = cleandoc(
+            f"""
+            UPDATE
+              {self.projects_id}
+            SET
+              name = @new_name
+            WHERE
+              name = @name;
+            """
+        )
+
         return self._query(
-            target=f"CALL {self.dataset}.update_project_name(@name, @new_name);",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -860,7 +1135,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def update_time_entry_projects(
+    def _update_time_entry_projects(
         self,
         name: str,
         new_name: str,
@@ -882,8 +1157,19 @@ class CliQueryRoutines:
             # fmt: on
         )
 
+        target: str = cleandoc(
+            f"""
+            UPDATE
+              {self.timesheet_id}
+            SET
+              project = @new_name
+            WHERE
+              project = @name;
+            """
+        )
+
         return self._query(
-            target=f"CALL {self.dataset}.update_time_entry_projects(@name, @new_name);",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -891,7 +1177,7 @@ class CliQueryRoutines:
             status_renderable=status_renderable,
         )
 
-    def pause_time_entry(
+    def _pause_time_entry(
         self,
         id: str,
         timestamp_paused: "datetime",
@@ -913,8 +1199,22 @@ class CliQueryRoutines:
             # fmt: on
         )
 
+        target: str = cleandoc(
+            f"""
+            UPDATE
+              {self.timesheet_id}
+            SET
+              paused = TRUE,
+              active = FALSE,
+              timestamp_paused = TIMESTAMP_TRUNC(@timestamp_paused, SECOND),
+              paused_counter = IFNULL(paused_counter, 0) + 1
+            WHERE
+              id = @id;
+            """
+        )
+
         return self._query(
-            target=f"CALL {self.dataset}.pause_time_entry(@id, @timestamp_paused);",
+            target=target,
             job_config=job_config,
             wait=wait,
             render=render,
@@ -928,8 +1228,8 @@ class CliQueryRoutines:
         start_date: "date | None" = None,
         end_date: "date | None" = None,
         where: str | None = None,
-        match_project: str | None = None,
-        match_note: str | None = None,
+        match_project: t.Sequence[str] | None = None,
+        match_note: t.Sequence[str] | None = None,
         modifiers: str | None = None,
         regex_engine: t.Literal["ECMAScript", "re2"] | str | None = "ECMAScript",
         limit: int | None = None,
@@ -944,37 +1244,39 @@ class CliQueryRoutines:
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
             use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                # fmt: off
-                ScalarQueryParameter("date", SqlParameterScalarTypes.DATE, date),
-                ScalarQueryParameter("start_date", SqlParameterScalarTypes.DATE, start_date),
-                ScalarQueryParameter("end_date", SqlParameterScalarTypes.DATE, end_date),
-                ScalarQueryParameter("where", SqlParameterScalarTypes.STRING, where),
-                ScalarQueryParameter("match_project", SqlParameterScalarTypes.STRING, match_project),
-                ScalarQueryParameter("match_note", SqlParameterScalarTypes.STRING, match_note),
-                ScalarQueryParameter("modifiers", SqlParameterScalarTypes.STRING, modifiers),
-                ScalarQueryParameter("limit", SqlParameterScalarTypes.INT64, limit),
-                ScalarQueryParameter("offset", SqlParameterScalarTypes.INT64, offset),
-                # fmt: on
-            ],
         )
 
-        fmt_match_project = self._format_regular_expression(
-            field="project",
-            expression=match_project,
-            modifiers=modifiers,
-            regex_engine=regex_engine,
-            and_=True,
-        )
-        fmt_match_note = self._format_regular_expression(
-            field="note",
-            expression=match_note,
-            modifiers=modifiers,
-            regex_engine=regex_engine,
-            and_=True,
-        )
+        fmt_match_project: str = ""
+        if match_project:
+            project_expressions: list[str] = []
+            for pattern in match_project:
+                project_expressions.append(pattern)
 
-        target = cleandoc(
+            project_expression: str = "|".join(project_expressions)
+            fmt_match_project = self._format_regular_expression(
+                field="project",
+                expression=project_expression,
+                modifiers=modifiers,
+                regex_engine=regex_engine,
+                and_=True,
+            )
+
+        fmt_match_note: str = ""
+        if match_note:
+            note_expressions: list[str] = []
+            for pattern in match_note:
+                note_expressions.append(pattern)
+
+            note_expression: str = "|".join(note_expressions)
+            fmt_match_note = self._format_regular_expression(
+                field="note",
+                expression=note_expression,
+                modifiers=modifiers,
+                regex_engine=regex_engine,
+                and_=True,
+            )
+
+        target: str = cleandoc(
             f"""
         SELECT
           ROW_NUMBER() OVER(timer) AS `row`,
@@ -987,17 +1289,51 @@ class CliQueryRoutines:
           billable,
           active,
           paused,
-          ROUND(SAFE_CAST(IF(paused = TRUE, SAFE_DIVIDE(TIMESTAMP_DIFF({self.dataset}.current_timestamp(), timestamp_paused, SECOND), 3600), 0) + IFNULL(paused_hours, 0) AS NUMERIC), 4) AS paused_hours,
+          ROUND(
+            SAFE_CAST(
+              IF(paused = TRUE, SAFE_DIVIDE(TIMESTAMP_DIFF({self.dataset}.current_timestamp(), timestamp_paused, SECOND), 3600), 0)
+              AS NUMERIC
+            )
+            + IFNULL(paused_hours, 0), 4
+          ) AS paused_hours,
           CASE
-            WHEN paused THEN ROUND(SAFE_CAST(SAFE_DIVIDE(TIMESTAMP_DIFF(timestamp_paused, timestamp_start, SECOND), 3600) AS NUMERIC) - IFNULL(paused_hours, 0), 4)
-            WHEN active THEN ROUND(SAFE_CAST(SAFE_DIVIDE(TIMESTAMP_DIFF(IFNULL(timestamp_end, {self.dataset}.current_timestamp()), timestamp_start, SECOND), 3600) AS NUMERIC) - IFNULL(paused_hours, 0), 4)
+            WHEN paused THEN
+              ROUND(
+                SAFE_CAST(
+                  SAFE_DIVIDE(TIMESTAMP_DIFF(timestamp_paused, timestamp_start, SECOND), 3600)
+                  AS NUMERIC
+                )
+                - IFNULL(paused_hours, 0), 4
+              )
+            WHEN active THEN
+              ROUND(
+                SAFE_CAST(
+                  SAFE_DIVIDE(TIMESTAMP_DIFF(IFNULL(timestamp_end, {self.dataset}.current_timestamp()), timestamp_start, SECOND), 3600)
+                  AS NUMERIC
+                )
+                - IFNULL(paused_hours, 0), 4
+              )
             ELSE hours
           END AS hours,
           ROUND(
             SUM(
               CASE
-                WHEN paused THEN ROUND(SAFE_CAST(SAFE_DIVIDE(TIMESTAMP_DIFF(timestamp_paused, timestamp_start, SECOND), 3600) AS NUMERIC) - IFNULL(paused_hours, 0), 4)
-                WHEN active THEN ROUND(SAFE_CAST(SAFE_DIVIDE(TIMESTAMP_DIFF(IFNULL(timestamp_end, {self.dataset}.current_timestamp()), timestamp_start, SECOND), 3600) AS NUMERIC) - IFNULL(paused_hours, 0), 4)
+                WHEN paused THEN
+                  ROUND(
+                    SAFE_CAST(
+                      SAFE_DIVIDE(TIMESTAMP_DIFF(timestamp_paused, timestamp_start, SECOND), 3600)
+                      AS NUMERIC
+                    )
+                    - IFNULL(paused_hours, 0), 4
+                  )
+                WHEN active THEN
+                  ROUND(
+                    SAFE_CAST(
+                      SAFE_DIVIDE(TIMESTAMP_DIFF(IFNULL(timestamp_end, {self.dataset}.current_timestamp()), timestamp_start, SECOND), 3600)
+                      AS NUMERIC
+                    )
+                    - IFNULL(paused_hours, 0), 4
+                  )
                 ELSE hours
               END
             ) OVER(timer),
@@ -1056,10 +1392,11 @@ class CliQueryRoutines:
         start_date: "date | None" = None,
         end_date: "date | None" = None,
         where: str | None = None,
-        round_: bool | None = False,
+        round_: str | None = None,
+        show_null_values: bool = True,
         is_file: bool | None = False,
-        match_project: str | None = None,
-        match_note: str | None = None,
+        match_project: t.Sequence[str] | None = None,
+        match_note: t.Sequence[str] | None = None,
         modifiers: str | None = None,
         regex_engine: t.Literal["ECMAScript", "re2"] | str | None = "ECMAScript",
         use_query_cache: bool = True,
@@ -1072,41 +1409,57 @@ class CliQueryRoutines:
         job_config = QueryJobConfig(
             use_query_cache=use_query_cache,
             use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                # fmt: off
-                ScalarQueryParameter("start_date", SqlParameterScalarTypes.DATE, start_date),
-                ScalarQueryParameter("end_date", SqlParameterScalarTypes.DATE, end_date),
-                ScalarQueryParameter("where", SqlParameterScalarTypes.STRING, where),
-                ScalarQueryParameter("match_project", SqlParameterScalarTypes.STRING, match_project),
-                ScalarQueryParameter("match_note", SqlParameterScalarTypes.STRING, match_note),
-                ScalarQueryParameter("modifiers", SqlParameterScalarTypes.STRING, modifiers),
-                ScalarQueryParameter("round_", SqlParameterScalarTypes.BOOL, round_),
-                ScalarQueryParameter("is_file", SqlParameterScalarTypes.BOOL, is_file),
-                # fmt: on
-            ],
         )
 
-        fmt_match_project = self._format_regular_expression(
-            field="project",
-            expression=match_project,
-            modifiers=modifiers,
-            regex_engine=regex_engine,
-            and_=True,
-        )
-        fmt_match_note = self._format_regular_expression(
-            field="note",
-            expression=match_note,
-            modifiers=modifiers,
-            regex_engine=regex_engine,
-            and_=True,
-        )
+        fmt_match_project: str = ""
+        if match_project:
+            project_expressions: list[str] = []
+            for pattern in match_project:
+                project_expressions.append(pattern)
 
-        target = cleandoc(
+            project_expression: str = "|".join(project_expressions)
+            fmt_match_project = self._format_regular_expression(
+                field="project",
+                expression=project_expression,
+                modifiers=modifiers,
+                regex_engine=regex_engine,
+                and_=True,
+            )
+
+        fmt_match_note: str = ""
+        if match_note:
+            note_expressions: list[str] = []
+            for pattern in match_note:
+                note_expressions.append(pattern)
+
+            note_expression: str = "|".join(note_expressions)
+            fmt_match_note = self._format_regular_expression(
+                field="note",
+                expression=note_expression,
+                modifiers=modifiers,
+                regex_engine=regex_engine,
+                and_=True,
+            )
+
+        round_factor: int | None = None
+        match round_:
+            case ".05":
+                round_factor = 5
+            case ".1":
+                round_factor = 10
+            case ".25":
+                round_factor = 25
+            case ".5":
+                round_factor = 50
+            case "1":
+                round_factor = 100
+
+        target: str = cleandoc(
             f"""
         SELECT DISTINCT
-          ROUND(SUM(hours) OVER(), 4) AS total_summary,
-          ROUND(SUM(hours) OVER(PARTITION BY project), 4) AS total_project,
-          ROUND(SUM(hours) OVER(PARTITION BY date), 4) AS total_day,
+          ROUND(SUM(hours) OVER(ORDER BY date, project, billable), 4) AS total_summary,
+          ROUND(SUM(hours) OVER(PARTITION BY project ORDER BY date, project, billable), 4) AS total_project,
+          ROUND(SUM(hours) OVER(PARTITION BY date ORDER BY date, project, billable), 4) AS total_day,
           date,
           project,
           billable,
@@ -1121,11 +1474,7 @@ class CliQueryRoutines:
               note,
               CASE %s /* round */
                 WHEN TRUE THEN
-                  IF(
-                    {self.dataset}.rounding_step(SUM(hours) - FLOOR(SUM(hours))) = 1,
-                    ROUND(SUM(hours)),
-                    FLOOR(SUM(hours)) + {self.dataset}.rounding_step(SUM(hours) - FLOOR(SUM(hours)))
-                  )
+                  ROUND(SUM(hours) / %s, 2) * %s
                 ELSE
                   SUM(hours)
               END AS hours,
@@ -1144,11 +1493,9 @@ class CliQueryRoutines:
               date,
               billable,
               note
-            HAVING
-              hours != 0
+            %s
           )
-        QUALIFY
-          total_day != 0
+        %s
         ORDER BY
           date,
           project
@@ -1156,11 +1503,13 @@ class CliQueryRoutines:
             % (
                 # fmt: off
                 ", " if is_file else "\\n",
-                round_ or False,
+                truth(round_), round_factor or 1, round_factor or 1,
                 f"AND date BETWEEN \"{start_date}\" AND \"{end_date}\"" if start_date and end_date else "",
                 fmt_match_project,
                 fmt_match_note,
                 f"AND {where}" if where else "",
+                'HAVING hours != 0' if show_null_values else "",
+                'QUALIFY total_day != 0' if show_null_values else "",
                 # fmt: on
             )
         )
@@ -1232,7 +1581,6 @@ class CliQueryRoutines:
     def _all_routines_ids(self) -> list[str]:
         functions = [
             "current_datetime",
-            "rounding_step",
             "current_timestamp",
             "js_regex_contains",
         ]
@@ -1257,8 +1605,7 @@ class CliQueryRoutines:
             ns = time() - query_job.started.timestamp()
 
         w, d = str(round(ns, 4)).split(".")
-        elapsed = f"{w}.{'0' * (4 - len(d)) + d}"
-        return f"{elapsed}"
+        return f"{w}.{'0' * (4 - len(d)) + d}"
 
     def _update_elapsed_time(
         self,
@@ -1312,17 +1659,6 @@ class CliQueryRoutines:
             )
 
     def _query_job_url(self, query_job: "QueryJob") -> str:
-        if LIGHTLIKE_CLI_DEV_GCP_PROJECT := getenv("LIGHTLIKE_CLI_DEV_GCP_PROJECT"):
-            from uuid import uuid4
-
-            return "{base_url}project={project_id}&j=bq:{region}:{job_id}&{end_point}".format(
-                base_url="https://console.cloud.google.com/bigquery?",
-                project_id=LIGHTLIKE_CLI_DEV_GCP_PROJECT,
-                region=query_job.location,
-                job_id=uuid4(),
-                end_point="page=queryresults",
-            )
-
         return (
             "{base_url}project={project_id}&j=bq:{region}:{job_id}&{end_point}".format(
                 base_url="https://console.cloud.google.com/bigquery?",

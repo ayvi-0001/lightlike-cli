@@ -1,8 +1,12 @@
+import os
 import typing as t
+from contextlib import suppress
 from dataclasses import dataclass
+from functools import partial
 
 import click
 import pytz
+import rtoml
 from more_itertools import nth, one
 from rich import print as rprint
 from rich.console import Console
@@ -14,10 +18,11 @@ from lightlike.app.cache import TimeEntryAppData
 from lightlike.app.config import AppConfig
 from lightlike.app.core import AliasedGroup, FormattedCommand
 from lightlike.cmd import _pass
+from lightlike.cmd.app.commands import _start_command
 from lightlike.internal import markup, utils
 from lightlike.internal.enums import CredentialsSource
 
-__all__: t.Sequence[str] = ("open_", "show", "set_")
+__all__: t.Sequence[str] = ("edit", "list_", "open_", "set_")
 
 
 P = t.ParamSpec("P")
@@ -25,44 +30,12 @@ P = t.ParamSpec("P")
 
 @click.command(
     cls=FormattedCommand,
-    name="open",
-    short_help="Open config using the default text editor.",
-    syntax=Syntax(
-        code="$ app config open",
-        lexer="fishshell",
-        dedent=True,
-        line_numbers=True,
-        background_color="#131310",
-    ),
-)
-@_pass.console
-def open_(console: Console) -> None:
-    """Open the config file located in the users home directory using the default text editor."""
-    path = __config__.resolve()
-    uri = path.as_uri()
-    editor = AppConfig().get("settings", "editor", default=None)
-
-    if editor:
-        click.edit(
-            editor=editor, filename=f"{path}", extension=".toml", require_save=False
-        )
-        console.print("$", editor, markup.link(uri, uri))
-    else:
-        click.launch(f"{path}")
-        console.print("$ start", markup.link(uri, uri))
-
-
-@click.command(
-    cls=FormattedCommand,
-    name="show",
-    short_help="Show config values.",
+    name="edit",
+    short_help="Edit config using the default text editor.",
     syntax=Syntax(
         code="""\
-        $ app config show
-        $ a c s
-    
-        $ app config show --json
-        $ a c s -j\
+        $ app config edit
+        $ a c e\
         """,
         lexer="fishshell",
         dedent=True,
@@ -71,16 +44,111 @@ def open_(console: Console) -> None:
     ),
 )
 @_pass.console
-def show(console: Console) -> None:
-    """Show config file in terminal."""
-    console.print(
-        Syntax(
-            __config__.read_text(),
+def edit(console: Console) -> None:
+    """Edit the config file located in the users home directory using the default text editor."""
+    path: str = f"{__config__.resolve().as_posix()}"
+    default_editor = os.environ.get("EDITOR")
+    editor: str | None = (
+        AppConfig().get("settings", "editor", default=default_editor) or None
+    )
+
+    if editor:
+        click.edit(editor=editor, filename=path, extension=".toml", require_save=False)
+        console.print("$", editor, markup.link(path, path))
+    else:
+        click.launch(path)
+        console.print(markup.dimmed("EDITOR not set"))
+        console.print(f"$ {_start_command(path)}")
+
+
+@click.command(
+    cls=FormattedCommand,
+    name="list",
+    short_help="Show current config values.",
+    syntax=Syntax(
+        code="""\
+        $ app config list
+        $ a c l
+    
+        $ app config list --json
+        $ a c l -j\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
+)
+@click.argument(
+    "keys",
+    type=click.STRING,
+    required=False,
+    default=None,
+    callback=None,
+    nargs=-1,
+    metavar=None,
+    expose_value=True,
+    is_eager=False,
+    shell_complete=None,
+)
+@click.option(
+    "-j",
+    "--json",
+    "json_",
+    show_default=True,
+    is_flag=True,
+    flag_value=True,
+    multiple=False,
+    type=click.BOOL,
+    help=None,
+    required=False,
+    hidden=True,
+    default=None,
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
+@_pass.console
+def list_(console: Console, keys: t.Sequence[str], json_: bool) -> None:
+    """Show current config file in terminal."""
+    if keys:
+        content = AppConfig().get(*keys)
+    else:
+        content = AppConfig().config
+
+    if json_:
+        console.print_json(data=content, default=str, indent=4)
+    else:
+        syntax: Syntax = Syntax(
+            rtoml.dumps(content),
             lexer="toml",
             line_numbers=True,
             background_color="#131310",
         )
-    )
+        console.print(syntax)
+
+
+@click.command(
+    cls=FormattedCommand,
+    name="open",
+    short_help="Open location of config file.",
+    syntax=Syntax(
+        code="""\
+        $ app config open
+        $ a c o\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
+)
+@_pass.console
+def open_(console: Console) -> None:
+    """Open location of config file."""
+    path: str = f"{__config__.resolve()}"
+    click.launch(path, locate=True)
+    console.print(f"$ {_start_command(path, locate=True)}")
 
 
 @click.group(
@@ -150,7 +218,7 @@ def create_settings_fn(
         context_settings=cmd.context_settings,
         syntax=cmd.syntax,
     )
-    @utils._handle_keyboard_interrupt(
+    @utils.handle_keyboard_interrupt(
         callback=lambda: rprint(markup.dimmed(f"Did not update {cmd.name}.")),
     )
     @_pass.console
@@ -188,7 +256,7 @@ def create_settings_fn(
 
 
 note_history = SettingsCommand(
-    name="note_history",
+    name="note-history",
     argument=click.argument("days", type=click.INT),
     help="""
     Days to store note history.
@@ -211,7 +279,7 @@ note_history = SettingsCommand(
 
 
 quiet_start = SettingsCommand(
-    name="quiet_start",
+    name="quiet-start",
     argument=value_arg,
     short_help="Hide logs when starting REPL.",
     config_keys=["settings"],
@@ -234,17 +302,19 @@ system_command_shell = SettingsCommand(
     unix: ["sh", "-c"] / ["bash", "-c"]
     windows: ["cmd", "/C"]
 
+    if setting was set to ["bash", "-c"] and the command is `ls`,
+    then it will be executed as
+    $ bash -c "ls"
+
     When setting value, enclose list in single quotes, and use double quotes for string values.
     """,
     syntax=Syntax(
         code="""\
-        # if setting was set to ["bash", "-c"]
-        # and the command is `ls`
-        # then it will be executed as
-        $ bash -c "ls"
-
-        # example setting config key
-        $ app config set general shell '["bash", "-c"]'\
+        # example setting config key.
+        $ app config set general shell '["bash", "-c"]'
+        
+        # login to shell and read rc file.
+        $ app config set general shell '["bash", "--rcfile", "~/.bashrc", "-il", "-c"]'\
         """,
         lexer="fishshell",
         dedent=True,
@@ -300,7 +370,7 @@ timezone = SettingsCommand(
 
 
 week_start = SettingsCommand(
-    name="week_start",
+    name="week-start",
     argument=click.argument(
         "dayofweek",
         type=click.Choice(["Sunday", "Monday"]),
@@ -308,7 +378,7 @@ week_start = SettingsCommand(
     ),
     short_help="Update week start for option --current-week / -cw.",
     syntax=Syntax(
-        code="$ app config set week_start Sunday",
+        code="$ app config set week-start Sunday",
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
@@ -319,7 +389,7 @@ week_start = SettingsCommand(
 
 
 timer_add_min = SettingsCommand(
-    name="timer_add_min",
+    name="timer-add-min",
     argument=click.argument("minutes", type=click.INT),
     short_help="Default minutes for cmd timer:add.",
     config_keys=["settings"],
@@ -333,8 +403,8 @@ editor = SettingsCommand(
     short_help=f"Default text editor. Current: {AppConfig().get('settings', 'editor', default='not-set')}",
     syntax=Syntax(
         code="""\
-        $ app config set general editor code
-    
+        $ app config set general editor code # vscode
+        $ app config set general editor hx # helix
         $ app config set general editor vim\
         """,
         lexer="fishshell",
@@ -363,12 +433,12 @@ for cmd in t.cast(
 
 
 mouse_support = SettingsCommand(
-    name="mouse_support",
+    name="mouse-support",
     argument=value_arg,
     help="Controls mouse support in bq:query.",
     short_help="Control mouse support in cmd bq:query",
     syntax=Syntax(
-        code="$ app config set query mouse_support true",
+        code="$ app config set query mouse-support true",
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
@@ -379,12 +449,12 @@ mouse_support = SettingsCommand(
 
 
 save_txt = SettingsCommand(
-    name="save_txt",
+    name="save-txt",
     argument=value_arg,
     help="Queries using bq:query will save the rendered result to a [code].txt[/code] file in the app directory.",
     short_help="Queries using bq:query save the rendered table to a .txt in appdir.",
     syntax=Syntax(
-        code="$ app config set query save_txt true",
+        code="$ app config set query save-txt true",
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
@@ -395,7 +465,7 @@ save_txt = SettingsCommand(
 
 
 save_query_info = SettingsCommand(
-    name="save_query_info",
+    name="save-query-info",
     argument=value_arg,
     help="""
     Include query info when saving to file.
@@ -413,7 +483,7 @@ save_query_info = SettingsCommand(
     """,
     short_help="Include query info when saving to file.",
     syntax=Syntax(
-        code="$ app config set query save_query_info true",
+        code="$ app config set query save-query-info true",
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
@@ -424,12 +494,12 @@ save_query_info = SettingsCommand(
 
 
 save_svg = SettingsCommand(
-    name="save_svg",
+    name="save-svg",
     argument=value_arg,
     help="Queries using bq:query will save the rendered result to an [code].svg[/code] file in the app directory.",
     short_help="Queries using bq:query save the rendered table to an svg in appdir.",
     syntax=Syntax(
-        code="$ app config set query save_svg true",
+        code="$ app config set query save-svg true",
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
@@ -440,16 +510,16 @@ save_svg = SettingsCommand(
 
 
 hide_table_render = SettingsCommand(
-    name="hide_table_render",
+    name="hide-table-render",
     argument=value_arg,
     help="""
-    If save_text or save_svg is enabled, enable/disable table render in console.
+    If save_text or save-svg is enabled, enable/disable table render in console.
 
-    If save_text or save_svg is disabled, this option does not have any affect.
+    If save_text or save-svg is disabled, this option does not have any affect.
     """,
-    short_help="If save_text | save_svg, enable/disable table render in console.",
+    short_help="If save_text | save-svg, enable/disable table render in console.",
     syntax=Syntax(
-        code="$ app config set query hide_table_render true",
+        code="$ app config set query hide-table-render true",
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
@@ -465,13 +535,13 @@ for cmd in [mouse_support, save_txt, save_query_info, save_svg, hide_table_rende
 
 
 if (
-    AppConfig().get("client", "credentials_source")
+    AppConfig().get("client", "credentials-source")
     == CredentialsSource.from_service_account_key
 ):
 
     @update_general_settings.command(
         cls=FormattedCommand,
-        name="stay_logged_in",
+        name="stay-logged-in",
         no_args_is_help=True,
         help="""
         Save login password.
@@ -481,55 +551,60 @@ if (
         """,
         short_help="Save login password.",
         syntax=Syntax(
-            code="$ app config set general stay_logged_in true",
+            code="$ app config set general stay-logged-in true",
             lexer="fishshell",
             dedent=True,
             line_numbers=True,
             background_color="#131310",
         ),
     )
-    @utils._handle_keyboard_interrupt(
+    @utils.handle_keyboard_interrupt(
         callback=lambda: rprint(markup.dimmed("Did not change settings.")),
     )
     @value_arg
     def stay_logged_in(value: bool) -> None:
-        from lightlike.app.auth import AuthPromptSession
-        from lightlike.client import service_account_key_flow
+        from lightlike.client import AuthPromptSession
+        from lightlike.client._credentials import service_account_key_flow
 
         if value is True:
-            stay_logged_in = AppConfig().get("user", "stay_logged_in")
+            stay_logged_in = AppConfig().stay_logged_in
 
             if not stay_logged_in:
                 rprint("Enter current password.")
-                current = AuthPromptSession().prompt_password()
-                encrypted_key, salt = service_account_key_flow()
+                input_password = AuthPromptSession().prompt_password()
+                encrypted_key, salt = service_account_key_flow(AppConfig())
 
-                try:
-                    AuthPromptSession().authenticate(
+                with suppress(UnboundLocalError):
+                    AuthPromptSession().decrypt_key(
                         salt=salt,
                         encrypted_key=encrypted_key,
-                        password=current,
+                        saved_password=AppConfig().saved_password,
+                        stay_logged_in=AppConfig().stay_logged_in,
+                        input_password=input_password,
                         retry=False,
+                        saved_credentials_failed=partial(
+                            AppConfig()._update_user_credentials,
+                            password="null",
+                            stay_logged_in=False,
+                        ),
                     )
                     AppConfig()._update_user_credentials(
-                        password=current, stay_logged_in=value
+                        password=input_password, stay_logged_in=value
                     )
-                    rprint("Set", markup.scope_key("stay_logged_in"), "to", value)
-                except UnboundLocalError:
-                    ...
+                    rprint("Set", markup.scope_key("stay-logged-in"), "to", value)
 
             else:
                 rprint(
-                    markup.dimmed(f"`stay_logged_in` is already set to `{value}`,"),
+                    markup.dimmed(f"`stay-logged-in` is already set to `{value}`,"),
                     markup.dimmed("nothing happened."),
                 )
 
         elif value is False:
-            if not AppConfig().get("user", "stay_logged_in"):
+            if not AppConfig().stay_logged_in:
                 rprint(markup.dimmed("Setting is already off."))
 
             else:
                 AppConfig()._update_user_credentials(
                     password="null", stay_logged_in=False
                 )
-                rprint("Set", markup.scope_key("stay_logged_in"), "to", False)
+                rprint("Set", markup.scope_key("stay-logged-in"), "to", False)

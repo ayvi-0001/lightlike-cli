@@ -8,7 +8,6 @@ from pathlib import Path
 import click
 from more_itertools import one
 from prompt_toolkit.patch_stdout import patch_stdout
-from pytz import timezone
 from rich import get_console
 from rich.text import Text
 
@@ -65,8 +64,7 @@ def datetime_parsed(
         return None
 
     if value:
-        tzinfo = timezone(AppConfig().get("settings", "timezone"))
-        return parse_date(date=value, tzinfo=tzinfo)
+        return parse_date(date=value, tzinfo=AppConfig().tzinfo)
 
     return None
 
@@ -148,9 +146,9 @@ def summary_path(ctx: click.Context, param: click.Parameter, value: str) -> Path
             ):
                 return path.with_suffix(suffix)
             else:
-                raise click.exceptions.Exit
+                raise click.exceptions.Exit()
         except (KeyboardInterrupt, EOFError):
-            raise click.exceptions.Exit
+            raise click.exceptions.Exit()
     else:
         if not path.suffix:
             return path.with_suffix(suffix)

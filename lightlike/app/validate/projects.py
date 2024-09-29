@@ -18,6 +18,9 @@ __all__: Sequence[str] = (
 )
 
 
+DEFAULT_PROJECT: str = "no-project"
+
+
 class ExistingProject(Validator):
     def validate(self, document: "Document") -> None:
         if not document.text:
@@ -25,7 +28,7 @@ class ExistingProject(Validator):
                 cursor_position=0,
                 message="Input cannot be none.",
             )
-        elif not re.match(r"^[a-zA-Z0-9-\_]+$", document.text):
+        elif not re.match(r"^[a-zA-Z0-9-\_\.]{3,30}$", document.text):
             raise ValidationError(
                 cursor_position=0,
                 message="Invalid project name.",
@@ -60,14 +63,14 @@ class NewProject(Validator):
         elif len(document.text) < 3:
             raise ValidationError(
                 cursor_position=0,
-                message="Too short.",
+                message="Name too short.",
             )
-        elif len(document.text) > 20:
+        elif len(document.text) > 25:
             raise ValidationError(
                 cursor_position=0,
-                message="Too long.",
+                message="Name too long.",
             )
-        elif not re.match(r"^[a-zA-Z0-9-\_]{3,20}$", document.text):
+        elif not re.match(r"^[a-zA-Z0-9-\_\.]{3,30}$", document.text):
             raise ValidationError(
                 cursor_position=0,
                 message="Invalid characters.",
@@ -84,22 +87,22 @@ class NewProject(Validator):
             )
 
 
-def active_project(ctx: click.Context, param: click.Parameter, value: str) -> str:
-    if ctx.parent:
+def active_project(
+    ctx: click.Context, param: click.Parameter, value: str
+) -> str | None:
+    if ctx.info_name and ctx.parent and ctx.parent.info_name:
+        group: str = ctx.parent.info_name
+        cmd: str = ctx.info_name
         if (
-            ctx.parent.info_name == "project"
-            and ctx.info_name in ("update", "delete", "archive", "unarchive")
-            and value == "no-project"
+            group == "project"
+            and cmd in ("update", "delete", "archive", "unarchive")
+            and value == DEFAULT_PROJECT
         ):
             raise click.BadArgumentUsage(
                 message="Cannot alter the default project.",
                 ctx=ctx,
             )
-        elif (
-            ctx.parent.info_name == "timer"
-            and ctx.info_name == "edit"
-            and value is None
-        ):
+        elif group == "timer" and cmd == "edit" and not value:
             return None
     if value in projects.Archived().names:
         raise click.BadArgumentUsage(
@@ -107,10 +110,13 @@ def active_project(ctx: click.Context, param: click.Parameter, value: str) -> st
             "Unarchive before searching for this project.",
             ctx=ctx,
         )
-    if value in projects.Active().names or value == "no-project":
+    if value in projects.Active().names or value == DEFAULT_PROJECT:
         return value
 
-    raise click.BadArgumentUsage(message="Project does not exist.", ctx=ctx)
+    raise click.BadArgumentUsage(
+        message="Project does not exist.",
+        ctx=ctx,
+    )
 
 
 def active_project_list(
@@ -120,7 +126,7 @@ def active_project_list(
         if (
             ctx.parent.info_name == "project"
             and ctx.info_name in ("update", "delete")
-            and "no-project" in value
+            and DEFAULT_PROJECT in value
         ):
             raise click.BadArgumentUsage(
                 message="Cannot delete/update default project.",
@@ -155,14 +161,17 @@ def new_project(ctx: click.Context, param: click.Parameter, value: str) -> str:
 
 
 def archived_project(ctx: click.Context, param: click.Parameter, value: str) -> str:
-    if value == "no-project":
+    if value == DEFAULT_PROJECT:
         raise click.BadArgumentUsage(
             message="Cannot alter the default project.", ctx=ctx
         )
     elif ctx.parent and value in projects.Archived().names:
         return value
     else:
-        raise click.BadArgumentUsage(message="Project does not exist.", ctx=ctx)
+        raise click.BadArgumentUsage(
+            message="Project does not exist.",
+            ctx=ctx,
+        )
 
 
 def archived_project_list(

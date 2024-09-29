@@ -4,6 +4,8 @@ import click
 
 from lightlike.app.core import LazyAliasedGroup
 
+__all__: t.Sequence[str] = ("bq",)
+
 
 @click.group(
     name="bq",
@@ -21,6 +23,3 @@ from lightlike.app.core import LazyAliasedGroup
 @click.option("-d", "--debug", is_flag=True, hidden=True)
 def bq(debug: bool) -> None:
     """Command group for handling BigQuery Client configuration."""
-
-
-__all__: t.Sequence[str] = ("bq",)

@@ -1,6 +1,5 @@
 import importlib
 import typing as t
-import warnings
 from pathlib import Path
 from types import ModuleType
 
@@ -26,10 +25,8 @@ def create_or_replace_default_jobs(
 
     if path_to_jobs and keys:
         if path_to_jobs.exists():
-            _job_config = utils.reduce_keys(
-                *keys or [], sequence=rtoml.load(path_to_jobs)
-            )
-            job_config = _job_config
+            jobs_toml = rtoml.load(path_to_jobs)
+            job_config = utils.reduce_keys(*keys or [], sequence=jobs_toml)
     elif jobs:
         job_config = jobs
 
@@ -43,10 +40,9 @@ def create_or_replace_default_jobs(
                 mod, job_object_name
             )
 
-            with warnings.catch_warnings(action="ignore"):
-                scheduler.add_job(**job_kwargs())
+            scheduler.add_job(**job_kwargs())
 
         except Exception as error:
-            appdir._log().error(
+            appdir.log().error(
                 f"Failed to load default job: {job_object_name}: {error}"
             )

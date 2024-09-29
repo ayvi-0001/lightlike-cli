@@ -6,7 +6,7 @@ from prompt_toolkit.auto_suggest import AutoSuggest, Suggestion
 from prompt_toolkit.eventloop.utils import run_in_executor_with_context
 from prompt_toolkit.history import History
 
-from lightlike.internal.utils import _match_str
+from lightlike.internal.utils import match_str
 
 if t.TYPE_CHECKING:
     from prompt_toolkit.buffer import Buffer
@@ -45,7 +45,7 @@ class ListAutoSuggest(AutoSuggest):
 
         for string in reversed(list(self.history.get_strings())):
             for line in reversed(string.splitlines()):
-                if _match_str(text, line, method="startswith"):
+                if match_str(text, line, method="startswith"):
                     return Suggestion(line[len(text) :])
 
         return None

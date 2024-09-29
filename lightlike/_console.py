@@ -13,7 +13,7 @@ from rich.theme import Theme
 
 from lightlike import _fasteners
 from lightlike.__about__ import __appdir__, __config__
-from lightlike.internal import appdir, constant, enums
+from lightlike.internal import appdir, constant
 
 __all__: t.Sequence[str] = (
     "QUIET_START",
@@ -21,9 +21,6 @@ __all__: t.Sequence[str] = (
     "Highlighter",
     "if_not_quiet_start",
     "reconfigure",
-    "ACTIVE_COMPLETERS",
-    "global_completers",
-    "reconfigure_completer",
 )
 
 
@@ -31,12 +28,11 @@ QUIET_START: bool = False
 
 
 @_fasteners.interprocess_locked(__appdir__ / "config.lock")
-def _set_quiet_start(config: Path) -> None:
+def _set_quiet_start(config_path: Path) -> None:
     try:
-        if config.exists():
-            quiet_start: bool = t.cast(
-                bool, rtoml.load(config)["settings"].get("quiet_start")
-            )
+        if config_path.exists():
+            config = rtoml.load(config_path)
+            quiet_start: bool = t.cast(bool, config["settings"].get("quiet-start"))
 
             global QUIET_START
             if len(sys.argv) > 1:
@@ -44,7 +40,7 @@ def _set_quiet_start(config: Path) -> None:
             elif quiet_start is not None:
                 QUIET_START = bool(quiet_start)
     except Exception as error:
-        appdir._log().error(f"Failed to configure quiet start: {error}")
+        appdir.log().error(f"Failed to configure quiet start: {error}")
 
 
 _set_quiet_start(__config__)
@@ -63,30 +59,30 @@ class ConsoleConfig:
         self.theme = Theme(**self.config["theme"])
 
 
-CONSOLE_CONFIG = ConsoleConfig(rtoml.loads(constant.CONSOLE))
+CONSOLE_CONFIG = ConsoleConfig(rtoml.load(constant.CONSOLE))
 
 GROUP_COMMANDS = r"(?P<command>((%s)))" % "|".join(
     [
-        "timer:update",
-        "timer:switch",
-        "timer:stop",
-        "timer:show",
-        "timer:run",
-        "timer:resume",
-        "timer:pause",
-        "timer:notes:update",
-        "timer:list",
-        "timer:get",
-        "timer:edit",
-        "timer:delete",
         "timer:add",
-        "summary:table",
-        "summary:json",
-        "summary:csv",
+        "timer:delete",
+        "timer:edit",
+        "timer:get",
+        "timer:list",
+        "timer:notes:update",
+        "timer:pause",
+        "timer:resume",
+        "timer:run",
+        "timer:show",
+        "timer:stop",
+        "timer:summary:csv",
+        "timer:summary:json",
+        "timer:summary:table",
+        "timer:switch",
+        "timer:update",
         "project:unarchive",
         "project:set:name",
         "project:set:description",
-        "project:set:default_billable",
+        "project:set:default-billable",
         "project:set",
         "project:list",
         "project:delete",
@@ -102,29 +98,29 @@ GROUP_COMMANDS = r"(?P<command>((%s)))" % "|".join(
         "bq:query",
         "bq:projects",
         "bq:init",
-        "app:test:date-parse",
-        "app:test:date-diff",
-        "app:test",
+        "app:parse-date",
+        "app:date-diff",
         "app:sync",
         "app:run-bq",
         "app:dir",
-        "app:config:show",
-        "app:config:set:query:save_txt",
-        "app:config:set:query:save_svg",
-        "app:config:set:query:save_query_info",
-        "app:config:set:query:mouse_support",
-        "app:config:set:query:hide_table_render",
-        "app:config:set:general:week_start",
-        "app:config:set:general:timezone",
-        "app:config:set:general:timer_add_min",
-        "app:config:set:general:stay_logged_in",
-        "app:config:set:general:quiet_start",
-        "app:config:set:general:note_history",
+        "app:config:edit",
+        "app:config:list",
         "app:config:set:general:editor",
-        "app:config:set:query",
+        "app:config:set:general:note-history",
+        "app:config:set:general:quiet-start",
+        "app:config:set:general:shell",
+        "app:config:set:general:stay-logged-in",
+        "app:config:set:general:timer-add-min",
+        "app:config:set:general:timezone",
+        "app:config:set:general:week-start",
         "app:config:set:general",
+        "app:config:set:query:hide-table-render",
+        "app:config:set:query:mouse-support",
+        "app:config:set:query:save-query-info",
+        "app:config:set:query:save-svg",
+        "app:config:set:query:save-txt",
+        "app:config:set:query",
         "app:config:set",
-        "app:config:open",
         "app:config",
     ]
 )
@@ -172,33 +168,3 @@ def reconfigure(**kwargs: t.Any) -> None:
 
     spinner = "simpleDotsScrolling"
     setattr(get_console(), "status", partial(get_console().status, spinner=spinner))
-
-
-ACTIVE_COMPLETERS: list[int] = []
-
-
-def global_completers() -> list[int]:
-    global ACTIVE_COMPLETERS
-    if not ACTIVE_COMPLETERS:
-        ACTIVE_COMPLETERS = [enums.ActiveCompleter.CMD]
-
-    return ACTIVE_COMPLETERS
-
-
-def reconfigure_completer(
-    completer: t.Literal[
-        enums.ActiveCompleter.CMD,
-        enums.ActiveCompleter.HISTORY,
-        enums.ActiveCompleter.PATH,
-    ]
-) -> None:
-    NEW_COMPLETER = completer
-    global ACTIVE_COMPLETERS
-    active_completers = global_completers()
-
-    if NEW_COMPLETER not in active_completers:
-        active_completers.append(NEW_COMPLETER)
-    else:
-        active_completers.pop(active_completers.index(NEW_COMPLETER))
-
-    ACTIVE_COMPLETERS = active_completers

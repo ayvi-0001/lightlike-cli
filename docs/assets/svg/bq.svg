@@ -21,14 +21,11 @@
     .lightlike-cli-20381908-matrix {
         font-family: Fira Code, monospace;
         font-size: 20px;
-        line-height: 24.4px;
-        font-variant-east-asian: full-width;
     }
 
     .lightlike-cli-20381908-title {
         font-size: 18px;
         font-weight: bold;
-        font-family: arial;
     }
 
     .lightlike-cli-20381908-r1 { fill: #c5c8c6 }
@@ -97,10 +94,10 @@
 </text><text class="lightlike-cli-20381908-r1" x="1464" y="68.8" textLength="12.2" clip-path="url(#lightlike-cli-20381908-line-2)">
 </text><text class="lightlike-cli-20381908-r3" x="0" y="93.2" textLength="695.4" clip-path="url(#lightlike-cli-20381908-line-3)">Command&#160;group&#160;for&#160;handling&#160;BigQuery&#160;Client&#160;configuration.</text><text class="lightlike-cli-20381908-r1" x="1464" y="93.2" textLength="12.2" clip-path="url(#lightlike-cli-20381908-line-3)">
 </text><text class="lightlike-cli-20381908-r1" x="1464" y="117.6" textLength="12.2" clip-path="url(#lightlike-cli-20381908-line-4)">
-</text><text class="lightlike-cli-20381908-r6" x="0" y="142" textLength="85.4" clip-path="url(#lightlike-cli-20381908-line-5)">Options</text><text class="lightlike-cli-20381908-r1" x="1464" y="142" textLength="12.2" clip-path="url(#lightlike-cli-20381908-line-5)">
+</text><text class="lightlike-cli-20381908-r6" x="0" y="142" textLength="97.6" clip-path="url(#lightlike-cli-20381908-line-5)">Options:</text><text class="lightlike-cli-20381908-r1" x="1464" y="142" textLength="12.2" clip-path="url(#lightlike-cli-20381908-line-5)">
 </text><text class="lightlike-cli-20381908-r5" x="36.6" y="166.4" textLength="73.2" clip-path="url(#lightlike-cli-20381908-line-6)">--help</text><text class="lightlike-cli-20381908-r7" x="134.2" y="166.4" textLength="24.4" clip-path="url(#lightlike-cli-20381908-line-6)">-h</text><text class="lightlike-cli-20381908-r8" x="183" y="166.4" textLength="48.8" clip-path="url(#lightlike-cli-20381908-line-6)">FLAG</text><text class="lightlike-cli-20381908-r3" x="256.2" y="166.4" textLength="329.4" clip-path="url(#lightlike-cli-20381908-line-6)">Show&#160;this&#160;message&#160;and&#160;exit.</text><text class="lightlike-cli-20381908-r1" x="1464" y="166.4" textLength="12.2" clip-path="url(#lightlike-cli-20381908-line-6)">
 </text><text class="lightlike-cli-20381908-r1" x="1464" y="190.8" textLength="12.2" clip-path="url(#lightlike-cli-20381908-line-7)">
-</text><text class="lightlike-cli-20381908-r6" x="0" y="215.2" textLength="97.6" clip-path="url(#lightlike-cli-20381908-line-8)">Commands</text><text class="lightlike-cli-20381908-r1" x="1464" y="215.2" textLength="12.2" clip-path="url(#lightlike-cli-20381908-line-8)">
+</text><text class="lightlike-cli-20381908-r6" x="0" y="215.2" textLength="109.8" clip-path="url(#lightlike-cli-20381908-line-8)">Commands:</text><text class="lightlike-cli-20381908-r1" x="1464" y="215.2" textLength="12.2" clip-path="url(#lightlike-cli-20381908-line-8)">
 </text><text class="lightlike-cli-20381908-r9" x="36.6" y="239.6" textLength="97.6" clip-path="url(#lightlike-cli-20381908-line-9)">init&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-20381908-r3" x="268.4" y="239.6" textLength="536.8" clip-path="url(#lightlike-cli-20381908-line-9)">Change&#160;active&#160;project&#160;or&#160;credentials&#160;source.</text><text class="lightlike-cli-20381908-r1" x="1464" y="239.6" textLength="12.2" clip-path="url(#lightlike-cli-20381908-line-9)">
 </text><text class="lightlike-cli-20381908-r9" x="36.6" y="264" textLength="97.6" clip-path="url(#lightlike-cli-20381908-line-10)">projects</text><text class="lightlike-cli-20381908-r3" x="268.4" y="264" textLength="536.8" clip-path="url(#lightlike-cli-20381908-line-10)">List&#160;available&#160;projects.&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-20381908-r1" x="1464" y="264" textLength="12.2" clip-path="url(#lightlike-cli-20381908-line-10)">
 </text><text class="lightlike-cli-20381908-r9" x="36.6" y="288.4" textLength="97.6" clip-path="url(#lightlike-cli-20381908-line-11)">query&#160;&#160;&#160;</text><text class="lightlike-cli-20381908-r3" x="268.4" y="288.4" textLength="536.8" clip-path="url(#lightlike-cli-20381908-line-11)">Start&#160;an&#160;interactive&#160;BQ&#160;shell.&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;</text><text class="lightlike-cli-20381908-r1" x="1464" y="288.4" textLength="12.2" clip-path="url(#lightlike-cli-20381908-line-11)">

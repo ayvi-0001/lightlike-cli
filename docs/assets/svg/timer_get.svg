@@ -21,14 +21,11 @@
     .lightlike-cli-317129665-matrix {
         font-family: Fira Code, monospace;
         font-size: 20px;
-        line-height: 24.4px;
-        font-variant-east-asian: full-width;
     }
 
     .lightlike-cli-317129665-title {
         font-size: 18px;
         font-weight: bold;
-        font-family: arial;
     }
 
     .lightlike-cli-317129665-r1 { fill: #c5c8c6 }
@@ -108,7 +105,7 @@
     <text class="lightlike-cli-317129665-r1" x="1464" y="20" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-0)">
 </text><text class="lightlike-cli-317129665-r2" x="0" y="44.4" textLength="73.2" clip-path="url(#lightlike-cli-317129665-line-1)">Usage:</text><text class="lightlike-cli-317129665-r4" x="85.4" y="44.4" textLength="231.8" clip-path="url(#lightlike-cli-317129665-line-1)">lightlike&#160;timer&#160;get</text><text class="lightlike-cli-317129665-r3" x="329.4" y="44.4" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-1)">[</text><text class="lightlike-cli-317129665-r5" x="341.6" y="44.4" textLength="85.4" clip-path="url(#lightlike-cli-317129665-line-1)">OPTIONS</text><text class="lightlike-cli-317129665-r3" x="427" y="44.4" textLength="24.4" clip-path="url(#lightlike-cli-317129665-line-1)">]&#160;</text><text class="lightlike-cli-317129665-r5" x="451.4" y="44.4" textLength="24.4" clip-path="url(#lightlike-cli-317129665-line-1)">ID</text><text class="lightlike-cli-317129665-r1" x="1464" y="44.4" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-1)">
 </text><text class="lightlike-cli-317129665-r1" x="1464" y="68.8" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-2)">
-</text><text class="lightlike-cli-317129665-r3" x="0" y="93.2" textLength="341.6" clip-path="url(#lightlike-cli-317129665-line-3)">Retrieve&#160;a&#160;time&#160;entry&#160;by&#160;id.</text><text class="lightlike-cli-317129665-r1" x="1464" y="93.2" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-3)">
+</text><text class="lightlike-cli-317129665-r3" x="0" y="93.2" textLength="353.8" clip-path="url(#lightlike-cli-317129665-line-3)">Retrieve&#160;a&#160;single&#160;time&#160;entry.</text><text class="lightlike-cli-317129665-r1" x="1464" y="93.2" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-3)">
 </text><text class="lightlike-cli-317129665-r1" x="1464" y="117.6" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-4)">
 </text><text class="lightlike-cli-317129665-r6" x="0" y="142" textLength="85.4" clip-path="url(#lightlike-cli-317129665-line-5)">Syntax:</text><text class="lightlike-cli-317129665-r1" x="1464" y="142" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-5)">
 </text><text class="lightlike-cli-317129665-r1" x="1464" y="166.4" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-6)">
@@ -118,10 +115,10 @@
 </text><text class="lightlike-cli-317129665-r8" x="24.4" y="264" textLength="24.4" clip-path="url(#lightlike-cli-317129665-line-10)">4&#160;</text><text class="lightlike-cli-317129665-r1" x="1464" y="264" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-10)">
 </text><text class="lightlike-cli-317129665-r8" x="24.4" y="288.4" textLength="24.4" clip-path="url(#lightlike-cli-317129665-line-11)">5&#160;</text><text class="lightlike-cli-317129665-r9" x="48.8" y="288.4" textLength="24.4" clip-path="url(#lightlike-cli-317129665-line-11)">$&#160;</text><text class="lightlike-cli-317129665-r9" x="73.2" y="288.4" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-11)">t</text><text class="lightlike-cli-317129665-r9" x="97.6" y="288.4" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-11)">g</text><text class="lightlike-cli-317129665-r9" x="122" y="288.4" textLength="85.4" clip-path="url(#lightlike-cli-317129665-line-11)">36c9fe5</text><text class="lightlike-cli-317129665-r1" x="1464" y="288.4" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-11)">
 </text><text class="lightlike-cli-317129665-r1" x="1464" y="312.8" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-12)">
-</text><text class="lightlike-cli-317129665-r6" x="0" y="337.2" textLength="109.8" clip-path="url(#lightlike-cli-317129665-line-13)">Arguments</text><text class="lightlike-cli-317129665-r1" x="1464" y="337.2" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-13)">
+</text><text class="lightlike-cli-317129665-r6" x="0" y="337.2" textLength="122" clip-path="url(#lightlike-cli-317129665-line-13)">Arguments:</text><text class="lightlike-cli-317129665-r1" x="1464" y="337.2" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-13)">
 </text><text class="lightlike-cli-317129665-r10" x="12.2" y="361.6" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-14)">*</text><text class="lightlike-cli-317129665-r3" x="48.8" y="361.6" textLength="158.6" clip-path="url(#lightlike-cli-317129665-line-14)">TIME_ENTRY_ID</text><text class="lightlike-cli-317129665-r11" x="256.2" y="361.6" textLength="24.4" clip-path="url(#lightlike-cli-317129665-line-14)">ID</text><text class="lightlike-cli-317129665-r12" x="305" y="361.6" textLength="122" clip-path="url(#lightlike-cli-317129665-line-14)">[required]</text><text class="lightlike-cli-317129665-r1" x="1464" y="361.6" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-14)">
 </text><text class="lightlike-cli-317129665-r1" x="1464" y="386" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-15)">
-</text><text class="lightlike-cli-317129665-r6" x="0" y="410.4" textLength="85.4" clip-path="url(#lightlike-cli-317129665-line-16)">Options</text><text class="lightlike-cli-317129665-r1" x="1464" y="410.4" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-16)">
+</text><text class="lightlike-cli-317129665-r6" x="0" y="410.4" textLength="97.6" clip-path="url(#lightlike-cli-317129665-line-16)">Options:</text><text class="lightlike-cli-317129665-r1" x="1464" y="410.4" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-16)">
 </text><text class="lightlike-cli-317129665-r5" x="36.6" y="434.8" textLength="73.2" clip-path="url(#lightlike-cli-317129665-line-17)">--help</text><text class="lightlike-cli-317129665-r13" x="134.2" y="434.8" textLength="24.4" clip-path="url(#lightlike-cli-317129665-line-17)">-h</text><text class="lightlike-cli-317129665-r11" x="183" y="434.8" textLength="48.8" clip-path="url(#lightlike-cli-317129665-line-17)">FLAG</text><text class="lightlike-cli-317129665-r3" x="256.2" y="434.8" textLength="329.4" clip-path="url(#lightlike-cli-317129665-line-17)">Show&#160;this&#160;message&#160;and&#160;exit.</text><text class="lightlike-cli-317129665-r1" x="1464" y="434.8" textLength="12.2" clip-path="url(#lightlike-cli-317129665-line-17)">
 </text>
     </g>

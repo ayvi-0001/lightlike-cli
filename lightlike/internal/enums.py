@@ -36,5 +36,6 @@ class ClientInitOptions(_ValueEnum):
 
 class ActiveCompleter(int, Enum):
     CMD = 1
-    HISTORY = 2
+    EXEC = 2
     PATH = 3
+    HISTORY = 4

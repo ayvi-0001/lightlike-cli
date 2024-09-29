@@ -6,7 +6,6 @@ from threading import Thread
 from google.api_core.exceptions import BadRequest
 from google.cloud.bigquery import Client
 from more_itertools import zip_equal
-from rich import get_console
 from rich import print as rprint
 from rich.console import Group
 from rich.padding import Padding
@@ -15,12 +14,12 @@ from rich.progress import Progress, TaskID
 
 from lightlike.app import _questionary
 from lightlike.internal import markup
-from lightlike.internal.utils import _regexp_replace
+from lightlike.internal.utils import regexp_replace
 
 __all__: t.Sequence[str] = ("run", "SCRIPTS")
 
 
-SCRIPTS: t.Final[Path] = (Path(__file__) / ".." / "sql").resolve()
+SCRIPTS: t.Final[Path] = Path(__file__).parent.joinpath("sql").resolve()
 
 
 @dataclass
@@ -30,20 +29,23 @@ class Build:
 
     @property
     def path(self) -> Path:
-        return SCRIPTS / f"build{self.ordinal}"
+        return SCRIPTS / self.name
 
     @property
     def scripts(self) -> t.Sequence[Path]:
-        return tuple(
-            filter(
-                lambda p: p.suffix == ".sql" and not p.name.startswith("_"),
-                self.path.iterdir(),
-            )
-        )
+        filter_fn = lambda p: p.suffix == ".sql" and not p.name.startswith("_")
+        return tuple(filter(filter_fn, self.path.iterdir()))
 
     @property
     def names(self) -> t.Sequence[str]:
         return tuple((path.name for path in self.scripts))
+
+
+BUILDS: list[Build] = []
+
+for idx, _path in enumerate(SCRIPTS.iterdir()):
+    if _path.is_dir():
+        BUILDS.append(Build(_path.name, ordinal=idx + 1))
 
 
 def _run_script(
@@ -55,7 +57,7 @@ def _run_script(
 ) -> None:
     try:
         step_progress.update(task_id, advance=1)
-        script = _regexp_replace(patterns=patterns, text=path.read_text())
+        script = regexp_replace(patterns=patterns, text=path.read_text())
         step_progress.update(task_id, advance=1)
         script = script.replace("${__name__}", path.stem)
         step_progress.update(task_id, advance=1)
@@ -151,62 +153,53 @@ def run(client: "Client", patterns: dict[str, str]) -> bool:
         Padding(overall_progress, (1, 0, 0, 0)),
     )
 
-    builds = (
-        Build(name="Schemas", ordinal=1),
-        Build(name="Tables | Functions", ordinal=2),
-        Build(name="Procedures | Table Functions", ordinal=3),
-    )
+    overall_task_id = overall_progress.add_task("", total=len(BUILDS))
 
-    overall_task_id = overall_progress.add_task("", total=len(builds))
-
-    with get_console().screen(style="bold white on red"):
-        with Live(progress_group, transient=True):
-            for idx, build in enumerate(builds):
-                description_overall_progress = (
-                    "[b][#f0f0ff](%d out of %d builds completed)" % (idx, len(builds))
-                )
-
-                overall_progress.update(
-                    overall_task_id, description=description_overall_progress
-                )
-
-                current_task_id = current_build_progress.add_task(
-                    "[#f0f0ff]Running scripts for %s" % build.name
-                )
-
-                build_steps_task_id = build_steps_progress.add_task(
-                    "", total=len(range(len(build.scripts))), name=build.name
-                )
-
-                _run_build_scripts(
-                    client,
-                    build,
-                    patterns,
-                    build_steps_task_id,
-                    step_progress,
-                    build_steps_progress,
-                )
-
-                build_steps_progress.update(
-                    build_steps_task_id, advance=1, visible=False
-                )
-                current_build_progress.stop_task(current_task_id)
-
-                current_build_progress.update(
-                    current_task_id,
-                    description="[b][green]%s completed." % build.name,
-                )
-
-                overall_progress.update(overall_task_id, advance=1)
-
-            overall_progress.update(
-                overall_task_id,
-                description="[b][green]%d/%d builds completed."
-                % (len(builds), len(builds)),
+    with Live(progress_group):
+        for idx, build in enumerate(BUILDS):
+            description_overall_progress = (
+                "[b][#f0f0ff](%d out of %d builds completed)" % (idx, len(BUILDS))
             )
 
-        _questionary.press_any_key_to_continue(
-            message="Build complete. Press any key to return to console."
+            overall_progress.update(
+                overall_task_id, description=description_overall_progress
+            )
+
+            current_task_id = current_build_progress.add_task(
+                "[#f0f0ff]Running scripts for %s" % build.name
+            )
+
+            build_steps_task_id = build_steps_progress.add_task(
+                "", total=len(range(len(build.scripts))), name=build.name
+            )
+
+            _run_build_scripts(
+                client,
+                build,
+                patterns,
+                build_steps_task_id,
+                step_progress,
+                build_steps_progress,
+            )
+
+            build_steps_progress.update(build_steps_task_id, advance=1, visible=False)
+            current_build_progress.stop_task(current_task_id)
+
+            current_build_progress.update(
+                current_task_id,
+                description="[b][green]%s completed." % build.name,
+            )
+
+            overall_progress.update(overall_task_id, advance=1)
+
+        overall_progress.update(
+            overall_task_id,
+            description="[b][green]%d/%d builds completed."
+            % (len(BUILDS), len(BUILDS)),
         )
+
+    _questionary.press_any_key_to_continue(
+        message="Build complete. Press any key to return to console."
+    )
 
     return True

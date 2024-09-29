@@ -116,26 +116,32 @@ class AliasedGroup(click.Group):
         self.syntax = syntax
 
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
-        rv = click.Group.get_command(self, ctx, cmd_name)
-        if rv is not None:
+        if (rv := click.Group.get_command(self, ctx, cmd_name)) is not None:
             return rv
-        matches = []
+
+        matches: list[click.Command] = []
         for m in self.list_commands(ctx):
             if m.startswith(cmd_name):
-                command = self.get_command(ctx, m)
-                if (
-                    getattr(command, "allow_name_alias", None) is False
-                    and cmd_name != m
-                ):
-                    return None
-                if not (command and command.hidden):
-                    matches.append(m)
+                command: click.Command | None = self.get_command(ctx, m)
+                if not command:
+                    continue
+                if command.hidden:
+                    continue
+                if getattr(command, "allow_name_alias", None) is False:
+                    if cmd_name == m:
+                        matches.append(command)
+                    continue
+                matches.append(command)
+
         if not matches:
             return None
         elif len(matches) == 1:
-            return click.Group.get_command(self, ctx, first(matches))
+            return first(matches)
         else:
-            ctx.fail(f"Too many matches: {', '.join(sorted(matches))}")
+            possible_names: list[str] = sorted(
+                map(lambda m: m.name or "", matches),
+            )
+            ctx.fail(f"Too many matches: {', '.join(possible_names)}")
 
     def resolve_command(
         self, ctx: click.Context, args: t.Any
@@ -167,7 +173,9 @@ class LazyAliasedGroup(AliasedGroup):
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
         if cmd_name in self.lazy_subcommands:
             return self._lazy_load(cmd_name)
-        matches = [m for m in self.list_commands(ctx) if m.startswith(cmd_name)]
+        matches: list[str] = [
+            m for m in self.list_commands(ctx) if m.startswith(cmd_name)
+        ]
         if not matches:
             return None
         elif len(matches) == 1 and (match := first(matches)) in self.lazy_subcommands:
@@ -198,11 +206,18 @@ class LazyAliasedGroup(AliasedGroup):
                     "a non-command object"
                 )
             return cmd_object
-        except Exception as error:
+        except Exception as e:
             self.lazy_subcommands.pop(cmd_name, None)
+            error = f"{e}"
             logging.error(
                 f"Failed to load subcommand: {cmd_name} from {import_path}. Error: {error}"
             )
+            if "not enough values to unpack" in error:
+                logging.error(
+                    f"The final part in the path must be separated by a semicolon (:). "
+                    "e.g `command-name-in-cli.module-name.file-name:command-object"
+                )
+
             return None
 
 
@@ -380,7 +395,7 @@ def _group_commands(
 
     if table.row_count != 0:
         yield rich.console.NewLine()
-        yield Text("Commands", style="bold underline")
+        yield Text("Commands:", style="bold underline")
         yield Padding(table, (0, 0, 0, 2))
 
 
@@ -393,7 +408,7 @@ class OptionGroups(t.TypedDict):
 def _group_options(
     obj: click.Command, ctx: click.Context
 ) -> t.Iterable[rich.console.RenderableType]:
-    groups: list[OptionGroups] = [{"name": "Options", "items": []}]
+    groups: list[OptionGroups] = [{"name": "Options:", "items": []}]
     arguments: list[str] = []
     params: list[click.Parameter] = obj.get_params(ctx)
 
@@ -406,7 +421,7 @@ def _group_options(
             groups[0]["items"].append(param.opts[0])
 
     if len(arguments) > 0:
-        extra_option_group = OptionGroups(name="Arguments", items=arguments)
+        extra_option_group = OptionGroups(name="Arguments:", items=arguments)
         groups.insert(len(groups) - 1, extra_option_group)
 
     for group in groups:
@@ -523,11 +538,12 @@ def _(param: click.Argument, ctx: click.Context) -> Columns:
     if param.default or ctx.show_default:
         help_record = param.get_help_record(ctx)
         if help_record:
-            default_str_match = re.search(
+            default_str_match: re.Match[str] | None = re.search(
                 r"\[(?:.+; )?default: (.*)\]", last(help_record)
             )
             if default_str_match:
-                default_str = default_str_match.group(1).replace("; required", "")
+                default_str_group: str = default_str_match.group(1)
+                default_str: str = default_str_group.replace("; required", "")
                 items.append(Text(f"[default={default_str}]", style="dimmed"))
 
     if param.required:

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import logging
 import typing as t
-from shlex import shlex
+from operator import truth
 
 import click
 from click.shell_completion import CompletionItem
+from prompt_toolkit.application import get_app
 from prompt_toolkit.completion import Completer, Completion
 
 if t.TYPE_CHECKING:
@@ -45,7 +46,7 @@ class ReplCompleter(Completer):
         self.ctx_command: click.Command = ctx.command
         self.uncaught_exceptions_callable = uncaught_exceptions_callable
 
-    def _get_completion_from_autocompletion_functions(
+    def _complete_functions(
         self,
         autocomplete_ctx: click.Context,
         param: click.Parameter,
@@ -56,36 +57,32 @@ class ReplCompleter(Completer):
             autocomplete_ctx, incomplete
         )
 
-        for autocomplete in autocompletions:
-            start_position: int = -len(incomplete)
+        document: "Document" = get_app().current_buffer.document
+        start_position: int = -len(document.get_word_before_cursor(WORD=True))
 
+        for autocomplete in autocompletions:
             if isinstance(autocomplete, CompletionItem):
-                if autocomplete.value:
-                    param_choices.append(
-                        Completion(
-                            text=f"{autocomplete.value}",
-                            start_position=start_position,
-                            display_meta=autocomplete.help,
-                        )
-                    )
+                completion = Completion(
+                    text=f"{autocomplete.value}",
+                    start_position=start_position,
+                    display_meta=autocomplete.help,
+                )
             elif isinstance(autocomplete, tuple):
-                param_choices.append(
-                    Completion(
-                        text=f"{autocomplete[0]}",
-                        start_position=start_position,
-                        display_meta=f"{autocomplete[1]}",
-                    )
+                completion = Completion(
+                    text=f"{autocomplete[0]}",
+                    start_position=start_position,
+                    display_meta=f"{autocomplete[1]}",
                 )
             else:
-                param_choices.append(
-                    Completion(
-                        text=f"{autocomplete}",
-                        start_position=start_position,
-                    )
+                completion = Completion(
+                    text=f"{autocomplete}",
+                    start_position=start_position,
                 )
+            param_choices.append(completion)
+
         return param_choices
 
-    def _get_completion_from_params(
+    def _complete_params(
         self,
         autocomplete_ctx: click.Context,
         param: click.Parameter,
@@ -94,14 +91,14 @@ class ReplCompleter(Completer):
     ) -> list[Completion]:
         completions = []
         if getattr(param, "shell_complete"):
-            completions = self._get_completion_from_autocompletion_functions(
+            completions = self._complete_functions(
                 autocomplete_ctx=autocomplete_ctx,
                 param=param,
                 incomplete=incomplete,
             )
         return completions
 
-    def _get_completion_for_cmd_args(
+    def _complete_cmd_args(
         self,
         autocomplete_ctx: click.Context,
         ctx_command: click.Command,
@@ -114,14 +111,13 @@ class ReplCompleter(Completer):
         for param in ctx_command.params:
             if getattr(param, "hidden", False):
                 choices.extend(
-                    self._get_completion_from_params(
+                    self._complete_params(
                         autocomplete_ctx=autocomplete_ctx,
                         args=args,
                         param=param,
                         incomplete=incomplete,
                     )
                 )
-
             elif isinstance(param, click.Option):
                 opts: list[str] = param.opts + param.secondary_opts
                 previous_args: list[str] = args[: param.nargs * -1]
@@ -132,7 +128,7 @@ class ReplCompleter(Completer):
 
                 if len(opts) == 2:
                     if any(opt in current_args for opt in opts):
-                        param_called = True if not param.is_flag else False
+                        param_called = truth(not param.is_flag)
                     elif opts[1].startswith(incomplete) and not hide:
                         completion = Completion(
                             text=opts[1],
@@ -146,7 +142,7 @@ class ReplCompleter(Completer):
                     option: str = opts[0]
 
                     if option in current_args:
-                        param_called = True if not param.is_flag else False
+                        param_called = truth(not param.is_flag)
                     elif option.startswith(incomplete) and not hide:
                         completion = Completion(
                             text=f"{option}",
@@ -156,17 +152,16 @@ class ReplCompleter(Completer):
                         choices.append(completion)
 
                 if param_called:
-                    choices = self._get_completion_from_params(
+                    choices = self._complete_params(
                         autocomplete_ctx=autocomplete_ctx,
                         args=args,
                         param=param,
                         incomplete=incomplete,
                     )
                     break
-
             elif isinstance(param, click.Argument):
                 choices.extend(
-                    self._get_completion_from_params(
+                    self._complete_params(
                         autocomplete_ctx=autocomplete_ctx,
                         args=args,
                         param=param,
@@ -181,7 +176,7 @@ class ReplCompleter(Completer):
     ) -> t.Iterable[Completion]:
         try:
             text_before_cursor: str = document.text_before_cursor
-            args: list[str] = split_arg_string(text_before_cursor, posix=False)
+            args: list[str] = click.parser.split_arg_string(text_before_cursor)
 
             choices: list[Completion] = []
             chained_command_choices: list[Completion] = []
@@ -202,7 +197,7 @@ class ReplCompleter(Completer):
                     self.ctx_command = self.parsed_ctx.command
 
             choices.extend(
-                self._get_completion_for_cmd_args(
+                self._complete_cmd_args(
                     ctx_command=self.ctx_command,
                     incomplete=incomplete,
                     autocomplete_ctx=self.parsed_ctx,
@@ -211,45 +206,35 @@ class ReplCompleter(Completer):
             )
 
             if isinstance(self.ctx_command, click.Group):
-                incomplete_lower: str = incomplete.lower()
-
-                for name in self.ctx_command.list_commands(self.parsed_ctx):
-                    command = t.cast(
-                        click.Command,
-                        self.ctx_command.get_command(self.parsed_ctx, name),
-                    )
-
-                    if getattr(command, "hidden", False):
+                for cmd_name in self.ctx_command.list_commands(self.parsed_ctx):
+                    command: click.Command | None = None
+                    command = self.ctx_command.get_command(self.parsed_ctx, cmd_name)
+                    if not command or getattr(command, "hidden", False):
                         continue
-
                     if self.ctx_command.chain is True:
-                        # fmt: off
-                            if (
-                                name.startswith(args[-1]) and 
-                                not self.ctx_command.name.startswith(args[-1]) # type:ignore [union-attr]
-                            ):
-                                chained_command_choices = (
-                                    self._get_completion_for_cmd_args(
-                                        ctx_command=command,
-                                        incomplete=incomplete,
-                                        autocomplete_ctx=self.parsed_ctx,
-                                        args=args,
-                                    )
-                                )
-                                if not chained_command_choices and command.params:
-                                    # Command has argument or option but no completions.
-                                    # Returning an empty completion item so that the other commands do not appear
-                                    # until a value is provided for the subcommand being called.
-                                    chained_command_choices = [Completion("")]
-                                continue
+                        if not cmd_name.startswith(args[-1]):
+                            continue
+                        ctx_cmd_name: str | None = self.ctx_command.name
+                        if ctx_cmd_name and not ctx_cmd_name.startswith(args[-1]):
+                            chained_command_choices = self._complete_cmd_args(
+                                ctx_command=command,
+                                incomplete=incomplete,
+                                autocomplete_ctx=self.parsed_ctx,
+                                args=args,
+                            )
+                            if not chained_command_choices and command.params:
+                                # Command has argument or option but no completions.
+                                # Returning an empty completion item so that the other commands do not appear
+                                # until a value is provided for the subcommand being called.
+                                chained_command_choices = [Completion("")]
+                            continue
 
-                            if name in args:
-                                continue
-                    # fmt: on
+                        if cmd_name in args:
+                            continue
 
-                    if name.lower().startswith(incomplete_lower):
+                    if cmd_name.lower().startswith(incomplete.lower()):
                         completion = Completion(
-                            text=f"{name}",
+                            text=cmd_name,
                             start_position=-len(incomplete),
                             display_meta=getattr(command, "short_help", ""),
                         )
@@ -287,14 +272,11 @@ def _display_meta(option: click.Option, short_flag: str | None = None) -> str:
 def _resolve_context(args: list[str], ctx: click.Context) -> click.Context:
     try:
         while args:
-            command = ctx.command
-
+            command: click.Command = ctx.command
             if isinstance(command, click.Group) and not command.chain:
                 name, cmd, args = command.resolve_command(ctx, args)
-
                 if cmd is None:
                     return ctx
-
                 ctx = cmd.make_context(name, args, parent=ctx, resilient_parsing=True)
                 args = ctx.protected_args + ctx.args
             else:
@@ -308,18 +290,3 @@ def _resolve_context(args: list[str], ctx: click.Context) -> click.Context:
             )
 
     return ctx
-
-
-def split_arg_string(string: str, posix: bool = True) -> list[str]:
-    lex: shlex = shlex(string, posix=posix)
-    lex.whitespace_split = True
-    lex.commenters = ""
-    out: list[str] = []
-
-    try:
-        for token in lex:
-            out.append(token)
-    except ValueError:
-        out.append(lex.token)
-
-    return out

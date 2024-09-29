@@ -21,14 +21,11 @@
     .lightlike-cli-252773214-matrix {
         font-family: Fira Code, monospace;
         font-size: 20px;
-        line-height: 24.4px;
-        font-variant-east-asian: full-width;
     }
 
     .lightlike-cli-252773214-title {
         font-size: 18px;
         font-weight: bold;
-        font-family: arial;
     }
 
     .lightlike-cli-252773214-r1 { fill: #c5c8c6 }
@@ -152,7 +149,7 @@
 </text><text class="lightlike-cli-252773214-r8" x="24.4" y="483.6" textLength="24.4" clip-path="url(#lightlike-cli-252773214-line-19)">7&#160;</text><text class="lightlike-cli-252773214-r9" x="48.8" y="483.6" textLength="24.4" clip-path="url(#lightlike-cli-252773214-line-19)">$&#160;</text><text class="lightlike-cli-252773214-r9" x="73.2" y="483.6" textLength="36.6" clip-path="url(#lightlike-cli-252773214-line-19)">app</text><text class="lightlike-cli-252773214-r9" x="122" y="483.6" textLength="48.8" clip-path="url(#lightlike-cli-252773214-line-19)">sync</text><text class="lightlike-cli-252773214-r9" x="183" y="483.6" textLength="109.8" clip-path="url(#lightlike-cli-252773214-line-19)">--appdata</text><text class="lightlike-cli-252773214-r9" x="305" y="483.6" textLength="85.4" clip-path="url(#lightlike-cli-252773214-line-19)">--cache</text><text class="lightlike-cli-252773214-r1" x="1464" y="483.6" textLength="12.2" clip-path="url(#lightlike-cli-252773214-line-19)">
 </text><text class="lightlike-cli-252773214-r8" x="24.4" y="508" textLength="24.4" clip-path="url(#lightlike-cli-252773214-line-20)">8&#160;</text><text class="lightlike-cli-252773214-r9" x="48.8" y="508" textLength="24.4" clip-path="url(#lightlike-cli-252773214-line-20)">$&#160;</text><text class="lightlike-cli-252773214-r9" x="73.2" y="508" textLength="12.2" clip-path="url(#lightlike-cli-252773214-line-20)">a</text><text class="lightlike-cli-252773214-r9" x="97.6" y="508" textLength="12.2" clip-path="url(#lightlike-cli-252773214-line-20)">s</text><text class="lightlike-cli-252773214-r9" x="122" y="508" textLength="36.6" clip-path="url(#lightlike-cli-252773214-line-20)">-ac</text><text class="lightlike-cli-252773214-r1" x="1464" y="508" textLength="12.2" clip-path="url(#lightlike-cli-252773214-line-20)">
 </text><text class="lightlike-cli-252773214-r1" x="1464" y="532.4" textLength="12.2" clip-path="url(#lightlike-cli-252773214-line-21)">
-</text><text class="lightlike-cli-252773214-r6" x="0" y="556.8" textLength="85.4" clip-path="url(#lightlike-cli-252773214-line-22)">Options</text><text class="lightlike-cli-252773214-r1" x="1464" y="556.8" textLength="12.2" clip-path="url(#lightlike-cli-252773214-line-22)">
+</text><text class="lightlike-cli-252773214-r6" x="0" y="556.8" textLength="97.6" clip-path="url(#lightlike-cli-252773214-line-22)">Options:</text><text class="lightlike-cli-252773214-r1" x="1464" y="556.8" textLength="12.2" clip-path="url(#lightlike-cli-252773214-line-22)">
 </text><text class="lightlike-cli-252773214-r5" x="36.6" y="581.2" textLength="109.8" clip-path="url(#lightlike-cli-252773214-line-23)">--appdata</text><text class="lightlike-cli-252773214-r10" x="170.8" y="581.2" textLength="24.4" clip-path="url(#lightlike-cli-252773214-line-23)">-a</text><text class="lightlike-cli-252773214-r11" x="219.6" y="581.2" textLength="48.8" clip-path="url(#lightlike-cli-252773214-line-23)">FLAG</text><text class="lightlike-cli-252773214-r1" x="1464" y="581.2" textLength="12.2" clip-path="url(#lightlike-cli-252773214-line-23)">
 </text><text class="lightlike-cli-252773214-r5" x="36.6" y="605.6" textLength="85.4" clip-path="url(#lightlike-cli-252773214-line-24)">--cache</text><text class="lightlike-cli-252773214-r10" x="170.8" y="605.6" textLength="24.4" clip-path="url(#lightlike-cli-252773214-line-24)">-c</text><text class="lightlike-cli-252773214-r11" x="219.6" y="605.6" textLength="48.8" clip-path="url(#lightlike-cli-252773214-line-24)">FLAG</text><text class="lightlike-cli-252773214-r1" x="1464" y="605.6" textLength="12.2" clip-path="url(#lightlike-cli-252773214-line-24)">
 </text><text class="lightlike-cli-252773214-r5" x="36.6" y="630" textLength="85.4" clip-path="url(#lightlike-cli-252773214-line-25)">--quiet</text><text class="lightlike-cli-252773214-r10" x="170.8" y="630" textLength="24.4" clip-path="url(#lightlike-cli-252773214-line-25)">-q</text><text class="lightlike-cli-252773214-r11" x="219.6" y="630" textLength="48.8" clip-path="url(#lightlike-cli-252773214-line-25)">FLAG</text><text class="lightlike-cli-252773214-r1" x="1464" y="630" textLength="12.2" clip-path="url(#lightlike-cli-252773214-line-25)">

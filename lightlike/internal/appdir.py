@@ -2,6 +2,7 @@ import logging
 import sys
 import typing as t
 from datetime import datetime
+from inspect import cleandoc
 from pathlib import Path
 
 import rtoml
@@ -10,6 +11,7 @@ from prompt_toolkit.history import FileHistory, ThreadedHistory
 from rich import get_console
 from rich import print as rprint
 from rich.console import Console
+from rich.markdown import Markdown
 from rich.text import Text
 
 from lightlike import _console, _fasteners
@@ -18,32 +20,34 @@ from lightlike.__about__ import (
     __appname__,
     __appname_sc__,
     __config__,
+    __configdir__,
     __lock__,
     __repo__,
     __version__,
 )
-from lightlike.internal import constant, enums, markup, patch, utils
+from lightlike.internal import constant, enums, markup, utils
 
 __all__: t.Sequence[str] = (
-    "CACHE",
+    "BQ_UPDATES",
     "CACHE_LOCK",
-    "ENTRY_APPDATA",
-    "SQL_HISTORY",
-    "SQL_FILE_HISTORY",
-    "REPL_HISTORY",
-    "REPL_FILE_HISTORY",
-    "QUERIES",
-    "TIMER_LIST_CACHE",
-    "LOGS",
-    "SCHEDULER_CONFIG",
-    "rmtree",
-    "_log",
+    "CACHE",
     "console_log_error",
+    "ENTRY_APPDATA",
+    "log",
+    "LOGS",
+    "QUERIES",
+    "REPL_FILE_HISTORY",
+    "REPL_HISTORY",
+    "rmtree",
+    "SCHEDULER_CONFIG",
+    "SQL_FILE_HISTORY",
+    "SQL_HISTORY",
+    "TIMER_LIST_CACHE",
 )
 
 
 # fmt: off
-__appdir__.mkdir(exist_ok=True)
+__appdir__.mkdir(exist_ok=True, parents=True)
 
 CACHE: t.Final[Path] = __appdir__ / ".local_entries"
 CACHE.touch(exist_ok=True)
@@ -53,30 +57,33 @@ ENTRY_APPDATA: t.Final[Path] = __appdir__ / ".entry_appdata"
 ENTRY_APPDATA.touch(exist_ok=True)
 SQL_HISTORY: t.Final[Path] = __appdir__ / ".sql_history"
 SQL_HISTORY.touch(exist_ok=True)
-SQL_FILE_HISTORY: t.Final[t.Callable[..., ThreadedHistory]] = lambda: ThreadedHistory(FileHistory(f"{SQL_HISTORY}"))
+SQL_FILE_HISTORY: t.Final[t.Callable[[], ThreadedHistory]] = lambda: ThreadedHistory(FileHistory(f"{SQL_HISTORY}"))
 REPL_HISTORY: t.Final[Path] = __appdir__ / ".repl_history"
 REPL_HISTORY.touch(exist_ok=True)
-REPL_FILE_HISTORY: t.Final[t.Callable[..., ThreadedHistory]] = lambda: ThreadedHistory(FileHistory(f"{REPL_HISTORY}"))
+REPL_FILE_HISTORY: t.Final[t.Callable[[], ThreadedHistory]] = lambda: ThreadedHistory(FileHistory(f"{REPL_HISTORY}"))
 QUERIES: t.Final[Path] = __appdir__ / "queries"
 TIMER_LIST_CACHE: t.Final[Path] = __appdir__ / ".tl_ids_latest.json"
 LOGS: t.Final[Path] = __appdir__ / "logs"
 LOGS.mkdir(exist_ok=True)
-SCHEDULER_CONFIG: t.Final[Path] = __appdir__ / "scheduler.toml"
-APSCHEDULER_DB: t.Final[Path] = __appdir__ / "apscheduler.db"
-APSCHEDULER_DB.touch(exist_ok=True)
+SCHEDULER_CONFIG: t.Final[Path] = __configdir__ / "scheduler.toml"
+BQ_UPDATES: t.Final[Path] = __config__ / ".bq_updates"
 # fmt: on
 
 
+_TODAY: datetime = datetime.today()
+_DAILY_LOG_DIR: Path = LOGS / _TODAY.strftime("%Y.%m.%d")
+_DAILY_LOG_DIR.mkdir(exist_ok=True)
+
 logging.basicConfig(
     level=logging.DEBUG,
-    filename=LOGS / "cli.log",
+    filename=(_DAILY_LOG_DIR / _TODAY.strftime("%H.%M.%S.%f")).with_suffix(".log"),
     filemode="a",
     format="[%(asctime)s] %(pathname)s:%(lineno)d\n%(levelname)s: %(message)s",
     datefmt="%m-%d %H:%M:%S",
 )
 
 
-def _log() -> logging.Logger:
+def log() -> logging.Logger:
     return logging.getLogger(__appname_sc__)
 
 
@@ -89,15 +96,52 @@ def rmtree(appdata: Path = __appdir__) -> t.NoReturn:
     sys.exit(1)
 
 
-@_fasteners.interprocess_locked(__appdir__ / "config.lock", logger=_log())
+CONFIG_UPDATE_PATHS: list[str] = [
+    "app.name",
+    "bigquery.dataset",
+    "bigquery.projects",
+    "bigquery.resources-provisioned",
+    "bigquery.timesheet",
+    "bigquery",
+    "client.credentials-source",
+    "completers.default",
+    "keys.completers.commands",
+    "keys.completers.exec",
+    "keys.completers.history",
+    "keys.completers.path",
+    "keys.completers",
+    "keys.exit",
+    "keys.system-command",
+    "scheduler",
+    "settings.complete-style",
+    "settings.dateparser.additional-date-formats",
+    "settings.dateparser.prefer-dates-from",
+    "settings.dateparser.prefer-day-of-month",
+    "settings.dateparser.prefer-locale-date-order",
+    "settings.dateparser.prefer-month-of-year",
+    "settings.editor",
+    "settings.note-history.days",
+    "settings.quiet-start",
+    "settings.reserve-space-for-menu",
+    "settings.rprompt-date-format",
+    "settings.timer-add-min",
+    "settings.update-terminal-title",
+    "settings.week-start",
+    "user.host",
+    "user.name",
+    "user.stay-logged-in",
+]
+CONFIG_FORCE_UPDATE_PATHS: list[str] = [
+    "app.version",
+]
+
+
+@_fasteners.interprocess_locked(__appdir__ / "config.lock", logger=log())
 def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
     console = get_console()
-
     _console.if_not_quiet_start(console.log)("Validating app directory")
 
-    patch._appdir_lt_v_0_9_0()
-
-    if not __config__.exists():
+    if utils.file_empty_or_not_exists(__config__):
         console.log(f"{__config__} not found")
         console.log("Initializing app directory")
         return _initial_build()
@@ -113,15 +157,21 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
                 "->", f"[repr.number]{v_package}[/]",  # fmt: skip
             )
 
-            patch._run(v_local, local_config)
+            # No live updates to check for yet.
+            # if not BQ_UPDATES.exists():
+            #     BQ_UPDATES.write_text(constant.BQ_UPDATES_CONFIG)
 
-            updated_config = utils.update_dict(
-                rtoml.load(constant.DEFAULT_CONFIG), local_config
-            )
-            updated_config["app"].update(version=__version__)
-            local_config = updated_config
+        local_config = utils.merge_default_dict_into_current_dict(
+            local_config,
+            rtoml.load(constant.DEFAULT_CONFIG),
+            update_paths=CONFIG_UPDATE_PATHS,
+            force_update_paths=CONFIG_FORCE_UPDATE_PATHS,
+        )
 
-        __config__.write_text(utils._format_toml(local_config))
+        __config__.write_text(
+            utils.format_toml(local_config),
+            encoding="utf-8",
+        )
 
     return None
 
@@ -142,16 +192,15 @@ def console_log_error(error: Exception, notify: bool, patch_stdout: bool) -> Non
     if notify:
         notice: str = (
             f"\n[b][red]Encountered an unexpected error:[/] {error!r}."
-            "\nIf you'd like to create an issue for this, you can submit @ "
-            "[repr.url]https://github.com/ayvi-0001/lightlike-cli/issues/new[/repr.url]."
-            "\nPlease include any relevant info in the traceback found at:"
-            f"\n[repr.url]{error_log.as_uri()}[/repr.url]\n"
+            f"\nIf you'd like to create an issue for this, you can submit @ "
+            f"[repr.url]{__repo__}/issues/new[/repr.url]."
+            f"\nPlease include any relevant info in the traceback found at:"
+            f"\n[repr.url]{error_log.as_posix()}[/repr.url]\n"
         )
         if patch_stdout:
             from prompt_toolkit.patch_stdout import patch_stdout as _patch_stdout
 
             with _patch_stdout(raw=True):
-
                 rprint(notice)
         else:
             rprint(notice)
@@ -162,46 +211,17 @@ def _initial_build() -> None | t.NoReturn:
         import getpass
         import os
         import socket
-        from inspect import cleandoc
 
         from prompt_toolkit.validation import Validator
         from pytz import all_timezones
-        from rich.markdown import Markdown
+        from rich.console import NewLine
         from rich.padding import Padding
 
         from lightlike.app import _questionary
 
         console = get_console()
         default_config = rtoml.load(constant.DEFAULT_CONFIG)
-
-        license = Markdown(
-            markup=cleandoc(
-                """
-            MIT License
-
-            Copyright (c) 2024 ayvi-0001
-
-            Permission is hereby granted, free of charge, to any person obtaining a copy
-            of this software and associated documentation files (the "Software"), to deal
-            in the Software without restriction, including without limitation the rights
-            to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-            copies of the Software, and to permit persons to whom the Software is
-            furnished to do so, subject to the following conditions:
-
-            The above copyright notice and this permission notice shall be included in all
-            copies or substantial portions of the Software.
-
-            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-            IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-            FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-            AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-            LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-            SOFTWARE.
-                """
-            ),
-            justify="left",
-        )
+        license = Markdown(markup=cleandoc(constant.LICENSE), justify="left")
 
         console.rule(style="#9146ff")
         _console.reconfigure(height=17)
@@ -209,7 +229,7 @@ def _initial_build() -> None | t.NoReturn:
         _console.reconfigure(height=None)
         _questionary.press_any_key_to_continue(message="Press any key to continue.")
 
-        utils._nl()
+        console.print(NewLine())
         console.log("Writing config")
         console.log(
             markup.repr_attrib_name("appname"),
@@ -223,7 +243,6 @@ def _initial_build() -> None | t.NoReturn:
             markup.repr_attrib_value(__version__),
             sep="",
         )
-        console.set_window_title(__appname_sc__)
 
         term = os.getenv("TERM", "unknown")
         console.log(
@@ -256,12 +275,12 @@ def _initial_build() -> None | t.NoReturn:
 
         console.log("Determining timezone from env")
 
-        default_timezone = utils._get_local_timezone_string()
+        default_timezone = utils.get_local_timezone_string()
         if default_timezone is None:
             console.log(markup.log_error("Could not determine timezone"))
             default_timezone = "UTC"
 
-        utils._nl()
+        console.print(NewLine())
         timezone = _questionary.autocomplete(
             message="Enter timezone $",
             choices=all_timezones,
@@ -272,7 +291,7 @@ def _initial_build() -> None | t.NoReturn:
             ),
         )
 
-        utils._nl()
+        console.print(NewLine())
         console.log(
             markup.repr_attrib_name("timezone"),
             markup.repr_attrib_equal(),
@@ -302,7 +321,7 @@ def _initial_build() -> None | t.NoReturn:
             )
         )
 
-        utils._nl()
+        console.print(NewLine())
         client_credential_source = _questionary.select(
             message="Select authorization",
             choices=[
@@ -335,7 +354,7 @@ def _initial_build() -> None | t.NoReturn:
         else:
             dataset_name = __appname_sc__
 
-        utils._nl()
+        console.print(NewLine())
         console.log(
             markup.repr_attrib_name("dataset"),
             markup.repr_attrib_equal(),
@@ -345,13 +364,17 @@ def _initial_build() -> None | t.NoReturn:
 
         default_config["bigquery"].update(dataset=dataset_name)
         default_config["client"].update(
-            credentials_source=repr(client_credential_source)
+            {"credentials-source": repr(client_credential_source)}
         )
-        default_config["cli"]["append_path"].update(paths=[f"{__appdir__}"])
+
+        default_config["cli"].update({"add-to-path": [__appdir__.as_posix()]})
 
         console.log("Building app directory")
         console.log("Saving config")
-        __config__.write_text(utils._format_toml(default_config))
+        __config__.write_text(
+            utils.format_toml(default_config),
+            encoding="utf-8",
+        )
         __config__.touch(exist_ok=True)
         console.log(f"Writing {__config__}")
         console.log(f"Writing {REPL_HISTORY}")
@@ -361,7 +384,11 @@ def _initial_build() -> None | t.NoReturn:
         SCHEDULER_CONFIG.touch(exist_ok=True)
         SCHEDULER_CONFIG.write_text(
             constant.DEFAULT_SCHEDULER_TOML
-            % (timezone, "sqlite:///" + (__appdir__ / "apscheduler.db").as_posix())
+            % (
+                timezone,
+                "sqlite:///" + __appdir__.joinpath("apscheduler.db").as_posix(),
+            ),
+            encoding="utf-8",
         )
         console.log(f"Writing {ENTRY_APPDATA}")
         ENTRY_APPDATA.write_text(
@@ -373,7 +400,8 @@ def _initial_build() -> None | t.NoReturn:
                 default_billable = false
                 notes = []
                 """
-            )
+            ),
+            encoding="utf-8",
         )
         console.log("Directory build complete")
 

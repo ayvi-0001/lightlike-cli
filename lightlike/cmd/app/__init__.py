@@ -5,18 +5,22 @@ import click
 
 from lightlike.app.core import LazyAliasedGroup
 
+__all__: t.Sequence[str] = ("app",)
+
+
 lazy_subcommands: dict[str, str] = {
     "config": "lightlike.cmd.app.commands:config",
+    "date-diff": "lightlike.cmd.app.commands:date_diff",
     "dir": "lightlike.cmd.app.commands:dir_",
-    "run-bq": "lightlike.cmd.app.commands:run_bq",
     "inspect-console": "lightlike.cmd.app.commands:inspect_console",
+    "parse-date": "lightlike.cmd.app.commands:parse_date",
+    "run-bq": "lightlike.cmd.app.commands:run_bq",
+    "source-dir": "lightlike.cmd.app.commands:source_dir",
     "sync": "lightlike.cmd.app.commands:sync",
-    "test": "lightlike.cmd.app.commands:test",
-    "scheduler": "lightlike.cmd.scheduler:scheduler",
 }
 
 if getenv("LIGHTLIKE_CLI_DEV"):
-    lazy_subcommands["reset-all"] = "lightlike.cmd.app.commands:_reset_all"
+    lazy_subcommands["reset"] = "lightlike.cmd.app.commands:_reset"
 
 
 @click.group(
@@ -28,6 +32,3 @@ if getenv("LIGHTLIKE_CLI_DEV"):
 @click.option("-d", "--debug", is_flag=True, hidden=True)
 def app(debug: bool) -> None:
     """Cli internal settings & commands."""
-
-
-__all__: t.Sequence[str] = ("app",)
