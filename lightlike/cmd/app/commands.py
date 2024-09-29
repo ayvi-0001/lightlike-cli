@@ -1,5 +1,10 @@
+import os
+import sys
 import typing as t
-from os import getenv
+from datetime import datetime, timedelta
+from decimal import Decimal
+from pathlib import Path
+from subprocess import list2cmdline
 
 import click
 from rich import print as rprint
@@ -7,7 +12,7 @@ from rich.console import Console
 from rich.syntax import Syntax
 
 from lightlike.__about__ import __appdir__, __config__
-from lightlike.app import _questionary
+from lightlike.app import _questionary, dates, validate
 from lightlike.app.cache import TimeEntryAppData, TimeEntryCache
 from lightlike.app.config import AppConfig
 from lightlike.app.core import FormattedCommand, LazyAliasedGroup
@@ -16,45 +21,47 @@ from lightlike.cmd import _pass
 from lightlike.internal import markup, utils
 
 __all__: t.Sequence[str] = (
+    "_reset",
     "config",
+    "date_diff",
     "dir_",
-    "run_bq",
     "inspect_console",
+    "parse_date",
+    "run_bq",
+    "source_dir",
     "sync",
-    "test",
 )
 
 
+CYGWIN = sys.platform.startswith("cygwin")
+WIN = sys.platform.startswith("win")
+
 P = t.ParamSpec("P")
-
-
-if LIGHTLIKE_CLI_DEV_USERNAME := getenv("LIGHTLIKE_CLI_DEV_USERNAME"):
-    __config = f"/{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike.toml"
-    __appdir = f"/{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike-cli"
-else:
-    __config = __config__.as_posix()
-    __appdir = __appdir__.as_posix()
 
 
 @click.group(
     name="config",
     cls=LazyAliasedGroup,
     lazy_subcommands={
-        "open": "lightlike.cmd.app.config:open_",
+        "edit": "lightlike.cmd.app.config:edit",
         "set": "lightlike.cmd.app.config:set_",
-        "show": "lightlike.cmd.app.config:show",
+        "open": "lightlike.cmd.app.config:open_",
+        "list": "lightlike.cmd.app.config:list_",
     },
-    short_help=f"Cli config file and settings. {__config}",
+    short_help=f"App config file.",
     syntax=Syntax(
         code="""\
+        $ app config edit
+        $ a c e
+        
         $ app config open
         $ a c o
     
-        $ app config show
-        $ a c s
+        $ app config list
+        $ a c l
     
         $ app config set
-        $ a c u\
+        $ a c s\
         """,
         lexer="fishshell",
         dedent=True,
@@ -66,10 +73,10 @@ def config() -> None:
     """
     View/Update cli configuration settings.
 
-    app:config:open:
+    app:config:edit:
         open the config file located in the users home directory using the default text editor.
 
-    app:config:show:
+    app:config:list:
         view config file in terminal.
         this list does not include everything, only the keys that can be updated through the cli.
 
@@ -83,11 +90,59 @@ def config() -> None:
     """
 
 
+# This is a copy of click._termui_impl:open_url, except it only returns the args.
+def _start_command(url: str, wait: bool = False, locate: bool = False) -> str:
+    def _unquote_file(url: str) -> str:
+        from urllib.parse import unquote
+
+        if url.startswith("file://"):
+            url = unquote(url[7:])
+
+        return url
+
+    if sys.platform == "darwin":
+        args = ["open"]
+        if wait:
+            args.append("-W")
+        if locate:
+            args.append("-R")
+        args.append(_unquote_file(url))
+
+    elif WIN:
+        if locate:
+            url = _unquote_file(url.replace('"', ""))
+            args = f'explorer /select,"{url}"'
+            return args
+        else:
+            url = url.replace('"', "")
+            wait_str = "/WAIT" if wait else ""
+            args = f'start {wait_str} "" "{url}"'
+            return args
+
+    elif CYGWIN:
+        if locate:
+
+            url = os.path.dirname(_unquote_file(url).replace('"', ""))
+            args = f'cygstart "{url}"'
+        else:
+            url = url.replace('"', "")
+            wait_str = "-w" if wait else ""
+            args = f'cygstart {wait_str} "{url}"'
+            return args
+
+    if locate:
+        url = os.path.dirname(_unquote_file(url)) or "."
+    else:
+        url = _unquote_file(url)
+
+    return list2cmdline(["xdg-open", url])
+
+
 @click.command(
     cls=FormattedCommand,
     name="dir",
     options_metavar="[LAUNCH OPTION]",
-    short_help=f"Open cli dir: {__appdir}",
+    short_help=f"Open app directory.",
     syntax=Syntax(
         code="""\
         $ app dir
@@ -107,7 +162,7 @@ def config() -> None:
     flag_value=False,
     multiple=False,
     type=click.BOOL,
-    help="Default opens with cmd `start`.",
+    help=f"Default opens with cmd `{_start_command('{uri}', locate=True)}`.",
     required=False,
     default=True,
     callback=None,
@@ -117,7 +172,7 @@ def config() -> None:
 @_pass.console
 def dir_(console: Console, start: bool) -> None:
     """
-    Open cli directory.
+    Open app directory.
 
         --start / -s:
             default option.
@@ -127,16 +182,23 @@ def dir_(console: Console, start: bool) -> None:
             open the app directory using the configured text-editor.
             configure text-editor with app:config:set:general:editor.
     """
-    uri = __appdir__.as_uri()
-    path = __appdir__.as_posix()
+    path: str = f"{__appdir__.resolve()}"
 
     if start:
         click.launch(path)
-        console.print("$ start", markup.link(uri, uri))
+        console.print(f"$ {_start_command(path, locate=True)}")
     else:
-        editor = AppConfig().get("settings", "editor", default=None) or None
-        click.edit(editor=editor, filename=path, require_save=False)
-        console.print("$", editor, markup.link(uri, uri))
+        default_editor = os.environ.get("EDITOR")
+        editor: str | None = (
+            AppConfig().get("settings", "editor", default=default_editor) or None
+        )
+        if editor:
+            click.edit(editor=editor, filename=path, require_save=False)
+            console.print("$", editor, markup.link(path, path))
+        else:
+            console.print("editor not set.")
+            click.launch(path)
+            console.print(f"$ {_start_command(path, locate=True)}")
 
 
 @click.command(
@@ -151,7 +213,7 @@ def dir_(console: Console, start: bool) -> None:
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Canceled Build.")),
 )
 @click.option(
@@ -233,7 +295,7 @@ def inspect_console(console: Console) -> None:
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Canceled Sync.")),
 )
 @click.option("-a", "--appdata", is_flag=True)
@@ -258,6 +320,8 @@ def sync(
     These tables should only ever be altered through the procedures in this cli.
     If the local files are out of sync with BigQuery, or if logging in from a new location, can use this command to re-sync them.
     """
+    if appdata is False and cache is False:
+        return None
     if quiet:
         _appdata.sync()
         _cache.sync()
@@ -274,17 +338,17 @@ def sync(
 
 @click.command(
     cls=FormattedCommand,
-    name="reset-all",
+    name="reset",
     hidden=True,
     allow_name_alias=False,
 )
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @click.option("-y", "--yes", is_flag=True, type=click.BOOL, hidden=True)
 @_pass.appdata
 @_pass.cache
 @_pass.routine
 @_pass.console
-def _reset_all(
+def _reset(
     console: Console,
     routine: CliQueryRoutines,
     cache: TimeEntryCache,
@@ -312,14 +376,126 @@ def _reset_all(
     console.print("[b][green]done")
 
 
-@click.group(
-    name="test",
-    cls=LazyAliasedGroup,
-    lazy_subcommands={
-        "date-parse": "lightlike.cmd.app.test:date_parse",
-        "date-diff": "lightlike.cmd.app.test:date_diff",
-    },
-    short_help="Test functions.",
+@click.command(
+    cls=FormattedCommand,
+    name="parse-date",
+    short_help="Test parser on argument / See examples.",
+    no_args_is_help=True,
+    syntax=Syntax(
+        code=f"""\
+        $ app parse-date now # same as '0d' or 'today'
+        $ app parse-date n # if the date string is the single character `n`, it will expand to `now`.
+        2024-08-05 07:00:00-07:00
+
+        # if a date is not explicitly stated in the string, it will be relative to today
+        $ app parse-date 12:00:00 # HH:MM:SS
+        2024-08-05 12:00:00-07:00
+        $ app parse-date 1200 # or just HHMM
+        2024-08-05 12:00:00-07:00
+        
+        # or %b%d@%H%M (month abbreviated name, day of month 0-padded , @ char, hour, minute)
+        $ app parse-date jan01@1200
+        2024-01-01 12:00:00-08:00
+        # or 
+        $ app parse-date jan01@12pm
+        2024-01-01 12:00:00-08:00
+
+        # prefix with m (minutes), d (days), etc.
+        $ app parse-date 1d  # same as 'yesterday'
+        2024-08-04 07:00:00-07:00
+
+        $ app parse-date 15m
+        2024-08-05 06:45:00-07:00
+
+        $ app parse-date +15m
+        2024-08-05 07:15:00-07:00
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
 )
-def test() -> None:
-    """Test functions."""
+@utils.handle_keyboard_interrupt()
+@click.argument(
+    "date",
+    type=click.STRING,
+    required=False,
+    default=None,
+    callback=validate.callbacks.datetime_parsed,
+    metavar=None,
+    shell_complete=None,
+)
+@_pass.console
+def parse_date(console: Console, date: datetime) -> None:
+    """
+    Test the dateparser function.
+
+    See examples in syntax section below.
+
+    You can opt for more verbose strings if you prefer.
+    Strings such as "monday at 1pm", "january 1st", "15 minutes ago", "in 2 days",
+    or fully qualified dates, such as '2024-01-01' would all work as well.
+
+    Parsed dates prefer the past, unless prefixed with a plus operator.
+    Dates are relative to today, unless explicitely stated in the string.
+
+    An error will raise if the string fails to parse.
+    """
+    console.print(date)
+
+
+@click.command(
+    cls=FormattedCommand,
+    name="date-diff",
+    short_help="Diff between 2 datetime.",
+    no_args_is_help=True,
+    allow_name_alias=False,
+)
+@utils.handle_keyboard_interrupt()
+@click.argument(
+    "date_start",
+    type=click.STRING,
+    callback=validate.callbacks.datetime_parsed,
+)
+@click.argument(
+    "date_end",
+    type=click.STRING,
+    callback=validate.callbacks.datetime_parsed,
+)
+@click.argument(
+    "subtract_hours",
+    type=click.FLOAT,
+    required=False,
+    default=0,
+)
+@_pass.console
+def date_diff(
+    console: Console,
+    date_start: datetime,
+    date_end: datetime,
+    subtract_hours: float,
+) -> None:
+    duration = date_end - date_start
+    time_parts = dates.seconds_to_time_parts(
+        Decimal(subtract_hours or 0) * Decimal(3600)
+    )
+    subtract_hours, paused_minutes, paused_seconds = time_parts
+    duration = (date_end - date_start) - timedelta(
+        hours=subtract_hours,
+        minutes=paused_minutes,
+        seconds=paused_seconds,
+    )
+    hours = round(Decimal(duration.total_seconds()) / Decimal(3600), 4)
+    console.print("Duration:", duration)
+    console.print("Hours:", hours)
+
+
+@click.command(
+    name="source-dir",
+    cls=FormattedCommand,
+    hidden=True,
+    allow_name_alias=False,
+)
+def source_dir() -> None:
+    rprint(Path(__file__).parents[2].resolve().as_uri())

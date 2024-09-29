@@ -1,11 +1,10 @@
 import typing as t
 
 import click
-from pytz import timezone
 from rich import print as rprint
 from rich.table import Table
 
-from lightlike.app import _get, _questionary, dates, render, validate
+from lightlike.app import _get, _questionary, render, shell_complete, validate
 from lightlike.app.config import AppConfig
 from lightlike.app.core import FormattedCommand
 from lightlike.cmd import _pass
@@ -28,7 +27,7 @@ __all__: t.Sequence[str] = ("snapshots",)
     no_args_is_help=True,
     short_help="Create a snapshot.",
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not create snapshot.")),
 )
 @click.option(
@@ -42,9 +41,7 @@ __all__: t.Sequence[str] = ("snapshots",)
     default=None,
     callback=None,
     metavar=None,
-    shell_complete=lambda c, p, i: [
-        f"timesheet_{dates.now(timezone(AppConfig().get('settings', 'timezone'))).strftime('%Y-%m-%dT%H_%M_%S')}"
-    ],
+    shell_complete=shell_complete.snapshot("timesheet"),
 )
 @click.option(
     "-e",
@@ -77,7 +74,7 @@ def create(
     name="restore",
     short_help="Replace timesheet table with a snapshot.",
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not restore snapshot.")),
 )
 @_pass.routine
@@ -102,10 +99,10 @@ def restore(client: "Client", console: "Console", routine: "CliQueryRoutines") -
     except ValueError as e:
         if str(e) == "A list of choices needs to be provided.":
             console.print(markup.dimmed("No snapshots exist"))
-            raise click.exceptions.Exit
+            raise click.exceptions.Exit()
         else:
             console.print(markup.br(e))
-            raise click.exceptions.Exit
+            raise click.exceptions.Exit()
 
     if _questionary.confirm(
         message="This will drop your timesheet table and replace it "
@@ -136,7 +133,7 @@ def list_(console: "Console", routine: "CliQueryRoutines") -> None:
     )
     if not table.row_count:
         rprint(markup.dimmed("No results"))
-        raise click.exceptions.Exit
+        raise click.exceptions.Exit()
     console.print(table)
 
 
@@ -145,14 +142,14 @@ def list_(console: "Console", routine: "CliQueryRoutines") -> None:
     name="delete",
     short_help="Drop a snapshot.",
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not delete snapshot.")),
 )
 @_pass.console
 @_pass.client
 def delete(client: "Client", console: "Console") -> None:
     """Drop a snapshot."""
-    dataset = AppConfig().get("bigquery", "dataset")
+    dataset: str = AppConfig().get("bigquery", default={})["dataset"]
 
     snapshots = list(
         filter(
@@ -165,7 +162,7 @@ def delete(client: "Client", console: "Console") -> None:
 
     if not choices:
         console.print(markup.dimmed("No snapshots exist"))
-        raise click.exceptions.Exit
+        raise click.exceptions.Exit()
 
     selection = _questionary.checkbox(
         message="Select snapshots to delete $",

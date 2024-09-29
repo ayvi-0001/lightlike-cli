@@ -10,12 +10,14 @@ from rich.text import Text
 from lightlike.__about__ import __appname_sc__
 from lightlike.app import _get, _questionary, render, shell_complete, threads, validate
 from lightlike.app.autosuggest import threaded_autosuggest
+from lightlike.app.config import AppConfig
 from lightlike.app.core import AliasedGroup, FormattedCommand
 from lightlike.app.prompt import PromptFactory
 from lightlike.cmd import _pass
 from lightlike.internal import markup, utils
 
 if t.TYPE_CHECKING:
+    from google.cloud.bigquery import QueryJob
     from rich.console import Console
 
     from lightlike.app.cache import TimeEntryAppData, TimeEntryCache
@@ -53,7 +55,7 @@ __all__: t.Sequence[str] = (
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not archive projects.")),
 )
 @click.argument(
@@ -157,7 +159,7 @@ def archive(
                 fields=["count(*) as count_entries"],
                 where=[f'project = "{project}"'],
             )
-            routine.archive_project(
+            routine._archive_project(
                 project,
                 wait=True,
                 render=True,
@@ -167,7 +169,7 @@ def archive(
                     markup.code(project),
                 ),
             )
-            routine.archive_time_entries(
+            routine._archive_time_entries(
                 project,
                 wait=True,
                 render=True,
@@ -221,7 +223,7 @@ def archive(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not create project.")),
 )
 @click.option(
@@ -283,7 +285,7 @@ def create(
     The name [code]no-project[/code] is reserved for the default setting.
 
     --name / -n:
-        must match regex [code]^\[a-zA-Z0-9-\\_]{3,20}$[/code].
+        must match regex [code]^\[a-zA-Z0-9-\\_\\.]{3,30}$[/code].
     """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
@@ -307,7 +309,7 @@ def create(
         "[DEBUG]", "project default billable set to", default_billable
     )
 
-    routine.create_project(
+    query_job: "QueryJob" = routine._create_project(
         name=name,
         description=description or "",
         default_billable=default_billable,
@@ -315,7 +317,8 @@ def create(
         render=True,
         status_renderable=markup.status_message("Creating project"),
     )
-    threads.spawn(ctx, appdata.sync, dict(debug=debug))
+
+    threads.spawn(ctx, appdata.sync, dict(trigger_query_job=query_job, debug=debug))
     console.print("Created new project:", markup.code(name))
 
 
@@ -330,7 +333,8 @@ def create(
         $ p d lightlike-cli
 
         # delete multiple
-        $ project delete example-project1 example-project2 example-project3\
+        $ project delete example-project1 example-project2 example-project3
+        $ p d example-project1 example-project2 example-project3\
         """,
         lexer="fishshell",
         dedent=True,
@@ -338,7 +342,7 @@ def create(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not delete projects.")),
 )
 @click.argument(
@@ -411,7 +415,7 @@ def delete(
                 fields=["count(*) as count_entries"],
                 where=[f'project = "{project}"'],
             )
-            routine.delete_project(
+            routine._delete_project(
                 project,
                 wait=True,
                 render=True,
@@ -423,7 +427,7 @@ def delete(
                 ),
             )
             threads.spawn(ctx, appdata.sync, dict(debug=debug))
-            routine.delete_time_entries(
+            routine._delete_time_entries_by_project(
                 project,
                 wait=True,
                 render=True,
@@ -447,15 +451,14 @@ def delete(
 
             if cache and cache.project == project:
                 cache._clear_active()
-                console.set_window_title(__appname_sc__)
+                if AppConfig().get("settings", "update-terminal-title", default=True):
+                    console.set_window_title(__appname_sc__)
 
             cache.remove(
                 entries=[cache.running_entries, cache.paused_entries],
                 key="project",
                 sequence=[project],
             )
-
-            status.update("")
 
 
 @click.command(
@@ -493,12 +496,12 @@ def delete(
     shell_complete=None,
 )
 @click.option(
-    "-Rn",
+    "-rn",
     "--match-name",
     show_default=True,
-    multiple=False,
+    multiple=True,
     type=click.STRING,
-    help="Expression to match project name.",
+    help="Expressions to match project name.",
     required=False,
     default=None,
     callback=None,
@@ -506,12 +509,12 @@ def delete(
     shell_complete=None,
 )
 @click.option(
-    "-Rd",
+    "-rd",
     "--match-description",
     show_default=True,
-    multiple=False,
+    multiple=True,
     type=click.STRING,
-    help="Expression to match project description.",
+    help="Expressions to match project description.",
     required=False,
     default=None,
     callback=None,
@@ -550,8 +553,8 @@ def list_(
     console: "Console",
     routine: "CliQueryRoutines",
     all_: bool,
-    match_name: str,
-    match_description: str,
+    match_name: t.Sequence[str] | None,
+    match_description: t.Sequence[str] | None,
     modifiers: str,
     regex_engine: str,
 ) -> None:
@@ -561,11 +564,13 @@ def list_(
     --all / -a:
         include archived projects.
 
-    --match-name / -Rp:
+    --match-name / -rp:
         match a regular expression against project names.
+        this option can be repeated, with each pattern being separated by `|`.
 
-    --match-description/ -Rd:
+    --match-description/ -rd:
         match a regular expression against project description.
+        this option can be repeated, with each pattern being separated by `|`.
 
     --modifiers / -M:
         modifiers to pass to RegExp. (ECMAScript only)
@@ -593,20 +598,34 @@ def list_(
 
     if not all_:
         where.append("archived is null")
+
     if match_name:
+        name_expressions: list[str] = []
+        for pattern in match_name:
+            name_expressions.append(pattern)
+
+        name_expression: str = "|".join(name_expressions)
+
         where.append(
             routine._format_regular_expression(
                 field="name",
-                expression=match_name,
+                expression=name_expression,
                 modifiers=modifiers,
                 regex_engine=regex_engine,
             )
         )
+
     if match_description:
+        description_expressions: list[str] = []
+        for pattern in match_name:
+            description_expressions.append(pattern)
+
+        description_expression: str = "|".join(description_expressions)
+
         where.append(
             routine._format_regular_expression(
                 field="description",
-                expression=match_description,
+                expression=description_expression,
                 modifiers=modifiers,
                 regex_engine=regex_engine,
             )
@@ -629,21 +648,22 @@ def list_(
     )
     if not table.row_count:
         rprint(markup.dimmed("No results"))
-        raise click.exceptions.Exit
+        raise click.exceptions.Exit()
+
     console.print(table)
 
 
 @click.group(
     cls=AliasedGroup,
     name="set",
-    short_help="Update a project's name/description/default_billable.",
+    short_help="Update a project's name/description/default-billable.",
     syntax=Syntax(
         code="""\
         $ project set name lightlike-cli …
     
         $ project set description lightlike-cli …
 
-        $ project set default_billable lightlike-cli …\
+        $ project set default-billable lightlike-cli …\
         """,
         lexer="fishshell",
         dedent=True,
@@ -673,7 +693,7 @@ def set_() -> None:
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not update project.")),
 )
 @click.argument(
@@ -717,7 +737,7 @@ def set_project_name(
     """
     Update a project's name.
 
-    Name must match regex [code]^\[a-zA-Z0-9-\\_]{3,20}$[/code].
+    Name must match regex [code]^\[a-zA-Z0-9-\\_\\.]{3,30}$[/code].
     The name [code]no-project[/code] is reserved for the default setting.
     """
     ctx, parent = ctx_group
@@ -727,10 +747,10 @@ def set_project_name(
 
     if project == new_name:
         console.print(markup.dimmed("Current name, nothing happened."))
-        raise click.exceptions.Exit
+        raise click.exceptions.Exit()
 
     with console.status(markup.status_message("Updating project")) as status:
-        routine.update_project_name(
+        routine._update_project_name(
             name=project,
             new_name=new_name,
             wait=True,
@@ -739,7 +759,7 @@ def set_project_name(
             status_renderable=markup.status_message("Updating project name"),
         )
         threads.spawn(ctx, appdata.sync, dict(debug=debug))
-        routine.update_time_entry_projects(
+        routine._update_time_entry_projects(
             name=project,
             new_name=new_name,
             wait=True,
@@ -772,7 +792,7 @@ def set_project_name(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not update project.")),
 )
 @click.argument(
@@ -838,15 +858,15 @@ def set_project_description(
     )
 
     if not new_desc:
-        raise click.exceptions.Exit
+        raise click.exceptions.Exit()
 
     if current_desc == new_desc:
         console.print(markup.dimmed("Current description, nothing happened."))
         return
 
-    routine.update_project_description(
-        project,
-        new_desc,
+    routine._update_project_description(
+        name=project,
+        description=new_desc,
         wait=True,
         render=True,
         status_renderable=markup.status_message("Updating project"),
@@ -857,10 +877,10 @@ def set_project_description(
 
 @set_.command(
     cls=FormattedCommand,
-    name="default_billable",
+    name="default-billable",
     syntax=Syntax(
         code="""\
-        $ project set default_billable lightlike-cli true
+        $ project set default-billable lightlike-cli true
         $ p s def lightlike-cli true\
         """,
         lexer="fishshell",
@@ -869,7 +889,7 @@ def set_project_description(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not update project.")),
 )
 @click.argument(
@@ -912,9 +932,9 @@ def set_project_default_billable(
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
-    routine.update_project_default_billable(
-        project,
-        billable,
+    routine._update_project_default_billable(
+        name=project,
+        default_billable=billable,
         wait=True,
         render=True,
         status_renderable=markup.status_message("Updating project"),
@@ -934,7 +954,8 @@ def set_project_default_billable(
         $ p u lightlike-cli
 
         # unarchive multiple
-        $ project unarchive example-project1 example-project2 example-project3\
+        $ project unarchive example-project1 example-project2 example-project3
+        $ p u example-project1 example-project2 example-project3\
         """,
         lexer="fishshell",
         dedent=True,
@@ -942,7 +963,7 @@ def set_project_default_billable(
         background_color="#131310",
     ),
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not unarchive project.")),
 )
 @click.argument(
@@ -986,7 +1007,7 @@ def unarchive(
                 fields=["count(*) as count_entries"],
                 where=[f'project = "{project}"'],
             )
-            routine.unarchive_project(
+            routine._unarchive_project(
                 project,
                 wait=True,
                 render=True,
@@ -997,7 +1018,7 @@ def unarchive(
                 ),
             )
             threads.spawn(ctx, appdata.sync, dict(debug=debug))
-            routine.unarchive_time_entries(
+            routine._unarchive_time_entries(
                 project,
                 wait=True,
                 render=True,

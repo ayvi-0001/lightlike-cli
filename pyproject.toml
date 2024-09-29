@@ -4,68 +4,77 @@ build-backend = "hatchling.build"
 
 [project]
 name = "lightlike"
-readme = "README.md"
+readme = { "file" = "README.md", "content-type" = "text/markdown" }
 license = { file = "LICENSE" }
 requires-python = ">=3.11"
 dynamic = ["version"]
 dependencies = [
-  "anyio==4.3.0",
-  "APScheduler==3.10.4",
-  "cachetools==5.3.3",
-  "certifi==2024.7.4",
-  "cffi==1.16.0",
-  "charset-normalizer==3.3.2",
-  "click==8.1.7",
-  "colorama==0.4.6",
-  "cryptography==42.0.7",
+  # Dependencies with conditional "'android' not in platform_release" fail to build on termux.
+  "anyio>=4.3.0",
+  "APScheduler>=3.10.4",
+  "cachetools>=5.3.3",
+  "certifi>=2024.7.4",
+  "cffi>=1.16.0",
+  "charset-normalizer>=3.3.2",
+  "click>=8.1.7",
+  "colorama>=0.4.6",
+  "cryptography>=42.0.7",
   "dateparser==1.2.0",
-  "db-dtypes~=1.2.0; 'android' not in platform_release",
+  "db-dtypes>=1.2.0; 'android' not in platform_release",
   "fasteners==0.19",
-  "google-api-core==2.17.1",
-  "google-auth==2.28.2",
-  "google-cloud-bigquery==3.18.0",
-  "google-cloud-core==2.4.1",
-  "google-crc32c==1.5.0",
-  "google-resumable-media==2.7.0",
-  "googleapis-common-protos==1.62.0",
-  "greenlet==3.0.3",
-  "h11==0.14.0",
-  "httpcore~=1.0",
-  "httpx==0.27.0",
+  "fuzzyfinder>=2.2.0",
+  "google-api-core>=2.17.1",
+  "google-auth>=2.28.2",
+  "google-cloud-bigquery-storage>=2.26.0; 'android' not in platform_release",
+  "google-cloud-bigquery>=3.18.0",
+  "google-cloud-core>=2.4.1",
+  "google-crc32c>=1.5.0",
+  "google-resumable-media>=2.7.0",
+  "googleapis-common-protos>=1.62.0",
+  "greenlet>=3.0.3",
+  "h11>=0.14.0",
+  "httpcore>=1.0",
+  "httpx>=0.27.0",
   "idna==3.7",
-  "markdown-it-py==3.0.0",
-  "mdurl==0.1.2",
-  "more-itertools==10.2.0",
+  "markdown-it-py>=3.0.0",
+  "mdurl>=0.1.2",
+  "more-itertools>=10.2.0",
   "numpy~=1.26.4; 'android' not in platform_release",
-  "packaging~=23.2",
-  "pandas~=2.2.1; 'android' not in platform_release",
+  "packaging>=23.2",
+  "pandas>=2.2.1; 'android' not in platform_release",
   "prompt-toolkit~=3.0.47",
-  "protobuf==4.25.3",
-  "pyarrow~=15.0.1; 'android' not in platform_release",
-  "pyasn1==0.5.1",
-  "pyasn1-modules==0.3.0",
-  "pycparser==2.21",
-  "Pygments==2.17.2",
-  "python-dateutil==2.9.0.post0",
-  "pytz==2024.1",
-  "pytz-deprecation-shim==0.1.0.post0",
-  "pywin32>=306; sys_platform == 'win32'",
+  "protobuf>=4.25.3",
+  "pyarrow>=15.0.1; 'android' not in platform_release",
+  "pyasn1-modules>=0.3.0",
+  "pyasn1>=0.5.1",
+  "pycparser>=2.21",
+  "Pygments>=2.17.2",
+  "python-dateutil>=2.9.0.post0",
+  "pytz-deprecation-shim>=0.1.0.post0",
+  "pytz>=2024.1",
   "pywin32-ctypes>=0.2.2; sys_platform == 'win32'",
-  "questionary @ git+https://github.com/FantasqueX/questionary@670653df2db3b71b2345db556bfb8040e0f20728",
-  "regex==2023.12.25",
+  "pywin32>=306; sys_platform == 'win32'",
+  "questionary @ git+https://github.com/tmbo/questionary@caad2e5ce3694d53d1a0666751339262799bed9f",
+  "regex>=2023.12.25",
   "requests>=2.32.0",
-  "rich==13.7.1",
-  "rsa==4.9",
-  "rtoml==0.10.0",
-  "six==1.16.0",
-  "sniffio==1.3.1",
+  "rich~=13.7.1",
+  "rsa>=4.9",
+  "rtoml>=0.11.0",
+  "six>=1.16.0",
+  "sniffio>=1.3.1",
   "SQLAlchemy==2.0.31",
-  "typing_extensions~=4.10.0",
-  "tzdata==2024.1",
+  "typing_extensions>=4.12.2",
+  "tzdata>=2024.1",
   "tzlocal<5,>=4",
   "urllib3>=2.2.2",
-  "wcwidth==0.2.13",
+  "wcwidth>=0.2.13",
 ]
+
+[project.urls]
+Repository = "https://github.com/ayvi-0001/lightlike-cli"
+
+[project.scripts]
+lightlike = "lightlike.cli:main"
 
 [project.optional-dependencies]
 sqlalchemy-bigquery = ["sqlalchemy-bigquery~=1.11.0"]
@@ -78,18 +87,20 @@ dev = [
   "pytest==8.2.2",
   "pytest-order==1.2.1",
   "pytest-xdist==3.6.1",
+  "types-Pygments>=2.17.0.0",
+  "types-six>=1.16.21.20240513",
   "types-dateparser>=1.1.4.20240106",
   "types-pytz>=2023.3.1.1",
 ]
-
-[project.scripts]
-lightlike = "lightlike.cli:lightlike"
+all = ["lightlike[sqlalchemy-bigquery, dev]"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["lightlike"]
+dependencies = ["rich", "click"]
 
 [tool.hatch.build.targets.sdist]
 packages = ["lightlike"]
+dependencies = ["rich", "click"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
@@ -111,9 +122,12 @@ log_cli = true
 log_level = "DEBUG"
 
 [tool.mypy]
+strict = true
+ignore_missing_imports = true
 disable_error_code = [
   "func-returns-value",
   "import-not-found",
   "import-untyped",
   "no-untyped-call",
+  "no-any-unimported",
 ]

@@ -1,6 +1,6 @@
-<!-- markdownlint-disable MD033 MD046 -->
+<!-- markdownlint-disable MD033 MD046 MD024 -->
 
-# Lightlike-CLI
+# lightlike-cli
 
 ![GitHub Release](https://img.shields.io/github/v/release/ayvi-0001/lightlike-cli?display_name=release&style=social&label=Latest%20Release)&nbsp;&nbsp;
 ![GitHub commits since latest release](https://img.shields.io/github/commits-since/ayvi-0001/lightlike-cli/latest?style=social)&nbsp;&nbsp;
@@ -8,51 +8,45 @@
 
 A time-tracking REPL, using [Google BigQuery](https://cloud.google.com/bigquery?hl=en) as a backend.
 
-![timer_run](/docs/assets/gifs/timer_run.gif)
+- [Features](#features)
+- [Installation & Setup](#installation--setup)
+- [Command Guide](https://github.com/ayvi-0001/lightlike-cli/blob/main/docs/command_guide.md)
 
-For an overview of features, See [Features](#features).
-
-For steps on installation & setup, See [Installation & Setup](#installation--setup).
-
-For a full list of commands, see the [Command Guide](https://github.com/ayvi-0001/lightlike-cli/blob/main/docs/command_guide.md).
+![example](/docs/assets/gifs/example.gif)
 
 ---
 
 ## Features
 
+<ins>*Addtional feature videos to be added*</ins>
+
 - **Aliased commands & Auto Completion.**
-  
+
   The primary goal of this tool is to make logging hours as fast as possible.
   All commands are aliased - as long as it is unique, you can type the shortest prefix down to a single character to call that command.
   All options have a short flag and relevant autocompletions if applicable.
   Previously entered notes autocomplete if their respective projects are selected as an option.
 
-  ```sh
+  ```bash
+  # no options starts a new time entry under "no-project"
   $ timer run
   $ t ru
-  # no options starts a new time entry under "no-project"
-  
-  $ timer run --project lightlike-cli --note "readme" --start -1hr --billable False
-  $ t ru -plightlike-cli -n"readme" -s-1hr -b0
+
+  $ timer run --project lightlike-cli --note "readme" --start 1h --billable true
+  $ t ru -plightlike-cli -n"readme" -s1h -b1
   ```
 
 - **Concurrent timers.**
 
   You can have multiple time entries running at once, pausing and resuming as needed.
 
-  ![feature_concurrent_time_entries](/docs/assets/gifs/feature_concurrent_time_entries.gif)
-
 - **Export timesheet summaries.**
 
   Export a timesheet summary as an `svg`/`csv`/`json`.
 
-  ![feature_summary](/docs/assets/gifs/feature_summary.gif)
-
 - **BigQuery Shell.**
 
   Write directly to BigQuery <span style="color:grey">(***Note**: This is a very minimal feature shell, as it's not main focus of this tool*)</span>.
-
-  ![feature_bq_shell](/docs/assets/gifs/feature_bq_shell.gif)
 
 - **Backup/restore snapshots.**
 
@@ -65,105 +59,97 @@ For a full list of commands, see the [Command Guide](https://github.com/ayvi-000
 
   They can also be passed by typing the command and pressing `:!` or `esc`+`enter`,\
   or press `meta`+`shift`+`1` to enable a system prompt.
-  
-  `:c{1 | 2 | 3}` to add/remove completions from the global completer. `1`=commands, `2`=history, `3`=path
+
+  `:c{1 | 2 | 3 | 4}` to add/remove completions from the global completer.\
+  `1`=commands, `2`=history, `3`=path, `4`=executables
 
   Path autocompletion is automatic for `cd`.
-  
-  ![feature_system_commands](/docs/assets/gifs/feature_system_commands.gif)
 
 ---
 
 ## Installation & Setup
 
-> [!IMPORTANT]  
-> This CLI requires a connection to BigQuery. This can be either determined from the environment, or through a service account key.
+- This package is not currently hosted on PyPI. It may be uploaded in the future.
+- Support for a local only version is planned long-term.
+
+<br />
+
+```bash
+# Run the following command to install the latest release:
+pip install "lightlike @ git+https://github.com/ayvi-0001/lightlike-cli@$TAG" # substitute TAG, e.g. TAG=v0.0.0
+
+# Run the following command to install the latest commit:
+pip install "lightlike @ git+https://github.com/ayvi-0001/lightlike-cli@main"
+```
+
+<br />
+
+There is a short initial setup the first time the CLI runs to configure the default timezone, settings/authorization for BigQuery, and running scripts to build the required procedures/tables.
+
+Once it's installed, start the REPL by running the command `$ lightlike`
+
+<br />
+
+> [!NOTE]
+> This tool depends on the library [`rtoml`](https://github.com/samuelcolvin/rtoml) which is implemented in [rust](https://www.rust-lang.org/).
+> When installing from your package manager , it will attempt to find the appropriate binary for your system configuration from [this list](https://pypi.org/project/rtoml/#files).
+> If it's it's unable to determine this, you'll need [rust stable](https://releases.rs/) installed to compile it.
 >
-> If the selected option is the latter, the service account key is encrypted using a user-provided password to avoid keeping a plain-text file on the local machine.
+> If your package manager was unable to determine your system configuration but you see an appropriate binary available, you can try to install it manually:
 >
-> Support for a local version is planned long-term.
+> ```bash
+> pip install https://files.pythonhosted.org/packages/4c/6d/48ce15a3919a5c07a19ae3c80b9fadbe1e13a5e475198143965d3de6e60b/rtoml-0.11.0-cp311-none-win_amd64.whl
+> ```
 >
-> This package is not currently hosted on PyPI. It may be uploaded in the future.
 
----
+<br />
 
-> [!NOTE]  
-> These examples are creating a virtual environment in the user's home directory called `lightlike_cli`.\
-> This is optional but recommended. Update the target directories as needed.
-
----
-
-### Linux
-
-```sh
-cd ~
-virtualenv lightlike_cli
-source lightlike_cli/bin/activate
-
-pip install "lightlike @ git+https://github.com/ayvi-0001/lightlike-cli@v0.10.0b3"
-```
-
-### Git Bash/Cygwin on Windows
-
-```sh
-cd ~
-virtualenv lightlike_cli
-source lightlike_cli/Scripts/activate
-
-pip install "lightlike @ git+https://github.com/ayvi-0001/lightlike-cli@v0.10.0b3"
-```
-
-### Windows
-
-```sh
-cd %USERPROFILE%
-virtualenv lightlike_cli
-lightlike_cli\Scripts\activate
-
-pip install "lightlike @ git+https://github.com/ayvi-0001/lightlike-cli@v0.10.0b3"
-```
-
-As long as you are in the virutal environment, you should now be able to start the REPL by typing the command below:
-
-```sh
-lightlike
-```
-
-#### *Optional*: Create a symbolic link on `$PATH`
-
-This step will only work if you're on Linux, or using Git Bash/Cygwin on Windows.\
-The `mklink` command in Command Prompt will not work to create a symbolic link to an executable.
-
-### Symbolic Link - Linux
-
-```sh
-cd /usr/local/bin
-sudo ln -s ~/lightlike_cli/bin/lightlike
-```
-
-### Symbolic Link - Git Bash/Cygwin
-
-```sh
-cd ~/Appdata/Local/Programs/Python/Python311/Scripts
-ln -s ~/lightlike_cli/Scripts/lightlike.exe
-```
-
-After running the commands above, you should be able to start the CLI using the command `$ lightlike` from anywhere, without needing to activate the virtual environment first.
-
-There is a short initial setup the first time the CLI runs to configure default settings and set up authorization. This includes setting up the default timezone, and running scripts to build the required procedures/tables in BigQuery.
+> [!NOTE]
+> This CLI requires a connection to BigQuery. You must have a [Google Cloud Project](https://developers.google.com/workspace/guides/create-project) with [billing enabled](https://cloud.google.com/billing/docs/how-to/modify-project).
+> Authorization for BigQuery can come from 2 sources:
+>
+> - **Environment**: Application Default Credentials set using [`gcloud`](https://cloud.google.com/sdk/gcloud). [See here for information on installing the gcloud SDK](https://cloud.google.com/sdk/docs/install).
+> - **Service Account Key**: [See here for information on creating service accounts](https://cloud.google.com/iam/docs/service-accounts-create). You'll need the role [Service Account Key Admin](https://cloud.google.com/iam/docs/understanding-roles#iam.serviceAccountKeyAdmin).
+>   If you are authorizing using a service account key, this CLI will ask you to **provide a password** that it will use to encrypt the key. This is to avoid keeping a plain-text file of the key on the local machine.\
+>   If you have `gcloud` installed, you can create a service-account and grant it the required permissions with the following script.
+>
+>   ```bash
+>   #!/usr/bin/env bash
+>
+>   # @note gcloud_sdk_version '487.0.0'
+>
+>   PROJECT_ID=YOUR-PROJECT-ID # TODO replace with your project id
+>   SERVICE_ACCOUNT_NAME=lightlike-cli
+>   SERVICE_ACCOUNT_EMAIL="$SERVICE_ACCOUNT_NAME@$PROJECT_ID.iam.gserviceaccount.com"
+>   # TODO store somewhere safe, or immediately remove from the machine after starting the cli.
+>   KEY_FILE=~/lightlike-credentials.json
+>
+>   # Create a new service account.
+>   gcloud iam service-accounts create \
+>       "$SERVICE_ACCOUNT_NAME" \
+>       --description="https://github.com/ayvi-0001/lightlike-cli" \
+>       --display-name="lightlike-cli"
+>
+>   # Create a new key.
+>   gcloud iam service-accounts keys create "$KEY_FILE" --iam-account="$SERVICE_ACCOUNT_EMAIL"
+>
+>   # Add the required permissions.
+>   gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+>       --member="serviceAccount:$SERVICE_ACCOUNT_EMAIL" \
+>       --role=roles/bigquery.user \
+>       --role=roles/bigquery.metadataViewer \
+>       --condition=None
+>   ```
 
 ---
 
 ## Issues
 
-This tool is not 100% complete and you may encounter bugs.
-It's recommended to keep frequent backups of your time entries (primarily why the snapshot commands were added).
-
-Please feel free to open an issue if you encounter any. If any uncaught exceptions raise, a traceback will save in the app directory and you'll see a message similar to the one below:
+This tool is still not 100% complete. It's recommended to keep frequent backups of your time entries. Please feel free to open an issue if you encounter bugs. If any uncaught exceptions raise, a traceback will save in the app directory and you'll see a message similar to the one below:
 
 ![error_logs](/docs/assets/png/error_logs.png)
 
-If there is any loss of data without having created a recent snapshot, there are methods to recover it.
+If there is any loss of data without having created a recent snapshot, and you are *within the fail-safe period of the last 7 days*, there are methods to recover it.
 
 If the table has not been dropped, you can query historical data by using the `FOR SYSTEM_TIME AS OF` clause.
 
@@ -176,11 +162,11 @@ FOR SYSTEM_TIME AS OF
   CURRENT_TIMESTAMP - INTERVAL 12 HOUR;
 ```
 
-If the table has been dropped, you can recover it from any point in time within the fail-safe period of the last 7 days using the `bq` command line tool.
-Use the `cp` command, with the unix microseconds of the snapshot time appended to the base table name.
+If the table has been dropped, you can recover it using the `bq` gcloud component.
+Use the `cp` command, with the unix milliseconds of the snapshot time appended to the base table name with the `@` symbol.
 
-```sh
-bq cp lightlike_cli.timesheet@1718174353373181 lightlike_cli.timesheet
+```bash
+bq cp lightlike_cli.timesheet@1723306791 lightlike_cli.timesheet
 ```
 
----
+If you have `gcloud` installed but you run into the error `bq: command not found`, try running `gcloud components install bq`.

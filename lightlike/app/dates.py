@@ -10,7 +10,6 @@ import pytz
 from rich.text import Text
 
 from lightlike.app.config import AppConfig
-from lightlike.internal.utils import _get_local_timezone_string
 
 if t.TYPE_CHECKING:
     from datetime import _TzInfo
@@ -61,16 +60,16 @@ with AppConfig().rw() as config:
 
 DEFAULT_PARSER_SETTINGS: dict[str, t.Any] = {
     # fmt: off
-    "CACHE_SIZE_LIMIT": dateparser_settings.get("cache_size_limit"),
-    "LANGUAGE_DETECTION_CONFIDENCE_THRESHOLD": dateparser_settings.get("language_detection_confidence_threshold"),
+    "CACHE_SIZE_LIMIT": dateparser_settings.get("cache-size-limit"),
+    "LANGUAGE_DETECTION_CONFIDENCE_THRESHOLD": dateparser_settings.get("language-detection-confidence-threshold"),
     "NORMALIZE": dateparser_settings.get("normalize"),
-    "STRICT_PARSING": dateparser_settings.get("strict_parsing"),
-    "PREFER_MONTH_OF_YEAR": dateparser_settings.get("prefer_month_of_year"),
-    "PREFER_DAY_OF_MONTH": dateparser_settings.get("prefer_day_of_month"),
-    "PREFER_DATES_FROM": dateparser_settings.get("prefer_dates_from"),
-    "DATE_ORDER": dateparser_settings.get("date_order"),
-    "PREFER_LOCALE_DATE_ORDER": dateparser_settings.get("prefer_locale_date_order"),
-    "DEFAULT_LANGUAGES": dateparser_settings.get("default_languages"),
+    "STRICT_PARSING": dateparser_settings.get("strict-parsing"),
+    "PREFER_MONTH_OF_YEAR": dateparser_settings.get("prefer-month-of-year"),
+    "PREFER_DAY_OF_MONTH": dateparser_settings.get("prefer-day-of-month"),
+    "PREFER_DATES_FROM": dateparser_settings.get("prefer-dates-from"),
+    "DATE_ORDER": dateparser_settings.get("date-order"),
+    "PREFER_LOCALE_DATE_ORDER": dateparser_settings.get("prefer-locale-date-order"),
+    "DEFAULT_LANGUAGES": dateparser_settings.get("default-languages"),
     "REQUIRE_PARTS": [],
     "RETURN_TIME_AS_PERIOD": False,
     "SKIP_TOKENS": ["t"],
@@ -86,7 +85,8 @@ DEFAULT_PARSER_SETTINGS: dict[str, t.Any] = {
 }
 
 ADDITIONAL_DATE_FORMATS: list[str] = dateparser_settings.get(
-    "ADDITIONAL_DATE_FORMATS", ["%I%p", "%I:%M%p", "%H:%M:%S"]
+    "additional-date-formats",
+    ["%I%p", "%I:%M%p", "%I%M%p", "%H%M", "%H%M%S", "%H:%M", "%H:%M:%S"],
 )
 
 del dateparser_settings
@@ -99,17 +99,22 @@ def parse_date(
 ) -> datetime:
     if isinstance(tzinfo, str):
         tzinfo = pytz.timezone(tzinfo)
-    elif tzinfo is None:
-        tzinfo = pytz.timezone(_get_local_timezone_string(default="UTC"))
+
+    if tzinfo is None:
+        tzinfo = AppConfig().tzinfo
 
     _settings = DEFAULT_PARSER_SETTINGS.copy()
     _settings.update(
-        {
-            "RELATIVE_BASE": relative_base or now(tzinfo),
-            "TO_TIMEZONE": f"{tzinfo}",
-            "TIMEZONE": f"{tzinfo}",
-        },
+        RELATIVE_BASE=relative_base or now(tzinfo),
+        TO_TIMEZONE=f"{tzinfo}",
+        TIMEZONE=f"{tzinfo}",
     )
+
+    if date.startswith("+"):
+        _settings.update(PREFER_DATES_FROM="future")
+    if date == "n":
+        date = "now"
+
     parsed_date = dateparser.parse(
         date,
         settings=t.cast("_Settings", _settings),
@@ -159,7 +164,7 @@ def get_relative_week(
             delta = timedelta(days=start_date.weekday() % 7)
         case _:
             raise click.BadParameter(
-                message="Invalid setting for `week_start`. "
+                message="Invalid setting for `week-start`. "
                 "Value must be either 1 or 0.",
                 ctx=click.get_current_context(silent=True),
             )

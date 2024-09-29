@@ -1,17 +1,19 @@
+import getpass
+import socket
 import typing as t
 from datetime import datetime, timedelta
 from decimal import Decimal
-from os import getenv
 from pathlib import Path
 
-from prompt_toolkit.application import Application, get_app
+import rtoml
 from prompt_toolkit.formatted_text import fragment_list_width
-from pytz import timezone
 from rich import get_console
 
+from lightlike.__about__ import __appdir__
 from lightlike.app.cache import EntriesInMemory
 from lightlike.app.config import AppConfig
 from lightlike.app.dates import now, seconds_to_time_parts
+from lightlike.app.shell_complete.dynamic import global_completers
 
 if t.TYPE_CHECKING:
     from datetime import _TzInfo
@@ -31,67 +33,70 @@ OneStyleAndTextTuple = t.Union[
 StyleAndTextTuples = list[OneStyleAndTextTuple]
 
 
-USERNAME: str = AppConfig().get("user", "name")
-HOSTNAME: str = AppConfig().get("user", "host")
-GCP_PROJECT: str = AppConfig().get("client", "active_project")
-BRANCH: str = AppConfig().get("git", "branch")
-PATH: str = AppConfig().get("git", "path")
-TIMEZONE: "_TzInfo" = timezone(AppConfig().get("settings", "timezone"))
+USERNAME: str = AppConfig().get("user", "name", default=getpass.getuser())
+HOSTNAME: str = AppConfig().get("user", "host", default=socket.gethostname())
+GCP_PROJECT: str | None = AppConfig().get("client", "active-project")
+TIMEZONE: "_TzInfo" = AppConfig().tzinfo
+UPDATE_TERMINAL_TITLE: bool = AppConfig().get(
+    "settings", "update-terminal-title", default=True
+)
+RPROMPT_DATE_FORMAT: str = AppConfig().get(
+    "settings", "rprompt-date-format", default="[%H:%M:%S]"
+)
 
 
-def build(message: str | None = None) -> str:
-    """
-    The actual return for this function is either a sequence of tuples, or a callable returning a sequence of tuples.
-    The return value is casted as a string only to signal to the type checker
-    that the return value has the required type for :param: `message` in :class: `prompt_toolkit.shortcuts.PromptSession`.
-    It should only be used in that context.
-    """
+def build(message: str | None = None) -> t.Callable[[], StyleAndTextTuples]:
     if not message:
         cursor: StyleAndTextTuples = []
         cwd: Path = Path.cwd()
 
         _extend_base(cursor, cwd)
-        _extend_active_project(cursor, GCP_PROJECT)
+        GCP_PROJECT and _extend_active_project(cursor, GCP_PROJECT)
         _extend_git_branch(cursor, cwd)
 
         if cache := EntriesInMemory():
             timer: str = _timer(cache)
-            get_console().set_window_title(timer)
+
+            if UPDATE_TERMINAL_TITLE:
+                get_console().set_window_title(f"{timer} | {cache.project}")
+
             _extend_timer(cursor, timer)
 
         _extend_cursor_pointer(cursor)
 
-        return t.cast(str, cursor)
+        return lambda: cursor
 
     def build_with_message(message: str | None = message) -> StyleAndTextTuples:
         cursor: StyleAndTextTuples = []
         cwd: Path = Path.cwd()
 
         _extend_base(cursor, cwd)
-        _extend_active_project(cursor, GCP_PROJECT)
+        GCP_PROJECT and _extend_active_project(cursor, GCP_PROJECT)
         _extend_git_branch(cursor, cwd)
 
         if cache := EntriesInMemory():
             timer: str = _timer(cache)
-            get_console().set_window_title(timer)
+
+            if UPDATE_TERMINAL_TITLE:
+                get_console().set_window_title(f"{timer} | {cache.project}")
+
             _extend_timer(cursor, timer)
 
         _extend_cursor_pointer(cursor, message or "")
 
         return cursor
 
-    return t.cast(str, build_with_message)
+    return build_with_message
 
 
 def bottom_toolbar() -> t.Callable[..., StyleAndTextTuples]:
-    app: Application[t.Any] = get_app()
     cache = EntriesInMemory()
-    columns: int = app.output.get_size().columns
+    columns: int = get_console().width
     toolbar: StyleAndTextTuples = []
 
     if cache:
-        toolbar.extend([("class:rprompt.entries", f" A[{cache.id[:8]}")])
-        toolbar.extend([("class:rprompt.entries", f":{cache.project}")])
+        toolbar.extend([("class:bottom-toolbar.text", f" A[{cache.id[:8]}")])
+        toolbar.extend([("class:bottom-toolbar.text", f":{cache.project}")])
 
         cache_note: str = cache.note
         if cache_note:
@@ -101,17 +106,29 @@ def bottom_toolbar() -> t.Callable[..., StyleAndTextTuples]:
                 if len(cache_note) > max_width
                 else cache_note
             )
-            toolbar.extend([("class:rprompt.entries", f':"{note}"')])
+            toolbar.extend([("class:bottom-toolbar.text", f":{note}")])
 
-        toolbar.extend([("class:rprompt.entries", "] |")])
+        toolbar.extend([("class:bottom-toolbar.text", "] |")])
 
     display_running: str = f"R[{cache.count_running_entries if cache else 0}]"
     display_paused: str = f"P[{cache.count_paused_entries}]"
     sep = " | " if all([display_running, display_paused]) else ""
+    rside_toolbar = f" {display_running}{sep}{display_paused}"
 
-    toolbar.extend(
-        [("class:rprompt.entries", f" {display_running}{sep}{display_paused}")]
+    toolbar.extend([("class:bottom-toolbar.text", rside_toolbar)])
+
+    active_completers = (
+        "[" + ",".join(map(lambda c: c._name_[:1], global_completers())) + "]"
     )
+
+    padding = " " * (
+        columns
+        - fragment_list_width(toolbar)
+        - fragment_list_width([("class:bottom-toolbar.text", active_completers)])
+        - 1
+    )
+
+    toolbar.extend([("", padding), ("class:bottom-toolbar.text", active_completers)])
 
     blank_line = (
         "bg:default noreverse noitalic nounderline noblink",
@@ -124,23 +141,36 @@ def bottom_toolbar() -> t.Callable[..., StyleAndTextTuples]:
 
 def rprompt() -> t.Callable[..., StyleAndTextTuples]:
     global TIMEZONE
-    timestamp: str = now(TIMEZONE).strftime("%H:%M:%S")
-    return lambda: [("", f"\n"), ("class:rprompt.clock", "[%s]" % timestamp)]
+    timestamp: str = now(TIMEZONE).strftime(RPROMPT_DATE_FORMAT)
+    return lambda: [("", f"\n"), ("class:rprompt.clock", timestamp)]
+
+
+GIT_INFO_PATH: t.Final[Path] = __appdir__ / ".gitinfo"
+
+if not GIT_INFO_PATH.exists():
+    rtoml.dump({"branch": "", "path": ""}, GIT_INFO_PATH)
+
+GIT_INFO: dict[str, str] = rtoml.load(GIT_INFO_PATH)
+
+BRANCH: str | None = GIT_INFO.get("branch")
+PATH: str | None = GIT_INFO.get("path")
 
 
 def _extend_git_branch(cursor: StyleAndTextTuples, cwd: Path) -> None:
-    global BRANCH, PATH
-    if BRANCH:
+    global BRANCH, PATH, GIT_INFO
+    if BRANCH and PATH:
         if not cwd.is_relative_to(PATH):
             PATH, BRANCH = "", ""
-            with AppConfig().rw() as config:
-                config["git"].update(path=PATH, branch=BRANCH)
+            GIT_INFO["branch"] = ""
+            GIT_INFO["path"] = ""
+            rtoml.dump(GIT_INFO, GIT_INFO_PATH)
     else:
         if (head_dir := cwd / ".git" / "HEAD").exists():
             PATH = head_dir.parent.parent.resolve().as_posix()
             BRANCH = head_dir.read_text().splitlines()[0].partition("refs/heads/")[2]
-            with AppConfig().rw() as config:
-                config["git"].update(path=PATH, branch=BRANCH)
+            GIT_INFO["branch"] = BRANCH
+            GIT_INFO["path"] = PATH
+            rtoml.dump(GIT_INFO, GIT_INFO_PATH)
 
     BRANCH and cursor.extend(
         [
@@ -173,96 +203,44 @@ def _timer(cache: EntriesInMemory) -> str:
         return f" {now(TIMEZONE) - start} "
 
 
-if all(
-    [
-        LIGHTLIKE_CLI_DEV_USERNAME := getenv("LIGHTLIKE_CLI_DEV_USERNAME"),
-        LIGHTLIKE_CLI_DEV_HOSTNAME := getenv("LIGHTLIKE_CLI_DEV_HOSTNAME"),
-    ]
-):
+def _extend_base(cursor: StyleAndTextTuples, cwd: Path) -> None:
+    home: Path = cwd.home()
+    home_drive: str = home.drive
+    cwd_drive: str = cwd.drive
 
-    def _extend_base(cursor: StyleAndTextTuples, cwd: Path) -> None:
-        home: Path = cwd.home()
-        home_drive: str = home.drive
-        cwd_drive: str = cwd.drive
+    if home_drive.startswith(cwd_drive):
+        path_prefix: str = " ~"
+        drive = home_drive
+    else:
+        path_prefix = " /"
+        drive = cwd_drive
 
-        if home_drive.startswith(cwd_drive):
-            path_prefix: str = " ~"
-            drive: str = home_drive
-        else:
-            path_prefix = " /"
-            drive = cwd_drive
+    path_name: str = (
+        cwd.as_posix()
+        .removeprefix(f"{home.as_posix()}")
+        .replace(drive, drive.lower().replace(":", ""))
+    )
 
-        path_name: str = (
-            cwd.as_posix()
-            .removeprefix(f"{home.as_posix()}")
-            .replace(drive, drive.lower().replace(":", ""))
-        )
-
-        cursor.extend(
-            [
-                ("", "\n"),
-                ("class:prompt.user", LIGHTLIKE_CLI_DEV_USERNAME or ""),
-                ("class:prompt.at", "@"),
-                ("class:prompt.host", LIGHTLIKE_CLI_DEV_HOSTNAME or ""),
-                ("class:prompt.path.prefix", path_prefix),
-                ("class:prompt.path.name", path_name or "/"),
-            ]
-        )
-
-else:
-
-    def _extend_base(cursor: StyleAndTextTuples, cwd: Path) -> None:
-        home: Path = cwd.home()
-        home_drive: str = home.drive
-        cwd_drive: str = cwd.drive
-
-        if home_drive.startswith(cwd_drive):
-            path_prefix: str = " ~"
-            drive = home_drive
-        else:
-            path_prefix = " /"
-            drive = cwd_drive
-
-        path_name: str = (
-            cwd.as_posix()
-            .removeprefix(f"{home.as_posix()}")
-            .replace(drive, drive.lower().replace(":", ""))
-        )
-
-        global USERNAME, HOSTNAME
-        cursor.extend(
-            [
-                ("", "\n"),
-                ("class:prompt.user", USERNAME),
-                ("class:prompt.at", "@"),
-                ("class:prompt.host", HOSTNAME),
-                ("class:prompt.path.prefix", path_prefix),
-                ("class:prompt.path.name", path_name or "/"),
-            ]
-        )
+    cursor.extend(
+        [
+            ("", "\n"),
+            ("class:prompt.user", USERNAME),
+            ("class:prompt.at", "@"),
+            ("class:prompt.host", HOSTNAME),
+            ("class:prompt.path.prefix", path_prefix),
+            ("class:prompt.path.name", path_name or "/"),
+        ]
+    )
 
 
-if LIGHTLIKE_CLI_DEV_GCP_PROJECT := getenv("LIGHTLIKE_CLI_DEV_GCP_PROJECT"):
-
-    def _extend_active_project(cursor: StyleAndTextTuples, project: str) -> None:
-        cursor.extend(
-            [
-                ("class:prompt.project.parenthesis", " ("),
-                ("class:prompt.project.name", LIGHTLIKE_CLI_DEV_GCP_PROJECT or ""),
-                ("class:prompt.project.parenthesis", ") "),
-            ]
-        )
-
-else:
-
-    def _extend_active_project(cursor: StyleAndTextTuples, project: str) -> None:
-        cursor.extend(
-            [
-                ("class:prompt.project.parenthesis", " ("),
-                ("class:prompt.project.name", project),
-                ("class:prompt.project.parenthesis", ") "),
-            ]
-        )
+def _extend_active_project(cursor: StyleAndTextTuples, project: str) -> None:
+    cursor.extend(
+        [
+            ("class:prompt.project.parenthesis", " ("),
+            ("class:prompt.project.name", project),
+            ("class:prompt.project.parenthesis", ") "),
+        ]
+    )
 
 
 # CONSOLE_WIDTH: int = get_console().width

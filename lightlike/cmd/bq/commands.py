@@ -2,14 +2,16 @@ import typing as t
 from inspect import cleandoc
 
 import click
+import google.auth
+import google.auth.credentials
 from rich import print as rprint
 from rich.table import Table
 
 from lightlike.app import _questionary, render
 from lightlike.app.config import AppConfig
 from lightlike.app.core import AliasedGroup, FormattedCommand, LazyAliasedGroup
-from lightlike.client import get_client, reconfigure
-from lightlike.client._client import _select_credential_source, _select_project
+from lightlike.client._credentials import _select_credential_source, _select_project
+from lightlike.client.bigquery import get_client, reconfigure
 from lightlike.cmd import _pass
 from lightlike.internal import markup, utils
 from lightlike.internal.enums import ClientInitOptions, CredentialsSource
@@ -62,15 +64,15 @@ def query(console: "Console") -> None:
     name="init",
     short_help="Change active project or credentials source.",
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not change configuration.")),
 )
 @_pass.console
 def init(console: "Console") -> None:
     """Change active project or credentials source."""
     client = get_client()
-
     credentials = client._credentials
+
     if hasattr(credentials, "service_account_email"):
         account = credentials.service_account_email
     else:
@@ -90,7 +92,9 @@ def init(console: "Console") -> None:
     )
 
     credentials_source: CredentialsSource = AppConfig().get(
-        "client", "credentials_source"
+        "client",
+        "credentials-source",
+        default=CredentialsSource.not_set,
     )
 
     option = _questionary.select(
@@ -102,30 +106,26 @@ def init(console: "Console") -> None:
     )
 
     if option == ClientInitOptions.UPDATE_PROJECT % client.project:
-        project_id = _select_project(client)
+        project_id = _select_project(client._credentials)
 
         with AppConfig().rw() as config:
-            config["client"].update(active_project=project_id)
-
-        reconfigure()
+            config["client"].update({"active-project": project_id})
 
     elif ClientInitOptions.UPDATE_AUTH % credentials_source:
-        source = _select_credential_source()
+        source = _select_credential_source(credentials_source)
 
         match source:
             case CredentialsSource.from_service_account_key:
                 with AppConfig().rw() as config:
-                    config["client"].update(credentials_source=source)
-
-                reconfigure()
+                    config["client"].update({"credentials-source": source})
 
             case CredentialsSource.from_environment:
                 with AppConfig().rw() as config:
                     config["client"].update(
-                        credentials_source=source, active_project=None
+                        {"credentials-source": source, "active-project": None}
                     )
 
-                reconfigure()
+    reconfigure()
 
 
 @click.command(
@@ -138,8 +138,12 @@ def show(console: "Console") -> None:
     """Show the current credentials object."""
     from rich._inspect import Inspect
 
+    credentials: google.auth.credentials.Credentials = get_client()._credentials
+    request = google.auth.transport.requests.Request()
+    credentials.refresh(request)
+
     _inspect = Inspect(
-        get_client()._credentials,
+        credentials,
         help=True,
         methods=False,
         docs=True,
@@ -174,7 +178,7 @@ def projects(console: "Console") -> None:
     )
     if not table.row_count:
         rprint(markup.dimmed("No results"))
-        raise click.exceptions.Exit
+        raise click.exceptions.Exit()
 
     console.print(table)
 
@@ -186,7 +190,7 @@ def projects(console: "Console") -> None:
     subcommand_metavar="",
     short_help="Reset auth and all client settings.",
 )
-@utils._handle_keyboard_interrupt(
+@utils.handle_keyboard_interrupt(
     callback=lambda: rprint(markup.dimmed("Did not change configuration.")),
 )
 @_pass.console
@@ -202,14 +206,18 @@ def reset(ctx: click.Context, console: "Console") -> bool:
         if _questionary.confirm(message="Continue?", auto_enter=True):
             with AppConfig().rw() as config:
                 config["user"].update(
-                    password="null",
-                    salt=[],
-                    stay_logged_in=False,
+                    {
+                        "password": "null",
+                        "salt": [],
+                        "stay_logged_in": False,
+                    }
                 )
                 config["client"].update(
-                    active_project="null",
-                    credentials_source=CredentialsSource.not_set,
-                    service_account_key=[],
+                    {
+                        "active-project": "null",
+                        "credentials-source": CredentialsSource.not_set,
+                        "service-account-key": [],
+                    }
                 )
 
             return True

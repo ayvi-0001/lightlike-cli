@@ -21,14 +21,11 @@
     .lightlike-cli-720111042-matrix {
         font-family: Fira Code, monospace;
         font-size: 20px;
-        line-height: 24.4px;
-        font-variant-east-asian: full-width;
     }
 
     .lightlike-cli-720111042-title {
         font-size: 18px;
         font-weight: bold;
-        font-family: arial;
     }
 
     .lightlike-cli-720111042-r1 { fill: #c5c8c6 }
@@ -89,10 +86,10 @@
 </text><text class="lightlike-cli-720111042-r2" x="0" y="93.2" textLength="195.2" clip-path="url(#lightlike-cli-720111042-line-3)">General&#160;Settings</text><text class="lightlike-cli-720111042-r3" x="195.2" y="93.2" textLength="854" clip-path="url(#lightlike-cli-720111042-line-3)">&#160;Configure&#160;behaviour&#160;of&#160;timer&#160;function,&#160;authorization,&#160;default&#160;values.</text><text class="lightlike-cli-720111042-r1" x="1464" y="93.2" textLength="12.2" clip-path="url(#lightlike-cli-720111042-line-3)">
 </text><text class="lightlike-cli-720111042-r2" x="0" y="117.6" textLength="170.8" clip-path="url(#lightlike-cli-720111042-line-4)">Query&#160;Settings</text><text class="lightlike-cli-720111042-r3" x="170.8" y="117.6" textLength="341.6" clip-path="url(#lightlike-cli-720111042-line-4)">&#160;Configure&#160;behaviour&#160;of&#160;the&#160;</text><text class="lightlike-cli-720111042-r4" x="512.4" y="117.6" textLength="97.6" clip-path="url(#lightlike-cli-720111042-line-4)">bq:query</text><text class="lightlike-cli-720111042-r3" x="610" y="117.6" textLength="109.8" clip-path="url(#lightlike-cli-720111042-line-4)">&#160;command.</text><text class="lightlike-cli-720111042-r1" x="1464" y="117.6" textLength="12.2" clip-path="url(#lightlike-cli-720111042-line-4)">
 </text><text class="lightlike-cli-720111042-r1" x="1464" y="142" textLength="12.2" clip-path="url(#lightlike-cli-720111042-line-5)">
-</text><text class="lightlike-cli-720111042-r6" x="0" y="166.4" textLength="85.4" clip-path="url(#lightlike-cli-720111042-line-6)">Options</text><text class="lightlike-cli-720111042-r1" x="1464" y="166.4" textLength="12.2" clip-path="url(#lightlike-cli-720111042-line-6)">
+</text><text class="lightlike-cli-720111042-r6" x="0" y="166.4" textLength="97.6" clip-path="url(#lightlike-cli-720111042-line-6)">Options:</text><text class="lightlike-cli-720111042-r1" x="1464" y="166.4" textLength="12.2" clip-path="url(#lightlike-cli-720111042-line-6)">
 </text><text class="lightlike-cli-720111042-r5" x="36.6" y="190.8" textLength="73.2" clip-path="url(#lightlike-cli-720111042-line-7)">--help</text><text class="lightlike-cli-720111042-r7" x="134.2" y="190.8" textLength="24.4" clip-path="url(#lightlike-cli-720111042-line-7)">-h</text><text class="lightlike-cli-720111042-r8" x="183" y="190.8" textLength="48.8" clip-path="url(#lightlike-cli-720111042-line-7)">FLAG</text><text class="lightlike-cli-720111042-r3" x="256.2" y="190.8" textLength="329.4" clip-path="url(#lightlike-cli-720111042-line-7)">Show&#160;this&#160;message&#160;and&#160;exit.</text><text class="lightlike-cli-720111042-r1" x="1464" y="190.8" textLength="12.2" clip-path="url(#lightlike-cli-720111042-line-7)">
 </text><text class="lightlike-cli-720111042-r1" x="1464" y="215.2" textLength="12.2" clip-path="url(#lightlike-cli-720111042-line-8)">
-</text><text class="lightlike-cli-720111042-r6" x="0" y="239.6" textLength="97.6" clip-path="url(#lightlike-cli-720111042-line-9)">Commands</text><text class="lightlike-cli-720111042-r1" x="1464" y="239.6" textLength="12.2" clip-path="url(#lightlike-cli-720111042-line-9)">
+</text><text class="lightlike-cli-720111042-r6" x="0" y="239.6" textLength="109.8" clip-path="url(#lightlike-cli-720111042-line-9)">Commands:</text><text class="lightlike-cli-720111042-r1" x="1464" y="239.6" textLength="12.2" clip-path="url(#lightlike-cli-720111042-line-9)">
 </text><text class="lightlike-cli-720111042-r9" x="36.6" y="264" textLength="85.4" clip-path="url(#lightlike-cli-720111042-line-10)">general</text><text class="lightlike-cli-720111042-r3" x="256.2" y="264" textLength="256.2" clip-path="url(#lightlike-cli-720111042-line-10)">General&#160;cli&#160;settings.</text><text class="lightlike-cli-720111042-r1" x="1464" y="264" textLength="12.2" clip-path="url(#lightlike-cli-720111042-line-10)">
 </text><text class="lightlike-cli-720111042-r9" x="36.6" y="288.4" textLength="85.4" clip-path="url(#lightlike-cli-720111042-line-11)">query&#160;&#160;</text><text class="lightlike-cli-720111042-r4" x="256.2" y="288.4" textLength="97.6" clip-path="url(#lightlike-cli-720111042-line-11)">bq:query</text><text class="lightlike-cli-720111042-r3" x="353.8" y="288.4" textLength="158.6" clip-path="url(#lightlike-cli-720111042-line-11)">&#160;settings.&#160;&#160;&#160;</text><text class="lightlike-cli-720111042-r1" x="1464" y="288.4" textLength="12.2" clip-path="url(#lightlike-cli-720111042-line-11)">
 </text>

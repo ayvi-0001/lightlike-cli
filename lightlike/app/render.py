@@ -3,7 +3,6 @@ from contextlib import suppress
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from functools import reduce
-from os import getenv
 
 from more_itertools import one
 from rich import box, get_console
@@ -11,7 +10,7 @@ from rich import print as rprint
 from rich.table import Table
 from rich.text import Text
 
-from lightlike.__about__ import __appdir__, __appname_sc__, __version__
+from lightlike.__about__ import __appdir__, __appname_sc__, __config__, __version__
 from lightlike.internal import appdir, markup
 
 if t.TYPE_CHECKING:
@@ -20,54 +19,46 @@ if t.TYPE_CHECKING:
 
 __all__: t.Sequence[str] = (
     "cli_info",
-    "query_start_render",
-    "map_sequence_to_rich_table",
+    "create_row_diff",
+    "create_table_diff",
     "map_cell_style",
     "map_column_style",
-    "create_table_diff",
-    "create_row_diff",
+    "map_sequence_to_rich_table",
+    "query_start_render",
 )
 
 
 def cli_info() -> None:
     console = get_console()
-    console.set_window_title(__appname_sc__)
-
-    console.log(f"__appname__[b][red]=[/]{__appname_sc__}")
-    console.log(f"__version__[b][red]=[/][repr.number]{__version__}")
-
-    if LIGHTLIKE_CLI_DEV_USERNAME := getenv("LIGHTLIKE_CLI_DEV_USERNAME"):
-        console.log(
-            f"__appdir__[b red]=[/][repr.path]/{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike-cli"
-        )
-    else:
-        console.log(f"__appdir__[b red]=[/][repr.path]{__appdir__.as_posix()}")
+    console.log(f'[repr.str]"{__appname_sc__}" [repr.number]{__version__}')
+    console.log(f"Checking config at [repr.path]{__config__.as_posix()}")
+    console.log(f"Checking appdir at [repr.path]{__appdir__.as_posix()}")
 
     width = (
-        f"[b][green]{console.width}[/]"
+        f"[green]{console.width}[/]"
         if console.width >= 140
-        else f"[b][red]{console.width}[/]"
+        else f"[red]{console.width}[/]"
     )
     height = (
-        f"[b][green]{console.height}[/]"
+        f"[green]{console.height}[/]"
         if console.height >= 40
-        else f"[b][red]{console.height}[/]"
+        else f"[red]{console.height}[/]"
     )
 
     console.log(
-        f"console_width[b][red]=[/]{width}",
-        "[dim][red](recommended width </ 140)" if console.width < 140 else "",
+        f"[#f0f0ff]console_width=[/]{width}[#888888][red]",
+        "(recommended width >= 140)" if console.width < 140 else "",
     )
     console.log(
-        f"console_height[b][red]=[/]{height}",
-        "[dim][red](recommended height </ 40)" if console.height < 40 else "",
+        f"[#f0f0ff]console_height=[/]{height}[#888888][red]",
+        "(recommended height >= 40)" if console.height < 40 else "",
     )
 
 
 def query_start_render(
     query_config: dict[str, bool],
     timestamp: str,
-    print_output_dir: bool = False,
+    print_output_path: bool = False,
 ) -> None:
     table = Table(
         show_edge=False,
@@ -97,17 +88,13 @@ def query_start_render(
     table.add_row(*general, *query)
     rprint(table)
 
-    if print_output_dir:
-        appdir.QUERIES.mkdir(exist_ok=True)
-        _dest = appdir.QUERIES.joinpath(timestamp).resolve()
-        _dest.mkdir(exist_ok=True)
-        uri = _dest.as_uri()
-
-        if LIGHTLIKE_CLI_DEV_USERNAME := getenv("LIGHTLIKE_CLI_DEV_USERNAME"):
-            uri = f"{LIGHTLIKE_CLI_DEV_USERNAME}/.lightlike-cli/queries/{timestamp}"
-            rprint(f" Queries saved to: [repr.url][link={uri}]{uri}")
-        else:
-            rprint(f" Queries saved to: [repr.url][link={uri}]{uri}")
+    if print_output_path:
+        output_path = appdir.QUERIES.joinpath(timestamp).resolve()
+        output_path.mkdir(exist_ok=True, parents=True)
+        rprint(
+            f" Queries saved to: [repr.url]"
+            f"[link={output_path.as_uri()}]{output_path.as_posix()}"
+        )
 
 
 def map_sequence_to_rich_table(
@@ -122,6 +109,7 @@ def map_sequence_to_rich_table(
     row_kwargs: t.Mapping[str, t.Any] | None = None,
     table_kwargs: t.Mapping[str, t.Any] | None = None,
     column_kwargs: t.Mapping[str, t.Any] | None = None,
+    no_color: bool = False,
 ) -> Table:
     default = {
         "box": box.MARKDOWN,
@@ -153,17 +141,21 @@ def map_sequence_to_rich_table(
     else:
         items = first_row.items()
 
-    fn = lambda c: map_column_style(
-        items=c,
-        string_ctype=string_ctype or [],
-        bool_ctype=bool_ctype or [],
-        num_ctype=num_ctype or [],
-        datetime_ctype=datetime_ctype or [],
-        time_ctype=time_ctype or [],
-        date_ctype=date_ctype or [],
-        console_width=console_width,
-        no_color=False,
-    )
+    if not no_color:
+        fn = lambda c: map_column_style(
+            items=c,
+            string_ctype=string_ctype or [],
+            bool_ctype=bool_ctype or [],
+            num_ctype=num_ctype or [],
+            datetime_ctype=datetime_ctype or [],
+            time_ctype=time_ctype or [],
+            date_ctype=date_ctype or [],
+            console_width=console_width,
+            no_color=False,
+        )
+    else:
+        fn = lambda c: {}
+
     # fmt: off
     reduce(
         lambda n, c: table.add_column(c[0], **fn(c), **column_kwargs or {}),
@@ -179,7 +171,7 @@ def map_sequence_to_rich_table(
     return table
 
 
-def map_cell_style(values: "dict_values[str, t.Any]") -> "map":  # type: ignore
+def map_cell_style(values: "dict_values[str, t.Any]") -> "map[str]":
     display_values: list[t.Any] = []
     for value in values:
         if not value or value in ("null", "None"):
@@ -207,13 +199,15 @@ def map_column_style(
     if not console_width:
         console_width = get_console().width
 
+    _datetime_types: list[str] = [*datetime_ctype, *date_ctype, *time_ctype]
+
     if key in bool_ctype or isinstance(value, bool):
         kwargs |= dict(
             justify="left",
         )
         if not no_color:
             kwargs |= dict(
-                header_style="red",
+                # header_style="red",
             )
         if console_width <= 150:
             kwargs |= dict(
@@ -228,7 +222,7 @@ def map_column_style(
         )
         if not no_color:
             kwargs |= dict(
-                header_style="cyan",
+                # header_style="cyan",
             )
     elif key in string_ctype or isinstance(value, str):
         kwargs |= dict(
@@ -236,16 +230,9 @@ def map_column_style(
         )
         if not no_color:
             kwargs |= dict(
-                header_style="green",
+                # header_style="green",
             )
-    elif key in [
-        *datetime_ctype,
-        *date_ctype,
-        *time_ctype,
-    ] or isinstance(
-        value,
-        (date, datetime, time, timedelta),
-    ):
+    elif key in _datetime_types or isinstance(value, (date, datetime, time, timedelta)):
         kwargs |= dict(
             justify="left",
             overflow="crop",
@@ -253,7 +240,7 @@ def map_column_style(
         )
         if not no_color:
             kwargs |= dict(
-                header_style="yellow",
+                # header_style="yellow",
             )
         if key in date_ctype or isinstance(value, date):
             kwargs |= dict(
@@ -266,7 +253,7 @@ def map_column_style(
     else:
         kwargs |= dict(
             justify="left",
-            header_style="dim",
+            # header_style="dim",
         )
 
     if items[0] == "row":
@@ -305,7 +292,7 @@ def create_table_diff(
             if k in new:
                 diff[k] = new[k]
 
-            if (diff.get(k) is None or diff.get(k) == 0) and diff.get(k) is not False:
+            if diff.get(k) is not False and not diff.get(k):
                 table.add_column(
                     k,
                     **map_column_style(
@@ -320,7 +307,7 @@ def create_table_diff(
                 if f"{original[k]}" == f"{diff[k]}":
                     table.add_column(
                         k,
-                        header_style="yellow",
+                        # header_style="yellow",
                         **map_column_style(
                             one({k: diff[k]}.items()),
                             console_width=console_width,
@@ -331,16 +318,15 @@ def create_table_diff(
                 else:
                     table.add_column(
                         k,
-                        header_style="green",
+                        # header_style="green",
                         **map_column_style(
                             one({k: diff[k]}.items()),
                             console_width=console_width,
                             no_color=True,
                         ),
                     )
-                    new_record[k] = Text.assemble(
-                        markup.sdr(original[k]), " ", markup.bg(diff[k])
-                    ).markup
+                    nk = markup.sdr(original[k]), " ", markup.bg(diff[k])
+                    new_record[k] = Text.assemble(*nk).markup
 
         new_records.append(new_record)
         final_table.columns = table.columns
@@ -381,7 +367,7 @@ def create_row_diff(original: dict[str, t.Any], new: dict[str, t.Any]) -> Table:
             if f"{original[k]}" == f"{diff[k]}":
                 table.add_column(
                     k,
-                    header_style="yellow",
+                    # header_style="yellow",
                     **map_column_style(
                         one({k: diff[k]}.items()),
                         console_width=console_width,
@@ -392,16 +378,15 @@ def create_row_diff(original: dict[str, t.Any], new: dict[str, t.Any]) -> Table:
             else:
                 table.add_column(
                     k,
-                    header_style="green",
+                    # header_style="green",
                     **map_column_style(
                         one({k: diff[k]}.items()),
                         console_width=console_width,
                         no_color=True,
                     ),
                 )
-                new_record[k] = Text.assemble(
-                    markup.sdr(original[k]), " ", markup.bg(diff[k])
-                ).markup
+                nk = markup.sdr(original[k]), " ", markup.bg(diff[k])
+                new_record[k] = Text.assemble(*nk).markup
 
     table.add_row(*map_cell_style(new_record.values()))
     return table

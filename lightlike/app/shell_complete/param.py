@@ -43,14 +43,14 @@ class Param:
         ctx: click.Context,
         param: click.Parameter,
         incomplete: str,
-    ) -> t.Sequence[str | None]:
+    ) -> t.Sequence[str]:
         completion_items = []
         if (
             ctx.params.get(self.param_name) is None
             or ctx.params.get(self.param_name) == param.default
         ):
             for item in self.completion_items:
-                if utils._match_str(incomplete, item):
+                if utils.match_str(incomplete, item):
                     completion_items.append(item)
 
         return completion_items

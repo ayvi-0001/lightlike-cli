@@ -1,3 +1,5 @@
+import os
+import subprocess
 import typing as t
 
 import click
@@ -10,27 +12,41 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from click.shell_completion import CompletionItem
+from prompt_toolkit import prompt
+from prompt_toolkit.patch_stdout import patch_stdout
+from prompt_toolkit.styles import Style
 from pytz import timezone
-from rich import box
-from rich import print as rprint
+from rich import box, get_console, print
 from rich.table import Table
 
 from lightlike.__about__ import __appname_sc__
 from lightlike.app import shell_complete
+from lightlike.app._repl import _prepend_exec_to_cmd
 from lightlike.app.config import AppConfig
 from lightlike.app.core import FormattedCommand
 from lightlike.app.dates import parse_date
-from lightlike.internal import appdir, utils
+from lightlike.internal import appdir, constant, utils
+
+if t.TYPE_CHECKING:
+    from datetime import _TzInfo
 
 __all__: t.Sequence[str] = (
     "add_job",
-    "print_jobs",
+    "get_job",
     "modify_job",
     "pause_job",
+    "pause",
+    "print_jobs",
     "remove_all_jobs",
     "remove_job",
     "reschedule_job",
     "resume_job",
+    "resume",
+    "run",
+    "shutdown",
+    "start",
+    "status",
+    "system_command",
 )
 
 
@@ -48,9 +64,8 @@ def available_functions(
     completions = []
 
     if appdir.SCHEDULER_CONFIG.exists():
-        for k, v in (
-            rtoml.load(appdir.SCHEDULER_CONFIG)["jobs"].get("functions", {}).items()
-        ):
+        config = rtoml.load(appdir.SCHEDULER_CONFIG)
+        for k, v in config["jobs"].get("functions", {}).items():
             completions.append(CompletionItem(value=k, help=str(v)))
 
     return completions
@@ -61,7 +76,7 @@ def available_jobstores(
 ) -> list[CompletionItem]:
     completions = []
 
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     for k, v in scheduler._jobstores.items():
         completions.append(CompletionItem(value=k, help=f"{v!r}"))
 
@@ -73,24 +88,21 @@ def available_executors(
 ) -> list[CompletionItem]:
     completions = []
 
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     for k, v in scheduler._executors.items():
         completions.append(CompletionItem(value=k, help=f"{v!r}"))
 
     return completions
 
 
-@click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
-@utils.pretty_print_exception
-@click.option(
+option_func = click.option(
     "--func",
     required=True,
     shell_complete=available_functions,
     type=click.STRING,
     help="callable (or a textual reference to one in the package.module:some.object format) to run at the given time",
 )
-@click.option(
+option_jobstore = click.option(
     "-j",
     "--jobstore",
     type=click.STRING,
@@ -98,158 +110,199 @@ def available_executors(
     show_default=True,
     shell_complete=available_jobstores,
 )
-@click.option(
+option_job_id = click.option(
+    "-i",
+    "--job-id",
+    "job_id",
+    type=click.STRING,
+    help="the unique identifier of this job",
+)
+option_id = click.option(
     "--id",
     "id_",
     type=click.STRING,
     help="the unique identifier of this job",
 )
-@click.option(
+option_name = click.option(
     "--name",
     type=click.STRING,
     help="the description of this job",
 )
-@click.option(
+option_args = click.option(
     "--args",
     cls=shell_complete.LiteralEvalOption,
-    type=tuple,
+    type=tuple[t.Any],
     default="()",
     help="positional arguments to the callable",
 )
-@click.option(
+option_kwargs = click.option(
     "--kwargs",
     cls=shell_complete.LiteralEvalOption,
     default="{}",
     type=dict,
     help="keyword arguments to the callable",
 )
-@click.option(
+option_coalesce = click.option(
     "--coalesce",
     type=click.BOOL,
     shell_complete=shell_complete.Param("coalesce").bool,
     help="whether to only run the job once when several run times are due",
 )
-@click.option(
+option_replace_existing = click.option(
     "--replace-existing",
     type=click.BOOL,
     shell_complete=shell_complete.Param("replace-existing").bool,
     help="True to replace an existing job with the same id (but retain the number of runs from the existing one)",
 )
-@click.option(
+option_executor = click.option(
     "--executor",
     shell_complete=available_executors,
     type=click.STRING,
     help="the name of the executor that will run this job",
 )
-@click.option(
-    "--misfire_grace_time",
+option_misfire_grace_time = click.option(
+    "--misfire-grace-time",
     type=click.INT,
     help="the time (in seconds) how much this job's execution is allowed to",
 )
-@click.option(
-    "--max_instances",
+option_max_instances = click.option(
+    "--max-instances",
     type=click.INT,
     help="the maximum number of concurrently executing instances allowed for this",
 )
-@click.option(
-    "--next_run_time",
+option_next_run_time = click.option(
+    "--next-run-time",
     type=click.STRING,
     help="the next scheduled run time of this job",
 )
-@click.option(
+option_trigger = click.option(
     "--trigger",
     type=click.Choice(["date", "interval", "cron"]),
     help="type of apscheduler.triggers",
     required=True,
 )
-@click.option(
-    "--run_date",
+option_run_date = click.option(
+    "--run-date",
     type=click.STRING,
     help="triggers: [DateTrigger], the date/time to run the job at",
 )
-@click.option(
+option_weeks = click.option(
     "--weeks",
     type=click.INT,
     help="triggers: [IntervalTrigger], number of weeks to wait",
 )
-@click.option(
+option_days = click.option(
     "--days",
     type=click.INT,
     help="triggers: [IntervalTrigger], number of days to wait",
 )
-@click.option(
+option_hours = click.option(
     "--hours",
     type=click.INT,
     help="triggers: [IntervalTrigger], number of hours to wait",
 )
-@click.option(
+option_minutes = click.option(
     "--minutes",
     type=click.INT,
     help="triggers: [IntervalTrigger], number of minutes to wait",
 )
-@click.option(
+option_seconds = click.option(
     "--seconds",
     type=click.INT,
     help="triggers: [IntervalTrigger], number of seconds to wait",
 )
-@click.option(
+option_year = click.option(
     "--year",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], 4-digit year",
 )
-@click.option(
+option_month = click.option(
     "--month",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], month (1-12)",
 )
-@click.option(
+option_week = click.option(
     "--week",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], day of month (1-31)",
 )
-@click.option(
+option_day = click.option(
     "--day",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], ISO week (1-53)",
 )
-@click.option(
-    "--day_of_week",
+option_day_of_week = click.option(
+    "--day-of-week",
     type=click.STRING,
     help="triggers: [CronTrigger], number or name of weekday (0-6 or mon,tue,wed,thu,fri,sat,sun)",
 )
-@click.option(
+option_hour = click.option(
     "--hour",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], hour (0-23)",
 )
-@click.option(
+option_minute = click.option(
     "--minute",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], minute (0-59)",
 )
-@click.option(
+option_second = click.option(
     "--second",
-    type=click.INT,
+    type=click.STRING,
     help="triggers: [CronTrigger], second (0-59)",
 )
-@click.option(
-    "--start_date",
+option_start_date = click.option(
+    "--start-date",
     type=click.STRING,
     help="triggers: [CronTrigger], earliest possible date/time to trigger on (inclusive)",
 )
-@click.option(
-    "--end_date",
+option_end_date = click.option(
+    "--end-date",
     type=click.STRING,
     help="triggers: [CronTrigger], latest possible date/time to trigger on (inclusive)",
 )
+
+
+@click.command(cls=FormattedCommand)
+@utils.handle_keyboard_interrupt()
+@utils.pretty_print_exception
+@option_func
+@option_jobstore
+@option_job_id
+@option_name
+@option_args
+@option_kwargs
+@option_coalesce
+@option_replace_existing
+@option_executor
+@option_misfire_grace_time
+@option_max_instances
+@option_next_run_time
+@option_trigger
+@option_run_date
+@option_weeks
+@option_days
+@option_hours
+@option_minutes
+@option_seconds
+@option_year
+@option_month
+@option_week
+@option_day
+@option_day_of_week
+@option_hour
+@option_minute
+@option_second
+@option_start_date
+@option_end_date
 @click.pass_context
 def add_job(
     ctx: click.Context,
     func: str,
     jobstore: str,
-    id_: str,
+    job_id: str,
     name: str,
-    args: tuple[t.Any | None],
+    args: tuple[t.Any],
     kwargs: dict[str, t.Any],
     coalesce: bool,
     replace_existing: bool,
@@ -264,86 +317,38 @@ def add_job(
     hours: int,
     minutes: int,
     seconds: int,
-    year: int,
-    month: int,
-    week: int,
-    day: int,
+    year: str,
+    month: str,
+    week: str,
+    day: str,
     day_of_week: str,
-    hour: int,
-    minute: int,
-    second: int,
+    hour: str,
+    minute: str,
+    second: str,
     start_date: str,
     end_date: str,
 ) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
-    trigger_kwargs: dict[str, t.Any] = {}
-    tzinfo = timezone(AppConfig().get("settings", "timezone"))
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
+    tzinfo = AppConfig().tzinfo
 
     job_kwargs: dict[str, t.Any] = {}
     if appdir.SCHEDULER_CONFIG.exists():
-        job_kwargs["func"] = (
-            rtoml.load(appdir.SCHEDULER_CONFIG)["jobs"]
-            .get("functions", {})
-            .get(func, func)
-        )
+        config = rtoml.load(appdir.SCHEDULER_CONFIG)
+        job_kwargs["func"] = config["jobs"].get("functions", {}).get(func, func)
     else:
         job_kwargs["func"] = func
 
-    match trigger:
-        case "date":
-            if run_date is not None:
-                trigger_kwargs["run_date"] = parse_date(run_date, tzinfo=tzinfo)
-            if timezone is not None:
-                trigger_kwargs["timezone"] = tzinfo
-            trigger = DateTrigger(**trigger_kwargs)
-        case "interval":
-            if weeks is not None:
-                trigger_kwargs["weeks"] = weeks
-            if days is not None:
-                trigger_kwargs["days"] = days
-            if hours is not None:
-                trigger_kwargs["hours"] = hours
-            if minutes is not None:
-                trigger_kwargs["minutes"] = minutes
-            if seconds is not None:
-                trigger_kwargs["seconds"] = seconds
-
-            trigger = IntervalTrigger(**trigger_kwargs)
-        case "cron":
-            if year is not None:
-                trigger_kwargs["year"] = year
-            if month is not None:
-                trigger_kwargs["month"] = month
-            if week is not None:
-                trigger_kwargs["week"] = week
-            if day is not None:
-                trigger_kwargs["day"] = day
-            if day_of_week is not None:
-                trigger_kwargs["day_of_week"] = (
-                    int(day_of_week) if day_of_week.isnumeric() else day_of_week
-                )
-            if hour is not None:
-                trigger_kwargs["hour"] = hour
-            if minute is not None:
-                trigger_kwargs["minute"] = minute
-            if second is not None:
-                trigger_kwargs["second"] = second
-            if start_date is not None:
-                trigger_kwargs["start_date"] = parse_date(start_date, tzinfo=tzinfo)
-            if end_date is not None:
-                trigger_kwargs["end_date"] = parse_date(end_date, tzinfo=tzinfo)
-            if timezone is not None:
-                trigger_kwargs["timezone"] = tzinfo
-            trigger = CronTrigger(**trigger_kwargs)
-        case _:
-            raise click.BadOptionUsage("trigger", "unknown trigger type", ctx)
-
+    # fmt: off
+    job_kwargs["trigger"] = _match_trigger(
+        ctx, trigger, run_date, weeks, days, hours,
+        minutes, seconds, year, month, week, day, day_of_week,
+        hour, minute, second, start_date, end_date, tzinfo,
+    )
+    # fmt: on
     if jobstore is not None:
         job_kwargs["jobstore"] = jobstore
-    if trigger is not None:
-        job_kwargs["trigger"] = trigger
-    if id_ is not None:
-        job_kwargs["id"] = id_
+    if job_id is not None:
+        job_kwargs["id"] = job_id
     if name is not None:
         job_kwargs["name"] = name
     if args != ():  # type: ignore[comparison-overlap]
@@ -361,54 +366,42 @@ def add_job(
     if max_instances is not None:
         job_kwargs["max_instances"] = max_instances
     if next_run_time is not None:
-        tzinfo = timezone(AppConfig().get("settings", "timezone"))
+        tzinfo = AppConfig().tzinfo
         job_kwargs["next_run_time"] = parse_date(next_run_time, tzinfo=tzinfo)
 
     try:
         job: Job = scheduler.add_job(**job_kwargs)
-        rprint(f"Added job:")
-        rprint(_job_info(job, show_jobstore=True))
+        print(f"Added job:")
+        print(_job_info(job, show_jobstore=True))
     except LookupError as error:
-        rprint(f"{error}")
+        print(f"{error}")
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
-@click.option(
-    "-i",
-    "--job-id",
-    type=click.STRING,
-    required=True,
-)
-@click.option(
-    "-j",
-    "--jobstore",
-    type=click.STRING,
-    required=True,
-    show_default=True,
-    shell_complete=available_jobstores,
-)
+@option_job_id
+@option_jobstore
 @click.pass_context
 def get_job(
     ctx: click.Context,
     job_id: str,
     jobstore: str,
 ) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     job: Job | None = scheduler.get_job(job_id=job_id, jobstore=jobstore)
     if not job:
-        rprint("[dimmed]Job not found")
+        print("[dimmed]Job not found")
         return
-    rprint(_job_info(job, show_jobstore=True))
+    print(_job_info(job, show_jobstore=True))
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
 @click.pass_context
 def print_jobs(ctx: click.Context) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
 
     jobstore_table = Table(
         box=box.HORIZONTALS,
@@ -419,12 +412,20 @@ def print_jobs(ctx: click.Context) -> None:
         padding=(0, 0),
         pad_edge=False,
         highlight=True,
+        expand=False,
     )
     jobstore_table.add_column(
         ratio=1,
         justify="left",
         no_wrap=False,
         overflow="fold",
+    )
+    jobstore_table.add_column(
+        ratio=2,
+        justify="left",
+        no_wrap=False,
+        overflow="fold",
+        min_width=3,
     )
     jobstore_table.add_column(
         ratio=3,
@@ -436,122 +437,43 @@ def print_jobs(ctx: click.Context) -> None:
     jobstore = None
     with scheduler._jobstores_lock:
         if scheduler.state == STATE_STOPPED:
-            jobstore_table.add_row("[b][u]Pending jobs")
+            jobstore_table.add_row("[b]Pending jobs")
             if scheduler._pending_jobs:
-                for job, jobstore_alias, replace_existing in scheduler._pending_jobs:
+                for idx, (job, jobstore_alias, replace_existing) in enumerate(
+                    scheduler._pending_jobs
+                ):
                     if jobstore in (None, jobstore_alias):
-                        # fmt: off
-                        jobstore_table.add_row("jobstore:", f"{job._jobstore_alias}")
-                        jobstore_table.add_row("id:", f"{job.id}")
-                        jobstore_table.add_row("name:", f"{job.name}")
-                        jobstore_table.add_row("trigger:", f"{job.trigger!r}")
-                        jobstore_table.add_row("next_run_time:", f"{job.next_run_time}")
-                        jobstore_table.add_row("executor:", f"{job.executor}")
-                        jobstore_table.add_row("replace_existing:", f"{replace_existing}")
-                        jobstore_table.add_row("args:", f"{job.args!r}")
-                        jobstore_table.add_row("kwargs:", f"{job.kwargs!r}")
-                        jobstore_table.add_row("coalesce:", f"{job.coalesce!r}")
-                        jobstore_table.add_row("misfire_grace_time:", f"{job.misfire_grace_time!r}")
-                        jobstore_table.add_row("max_instances:", f"{job.max_instances!r}")
-                        jobstore_table.add_row("func_ref:", f"{job.func_ref}", end_section=True)
-                        # fmt: on
+                        jobstore_table.add_row(f"\[{idx + 1}] {job.id}", "", f"{job!s}")
             else:
                 jobstore_table.add_row("[dimmed]No pending jobs")
         else:
             for alias, store in sorted(six.iteritems(scheduler._jobstores)):
                 if jobstore in (None, alias):
-                    jobstore_table.add_row("[b][u]Jobstore %s" % alias)
+                    jobstore_table.add_row("[b]Jobstore %s" % alias)
                     jobs: t.Sequence[Job] = store.get_all_jobs()
                     if not jobs:
                         jobstore_table.add_row("[dimmed]No scheduled jobs")
                         continue
-                    for job in jobs:
-                        # fmt: off
-                        jobstore_table.add_row("id:", f"{job.id}")
-                        jobstore_table.add_row("name:", f"{job.name}")
-                        jobstore_table.add_row("trigger:", f"{job.trigger!r}")
-                        jobstore_table.add_row("next_run_time:", f"{job.next_run_time}")
-                        jobstore_table.add_row("executor:", f"{job.executor}")
-                        jobstore_table.add_row("args:", f"{job.args!r}")
-                        jobstore_table.add_row("kwargs:", f"{job.kwargs!r}")
-                        jobstore_table.add_row("coalesce:", f"{job.coalesce!r}")
-                        jobstore_table.add_row("misfire_grace_time:", f"{job.misfire_grace_time!r}")
-                        jobstore_table.add_row("max_instances:", f"{job.max_instances!r}")
-                        jobstore_table.add_row("func_ref:", f"{job.func_ref}", end_section=True)
-                        # fmt: on
+                    for idx, (job) in enumerate(jobs):
+                        jobstore_table.add_row(f"\[{idx + 1}] {job.id}", "", f"{job!s}")
 
-    rprint(jobstore_table)
+    print(jobstore_table)
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
-@click.option(
-    "-i",
-    "--job-id",
-    type=click.STRING,
-    required=True,
-)
-@click.option(
-    "-j",
-    "--jobstore",
-    type=click.STRING,
-    required=True,
-    show_default=True,
-    shell_complete=available_jobstores,
-)
-@click.option(
-    "--id",
-    "id_",
-    type=click.STRING,
-    help="the unique identifier of this job",
-)
-@click.option(
-    "--name",
-    type=click.STRING,
-    help="the description of this job",
-)
-@click.option(
-    "--args",
-    cls=shell_complete.LiteralEvalOption,
-    type=tuple[t.Any],
-    default="()",
-    help="positional arguments to the callable",
-)
-@click.option(
-    "--kwargs",
-    cls=shell_complete.LiteralEvalOption,
-    default="{}",
-    type=dict,
-    help="keyword arguments to the callable",
-)
-@click.option(
-    "--coalesce",
-    type=click.BOOL,
-    shell_complete=shell_complete.Param("coalesce").bool,
-    help="whether to only run the job once when several run times are due",
-)
-@click.option(
-    "--executor",
-    shell_complete=available_executors,
-    type=click.STRING,
-    help="the name of the executor that will run this job",
-)
-@click.option(
-    "--misfire_grace_time",
-    type=click.INT,
-    help="the time (in seconds) how much this job's execution is allowed to",
-)
-@click.option(
-    "--max_instances",
-    type=click.INT,
-    help="the maximum number of concurrently executing instances allowed for this",
-)
-@click.option(
-    "--next_run_time",
-    type=click.STRING,
-    help="the next scheduled run time of this job",
-)
+@option_job_id
+@option_jobstore
+@option_id
+@option_name
+@option_args
+@option_kwargs
+@option_coalesce
+@option_executor
+@option_misfire_grace_time
+@option_max_instances
+@option_next_run_time
 @click.pass_context
 def modify_job(
     ctx: click.Context,
@@ -559,7 +481,7 @@ def modify_job(
     jobstore: str,
     id_: str,
     name: str,
-    args: tuple[t.Any | None],
+    args: tuple[t.Any],
     kwargs: dict[str, t.Any],
     coalesce: bool,
     executor: str,
@@ -567,7 +489,7 @@ def modify_job(
     max_instances: int,
     next_run_time: str,
 ) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     job_modify_kwargs: dict[str, t.Any] = {}
 
     if id_ is not None:
@@ -587,190 +509,85 @@ def modify_job(
     if max_instances is not None:
         job_modify_kwargs["max_instances"] = max_instances
     if next_run_time is not None:
-        tzinfo = timezone(AppConfig().get("settings", "timezone"))
+        tzinfo = AppConfig().tzinfo
         job_modify_kwargs["next_run_time"] = parse_date(next_run_time, tzinfo=tzinfo)
 
     job: Job = scheduler.modify_job(
         job_id=job_id, jobstore=jobstore, **job_modify_kwargs
     )
-    rprint(f"Modified job:")
-    rprint(_job_info(job, show_jobstore=True))
+    print(f"Modified job:")
+    print(_job_info(job, show_jobstore=True))
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
-@click.option(
-    "-i",
-    "--job-id",
-    type=click.STRING,
-    required=True,
-)
-@click.option(
-    "-j",
-    "--jobstore",
-    type=click.STRING,
-    required=True,
-    show_default=True,
-    shell_complete=available_jobstores,
-)
+@option_job_id
+@option_jobstore
 @click.pass_context
 def pause_job(
     ctx: click.Context,
     job_id: str,
     jobstore: str,
 ) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     job: Job = scheduler.pause_job(job_id=job_id, jobstore=jobstore)
-    rprint(f"Paused job:")
-    rprint(_job_info(job, show_jobstore=True))
+    print(f"Paused job:")
+    print(_job_info(job, show_jobstore=True))
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
 @click.argument("jobstore", type=click.STRING, shell_complete=available_jobstores)
 @click.pass_context
 def remove_all_jobs(ctx: click.Context, jobstore: str) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     scheduler.remove_all_jobs(jobstore=jobstore)
-    rprint(f"Removed all jobs from jobstore `{jobstore}`")
+    print(f"Removed all jobs from jobstore `{jobstore}`")
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
-@click.option(
-    "-i",
-    "--job-id",
-    type=click.STRING,
-    required=True,
-)
-@click.option(
-    "-j",
-    "--jobstore",
-    type=click.STRING,
-    required=True,
-    show_default=True,
-    shell_complete=available_jobstores,
-)
+@option_job_id
+@option_jobstore
 @click.pass_context
 def remove_job(
     ctx: click.Context,
     job_id: str,
     jobstore: str,
 ) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     try:
         scheduler.remove_job(job_id=job_id, jobstore=jobstore)
-        rprint(f"Removed job `{job_id}` from jobstore `{jobstore}`")
+        print(f"Removed job `{job_id}` from jobstore `{jobstore}`")
     except JobLookupError as error:
-        rprint(f"{error}")
+        print(f"{error}")
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
-@click.option(
-    "-i",
-    "--job-id",
-    type=click.STRING,
-    required=True,
-)
-@click.option(
-    "-j",
-    "--jobstore",
-    type=click.STRING,
-    required=True,
-    show_default=True,
-    shell_complete=available_jobstores,
-)
-@click.option(
-    "--trigger",
-    type=click.Choice(["date", "interval", "cron"]),
-    help="type of apscheduler.triggers",
-    required=True,
-)
-@click.option(
-    "--run_date",
-    type=click.STRING,
-    help="triggers: [DateTrigger], the date/time to run the job at",
-)
-@click.option(
-    "--weeks",
-    type=click.INT,
-    help="triggers: [IntervalTrigger], number of weeks to wait",
-)
-@click.option(
-    "--days",
-    type=click.INT,
-    help="triggers: [IntervalTrigger], number of days to wait",
-)
-@click.option(
-    "--hours",
-    type=click.INT,
-    help="triggers: [IntervalTrigger], number of hours to wait",
-)
-@click.option(
-    "--minutes",
-    type=click.INT,
-    help="triggers: [IntervalTrigger], number of minutes to wait",
-)
-@click.option(
-    "--seconds",
-    type=click.INT,
-    help="triggers: [IntervalTrigger], number of seconds to wait",
-)
-@click.option(
-    "--year",
-    type=click.INT,
-    help="triggers: [CronTrigger], 4-digit year",
-)
-@click.option(
-    "--month",
-    type=click.INT,
-    help="triggers: [CronTrigger], month (1-12)",
-)
-@click.option(
-    "--week",
-    type=click.INT,
-    help="triggers: [CronTrigger], day of month (1-31)",
-)
-@click.option(
-    "--day",
-    type=click.INT,
-    help="triggers: [CronTrigger], ISO week (1-53)",
-)
-@click.option(
-    "--day_of_week",
-    type=click.STRING,
-    help="triggers: [CronTrigger], number or name of weekday (0-6 or mon,tue,wed,thu,fri,sat,sun)",
-)
-@click.option(
-    "--hour",
-    type=click.INT,
-    help="triggers: [CronTrigger], hour (0-23)",
-)
-@click.option(
-    "--minute",
-    type=click.INT,
-    help="triggers: [CronTrigger], minute (0-59)",
-)
-@click.option(
-    "--second",
-    type=click.INT,
-    help="triggers: [CronTrigger], second (0-59)",
-)
-@click.option(
-    "--start_date",
-    type=click.STRING,
-    help="triggers: [CronTrigger], earliest possible date/time to trigger on (inclusive)",
-)
-@click.option(
-    "--end_date",
-    type=click.STRING,
-    help="triggers: [CronTrigger], latest possible date/time to trigger on (inclusive)",
-)
+@option_job_id
+@option_jobstore
+@option_trigger
+@option_run_date
+@option_weeks
+@option_days
+@option_hours
+@option_minutes
+@option_seconds
+@option_year
+@option_month
+@option_week
+@option_day
+@option_day_of_week
+@option_hour
+@option_minute
+@option_second
+@option_start_date
+@option_end_date
 @click.pass_context
 def reschedule_job(
     ctx: click.Context,
@@ -783,131 +600,110 @@ def reschedule_job(
     hours: int,
     minutes: int,
     seconds: int,
-    year: int,
-    month: int,
-    week: int,
-    day: int,
+    year: str,
+    month: str,
+    week: str,
+    day: str,
     day_of_week: str,
-    hour: int,
-    minute: int,
-    second: int,
+    hour: str,
+    minute: str,
+    second: str,
     start_date: str,
     end_date: str,
 ) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
-    tzinfo = timezone(AppConfig().get("settings", "timezone"))
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
+    tzinfo = AppConfig().tzinfo
 
-    trigger_kwargs: dict[str, t.Any] = {}
-
-    match trigger:
-        case "date":
-            if run_date is not None:
-                trigger_kwargs["run_date"] = parse_date(run_date, tzinfo=tzinfo)
-            if timezone is not None:
-                trigger_kwargs["timezone"] = tzinfo
-            trigger = DateTrigger(**trigger_kwargs)
-        case "interval":
-            if weeks is not None:
-                trigger_kwargs["weeks"] = weeks
-            if days is not None:
-                trigger_kwargs["days"] = days
-            if hours is not None:
-                trigger_kwargs["hours"] = hours
-            if minutes is not None:
-                trigger_kwargs["minutes"] = minutes
-            if seconds is not None:
-                trigger_kwargs["seconds"] = seconds
-
-            trigger = IntervalTrigger(**trigger_kwargs)
-        case "cron":
-            if year is not None:
-                trigger_kwargs["year"] = year
-            if month is not None:
-                trigger_kwargs["month"] = month
-            if week is not None:
-                trigger_kwargs["week"] = week
-            if day is not None:
-                trigger_kwargs["day"] = day
-            if day_of_week is not None:
-                trigger_kwargs["day_of_week"] = (
-                    int(day_of_week) if day_of_week.isnumeric() else day_of_week
-                )
-            if hour is not None:
-                trigger_kwargs["hour"] = hour
-            if minute is not None:
-                trigger_kwargs["minute"] = minute
-            if second is not None:
-                trigger_kwargs["second"] = second
-            if start_date is not None:
-                trigger_kwargs["start_date"] = parse_date(start_date, tzinfo=tzinfo)
-            if end_date is not None:
-                trigger_kwargs["end_date"] = parse_date(end_date, tzinfo=tzinfo)
-            if timezone is not None:
-                trigger_kwargs["timezone"] = tzinfo
-            trigger = CronTrigger(**trigger_kwargs)
-        case _:
-            raise click.BadOptionUsage("trigger", "unknown trigger type", ctx)
+    # fmt: off
+    trigger = _match_trigger(
+        ctx, trigger, run_date, weeks, days, hours,
+        minutes, seconds, year, month, week, day, day_of_week,
+        hour, minute, second, start_date, end_date, tzinfo,
+    )
+    # fmt: on
 
     job: Job = scheduler.reschedule_job(
         job_id=job_id, jobstore=jobstore, trigger=trigger
     )
-    rprint(f"Rescheduled job:")
-    rprint(_job_info(job, show_jobstore=True))
+    print(f"Rescheduled job:")
+    print(_job_info(job, show_jobstore=True))
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
-@click.option(
-    "-i",
-    "--job-id",
-    type=click.STRING,
-    required=True,
-)
-@click.option(
-    "-j",
-    "--jobstore",
-    type=click.STRING,
-    required=True,
-    show_default=True,
-    shell_complete=available_jobstores,
-)
+@option_job_id
+@option_jobstore
 @click.pass_context
 def resume_job(
     ctx: click.Context,
     job_id: str,
     jobstore: str,
 ) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     job: Job = scheduler.resume_job(job_id=job_id, jobstore=jobstore)
-    rprint(f"Resumed job:")
-    rprint(_job_info(job, show_jobstore=True))
+    print(f"Resumed job:")
+    print(_job_info(job, show_jobstore=True))
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
 @click.pass_context
 def shutdown(ctx: click.Context) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     if scheduler.state == STATE_STOPPED:
-        rprint("[dimmed]Scheduler already stopped")
+        print("[dimmed]Scheduler already stopped")
     else:
         scheduler.shutdown()
-        rprint("Scheduler shutdown")
 
 
 @click.command(cls=FormattedCommand)
-@utils._handle_keyboard_interrupt()
+@utils.handle_keyboard_interrupt()
 @utils.pretty_print_exception
 @click.pass_context
 def start(ctx: click.Context) -> None:
-    scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     if scheduler.state == STATE_RUNNING:
-        rprint("[dimmed]Scheduler already running")
+        print("[dimmed]Scheduler already running")
     else:
         scheduler.start()
-        rprint("[b][green]Scheduler started")
+
+
+@click.command(cls=FormattedCommand)
+@utils.handle_keyboard_interrupt()
+@utils.pretty_print_exception
+@click.pass_context
+def pause(ctx: click.Context) -> None:
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
+    if scheduler.state == STATE_PAUSED:
+        print("[dimmed]Scheduler already paused")
+    else:
+        scheduler.pause()
+
+
+@click.command(cls=FormattedCommand)
+@utils.handle_keyboard_interrupt()
+@utils.pretty_print_exception
+@click.pass_context
+def resume(ctx: click.Context) -> None:
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
+    if scheduler.state == STATE_RUNNING:
+        print("[dimmed]Scheduler already running")
+    else:
+        scheduler.resume()
+
+
+@click.command(cls=FormattedCommand)
+@utils.handle_keyboard_interrupt()
+@utils.pretty_print_exception
+@click.pass_context
+def status(ctx: click.Context) -> None:
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
+    if scheduler.state == STATE_RUNNING:
+        print("Scheduler is running.")
+    else:
+        print("Scheduler is shutdown.")
 
 
 def _job_info(job: Job, show_jobstore: bool = False) -> Table:
@@ -948,3 +744,245 @@ def _job_info(job: Job, show_jobstore: bool = False) -> Table:
     job_table.add_row("func_ref:", f"{job.func_ref}", end_section=True)
 
     return job_table
+
+
+def run(*args: t.Any, **kwargs: t.Any) -> None:
+    console = get_console()
+
+    result = subprocess.run(*args, **kwargs)
+
+    message: str = "Completed Process: `%s` | returncode=%s" % (
+        r"\n".join(result.args.splitlines()),
+        result.returncode,
+    )
+
+    with patch_stdout(raw=True):
+        if result.stdout:
+            message += " | STDOUT:"
+            console.log(message)
+            console.print(result.stdout)
+        elif result.stderr:
+            message += " | STDERR:"
+            console.log(message)
+            console.print(result.stderr)
+        else:
+            console.log(message)
+
+
+@click.command(cls=FormattedCommand, name="system-command")
+@utils.handle_keyboard_interrupt()
+@utils.pretty_print_exception
+@click.option("--command")
+@click.option("--command-multiline", is_flag=True)
+@option_jobstore
+@option_job_id
+@option_args
+@option_kwargs
+@option_coalesce
+@option_replace_existing
+@option_executor
+@option_misfire_grace_time
+@option_max_instances
+@option_next_run_time
+@option_trigger
+@option_run_date
+@option_weeks
+@option_days
+@option_hours
+@option_minutes
+@option_seconds
+@option_year
+@option_month
+@option_week
+@option_day
+@option_day_of_week
+@option_hour
+@option_minute
+@option_second
+@option_start_date
+@option_end_date
+@click.pass_context
+def system_command(
+    ctx: click.Context,
+    command: str,
+    command_multiline: bool,
+    jobstore: str,
+    job_id: str,
+    args: tuple[t.Any],
+    kwargs: dict[str, t.Any],
+    coalesce: bool,
+    replace_existing: bool,
+    executor: str,
+    misfire_grace_time: int,
+    max_instances: int,
+    next_run_time: str,
+    trigger: str,
+    run_date: str,
+    weeks: int,
+    days: int,
+    hours: int,
+    minutes: int,
+    seconds: int,
+    year: str,
+    month: str,
+    week: str,
+    day: str,
+    day_of_week: str,
+    hour: str,
+    minute: str,
+    second: str,
+    start_date: str,
+    end_date: str,
+) -> None:
+    scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
+
+    tzinfo = AppConfig().tzinfo
+
+    if command_multiline:
+        style: Style = Style.from_dict(rtoml.load(constant.PROMPT_STYLE))
+        _CMD = prompt(message="", multiline=True, style=style)
+        _name = _CMD
+        _CMD = _prepend_exec_to_cmd(
+            _CMD, lambda: AppConfig().get("system-command", "shell", default="")
+        )
+    else:
+        _CMD = command
+        _name = command
+        _CMD = _prepend_exec_to_cmd(
+            _CMD, lambda: AppConfig().get("system-command", "shell", default="")
+        )
+
+    if not _CMD:
+        ctx.fail("Must specify command.")
+
+    func = f"{__name__}:run"
+
+    job_kwargs: dict[str, t.Any] = {}
+
+    func_kwargs = {
+        "args": _CMD,
+        "capture_output": True,
+        "env": os.environ,
+        "shell": True,
+        "text": True,
+    }
+    func_kwargs |= kwargs
+
+    job_kwargs["args"] = args
+    job_kwargs["kwargs"] = func_kwargs
+    job_kwargs["func"] = func
+    job_kwargs["name"] = r"\n".join(_name.splitlines())
+    job_kwargs["jobstore"] = jobstore
+    # fmt: off
+    job_kwargs["trigger"] = _match_trigger(
+        ctx, trigger, run_date, weeks, days, hours,
+        minutes, seconds, year, month, week, day, day_of_week,
+        hour, minute, second, start_date, end_date, tzinfo,
+    )
+    # fmt: on
+    if job_id is not None:
+        job_kwargs["id"] = job_id
+    if args != ():  # type: ignore[comparison-overlap]
+        job_kwargs["args"] = args
+    if kwargs != {}:
+        job_kwargs["kwargs"] = kwargs
+    if coalesce is not None:
+        job_kwargs["coalesce"] = coalesce
+    if replace_existing is not None:
+        job_kwargs["replace_existing"] = replace_existing
+    if executor is not None:
+        job_kwargs["executor"] = executor
+    if misfire_grace_time is not None:
+        job_kwargs["misfire_grace_time"] = misfire_grace_time
+    if max_instances is not None:
+        job_kwargs["max_instances"] = max_instances
+    if next_run_time is not None:
+        tzinfo = AppConfig().tzinfo
+        job_kwargs["next_run_time"] = parse_date(next_run_time, tzinfo=tzinfo)
+
+    try:
+        job: Job = scheduler.add_job(**job_kwargs)
+        print(f"Added job:")
+        print(_job_info(job, show_jobstore=True))
+    except LookupError as error:
+        print(f"{error}")
+
+
+def _match_trigger(
+    ctx: click.Context,
+    trigger: str,
+    run_date: str,
+    weeks: int,
+    days: int,
+    hours: int,
+    minutes: int,
+    seconds: int,
+    year: str,
+    month: str,
+    week: str,
+    day: str,
+    day_of_week: str,
+    hour: str,
+    minute: str,
+    second: str,
+    start_date: str,
+    end_date: str,
+    tzinfo: "_TzInfo",
+) -> DateTrigger | IntervalTrigger | CronTrigger:
+    trigger_kwargs: dict[str, t.Any] = {}
+
+    match trigger:
+        case "date":
+            if run_date is not None:
+                trigger_kwargs["run_date"] = parse_date(run_date, tzinfo=tzinfo)
+            if timezone is not None:
+                trigger_kwargs["timezone"] = tzinfo
+
+            trigger = DateTrigger(**trigger_kwargs)
+
+        case "interval":
+            if weeks is not None:
+                trigger_kwargs["weeks"] = weeks
+            if days is not None:
+                trigger_kwargs["days"] = days
+            if hours is not None:
+                trigger_kwargs["hours"] = hours
+            if minutes is not None:
+                trigger_kwargs["minutes"] = minutes
+            if seconds is not None:
+                trigger_kwargs["seconds"] = seconds
+
+            trigger = IntervalTrigger(**trigger_kwargs)
+
+        case "cron":
+            if year is not None:
+                trigger_kwargs["year"] = year
+            if month is not None:
+                trigger_kwargs["month"] = month
+            if week is not None:
+                trigger_kwargs["week"] = week
+            if day is not None:
+                trigger_kwargs["day"] = day
+            if day_of_week is not None:
+                trigger_kwargs["day_of_week"] = (
+                    int(day_of_week) if day_of_week.isnumeric() else day_of_week
+                )
+            if hour is not None:
+                trigger_kwargs["hour"] = hour
+            if minute is not None:
+                trigger_kwargs["minute"] = minute
+            if second is not None:
+                trigger_kwargs["second"] = second
+            if start_date is not None:
+                trigger_kwargs["start_date"] = parse_date(start_date, tzinfo=tzinfo)
+            if end_date is not None:
+                trigger_kwargs["end_date"] = parse_date(end_date, tzinfo=tzinfo)
+            if timezone is not None:
+                trigger_kwargs["timezone"] = tzinfo
+
+            trigger = CronTrigger(**trigger_kwargs)
+
+        case _:
+            raise click.BadOptionUsage("trigger", "unknown trigger type", ctx)
+
+    return trigger

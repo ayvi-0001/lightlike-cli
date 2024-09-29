@@ -3,7 +3,6 @@ from functools import wraps
 from types import FunctionType
 
 import click
-from pytz import timezone
 from rich import get_console
 from rich import print as rprint
 
@@ -56,11 +55,7 @@ def console(fn: AnyCallable) -> AnyCallable:
 def now(fn: AnyCallable) -> AnyCallable:
     @wraps(fn)
     def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
-        return fn(
-            datetime_now(timezone(AppConfig().get("settings", "timezone"))),
-            *args,
-            **kwargs,
-        )
+        return fn(datetime_now(AppConfig().tzinfo), *args, **kwargs)
 
     return inner
 

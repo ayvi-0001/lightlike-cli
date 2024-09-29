@@ -13,14 +13,13 @@ import click
 import rtoml
 from more_itertools import first, locate, map_except, one, unique_everseen
 from prompt_toolkit.patch_stdout import patch_stdout
-from pytz import timezone
 from rich import box, get_console
 from rich.markup import escape
 from rich.measure import Measurement
 from rich.table import Table
 from rich.text import Text
 
-from lightlike import _console, _fasteners
+from lightlike import _fasteners
 from lightlike.__about__ import __appname_sc__
 from lightlike.app import _get, dates, render
 from lightlike.app.config import AppConfig
@@ -28,6 +27,8 @@ from lightlike.client import CliQueryRoutines
 from lightlike.internal import appdir, factory, markup, utils
 
 if t.TYPE_CHECKING:
+    from datetime import _TzInfo
+
     from google.cloud.bigquery import QueryJob
     from google.cloud.bigquery.table import Row
     from rich.console import Console, ConsoleOptions, RenderResult
@@ -36,7 +37,6 @@ __all__: t.Sequence[str] = (
     "TimeEntryCache",
     "TimeEntryIdList",
     "TimeEntryAppData",
-    "__validate_cache",
 )
 
 
@@ -195,7 +195,7 @@ class EntriesInMemory(_Entries, metaclass=factory._Singleton):
 class TimeEntryCache(_Entries):
     __slots__: t.Sequence[str] = ("_entries", "_path")
 
-    @_fasteners.interprocess_read_locked(appdir.CACHE_LOCK, logger=appdir._log())
+    @_fasteners.interprocess_read_locked(appdir.CACHE_LOCK, logger=appdir.log())
     def __init__(self, path: Path = appdir.CACHE) -> None:
         self._path = path
         self._entries = rtoml.load(self._path)
@@ -204,7 +204,7 @@ class TimeEntryCache(_Entries):
     def __rich_console__(
         self, console: "Console", options: "ConsoleOptions"
     ) -> "RenderResult":
-        now: datetime = dates.now(timezone(AppConfig().get("settings", "timezone")))
+        now: datetime = dates.now(AppConfig().tzinfo)
 
         fields = [
             "id",
@@ -280,19 +280,19 @@ class TimeEntryCache(_Entries):
     ) -> Measurement:
         return Measurement(140, options.max_width)
 
-    @_fasteners.interprocess_locked(appdir.CACHE_LOCK, logger=appdir._log())
+    @_fasteners.interprocess_locked(appdir.CACHE_LOCK, logger=appdir.log())
     @contextmanager
     def rw(self) -> t.Generator[TimeEntryCache, t.Any, None]:
         try:
             yield self
         finally:
-            self._path.write_text(self._serialize)
+            self._path.write_text(self._serialize, encoding="utf-8")
             self._entries = rtoml.load(self._path)
             EntriesInMemory().update(self._entries)
 
     @property
     def _serialize(self) -> str:
-        return utils._format_toml(self._entries)
+        return utils.format_toml(self._entries)
 
     def start_new_active_time_entry(self) -> None:
         with self.rw():
@@ -474,7 +474,7 @@ class TimeEntryCache(_Entries):
             if self._path.exists():
                 if xor(
                     self._path.read_text() == "",
-                    not utils._identical_vectors(
+                    not utils.identical_vectors(
                         list(self.active.keys()),
                         list(self.default_entry.keys()),
                     ),
@@ -505,8 +505,7 @@ class TimeEntryCache(_Entries):
         running_entries: list[dict[str, t.Any]] = []
         paused_entries: list[dict[str, t.Any]] = []
 
-        tzinfo = timezone(AppConfig().get("settings", "timezone"))
-
+        tzinfo: "_TzInfo" = AppConfig().tzinfo
         active_index: str | None = self.active["id"] if self else None
 
         for row in list(running_entries_to_cache):
@@ -542,7 +541,8 @@ class TimeEntryCache(_Entries):
                 )
             )
 
-        get_console().set_window_title(__appname_sc__)
+        if AppConfig().get("settings", "update-terminal-title", default=True):
+            get_console().set_window_title(__appname_sc__)
         with self.rw() as cache:
             cache.running_entries = running_entries
             cache.paused_entries = paused_entries
@@ -580,7 +580,7 @@ class TimeEntryCache(_Entries):
 
         if field in ("project", "note"):
             _kwargs |= dict(
-                header_style="green",
+                # header_style="green",
                 overflow="ellipsis",
             )
             if field == "project":
@@ -595,14 +595,14 @@ class TimeEntryCache(_Entries):
                 )
         elif field == "id":
             _kwargs |= dict(
-                header_style="green",
+                # header_style="green",
                 overflow="crop",
                 min_width=7,
                 max_width=7,
             )
         elif field in ("start", "timestamp_paused"):
             _kwargs |= dict(
-                header_style="yellow",
+                # header_style="yellow",
                 justify="left",
                 overflow="crop",
                 min_width=19,
@@ -610,7 +610,7 @@ class TimeEntryCache(_Entries):
             )
         elif field in ("billable", "paused"):
             _kwargs |= dict(
-                header_style="red",
+                # header_style="red",
                 justify="left",
             )
             if console_width < 150:
@@ -621,17 +621,12 @@ class TimeEntryCache(_Entries):
                 )
         elif field in ("paused_hours", "hours"):
             _kwargs |= dict(
-                header_style="cyan",
+                # header_style="cyan",
                 justify="right",
                 overflow="crop",
                 max_width=12,
             )
         return _kwargs
-
-
-def __validate_cache() -> None:
-    _console.if_not_quiet_start(get_console().log)("Validating cache")
-    TimeEntryCache().validate()
 
 
 class TimeEntryIdList(metaclass=factory._Singleton):
@@ -675,14 +670,21 @@ class TimeEntryIdList(metaclass=factory._Singleton):
                     "Cannot find entry id: ", markup.repr_str(input_id)
                 ).markup
             )
-        else:
-            return first(matching)
 
-    def reset(self) -> None:
+        match = first(matching)
+        return match
+
+    def reset(
+        self,
+        trigger_query_job: "QueryJob | None" = None,
+        debug: bool = False,
+    ) -> None:
         try:
+            if trigger_query_job and not trigger_query_job.done():
+                trigger_query_job.result()
             self.clear()
         except Exception as error:
-            appdir._log().error(f"Error resetting session ids: {error}")
+            appdir.log().error(f"Error resetting session ids: {error}")
         self.ids
 
     def add(self, input_id: str, debug: bool = False) -> None:
@@ -766,13 +768,13 @@ class TimeEntryAppData:
             try:
                 appdata[__key][p].update({"notes": self._unique_notes(p, rows)})
             except Exception as error:
-                appdir._log().error(
+                appdir.log().error(
                     f"Error attempting to map appdata notes - {error!r}: {error!s}"
                 )
             return appdata
 
         reduce(_map_notes, projects, appdata)
-        self.path.write_text(rtoml.dumps(appdata), encoding="utf-8")
+        self.path.write_text(rtoml.dumps(appdata, pretty=True), encoding="utf-8")
 
         debug and patch_stdout(raw=True)(console.log)(
             "[DEBUG]", "entry appdata sync complete"

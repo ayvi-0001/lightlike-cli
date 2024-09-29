@@ -1,74 +1,82 @@
+import getpass
+import os
+import socket
 import typing as t
 
+from lightlike.__about__ import __appname__, __appname_sc__, __version__
+
 __all__: t.Sequence[str] = (
+    "_CONSOLE_SVG_FORMAT",
+    "BQ_UPDATES_CONFIG",
+    "CONSOLE",
     "DEFAULT_CONFIG",
     "DEFAULT_SCHEDULER_TOML",
-    "CONSOLE",
+    "LICENSE",
     "PROMPT_STYLE",
-    "_CONSOLE_SVG_FORMAT",
 )
 
 
-DEFAULT_CONFIG: str = """\
+DEFAULT_CONFIG: str = f"""\
 [app]
-name = ""
-version = ""
-term = ""
-last_checked_release = ""
+name = "{__appname_sc__}"
+version = "{__version__}"
+term = "{os.getenv("TERM", "unknown")}"
 
 [user]
-name = "null"
-host = "null"
-stay_logged_in = false
+name = "{getpass.getuser()}"
+host = "{socket.gethostname()}"
+stay-logged-in = false
 password = ""
 salt = []
 
-[updates]
-"v0.9.3" = false
-
 [settings]
-complete_style = "COLUMN"
-editor = ""
-note_required = "not-implemented"
-quiet_start = false
-reserve_space_for_menu = 12
-timer_add_min = -6
+complete-style = "COLUMN"
+editor = "{os.environ.get("EDITOR")}"
+note-required = "not-implemented"
+quiet-start = false
+reserve-space-for-menu = 12
+timer-add-min = -6
 timezone = "null"
-week_start = 1
+week-start = 1
+update-terminal-title = true
+rprompt-date-format = "[%H:%M:%S]"
 
 [settings.dateparser]
-additional_date_formats = ["%I%p", "%I:%M%p", "%H:%M:%S"]
-cache_size_limit = 0
-date_order = "MDY"
-default_languages = ["en"]
-language_detection_confidence_threshold = 0.5
+additional-date-formats = ["%I%p", "%I:%M%p", "%I%M%p", "%H%M", "%H%M%S", "%H:%M", "%H:%M:%S"]
+cache-size-limit = 0
+date-order = "MDY"
+default-languages = ["en"]
+language-detection-confidence-threshold = 0.5
 normalize = true
-prefer_dates_from = "current_period"
-prefer_day_of_month = "current"
-prefer_locale_date_order = true
-prefer_month_of_year = "current"
-strict_parsing = false
+prefer-dates-from = "current_period"
+prefer-day-of-month = "current"
+prefer-locale-date-order = true
+prefer-month-of-year = "current"
+strict-parsing = false
 
-[settings.note_history]
+[settings.note-history]
 days = 90
 
 [settings.query]
-hide_table_render = false
-mouse_support = false
-save_query_info = false
-save_svg = false
-save_txt = false
+hide-table-render = false
+mouse-support = false
+save-query-info = false
+save-svg = false
+save-txt = false
 
 [bigquery]
-dataset = "null"
+dataset = "{__appname_sc__}"
 timesheet = "timesheet"
 projects = "projects"
-resources_provisioned = false
+resources-provisioned = false
 
 [client]
-active_project = "null"
-credentials_source = "not-set"
-service_account_key = []
+active-project = "null"
+credentials-source = "not-set"
+service-account-key = []
+
+[cli]
+add-to-path = []
 
 [cli.commands]
 calendar = "lightlike.cmd.app.other:calendar"
@@ -79,18 +87,14 @@ exit = "lightlike.cmd.app.default:exit_"
 app = "lightlike.cmd.app:app"
 bq = "lightlike.cmd.bq:bq"
 project = "lightlike.cmd.project:project"
-summary = "lightlike.cmd.summary:summary"
 timer = "lightlike.cmd.timer:timer"
-
-[cli.append_path]
-paths = []
+scheduler = "lightlike.cmd.scheduler:scheduler"
 
 [prompt.style]
 "prompt.user" = "fg:#bfabff bold"
 "prompt.at" = "fg:#f0f0ff"
 "prompt.host" = "fg:#bfabff bold"
 "prompt.timer" = "fg:#000000 bg:#f0f0ff"
-"prompt.note" = "fg:#f0f0ff"
 "prompt.path.prefix" = "fg:#f0f0ff bold"
 "prompt.path.name" = "fg:#69ffc3 bold"
 "prompt.project.name" = "fg:#79c0ff bold"
@@ -98,30 +102,26 @@ paths = []
 "prompt.project.parenthesis" = "fg:#bfabff bold"
 "prompt.branch.parenthesis" = "fg:#feee85 bold"
 "rprompt.clock" = "fg:#888888"
-"rprompt.entries" = "fg:#000000 bg:#f0f0ff"
 cursor = "fg:#f0f0ff"
+
+[completers]
+default = ["CMD"]
+
+[completers.exec]
+ignore-patterns = []
+
+[keys]
+exit = [[":", "q"], ["c-q"]]
+system-command = [[":", "s", "h"], [":", "!"]]
+
+[keys.completers]
+commands = [[":", "c", "1"]]
+history = [[":", "c", "2"]]
+path = [[":", "c", "3"]]
+exec = [[":", "c", "4"]]
 
 [system-command]
 shell = []
-
-[keybinds.system-command]
-1 = [":", "!"]
-2 = [":", "s", "h"]
-3 = ["escape", "c-m"]
-
-[keybinds.exit]
-1 = [":", "q"]
-2 = ["c-q"]
-
-[keybinds.completers]
-commands = [":", "c", "1"]
-history = [":", "c", "2"]
-path = [":", "c", "3"]
-
-[git]
-branch = ""
-path = ""
-
 """
 
 
@@ -157,7 +157,7 @@ default_job_check_latest_release = "lightlike.cmd.scheduler.jobs:default_job_che
 """
 
 
-CONSOLE: str = """
+CONSOLE: str = """\
 [style]
 color = "#f0f0ff"
 bold = false
@@ -206,10 +206,6 @@ repr_tag_start = "bold"
 repr_url = "underline not bold bright_blue"
 repr_uuid = "not bold bright_yellow"
 
-"header.bool" = "#ff0000"
-"header.dt" = "#ffff00"
-"header.num" = "#00ffff"
-"header.str" = "#ff0000"
 "log.error" = "#ff0000"
 "log.path" = "dim #d2d2e6"
 "log.time" = "#888888"
@@ -219,8 +215,8 @@ repr_uuid = "not bold bright_yellow"
 "scope.equals" = "bold #ff0000"
 "scope.key.special" = "dim #ffff00"
 "scope.key" = "not dim #ffff00"
-"status.message" = "#32ccfe"
-"status.spinner" = "#32ccfe"
+"status.message" = "#f0f0ff"
+"status.spinner" = "#f0f0ff"
 "table.caption" = "dim"
 "table.cell.empty" = "#888888"
 "table.cell" = "#f0f0ff"
@@ -231,24 +227,20 @@ repr_uuid = "not bold bright_yellow"
 """
 
 
-PROMPT_STYLE: str = """
+PROMPT_STYLE: str = """\
 "" = "fg:#f0f0ff"
 prompt = "fg:#f0f0ff"
 "prompt.user" = "fg:#bfabff bold"
 "prompt.at" = "fg:#f0f0ff"
 "prompt.host" = "fg:#bfabff bold"
 "prompt.timer" = "fg:#000000 bg:#f0f0ff"
-"prompt.note" = ""
 "prompt.path.prefix" = "fg:#f0f0ff bold"
 "prompt.path.name" = "fg:#69ffc3 bold"
 "prompt.project.name" = "fg:#79c0ff bold"
 "prompt.branch.name" = "fg:#fc6675 bold"
 "prompt.project.parenthesis" = "fg:#bfabff bold"
 "prompt.branch.parenthesis" = "fg:#feee85 bold"
-
-rprompt = "fg:#f0f0ff"
 "rprompt.clock" = "fg:#888888"
-"rprompt.entries" = "fg:#000000 bg:#f0f0ff"
 
 cursor = "fg:#f0f0ff"
 cursor-column = "bg:#dddddd"
@@ -278,22 +270,53 @@ color-column = "bg:#ccaacc"
 "pygments.text" = ""
 "pygments.whitespace" = ""
 
-"completion-menu" = "bg:#0e0e10 fg:#f0f0ff"
-"completion-menu.completion" = "bg:#0e0e10 fg:#f0f0ff"
+completion-menu = "fg:#f0f0ff bg:default"
+"completion-menu.completion" = "fg:#f0f0ff bg:default"
 # (Note: for the current completion, we use 'reverse' on top of fg/bg colors.
 # This is to have proper rendering with NO_COLOR=1).
-"completion-menu.completion.current" = "bold bg:#f0f0ff fg:#9146ff reverse"
-"completion-menu.meta.completion" = "bg:#f0f0ff fg:#000000"
-"completion-menu.meta.completion.current" = "bold bg:#f0f0ff fg:#9146ff"
-"completion-menu.multi-column-meta" = "bg:#f0f0ff fg:#000000"
+"completion-menu.completion.current" = "bold fg:#9146ff bg:default reverse"
+"completion-menu.meta.completion" = "bg:default fg:#f0f0ff"
+"completion-menu.meta.completion.current" = "bold fg:#9146ff bg:default"
+"completion-menu.multi-column-meta" = "fg:#f0f0ff bg:default"
 
 "scrollbar.arrow" = "noinherit bold"
-"scrollbar.background" = "bg:#f0f0ff"
-"scrollbar.button" = "bg:#9146ff"
+"scrollbar.background" = "bg:default"
+"scrollbar.button" = "bg:#f0f0ff"
 
 "control-character" = 'bold ansired'
 "validation-toolbar" = "bg:#550000 #ffffff"
 """
+
+
+LICENSE: str = """\
+MIT License
+
+Copyright (c) 2024 ayvi-0001
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
+BQ_UPDATES_CONFIG: str = """\
+[versions]
+"v0.11.0b13" = false
+"""
+
 
 _CONSOLE_SVG_FORMAT = """\
 <svg class="rich-terminal" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">
@@ -319,14 +342,11 @@ _CONSOLE_SVG_FORMAT = """\
     .{unique_id}-matrix {{
         font-family: Fira Code, monospace;
         font-size: {char_height}px;
-        line-height: {line_height}px;
-        font-variant-east-asian: full-width;
     }}
 
     .{unique_id}-title {{
         font-size: 18px;
         font-weight: bold;
-        font-family: arial;
     }}
 
     {styles}

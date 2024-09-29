@@ -4,7 +4,6 @@
 
 - [`timer`](#timer)
 - [`project`](#project)
-- [`summary`](#summary)
 - [`app`](#app)
 - [`bq`](#bq)
 
@@ -70,6 +69,22 @@
 
 ![timer_update](/docs/assets/svg/timer_update.svg)
 
+### `timer:summary`
+
+![summary](/docs/assets/svg/timer_summary.svg)
+
+### `timer:summary:csv`
+
+![summary_csv](/docs/assets/svg/timer_summary_csv.svg)
+
+### `timer:summary:json`
+
+![summary_json](/docs/assets/svg/timer_summary_json.svg)
+
+### `timer:summary:table`
+
+![summary_table](/docs/assets/svg/timer_summary_table.svg)
+
 ---
 
 ## `project`
@@ -98,7 +113,7 @@
 
 ### `project:set:default_billable`
 
-![project_set_default_billable](/docs/assets/svg/project_set_default_billable.svg)
+![project_set_default_billable](/docs/assets/svg/project_set_default-billable.svg)
 
 ### `project:set:description`
 
@@ -114,24 +129,6 @@
 
 ---
 
-## `summary`
-
-![summary](/docs/assets/svg/summary.svg)
-
-### `summary:csv`
-
-![summary_csv](/docs/assets/svg/summary_csv.svg)
-
-### `summary:json`
-
-![summary_json](/docs/assets/svg/summary_json.svg)
-
-### `summary:table`
-
-![summary_table](/docs/assets/svg/summary_table.svg)
-
----
-
 ## `app`
 
 ![app](/docs/assets/svg/app.svg)
@@ -140,13 +137,13 @@
 
 ![app_config](/docs/assets/svg/app_config.svg)
 
-### `app:config:open`
+### `app:config:edit`
 
-![app_config_open](/docs/assets/svg/app_config_open.svg)
+![app_config_edit](/docs/assets/svg/app_config_edit.svg)
 
-### `app:config:show`
+### `app:config:list`
 
-![app_config_show](/docs/assets/svg/app_config_show.svg)
+![app_config_list](/docs/assets/svg/app_config_list.svg)
 
 ### `app:config:set`
 
@@ -162,19 +159,19 @@
 
 ### `app:config:set:general:note_history`
 
-![app_config_set_general_note_history](/docs/assets/svg/app_config_set_general_note_history.svg)
+![app_config_set_general_note_history](/docs/assets/svg/app_config_set_general_note-history.svg)
 
 ### `app:config:set:general:quiet_start`
 
-![app_config_set_general_quiet_start](/docs/assets/svg/app_config_set_general_quiet_start.svg)
+![app_config_set_general_quiet_start](/docs/assets/svg/app_config_set_general_quiet-start.svg)
 
 ### `app:config:set:general:stay_logged_in`
 
-![app_config_set_general_stay_logged_in](/docs/assets/svg/app_config_set_general_stay_logged_in.svg)
+![app_config_set_general_stay_logged_in](/docs/assets/svg/app_config_set_general_stay-logged-in.svg)
 
 ### `app:config:set:general:timer_add_min`
 
-![app_config_set_general_timer_add_min](/docs/assets/svg/app_config_set_general_timer_add_min.svg)
+![app_config_set_general_timer_add_min](/docs/assets/svg/app_config_set_general_timer-add-min.svg)
 
 ### `app:config:set:general:timezone`
 
@@ -182,7 +179,7 @@
 
 ### `app:config:set:general:week_start`
 
-![app_config_set_general_week_start](/docs/assets/svg/app_config_set_general_week_start.svg)
+![app_config_set_general_week_start](/docs/assets/svg/app_config_set_general_week-start.svg)
 
 ### `app:config:set:general`
 
@@ -190,23 +187,23 @@
 
 ### `app:config:set:query:hide_table_render`
 
-![app_config_set_query_hide_table_render](/docs/assets/svg/app_config_set_query_hide_table_render.svg)
+![app_config_set_query_hide_table_render](/docs/assets/svg/app_config_set_query_hide-table-render.svg)
 
 ### `app:config:set:query:mouse_support`
 
-![app_config_set_query_mouse_support](/docs/assets/svg/app_config_set_query_mouse_support.svg)
+![app_config_set_query_mouse_support](/docs/assets/svg/app_config_set_query_mouse-support.svg)
 
 ### `app:config:set:query:save_query_info`
 
-![app_config_set_query_save_query_info](/docs/assets/svg/app_config_set_query_save_query_info.svg)
+![app_config_set_query_save_query_info](/docs/assets/svg/app_config_set_query_save-query-info.svg)
 
 ### `app:config:set:query:save_svg`
 
-![app_config_set_query_save_svg](/docs/assets/svg/app_config_set_query_save_svg.svg)
+![app_config_set_query_save_svg](/docs/assets/svg/app_config_set_query_save-svg.svg)
 
 ### `app:config:set:query:save_txt`
 
-![app_config_set_query_save_txt](/docs/assets/svg/app_config_set_query_save_txt.svg)
+![app_config_set_query_save_txt](/docs/assets/svg/app_config_set_query_save-txt.svg)
 
 ### `app:dir`
 
@@ -220,17 +217,13 @@
 
 ![app_sync](/docs/assets/svg/app_sync.svg)
 
-### `app:test`
+### `app:parse-date`
 
-![app_test](/docs/assets/svg/app_test.svg)
+![app_parse_date](/docs/assets/svg/app_parse-date.svg)
 
-### `app:test:date-diff`
+### `app:date-diff`
 
-![app_test_date-diff](/docs/assets/svg/app_test_date-diff.svg)
-
-### `app:test:date-parse`
-
-![app_test_date-parse](/docs/assets/svg/app_test_date-parse.svg)
+![app_date-diff](/docs/assets/svg/app_date-diff.svg)
 
 ---
 
