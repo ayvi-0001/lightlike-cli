@@ -11,7 +11,7 @@ from rich import print as rprint
 from rich.console import Console
 from rich.syntax import Syntax
 
-from lightlike.__about__ import __appdir__, __config__
+from lightlike.__about__ import __appdir__
 from lightlike.app import _questionary, dates, validate
 from lightlike.app.cache import TimeEntryAppData, TimeEntryCache
 from lightlike.app.config import AppConfig
@@ -48,7 +48,7 @@ P = t.ParamSpec("P")
         "open": "lightlike.cmd.app.config:open_",
         "list": "lightlike.cmd.app.config:list_",
     },
-    short_help=f"App config file.",
+    short_help="App config file.",
     syntax=Syntax(
         code="""\
         $ app config edit
@@ -121,7 +121,6 @@ def _start_command(url: str, wait: bool = False, locate: bool = False) -> str:
 
     elif CYGWIN:
         if locate:
-
             url = os.path.dirname(_unquote_file(url).replace('"', ""))
             args = f'cygstart "{url}"'
         else:
@@ -142,7 +141,7 @@ def _start_command(url: str, wait: bool = False, locate: bool = False) -> str:
     cls=FormattedCommand,
     name="dir",
     options_metavar="[LAUNCH OPTION]",
-    short_help=f"Open app directory.",
+    short_help="Open app directory.",
     syntax=Syntax(
         code="""\
         $ app dir
@@ -382,7 +381,7 @@ def _reset(
     short_help="Test parser on argument / See examples.",
     no_args_is_help=True,
     syntax=Syntax(
-        code=f"""\
+        code="""\
         $ app parse-date now # same as '0d' or 'today'
         $ app parse-date n # if the date string is the single character `n`, it will expand to `now`.
         2024-08-05 07:00:00-07:00
@@ -476,7 +475,6 @@ def date_diff(
     date_end: datetime,
     subtract_hours: float,
 ) -> None:
-    duration = date_end - date_start
     time_parts = dates.seconds_to_time_parts(
         Decimal(subtract_hours or 0) * Decimal(3600)
     )

@@ -38,8 +38,6 @@ StyleAndTextTuples = list[OneStyleAndTextTuple]
 TYPED_DIR = re.compile(r"^(.*)(?:\\|\/)", flags=re.IGNORECASE)
 TYPED_STEM = re.compile(r"^.*(?:\\|\/)+(.*)$", flags=re.IGNORECASE)
 
-_E = (PermissionError, NotADirectoryError, FileNotFoundError)
-
 
 def _match_stem(incomplete: str) -> t.Callable[[Path], bool]:
     return lambda p: p.stem.lower().startswith(incomplete.lower())
@@ -53,7 +51,7 @@ def _typed_dir_and_stem(
     if typed_dir and typed_stem:
         target_dir = Path(typed_dir.group(0)).expanduser()
         if target_dir.exists():
-            with suppress(*_E):
+            with suppress(PermissionError, NotADirectoryError, FileNotFoundError):
                 target_stem = typed_stem.group(1).lower()
                 yield from filter(_match_stem(target_stem), iterator(target_dir))
 
@@ -72,7 +70,7 @@ def _paths_from_incomplete(
     typed_path = Path(incomplete)
 
     if not incomplete:
-        with suppress(*_E):
+        with suppress(PermissionError, NotADirectoryError, FileNotFoundError):
             yield from iterator(Path("."))
     elif typed_path.exists():
         if typed_path.is_dir():
@@ -103,7 +101,7 @@ def _is_link(path: Path) -> bool:
 def _path_str_contents(path: Path) -> FormattedText:
     contents: StyleAndTextTuples = []
 
-    with suppress(*_E):
+    with suppress(PermissionError, NotADirectoryError, FileNotFoundError):
         if _is_link(path):
             resolved: Path = path.resolve()
             if os.name == "nt":
@@ -187,13 +185,13 @@ class PathCompleter(Completer):
                     display_meta=_path_str_contents(path),
                     style="cyan",
                 )
-        except:
+        except Exception:
             yield from []
 
     def _display(self, text: str, console_width: int) -> str:
         half_console_width = int(console_width / 3)
         if len(text) > half_console_width:
-            return f"{text[:half_console_width]}…"
+            return f"{text[:half_console_width]}..."
         else:
             return text
 

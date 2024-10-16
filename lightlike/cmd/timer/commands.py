@@ -261,8 +261,8 @@ def add(
         billable=billable or project_default_billable,
     )
 
-    sync_kwargs = dict(trigger_query_job=query_job, debug=debug)
-    threads.spawn(ctx, id_list.add, dict(input_id=time_entry_id, debug=debug))
+    sync_kwargs = {"trigger_query_job": query_job, "debug": debug}
+    threads.spawn(ctx, id_list.add, {"input_id": time_entry_id, "debug": debug})
     note != "None" and threads.spawn(ctx, appdata.sync, sync_kwargs)
 
     console.print(
@@ -398,10 +398,10 @@ def delete(
         ```
         $ timer list --current-week
 
-        | row | id      |   …
-        |-----|---------|   …
-        |   1 | a6c8e8e |   …
-        |   2 | e01812e |   …
+        | row | id      |   ...
+        |-----|---------|   ...
+        |   1 | a6c8e8e |   ...
+        |   2 | e01812e |   ...
         ```
 
         --yank 2 [d](or -y2)[/d] would be the same as typing --id e01812e
@@ -451,7 +451,7 @@ def delete(
 
         console.print("Deleted time entries")
 
-        kwargs = dict(trigger_query_job=query_job, debug=debug)
+        kwargs = {"trigger_query_job": query_job, "debug": debug}
         threads.spawn(ctx, appdata.sync, kwargs)
         threads.spawn(ctx, id_list.reset, kwargs)
 
@@ -782,10 +782,10 @@ def edit(
         ```
         $ timer list --current-week
 
-        | row | id      |   …
-        |-----|---------|   …
-        |   1 | a6c8e8e |   …
-        |   2 | e01812e |   …
+        | row | id      |   ...
+        |-----|---------|   ...
+        |   1 | a6c8e8e |   ...
+        |   2 | e01812e |   ...
         ```
 
         --yank 2 [d](or -y2)[/d] would be the same as typing --id e01812e
@@ -948,7 +948,7 @@ def edit(
             "records:" if len(matched_ids) > 1 else "record:",
             render.create_table_diff(original_records, new_records),
         )
-        sync_kwargs = dict(trigger_query_job=query_job, debug=debug)
+        sync_kwargs = {"trigger_query_job": query_job, "debug": debug}
         threads.spawn(ctx, appdata.sync, sync_kwargs)
 
 
@@ -1603,7 +1603,7 @@ def update_notes(
         status_renderable=markup.status_message("Updating notes"),
     )
 
-    sync_kwargs = dict(trigger_query_job=query_job, debug=debug)
+    sync_kwargs = {"trigger_query_job": query_job, "debug": debug}
     threads.spawn(ctx, appdata.sync, sync_kwargs)
     console.print("Updated notes for", markup.code(project))
 
@@ -1997,9 +1997,9 @@ def run(
         query_job.result()
         console.log("[DEBUG]", f"started entry {time_entry_id}")
 
-    sync_kwargs = dict(trigger_query_job=query_job, debug=debug)
+    sync_kwargs = {"trigger_query_job": query_job, "debug": debug}
     threads.spawn(ctx, appdata.sync, sync_kwargs)
-    threads.spawn(ctx, id_list.add, dict(input_id=time_entry_id, debug=debug))
+    threads.spawn(ctx, id_list.add, {"input_id": time_entry_id, "debug": debug})
 
 
 @click.command(

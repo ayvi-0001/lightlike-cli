@@ -3,7 +3,7 @@ import os
 import socket
 import typing as t
 
-from lightlike.__about__ import __appname__, __appname_sc__, __version__
+from lightlike.__about__ import __appname_sc__, __version__
 
 __all__: t.Sequence[str] = (
     "_CONSOLE_SVG_FORMAT",

@@ -58,7 +58,7 @@ def cd_(path: Path) -> None:
 @click.command(
     name="help",
     short_help="Show help.",
-    context_settings=dict(help_option_names=[]),
+    context_settings={"help_option_names": []},
 )
 @_pass.console
 @_pass.ctx_group(parents=1)

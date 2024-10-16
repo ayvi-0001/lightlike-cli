@@ -61,7 +61,9 @@ with AppConfig().rw() as config:
 DEFAULT_PARSER_SETTINGS: dict[str, t.Any] = {
     # fmt: off
     "CACHE_SIZE_LIMIT": dateparser_settings.get("cache-size-limit"),
-    "LANGUAGE_DETECTION_CONFIDENCE_THRESHOLD": dateparser_settings.get("language-detection-confidence-threshold"),
+    "LANGUAGE_DETECTION_CONFIDENCE_THRESHOLD": dateparser_settings.get(
+        "language-detection-confidence-threshold"
+    ),
     "NORMALIZE": dateparser_settings.get("normalize"),
     "STRICT_PARSING": dateparser_settings.get("strict-parsing"),
     "PREFER_MONTH_OF_YEAR": dateparser_settings.get("prefer-month-of-year"),
@@ -122,7 +124,7 @@ def parse_date(
     )
     if not parsed_date:
         raise click.UsageError(
-            message=Text.assemble(f"Failed to parse date: ", date).markup,
+            message=Text.assemble("Failed to parse date: ", date).markup,
             ctx=click.get_current_context(silent=True),
         )
     return astimezone(parsed_date, tzinfo)

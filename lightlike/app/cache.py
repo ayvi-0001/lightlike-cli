@@ -447,7 +447,7 @@ class TimeEntryCache(_Entries):
 
         if _note := self._ifnull(entry["note"]):
             meta += ", {note}".format(
-                note=f"{_note[:50]}…" if len(_note) > 50 else _note
+                note=f"{_note[:50]}..." if len(_note) > 50 else _note
             )
         else:
             start = entry.get("start")
@@ -509,16 +509,16 @@ class TimeEntryCache(_Entries):
         active_index: str | None = self.active["id"] if self else None
 
         for row in list(running_entries_to_cache):
-            entry = dict(
-                id=row.id,
-                start=dates.astimezone(row.timestamp_start, tzinfo),
-                timestamp_paused="null",
-                project=row.project,
-                note=row.note,
-                billable=row.billable,
-                paused=row.paused,
-                paused_hours=str(round(Decimal(row.paused_hours or 0), 4)),
-            )
+            entry = {
+                "id": row.id,
+                "start": dates.astimezone(row.timestamp_start, tzinfo),
+                "timestamp_paused": "null",
+                "project": row.project,
+                "note": row.note,
+                "billable": row.billable,
+                "paused": row.paused,
+                "paused_hours": str(round(Decimal(row.paused_hours or 0), 4)),
+            }
             if row.id == active_index:
                 running_entries.insert(0, entry)
             else:
@@ -529,16 +529,16 @@ class TimeEntryCache(_Entries):
 
         for row in list(paused_entries_to_cache):
             paused_entries.append(
-                dict(
-                    id=row.id,
-                    start=dates.astimezone(row.timestamp_start, tzinfo),
-                    timestamp_paused=dates.astimezone(row.timestamp_paused, tzinfo),
-                    project=row.project,
-                    note=row.note,
-                    billable=row.billable,
-                    paused=row.paused,
-                    paused_hours=str(round(Decimal(row.paused_hours or 0), 4)),
-                )
+                {
+                    "id": row.id,
+                    "start": dates.astimezone(row.timestamp_start, tzinfo),
+                    "timestamp_paused": dates.astimezone(row.timestamp_paused, tzinfo),
+                    "project": row.project,
+                    "note": row.note,
+                    "billable": row.billable,
+                    "paused": row.paused,
+                    "paused_hours": str(round(Decimal(row.paused_hours or 0), 4)),
+                }
             )
 
         if AppConfig().get("settings", "update-terminal-title", default=True):
@@ -563,7 +563,7 @@ class TimeEntryCache(_Entries):
 
     def _map_row_style(self, row: dict[str, t.Any]) -> str:
         if row == self.running_entries[0]:
-            return "bold"
+            return "italic"
         elif self._ifnull(row["timestamp_paused"]):
             return "#888888"
         else:
@@ -573,59 +573,55 @@ class TimeEntryCache(_Entries):
     def _map_column_styles(
         field: t.Sequence[t.Any], console_width: int
     ) -> dict[str, t.Any]:
-        _kwargs: dict[str, t.Any] = dict(
-            vertical="top",
-            no_wrap=True,
-        )
+        _kwargs: dict[str, t.Any] = {"vertical": "top", "no_wrap": True}
 
         if field in ("project", "note"):
-            _kwargs |= dict(
-                # header_style="green",
-                overflow="ellipsis",
-            )
+            _kwargs |= {
+                # "header_style": "green",
+                "overflow": "ellipsis",
+            }
             if field == "project":
-                _kwargs |= dict(
-                    max_width=20,
-                )
+                _kwargs |= {
+                    "max_width": 30,
+                }
             elif field == "note":
-                _kwargs |= dict(
-                    max_width=50,
-                    overflow="fold",
-                    no_wrap=False,
-                )
+                _kwargs |= {
+                    "overflow": "fold",
+                    "no_wrap": False,
+                }
         elif field == "id":
-            _kwargs |= dict(
-                # header_style="green",
-                overflow="crop",
-                min_width=7,
-                max_width=7,
-            )
+            _kwargs |= {
+                # "header_style": "green",
+                "overflow": "crop",
+                "min_width": 7,
+                "max_width": 7,
+            }
         elif field in ("start", "timestamp_paused"):
-            _kwargs |= dict(
-                # header_style="yellow",
-                justify="left",
-                overflow="crop",
-                min_width=19,
-                max_width=25,
-            )
+            _kwargs |= {
+                # "header_style": "yellow",
+                "justify": "left",
+                "overflow": "crop",
+                "min_width": 19,
+                "max_width": 25,
+            }
         elif field in ("billable", "paused"):
-            _kwargs |= dict(
-                # header_style="red",
-                justify="left",
-            )
+            _kwargs |= {
+                # "header_style": "red",
+                "justify": "left",
+            }
             if console_width < 150:
-                _kwargs |= dict(
-                    overflow="ignore",
-                    min_width=1,
-                    max_width=1,
-                )
+                _kwargs |= {
+                    "overflow": "ignore",
+                    "min_width": 1,
+                    "max_width": 1,
+                }
         elif field in ("paused_hours", "hours"):
-            _kwargs |= dict(
-                # header_style="cyan",
-                justify="right",
-                overflow="crop",
-                max_width=12,
-            )
+            _kwargs |= {
+                # "header_style": "cyan",
+                "justify": "right",
+                "overflow": "crop",
+                "max_width": 12,
+            }
         return _kwargs
 
 

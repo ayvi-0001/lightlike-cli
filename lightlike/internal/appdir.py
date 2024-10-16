@@ -2,6 +2,7 @@ import logging
 import sys
 import typing as t
 from datetime import datetime
+from functools import partial
 from inspect import cleandoc
 from pathlib import Path
 
@@ -17,11 +18,9 @@ from rich.text import Text
 from lightlike import _console, _fasteners
 from lightlike.__about__ import (
     __appdir__,
-    __appname__,
     __appname_sc__,
     __config__,
     __configdir__,
-    __lock__,
     __repo__,
     __version__,
 )
@@ -46,7 +45,6 @@ __all__: t.Sequence[str] = (
 )
 
 
-# fmt: off
 __appdir__.mkdir(exist_ok=True, parents=True)
 
 CACHE: t.Final[Path] = __appdir__ / ".local_entries"
@@ -57,17 +55,22 @@ ENTRY_APPDATA: t.Final[Path] = __appdir__ / ".entry_appdata"
 ENTRY_APPDATA.touch(exist_ok=True)
 SQL_HISTORY: t.Final[Path] = __appdir__ / ".sql_history"
 SQL_HISTORY.touch(exist_ok=True)
-SQL_FILE_HISTORY: t.Final[t.Callable[[], ThreadedHistory]] = lambda: ThreadedHistory(FileHistory(f"{SQL_HISTORY}"))
+SQL_FILE_HISTORY: t.Final[partial[ThreadedHistory]] = partial(
+    ThreadedHistory,
+    history=FileHistory(f"{SQL_HISTORY}"),
+)
 REPL_HISTORY: t.Final[Path] = __appdir__ / ".repl_history"
 REPL_HISTORY.touch(exist_ok=True)
-REPL_FILE_HISTORY: t.Final[t.Callable[[], ThreadedHistory]] = lambda: ThreadedHistory(FileHistory(f"{REPL_HISTORY}"))
+REPL_FILE_HISTORY: t.Final[partial[ThreadedHistory]] = partial(
+    ThreadedHistory,
+    history=FileHistory(f"{REPL_HISTORY}"),
+)
 QUERIES: t.Final[Path] = __appdir__ / "queries"
 TIMER_LIST_CACHE: t.Final[Path] = __appdir__ / ".tl_ids_latest.json"
 LOGS: t.Final[Path] = __appdir__ / "logs"
 LOGS.mkdir(exist_ok=True)
 SCHEDULER_CONFIG: t.Final[Path] = __configdir__ / "scheduler.toml"
 BQ_UPDATES: t.Final[Path] = __config__ / ".bq_updates"
-# fmt: on
 
 
 _TODAY: datetime = datetime.today()
@@ -153,8 +156,10 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
 
         if v_local < v_package:
             console.log(
-                "Updating version:", f"[repr.number]{v_local}[/]",
-                "->", f"[repr.number]{v_package}[/]",  # fmt: skip
+                "Updating version:",
+                f"[repr.number]{v_local}[/]",
+                "->",
+                f"[repr.number]{v_package}[/]",
             )
 
             # No live updates to check for yet.

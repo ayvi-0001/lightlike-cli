@@ -181,7 +181,7 @@ def archive(
                 ),
             )
 
-            threads.spawn(ctx, appdata.sync, dict(debug=debug))
+            threads.spawn(ctx, appdata.sync, {"debug": debug})
             count_archived: int = _get.count_entries(first(query_job))
 
             all_count_entries.append(count_archived)
@@ -193,8 +193,6 @@ def archive(
                 count_archived,
                 "related time" "entry" if count_archived == 1 else "entries",
             )
-
-            status.update("")
 
         if all_count_entries and max(all_count_entries) > 0:
             console.print(
@@ -318,7 +316,7 @@ def create(
         status_renderable=markup.status_message("Creating project"),
     )
 
-    threads.spawn(ctx, appdata.sync, dict(trigger_query_job=query_job, debug=debug))
+    threads.spawn(ctx, appdata.sync, {"trigger_query_job": query_job, "debug": debug})
     console.print("Created new project:", markup.code(name))
 
 
@@ -426,7 +424,7 @@ def delete(
                     markup.status_message(" from projects"),
                 ),
             )
-            threads.spawn(ctx, appdata.sync, dict(debug=debug))
+            threads.spawn(ctx, appdata.sync, {"debug": debug})
             routine._delete_time_entries_by_project(
                 project,
                 wait=True,
@@ -553,8 +551,8 @@ def list_(
     console: "Console",
     routine: "CliQueryRoutines",
     all_: bool,
-    match_name: t.Sequence[str] | None,
-    match_description: t.Sequence[str] | None,
+    match_name: t.Sequence[str],
+    match_description: t.Sequence[str],
     modifiers: str,
     regex_engine: str,
 ) -> None:
@@ -659,11 +657,11 @@ def list_(
     short_help="Update a project's name/description/default-billable.",
     syntax=Syntax(
         code="""\
-        $ project set name lightlike-cli …
+        $ project set name lightlike-cli ...
     
-        $ project set description lightlike-cli …
+        $ project set description lightlike-cli ...
 
-        $ project set default-billable lightlike-cli …\
+        $ project set default-billable lightlike-cli ...\
         """,
         lexer="fishshell",
         dedent=True,
@@ -758,7 +756,6 @@ def set_project_name(
             status=status,
             status_renderable=markup.status_message("Updating project name"),
         )
-        threads.spawn(ctx, appdata.sync, dict(debug=debug))
         routine._update_time_entry_projects(
             name=project,
             new_name=new_name,
@@ -774,6 +771,8 @@ def set_project_name(
             "to",
             markup.code(new_name),
         )
+
+    threads.spawn(ctx, appdata.sync, {"debug": debug})
 
 
 @set_.command(
@@ -871,7 +870,7 @@ def set_project_description(
         render=True,
         status_renderable=markup.status_message("Updating project"),
     )
-    threads.spawn(ctx, appdata.sync, dict(debug=debug))
+    threads.spawn(ctx, appdata.sync, {"debug": debug})
     console.print("Set description to", markup.repr_str(new_desc))
 
 
@@ -939,7 +938,7 @@ def set_project_default_billable(
         render=True,
         status_renderable=markup.status_message("Updating project"),
     )
-    threads.spawn(ctx, appdata.sync, dict(debug=debug))
+    threads.spawn(ctx, appdata.sync, {"debug": debug})
     console.print("Set project default billable to", billable)
 
 
@@ -1017,7 +1016,7 @@ def unarchive(
                     markup.code(project),
                 ),
             )
-            threads.spawn(ctx, appdata.sync, dict(debug=debug))
+            threads.spawn(ctx, appdata.sync, {"debug": debug})
             routine._unarchive_time_entries(
                 project,
                 wait=True,

@@ -9,17 +9,17 @@ from rich import box
 from rich import print as rprint
 from rich.align import Align
 from rich.columns import Columns
-from rich.console import Console
 from rich.padding import Padding
 from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
 from lightlike.app import dates
+from lightlike.app.config import AppConfig
 from lightlike.app.core import FormattedCommand
 from lightlike.internal import constant, utils
 
-__all__: t.Sequence[str] = ("eval", "calendar")
+__all__: t.Sequence[str] = ("eval_", "calendar")
 
 
 import decimal
@@ -68,8 +68,7 @@ def _eval_help(ctx: click.Context, param: click.Parameter, value: str) -> None:
             @click.argument("args", nargs=-1, type=click.STRING)
             @click.option("--multiline-prompt", is_flag=True)
             def eval_(args: list[str]) -> None:
-                global EVAL_GLOBALS
-                global EVAL_LOCALS
+                global EVAL_GLOBALS, EVAL_LOCALS
                 try:
                     retval = eval(" ".join(args), EVAL_GLOBALS, EVAL_LOCALS)
                     print(retval)
@@ -105,8 +104,7 @@ def _eval_help(ctx: click.Context, param: click.Parameter, value: str) -> None:
 @click.option("--multiline-prompt", is_flag=True)
 def eval_(args: list[str], multiline_prompt: bool) -> None:
     def _execute_eval(eval_args: str) -> None:
-        global EVAL_GLOBALS
-        global EVAL_LOCALS
+        global EVAL_GLOBALS, EVAL_LOCALS
         try:
             retval = eval(eval_args, EVAL_GLOBALS, EVAL_LOCALS)
             rprint(retval)
@@ -172,8 +170,6 @@ def calendar(
 ) -> None:
     import calendar
 
-    from lightlike.app.config import AppConfig
-
     today = dates.now(AppConfig().tzinfo)
     year = int(year)
     cal = calendar.Calendar(firstweekday)
@@ -206,4 +202,4 @@ def calendar(
 
         tables.append(Align.center(table))
 
-    Console().print(Padding(Columns(tables, equal=True), (1, 0, 0, 0)))
+    rprint(Padding(Columns(tables, equal=True), (1, 0, 0, 0)))

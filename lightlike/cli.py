@@ -20,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+# ruff: noqa: E402
+
 import sys
 import typing as t
 import warnings
@@ -92,7 +94,6 @@ def build_cli(
     call_on_close: t.Callable[[click.Context | None], t.Never] | None = None,
     obj: dict[str, t.Any] | None = None,
 ) -> LazyAliasedGroup:
-
     @click.group(
         cls=LazyAliasedGroup,
         name=name,
@@ -117,7 +118,7 @@ def build_cli(
 
 
 def run_cli(name: str = "lightlike") -> None:
-    from lightlike.app.config import AppConfig  # isort: split # fmt: skip
+    from lightlike.app.config import AppConfig  # isort: split
     from lightlike.app import call_on_close, cursor, dates, shell_complete
     from lightlike.app.cache import TimeEntryCache
     from lightlike.app.core import _format_click_exception
@@ -192,7 +193,7 @@ def run_cli(name: str = "lightlike") -> None:
             help_option_names=["-h", "--help"],
         ),
         call_on_close=call_on_close,
-        obj=dict(get_scheduler=get_scheduler),
+        obj={"get_scheduler": get_scheduler},
     )
 
     if AppConfig().get("settings", "update-terminal-title", default=True):
