@@ -3,7 +3,7 @@ from datetime import datetime
 
 from apscheduler.triggers.date import DateTrigger
 
-from lightlike.app.cache import TimeEntryCache
+from lightlike.app.cache import TimeEntryAppData, TimeEntryCache
 from lightlike.cmd.scheduler.jobs.types import JobKwargs
 
 __all__: t.Sequence[str] = ("sync_cache", "default_job_sync_cache")
@@ -11,6 +11,7 @@ __all__: t.Sequence[str] = ("sync_cache", "default_job_sync_cache")
 
 def sync_cache() -> None:
     TimeEntryCache().sync()
+    TimeEntryAppData().sync()
 
 
 def default_job_sync_cache() -> JobKwargs:
