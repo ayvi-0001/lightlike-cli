@@ -13,7 +13,7 @@ from rich.syntax import Syntax
 
 from lightlike.__about__ import __appdir__
 from lightlike.app import _questionary, dates, validate
-from lightlike.app.cache import TimeEntryAppData, TimeEntryCache
+from lightlike.app.cache import TimeEntryAppData, TimeEntryCache, TimeEntryIdList
 from lightlike.app.config import AppConfig
 from lightlike.app.core import FormattedCommand, LazyAliasedGroup
 from lightlike.client import CliQueryRoutines, get_client
@@ -294,17 +294,17 @@ def inspect_console(console: Console) -> None:
         background_color="#131310",
     ),
 )
-@utils.handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Canceled Sync.")),
-)
+@utils.handle_keyboard_interrupt()
 @click.option("-a", "--appdata", is_flag=True)
 @click.option("-c", "--cache", is_flag=True)
-@click.option("-q", "--quiet", is_flag=True, default=False, show_default=True)
+@click.option("-q", "--quiet", is_flag=True)
 @_pass.appdata
 @_pass.cache
+@_pass.id_list
 @_pass.console
 def sync(
     console: Console,
+    _id_list: TimeEntryIdList,
     _cache: TimeEntryCache,
     _appdata: TimeEntryAppData,
     appdata: bool,
@@ -316,22 +316,37 @@ def sync(
 
     These can be found in the app directory using the app:dir command.
 
-    These tables should only ever be altered through the procedures in this cli.
-    If the local files are out of sync with BigQuery, or if logging in from a new location, can use this command to re-sync them.
+    These tables should only be altered through the procedures in this cli.
+    If the local files are out of sync with BigQuery,
+    or if logging in from a new location, can use this command to re-sync them.
     """
-    if appdata is False and cache is False:
-        return None
     if quiet:
-        _appdata.sync()
-        _cache.sync()
+        if not appdata and not cache:
+            _appdata.sync()
+            _cache.sync()
+            _id_list.reset()
+            return
+        if appdata:
+            _appdata.sync()
+        if cache:
+            _cache.sync()
+            _id_list.reset()
     else:
         with console.status(markup.status_message("Syncing")) as status:
+            if not appdata and not cache:
+                status.update(markup.status_message("Syncing appdata"))
+                _appdata.sync()
+                status.update(markup.status_message("Syncing cache"))
+                _cache.sync()
+                _id_list.reset()
+                return
             if appdata:
                 status.update(markup.status_message("Syncing appdata"))
                 _appdata.sync()
             if cache:
                 status.update(markup.status_message("Syncing cache"))
                 _cache.sync()
+                _id_list.reset()
         rprint("[b][green]Sync complete")
 
 
