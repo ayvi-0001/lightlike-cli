@@ -72,7 +72,7 @@ class ExecutableCompleter(Completer):
                         if executable not in executables:
                             executables.append(executable)
                         continue
-            except:
+            except Exception:
                 continue
         return executables
 
@@ -101,5 +101,5 @@ class ExecutableCompleter(Completer):
                     display_meta=FormattedText([(self.style, display_meta)]),
                     style=self.style,
                 )
-        except:
+        except Exception:
             yield from []

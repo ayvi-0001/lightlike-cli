@@ -85,7 +85,7 @@ def default_job_check_latest_release() -> JobKwargs:
         func=check_latest_release,
         id="check_latest_release",
         name="check_latest_release",
-        kwargs=dict(v_package=__version__, repo=__repo__),
+        kwargs={"v_package": __version__, "repo": __repo__},
         trigger=DateTrigger(run_date=datetime.now() + timedelta(seconds=2)),
         replace_existing=True,
         coalesce=True,

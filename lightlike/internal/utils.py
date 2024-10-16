@@ -1,11 +1,9 @@
-from __future__ import annotations
-
 import logging
 import os
 import re
 import typing as t
 from contextlib import ContextDecorator, suppress
-from functools import reduce, wraps
+from functools import partial, reduce, wraps
 from operator import getitem, truth
 from pathlib import Path
 from time import perf_counter_ns
@@ -20,7 +18,6 @@ from rich import get_console
 from rich import print as rprint
 from rich.console import NewLine
 
-from lightlike.__about__ import __appdir__, __appname_sc__
 from lightlike.internal import markup
 
 __all__: t.Sequence[str] = (
@@ -42,7 +39,6 @@ __all__: t.Sequence[str] = (
     "match_str",
     "ns_time_diff",
     "update_dict",
-    "update_toml_document",
     "print_message_and_clear_buffer",
     "file_empty_or_not_exists",
     "merge_default_dict_into_current_dict",
@@ -53,7 +49,7 @@ P = t.ParamSpec("P")
 
 
 class exit_cmd_on_interrupt(ContextDecorator):
-    def __enter__(self) -> exit_cmd_on_interrupt:
+    def __enter__(self) -> t.Self:
         try:
             return self
         except (KeyboardInterrupt, EOFError) as error:
@@ -63,7 +59,7 @@ class exit_cmd_on_interrupt(ContextDecorator):
 
 
 def handle_keyboard_interrupt(
-    callback: t.Callable[..., t.Any] | None = None
+    callback: t.Callable[..., t.Any] | None = None,
 ) -> t.Callable[..., t.Callable[..., t.Any]]:
     def decorator(fn: FunctionType) -> t.Callable[..., t.Any]:
         @wraps(fn)
@@ -85,7 +81,7 @@ def handle_keyboard_interrupt(
     return decorator
 
 
-nl: t.Callable[..., None] = lambda: rprint(NewLine())
+nl: t.Callable[..., None] = partial(rprint, NewLine())
 
 
 async def nl_async() -> None:
@@ -241,7 +237,10 @@ def alter_str(
     add_quotes: bool = False,
 ) -> str | list[str]:
     if not isinstance(string, str):
-        string: str = f"{string}"
+        string = f"{string}"
+
+    if t.TYPE_CHECKING:
+        assert isinstance(string, str)
 
     if lower:
         string = string.lower()
@@ -255,9 +254,9 @@ def alter_str(
         string = f'"{string}"'
 
     if split:
-        return t.cast(list[str], string.split(split))
+        return string.split(split)
     else:
-        return t.cast(str, string)
+        return string
 
 
 def split_and_alter_str(
@@ -310,6 +309,10 @@ def match_str(
         string_to_check = f"{string_to_check}"
     if not isinstance(string_to_match, str):
         string_to_match = f"{string_to_match}"
+
+    if t.TYPE_CHECKING:
+        assert isinstance(string_to_check, str)
+        assert isinstance(string_to_match, str)
 
     if not case_sensitive:
         string_to_check = string_to_check.lower()

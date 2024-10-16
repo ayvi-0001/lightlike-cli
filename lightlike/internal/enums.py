@@ -1,7 +1,7 @@
+import typing as t
 from enum import Enum
-from typing import Any, Sequence
 
-__all__: Sequence[str] = (
+__all__: t.Sequence[str] = (
     "CredentialsSource",
     "ClientConfigOptions",
     "ClientInitOptions",
@@ -10,7 +10,7 @@ __all__: Sequence[str] = (
 
 
 class _ValueEnum(str, Enum):
-    def __get__(self, instance: Any, owner: Any) -> str:
+    def __get__(self, instance: t.Any, owner: t.Any) -> str:
         return str(self.value)
 
 
@@ -19,7 +19,7 @@ class CredentialsSource(_ValueEnum):
     from_environment = "from-environment"
     from_service_account_key = "from-service-account-key"
 
-    def __get__(self, instance: Any, owner: Any) -> str:
+    def __get__(self, instance: t.Any, owner: t.Any) -> str:
         return str(self.value).replace("'", "")
 
 

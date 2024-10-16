@@ -39,7 +39,6 @@ def _get_credentials_from_config(
 
     match credentials_source:
         case CredentialsSource.from_service_account_key:
-
             encrypted_key, salt = service_account_key_flow(appconfig)
 
             service_account_info: dict[str, t.Any] = json.loads(

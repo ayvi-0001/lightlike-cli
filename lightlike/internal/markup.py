@@ -1,3 +1,4 @@
+# ruff: noqa: E731
 import typing as t
 
 from rich import get_console

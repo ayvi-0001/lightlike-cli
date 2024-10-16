@@ -1,4 +1,3 @@
-import os
 import subprocess
 import typing as t
 
@@ -19,7 +18,6 @@ from pytz import timezone
 from rich import box, get_console, print
 from rich.table import Table
 
-from lightlike.__about__ import __appname_sc__
 from lightlike.app import shell_complete
 from lightlike.app._repl import _prepend_exec_to_cmd
 from lightlike.app.config import AppConfig
@@ -371,7 +369,7 @@ def add_job(
 
     try:
         job: Job = scheduler.add_job(**job_kwargs)
-        print(f"Added job:")
+        print("Added job:")
         print(_job_info(job, show_jobstore=True))
     except LookupError as error:
         print(f"{error}")
@@ -515,7 +513,7 @@ def modify_job(
     job: Job = scheduler.modify_job(
         job_id=job_id, jobstore=jobstore, **job_modify_kwargs
     )
-    print(f"Modified job:")
+    print("Modified job:")
     print(_job_info(job, show_jobstore=True))
 
 
@@ -532,7 +530,7 @@ def pause_job(
 ) -> None:
     scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     job: Job = scheduler.pause_job(job_id=job_id, jobstore=jobstore)
-    print(f"Paused job:")
+    print("Paused job:")
     print(_job_info(job, show_jobstore=True))
 
 
@@ -625,7 +623,7 @@ def reschedule_job(
     job: Job = scheduler.reschedule_job(
         job_id=job_id, jobstore=jobstore, trigger=trigger
     )
-    print(f"Rescheduled job:")
+    print("Rescheduled job:")
     print(_job_info(job, show_jobstore=True))
 
 
@@ -642,7 +640,7 @@ def resume_job(
 ) -> None:
     scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     job: Job = scheduler.resume_job(job_id=job_id, jobstore=jobstore)
-    print(f"Resumed job:")
+    print("Resumed job:")
     print(_job_info(job, show_jobstore=True))
 
 
@@ -862,7 +860,6 @@ def system_command(
     func_kwargs = {
         "args": _CMD,
         "capture_output": True,
-        "env": os.environ,
         "shell": True,
         "text": True,
     }
@@ -902,7 +899,7 @@ def system_command(
 
     try:
         job: Job = scheduler.add_job(**job_kwargs)
-        print(f"Added job:")
+        print("Added job:")
         print(_job_info(job, show_jobstore=True))
     except LookupError as error:
         print(f"{error}")

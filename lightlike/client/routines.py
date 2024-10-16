@@ -159,10 +159,16 @@ class CliQueryRoutines:
             # fmt:off
             query_parameters=[
                 ScalarQueryParameter("id", SqlParameterScalarTypes.STRING, id),
-                ScalarQueryParameter("project", SqlParameterScalarTypes.STRING, project),
+                ScalarQueryParameter(
+                    "project", SqlParameterScalarTypes.STRING, project
+                ),
                 ScalarQueryParameter("note", SqlParameterScalarTypes.STRING, note),
-                ScalarQueryParameter("start_time", SqlParameterScalarTypes.TIMESTAMP, start_time),
-                ScalarQueryParameter("billable", SqlParameterScalarTypes.BOOL, billable),
+                ScalarQueryParameter(
+                    "start_time", SqlParameterScalarTypes.TIMESTAMP, start_time
+                ),
+                ScalarQueryParameter(
+                    "billable", SqlParameterScalarTypes.BOOL, billable
+                ),
             ],
             # fmt:on
         )
@@ -228,12 +234,20 @@ class CliQueryRoutines:
             # fmt: off
             query_parameters=[
                 ScalarQueryParameter("id", SqlParameterScalarTypes.STRING, id),
-                ScalarQueryParameter("project", SqlParameterScalarTypes.STRING, project),
+                ScalarQueryParameter(
+                    "project", SqlParameterScalarTypes.STRING, project
+                ),
                 ScalarQueryParameter("note", SqlParameterScalarTypes.STRING, note),
-                ScalarQueryParameter("start_time", SqlParameterScalarTypes.TIMESTAMP, start_time),
-                ScalarQueryParameter("end_time", SqlParameterScalarTypes.TIMESTAMP, end_time),
-                ScalarQueryParameter("billable", SqlParameterScalarTypes.BOOL, billable),
-            ]
+                ScalarQueryParameter(
+                    "start_time", SqlParameterScalarTypes.TIMESTAMP, start_time
+                ),
+                ScalarQueryParameter(
+                    "end_time", SqlParameterScalarTypes.TIMESTAMP, end_time
+                ),
+                ScalarQueryParameter(
+                    "billable", SqlParameterScalarTypes.BOOL, billable
+                ),
+            ],
             # fmt: on
         )
 
@@ -406,9 +420,13 @@ class CliQueryRoutines:
             use_legacy_sql=use_legacy_sql,
             query_parameters=[
                 ScalarQueryParameter("name", SqlParameterScalarTypes.STRING, name),
-                ScalarQueryParameter("description", SqlParameterScalarTypes.STRING, description),
-                ScalarQueryParameter("default_billable", SqlParameterScalarTypes.BOOL, default_billable),
-            ]
+                ScalarQueryParameter(
+                    "description", SqlParameterScalarTypes.STRING, description
+                ),
+                ScalarQueryParameter(
+                    "default_billable", SqlParameterScalarTypes.BOOL, default_billable
+                ),
+            ],
             # fmt: on
         )
 
@@ -536,9 +554,13 @@ class CliQueryRoutines:
             query_parameters=[
                 # fmt: off
                 ArrayQueryParameter("ids", SqlParameterScalarTypes.STRING, [*ids]),
-                ScalarQueryParameter("project", SqlParameterScalarTypes.STRING, project),
+                ScalarQueryParameter(
+                    "project", SqlParameterScalarTypes.STRING, project
+                ),
                 ScalarQueryParameter("note", SqlParameterScalarTypes.STRING, note),
-                ScalarQueryParameter("billable", SqlParameterScalarTypes.BOOL, billable),
+                ScalarQueryParameter(
+                    "billable", SqlParameterScalarTypes.BOOL, billable
+                ),
                 ScalarQueryParameter("start", SqlParameterScalarTypes.TIME, start),
                 ScalarQueryParameter("end", SqlParameterScalarTypes.TIME, end),
                 ScalarQueryParameter("date", SqlParameterScalarTypes.DATE, date),
@@ -981,10 +1003,16 @@ class CliQueryRoutines:
             use_query_cache=use_query_cache,
             use_legacy_sql=use_legacy_sql,
             query_parameters=[
-                ScalarQueryParameter("new_note", SqlParameterScalarTypes.STRING, new_note),
-                ScalarQueryParameter("old_note", SqlParameterScalarTypes.STRING, old_note),
-                ScalarQueryParameter("project", SqlParameterScalarTypes.STRING, project),
-            ]
+                ScalarQueryParameter(
+                    "new_note", SqlParameterScalarTypes.STRING, new_note
+                ),
+                ScalarQueryParameter(
+                    "old_note", SqlParameterScalarTypes.STRING, old_note
+                ),
+                ScalarQueryParameter(
+                    "project", SqlParameterScalarTypes.STRING, project
+                ),
+            ],
             # fmt: on
         )
 
@@ -1026,7 +1054,9 @@ class CliQueryRoutines:
             query_parameters=[
                 # fmt:off
                 ScalarQueryParameter("name", SqlParameterScalarTypes.STRING, name),
-                ScalarQueryParameter("default_billable", SqlParameterScalarTypes.BOOL, default_billable),
+                ScalarQueryParameter(
+                    "default_billable", SqlParameterScalarTypes.BOOL, default_billable
+                ),
                 # fmt:on
             ],
         )
@@ -1110,8 +1140,10 @@ class CliQueryRoutines:
             use_legacy_sql=use_legacy_sql,
             query_parameters=[
                 ScalarQueryParameter("name", SqlParameterScalarTypes.STRING, name),
-                ScalarQueryParameter("new_name", SqlParameterScalarTypes.STRING, new_name),
-            ]
+                ScalarQueryParameter(
+                    "new_name", SqlParameterScalarTypes.STRING, new_name
+                ),
+            ],
             # fmt: on
         )
 
@@ -1152,8 +1184,10 @@ class CliQueryRoutines:
             use_legacy_sql=use_legacy_sql,
             query_parameters=[
                 ScalarQueryParameter("name", SqlParameterScalarTypes.STRING, name),
-                ScalarQueryParameter("new_name", SqlParameterScalarTypes.STRING, new_name),
-            ]
+                ScalarQueryParameter(
+                    "new_name", SqlParameterScalarTypes.STRING, new_name
+                ),
+            ],
             # fmt: on
         )
 
@@ -1194,8 +1228,12 @@ class CliQueryRoutines:
             use_legacy_sql=use_legacy_sql,
             query_parameters=[
                 ScalarQueryParameter("id", SqlParameterScalarTypes.STRING, id),
-                ScalarQueryParameter("timestamp_paused", SqlParameterScalarTypes.TIMESTAMP, timestamp_paused),
-            ]
+                ScalarQueryParameter(
+                    "timestamp_paused",
+                    SqlParameterScalarTypes.TIMESTAMP,
+                    timestamp_paused,
+                ),
+            ],
             # fmt: on
         )
 

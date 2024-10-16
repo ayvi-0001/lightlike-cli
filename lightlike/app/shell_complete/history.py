@@ -53,12 +53,12 @@ class HistoryCompleter(Completer):
                     display_meta=FormattedText([(f"bold {self.style}", display_meta)]),
                     style=f"{self.style}",
                 )
-        except:
+        except Exception:
             yield from []
 
     def _display(self, text: str, console_width: int) -> str:
         half_console_width = int(console_width / 3)
         if len(text) > half_console_width:
-            return f"{text[:half_console_width]}…"
+            return f"{text[:half_console_width]}..."
         else:
             return text

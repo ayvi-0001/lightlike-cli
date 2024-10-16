@@ -23,7 +23,6 @@ from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
-from lightlike.__about__ import __appname__, __repo__
 from lightlike._console import CONSOLE_CONFIG, GROUP_COMMANDS
 from lightlike.internal.constant import _CONSOLE_SVG_FORMAT
 
@@ -214,7 +213,7 @@ class LazyAliasedGroup(AliasedGroup):
             )
             if "not enough values to unpack" in error:
                 logging.error(
-                    f"The final part in the path must be separated by a semicolon (:). "
+                    "The final part in the path must be separated by a semicolon (:). "
                     "e.g `command-name-in-cli.module-name.file-name:command-object"
                 )
 

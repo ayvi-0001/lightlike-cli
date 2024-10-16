@@ -21,17 +21,25 @@ if t.TYPE_CHECKING:
 __all__: t.Sequence[str] = ("repl",)
 
 
+ExceptionCallable: t.TypeAlias = t.Callable[[Exception], object] | None
+ClickExceptionCallable: t.TypeAlias = t.Callable[[click.ClickException], object] | None
+CompleterCallable: t.TypeAlias = t.Callable[
+    [click.Group | click.Command, click.Context, ExceptionCallable],
+    "Completer",
+]
+
+
 def repl(
     # fmt:off
     ctx: click.Context,
     prompt_kwargs: dict[str, t.Any],
-    completer_callable: t.Callable[[click.Group | click.Command, click.Context, t.Callable[[Exception], object] | None], "Completer"],
-    format_click_exceptions_callable: t.Callable[[click.ClickException], object] | None = None,
+    completer_callable: CompleterCallable,
+    format_click_exceptions_callable: ClickExceptionCallable = None,
     shell_cmd_callable: t.Callable[[], str] | None = None,
     pass_unknown_commands_to_shell: bool = True,
-    uncaught_exceptions_callable: t.Callable[[Exception], object] | None = None,
-    scheduler: BackgroundScheduler | t.Callable[..., BackgroundScheduler] | None = None,
-    default_jobs_callable: t.Callable[..., None] | None = None,
+    uncaught_exceptions_callable: ExceptionCallable = None,
+    scheduler: BackgroundScheduler | t.Callable[[], BackgroundScheduler] | None = None,
+    default_jobs_callable: t.Callable[[], None] | None = None,
     # fmt:on
 ) -> None:
     """
@@ -65,7 +73,7 @@ def repl(
             try:
                 default_jobs_callable()
             except AttributeError as error:
-                if not "'NoneType' object has no attribute 'items'" in f"{error}":
+                if "'NoneType' object has no attribute 'items'" not in f"{error}":
                     raise error
 
     try:

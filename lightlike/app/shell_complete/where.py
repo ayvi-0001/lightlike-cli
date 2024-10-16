@@ -110,7 +110,7 @@ class WhereClauseCompleter(WordCompleter):
             if note.startswith(word_before_cursor):
                 yield Completion(
                     text=f"{note}",
-                    display=f"{note[:45]}…" if len(note) > 45 else f"{note}",
+                    display=f"{note[:45]}..." if len(note) > 45 else f"{note}",
                     start_position=-len(word_before_cursor),
                     display_meta=f"NOTE:{project}",
                     style="#239551",
