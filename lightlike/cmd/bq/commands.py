@@ -172,9 +172,7 @@ def projects(console: "Console") -> None:
     """List available projects."""
     projects: t.Sequence["Project"] = list(get_client().list_projects())
     table: Table = render.map_sequence_to_rich_table(
-        mappings=[vars(p) for p in projects],
-        string_ctype=["project_id", "friendly_name"],
-        num_ctype=["numeric_id"],
+        mappings=[vars(p) for p in projects]
     )
     if not table.row_count:
         rprint(markup.dimmed("No results"))
