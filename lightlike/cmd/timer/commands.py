@@ -280,11 +280,6 @@ def add(
                     "hours": hours,
                 }
             ],
-            string_ctype=["project", "note", "id"],
-            bool_ctype=["billable"],
-            num_ctype=["paused_hours", "hours"],
-            time_ctype=["start", "end"],
-            date_ctype=["date"],
         ),
     )
 
@@ -1389,7 +1384,6 @@ def list_(
         the word "WHERE" is stripped from the start of the string, if it exists.
     """
     ctx, parent = ctx_group
-    debug: bool = parent.params.get("debug", False)
 
     if offset and not limit:
         console.print(
@@ -1483,11 +1477,6 @@ def list_(
     else:
         table: Table = render.map_sequence_to_rich_table(
             mappings=rows,
-            string_ctype=["project", "note", "id"],
-            bool_ctype=["billable", "active", "paused"],
-            num_ctype=["paused_hours", "hours", "total", "row"],
-            time_ctype=["start", "end"],
-            date_ctype=["date"],
             exclude_fields=(
                 ["paused_hours", "note", "paused", "active"]
                 if console.width < 100
@@ -1730,14 +1719,7 @@ def resume(
     matched_id: str
     if not entry:
         paused_entries = cache.get_updated_paused_entries(now)
-        table: Table = render.map_sequence_to_rich_table(
-            mappings=paused_entries,
-            string_ctype=["project", "note", "id"],
-            bool_ctype=["billable", "paused"],
-            num_ctype=["paused_hours"],
-            datetime_ctype=["timestamp_paused"],
-            time_ctype=["start"],
-        )
+        table: Table = render.map_sequence_to_rich_table(paused_entries)
         if not table.row_count:
             rprint(markup.dimmed("No results"))
             raise click.exceptions.Exit()
@@ -2169,14 +2151,7 @@ def switch(
 
     select: str
     if not entry:
-        table: Table = render.map_sequence_to_rich_table(
-            mappings=entries,
-            string_ctype=["project", "note", "id"],
-            bool_ctype=["billable", "paused"],
-            num_ctype=["paused_hours"],
-            datetime_ctype=["timestamp_paused"],
-            time_ctype=["start"],
-        )
+        table: Table = render.map_sequence_to_rich_table(entries)
         if not table.row_count:
             rprint(markup.dimmed("No results"))
             raise click.exceptions.Exit()
@@ -2327,107 +2302,99 @@ def update(
     copy: dict[str, t.Any] = cache.active.copy()
     edits: dict[str, t.Any] = {}
 
-    status_renderable = Text.assemble(
-        markup.status_message("Updating time entry: "),
-        markup.code(cache.id[:7]),
-    )
-
-    with console.status(status_renderable) as status:
-        if note:
-            if note == cache.note:
-                console.print(
-                    "note is already set to",
-                    markup.repr_str(note),
-                    "- skipping update.",
-                )
-            else:
-                updated_note: str = re.compile(r"(\"|')").sub("", note)
-
-                with cache.rw() as cache:
-                    cache.note = updated_note
-
-                edits["note"] = updated_note
-
-        if start:
-            if start == cache.start:
-                console.print("start is already set to", start, "- skipping update.")
-            else:
-                dates.calculate_duration(
-                    start_date=start,
-                    end_date=now,
-                    paused_hours=cache.paused_hours or 0,
-                    raise_if_negative=True,
-                    exception=click.BadArgumentUsage(
-                        message="Invalid value for args [START] | [END]. New duration cannot be negative. "
-                        f"Existing paused hours = {cache.paused_hours}",
-                        ctx=ctx,
-                    ),
-                )
-                with cache.rw() as cache:
-                    cache.start = start
-
-                edits["start"] = start
-
-        if billable is not None:
-            if billable == cache.billable:
-                console.print(
-                    "billable is already set to",
-                    billable,
-                    "- skipping update.",
-                )
-            else:
-                with cache.rw() as cache:
-                    cache.billable = billable
-
-                edits["billable"] = billable
-
-        if project and project != cache.project:
-            validate.active_project(ctx, None, project)  # type: ignore[arg-type]
+    if note:
+        if note == cache.note:
+            console.print(
+                "note is already set to",
+                markup.repr_str(note),
+                "- skipping update.",
+            )
+        else:
+            updated_note: str = re.compile(r"(\"|')").sub("", note)
 
             with cache.rw() as cache:
-                cache.project = project
+                cache.note = updated_note
 
-            if billable is None:
-                active_projects: dict[str, t.Any] = appdata.load()["active"]
-                project_appdata: dict[str, t.Any] = active_projects[project]
-                default_billable = (
-                    project_appdata["default_billable"]
-                    if project_appdata["default_billable"] != "null"
-                    else None
-                )
-                billable = default_billable
-                edits["billable"] = billable
+            edits["note"] = updated_note
 
-            edits["project"] = project
+    if start:
+        if start == cache.start:
+            console.print("start is already set to", start, "- skipping update.")
+        else:
+            dates.calculate_duration(
+                start_date=start,
+                end_date=now,
+                paused_hours=cache.paused_hours or 0,
+                raise_if_negative=True,
+                exception=click.BadArgumentUsage(
+                    message="Invalid value for args [START] | [END]. New duration cannot be negative. "
+                    f"Existing paused hours = {cache.paused_hours}",
+                    ctx=ctx,
+                ),
+            )
+            with cache.rw() as cache:
+                cache.start = start
 
-        if not any(
-            filter(lambda k: k in edits, ["project", "note", "billable", "start"])
-        ):
-            ctx.fail("No fields to update.")
+            edits["start"] = start
 
-        if stop_ and cache:
-            ctx.invoke(stop)
+    if billable is not None:
+        if billable == cache.billable:
+            console.print(
+                "billable is already set to",
+                billable,
+                "- skipping update.",
+            )
+        else:
+            with cache.rw() as cache:
+                cache.billable = billable
 
-        query_job: "QueryJob" = routine._update_time_entries(
-            ids=[cache.id],
-            project=edits.get("project"),
-            note=edits.get("note"),
-            billable=edits.get("billable"),
-            start=edits["start"].time() if "start" in edits else None,
-        )
+            edits["billable"] = billable
 
-        sync_kwargs = dict(trigger_query_job=query_job, debug=debug)
-        threads.spawn(ctx, appdata.sync, sync_kwargs)
+    if project and project != cache.project:
+        validate.active_project(ctx, None, project)  # type: ignore[arg-type]
 
-        original_record = {
-            "id": copy["id"][:7],
-            "project": copy["project"],
-            "start": copy["start"],
-            "note": copy["note"],
-            "billable": copy["billable"],
-        }
+        with cache.rw() as cache:
+            cache.project = project
 
-        console.print(
-            "Updated record:",
-            render.create_row_diff(original=original_record, new=edits),
-        )
+        if billable is None:
+            active_projects: dict[str, t.Any] = appdata.load()["active"]
+            project_appdata: dict[str, t.Any] = active_projects[project]
+            default_billable = (
+                project_appdata["default_billable"]
+                if project_appdata["default_billable"] != "null"
+                else None
+            )
+            billable = default_billable
+            edits["billable"] = billable
+
+        edits["project"] = project
+
+    if not any(filter(lambda k: k in edits, ["project", "note", "billable", "start"])):
+        ctx.fail("No fields to update.")
+
+    if stop_ and cache:
+        ctx.invoke(stop)
+
+    query_job: "QueryJob" = routine._update_time_entries(
+        ids=[cache.id],
+        project=edits.get("project"),
+        note=edits.get("note"),
+        billable=edits.get("billable"),
+        start=edits["start"].time() if "start" in edits else None,
+    )
+
+    sync_kwargs = {"trigger_query_job": query_job, "debug": debug}
+    threads.spawn(ctx, appdata.sync, sync_kwargs)
+
+    original_record = {
+        "id": copy["id"][:7],
+        "project": copy["project"],
+        "start": copy["start"],
+        "note": copy["note"],
+        "billable": copy["billable"],
+    }
+
+    console.print(
+        "Updated record:",
+        render.create_row_diff(original=original_record, new=edits),
+    )

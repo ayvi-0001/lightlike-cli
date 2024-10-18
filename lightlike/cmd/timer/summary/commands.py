@@ -410,7 +410,6 @@ def summary_table(
         the word "WHERE" is stripped from the start of the string, if it exists.
     """
     ctx, parent = ctx_group
-    debug: bool = parent.params.get("debug", False)
 
     if all_:
         where_clause: str = shell_complete.where._parse_click_options(
@@ -468,12 +467,6 @@ def summary_table(
 
     table: Table = render.map_sequence_to_rich_table(
         mappings=list(map(lambda r: dict(r.items()), query_job)),
-        string_ctype=["project", "notes"],
-        bool_ctype=["billable"],
-        num_ctype=["total_summary", "total_project", "total_day", "hours"],
-        datetime_ctype=[""],
-        time_ctype=["start", "end"],
-        date_ctype=["date"],
         table_kwargs={"show_lines": show_lines},
     )
     if not table.row_count:
@@ -667,7 +660,6 @@ def summary_csv(
         raise click.exceptions.Exit()
 
     ctx, parent = ctx_group
-    debug: bool = parent.params.get("debug", False)
 
     validate.callbacks.print_or_output(output=truth(output), print_=print_)
 
@@ -945,7 +937,6 @@ def summary_json(
         raise click.exceptions.Exit()
 
     ctx, parent = ctx_group
-    debug: bool = parent.params.get("debug", False)
 
     validate.callbacks.print_or_output(output=truth(output), print_=print_)
 

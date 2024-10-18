@@ -29,9 +29,9 @@ __all__: t.Sequence[str] = (
     "delete",
     "list_",
     "set_",
-    "set_name",
-    "set_description",
-    "set_default_billable",
+    "set_project_name",
+    "set_project_description",
+    "set_project_default_billable",
     "unarchive",
 )
 
@@ -137,19 +137,7 @@ def archive(
                     "End these entries before trying to archive this project.",
                     "\nMatching entries:",
                 )
-                table: Table = render.map_sequence_to_rich_table(
-                    mappings=matching_entries,
-                    string_ctype=["id", "project", "note"],
-                    bool_ctype=["billable", "paused"],
-                    num_ctype=[
-                        "total_summary",
-                        "total_project",
-                        "total_day",
-                        "hours",
-                    ],
-                    datetime_ctype=["timestamp_paused"],
-                    time_ctype=["start"],
-                )
+                table: Table = render.map_sequence_to_rich_table(matching_entries)
                 console.print(table)
                 status.start()
                 continue
@@ -639,10 +627,7 @@ def list_(
     )
 
     table: Table = render.map_sequence_to_rich_table(
-        mappings=list(map(lambda r: dict(r.items()), query_job)),
-        string_ctype=["name", "description"],
-        bool_ctype=["default_billable"],
-        date_ctype=["created", "archived"],
+        mappings=list(map(lambda r: dict(r.items()), query_job))
     )
     if not table.row_count:
         rprint(markup.dimmed("No results"))

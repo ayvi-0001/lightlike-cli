@@ -44,6 +44,16 @@ RPROMPT_DATE_FORMAT: str = AppConfig().get(
     "settings", "rprompt-date-format", default="[%H:%M:%S]"
 )
 
+GIT_INFO_PATH: t.Final[Path] = __appdir__ / ".gitinfo"
+
+if not GIT_INFO_PATH.exists():
+    rtoml.dump({"branch": "", "path": ""}, GIT_INFO_PATH)
+
+GIT_INFO: dict[str, str] = rtoml.load(GIT_INFO_PATH)
+
+BRANCH: str | None = GIT_INFO.get("branch")
+PATH: str | None = GIT_INFO.get("path")
+
 
 def build(message: str | None = None) -> t.Callable[[], StyleAndTextTuples]:
     if not message:
@@ -94,41 +104,45 @@ def bottom_toolbar() -> t.Callable[..., StyleAndTextTuples]:
     columns: int = get_console().width
     toolbar: StyleAndTextTuples = []
 
+    display_active: str = ""
     if cache:
-        toolbar.extend([("class:bottom-toolbar.text", f" A[{cache.id[:8]}")])
-        toolbar.extend([("class:bottom-toolbar.text", f":{cache.project}")])
-
-        cache_note: str = cache.note
+        display_active = f"A[{cache.id[:8]}:{cache.project}"
+        cache_note: str = cache.note or ""
         if cache_note:
-            max_width: int = min(columns - fragment_list_width(toolbar) - 20, 50)
+            max_width: int = min(columns - fragment_list_width(toolbar) - 20, 79)
             note: str = (
-                f"{cache_note[:max_width].strip()}…"
+                f"{cache_note[:max_width].strip()}..."
                 if len(cache_note) > max_width
                 else cache_note
             )
-            toolbar.extend([("class:bottom-toolbar.text", f":{note}")])
-
-        toolbar.extend([("class:bottom-toolbar.text", "] |")])
+            display_active += f":{note}"
+        display_active += "] | "
 
     display_running: str = f"R[{cache.count_running_entries if cache else 0}]"
     display_paused: str = f"P[{cache.count_paused_entries}]"
     sep = " | " if all([display_running, display_paused]) else ""
-    rside_toolbar = f" {display_running}{sep}{display_paused}"
+    rside_toolbar = f"{display_active}{display_running}{sep}{display_paused}"
 
-    toolbar.extend([("class:bottom-toolbar.text", rside_toolbar)])
-
+    side_padding: str = " " * 3
+    toolbar.extend(
+        [("class:bottom-toolbar.text", f"{side_padding}{rside_toolbar}{side_padding}")]
+    )
     active_completers = (
-        "[" + ",".join(map(lambda c: c._name_[:1], global_completers())) + "]"
+        f"{side_padding}["
+        + ",".join(map(lambda c: c._name_[:1], global_completers()))
+        + f"]{side_padding}"
     )
 
-    padding = " " * (
+    center_padding = " " * (
         columns
         - fragment_list_width(toolbar)
         - fragment_list_width([("class:bottom-toolbar.text", active_completers)])
         - 1
     )
 
-    toolbar.extend([("", padding), ("class:bottom-toolbar.text", active_completers)])
+    toolbar.extend(
+        [("", center_padding), ("class:bottom-toolbar.text", active_completers)]
+    )
 
     blank_line = (
         "bg:default noreverse noitalic nounderline noblink",
@@ -142,18 +156,7 @@ def bottom_toolbar() -> t.Callable[..., StyleAndTextTuples]:
 def rprompt() -> t.Callable[..., StyleAndTextTuples]:
     global TIMEZONE
     timestamp: str = now(TIMEZONE).strftime(RPROMPT_DATE_FORMAT)
-    return lambda: [("", f"\n"), ("class:rprompt.clock", timestamp)]
-
-
-GIT_INFO_PATH: t.Final[Path] = __appdir__ / ".gitinfo"
-
-if not GIT_INFO_PATH.exists():
-    rtoml.dump({"branch": "", "path": ""}, GIT_INFO_PATH)
-
-GIT_INFO: dict[str, str] = rtoml.load(GIT_INFO_PATH)
-
-BRANCH: str | None = GIT_INFO.get("branch")
-PATH: str | None = GIT_INFO.get("path")
+    return lambda: [("", "\n"), ("class:rprompt.clock", timestamp)]
 
 
 def _extend_git_branch(cursor: StyleAndTextTuples, cwd: Path) -> None:

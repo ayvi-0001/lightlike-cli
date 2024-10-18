@@ -18,7 +18,12 @@ if t.TYPE_CHECKING:
 
     from lightlike.client import CliQueryRoutines
 
-__all__: t.Sequence[str] = ("snapshots",)
+__all__: t.Sequence[str] = (
+    "create",
+    "restore",
+    "list_",
+    "delete",
+)
 
 
 @click.command(
@@ -128,8 +133,6 @@ def list_(console: "Console", routine: "CliQueryRoutines") -> None:
     """List current snapshots."""
     table: Table = render.map_sequence_to_rich_table(
         mappings=list(map(lambda r: dict(r.items()), routine._list_snapshots())),
-        string_ctype=["table_name", "notes"],
-        datetime_ctype=["creation_time", "snapshot_time_ms", "expiration_timestamp"],
     )
     if not table.row_count:
         rprint(markup.dimmed("No results"))
