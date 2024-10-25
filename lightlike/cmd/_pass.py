@@ -4,13 +4,11 @@ from types import FunctionType
 
 import click
 from rich import get_console
-from rich import print as rprint
 
 from lightlike.app.cache import TimeEntryAppData, TimeEntryCache, TimeEntryIdList
 from lightlike.app.config import AppConfig
 from lightlike.app.dates import now as datetime_now
 from lightlike.client import CliQueryRoutines, get_client
-from lightlike.internal import markup
 
 __all__: t.Sequence[str] = (
     "routine",
@@ -22,7 +20,6 @@ __all__: t.Sequence[str] = (
     "console",
     "now",
     "ctx_group",
-    "active_time_entry",
 )
 
 AnyCallable: t.TypeAlias = t.Callable[..., t.Any]
@@ -86,16 +83,3 @@ def ctx_group(parents: int) -> t.Callable[..., AnyCallable]:
         return inner
 
     return decorator
-
-
-def active_time_entry(fn: AnyCallable) -> t.Any:
-    @cache
-    @wraps(fn)
-    def inner(cache: TimeEntryCache, *args: P.args, **kwargs: P.kwargs) -> t.Any:
-        if not cache:
-            rprint(markup.dimmed("There is no active time entry."))
-            return None
-        else:
-            return fn(cache, *args, **kwargs)
-
-    return inner

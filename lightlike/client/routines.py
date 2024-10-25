@@ -538,8 +538,8 @@ class CliQueryRoutines:
         project: str | None = None,
         note: str | None = None,
         billable: bool | None = None,
-        start: "datetime | None" = None,
-        end: "datetime | None" = None,
+        start_time: "datetime | None" = None,
+        end_time: "datetime | None" = None,
         date: "date | None" = None,
         use_query_cache: bool = True,
         use_legacy_sql: bool | None = False,
@@ -561,8 +561,12 @@ class CliQueryRoutines:
                 ScalarQueryParameter(
                     "billable", SqlParameterScalarTypes.BOOL, billable
                 ),
-                ScalarQueryParameter("start", SqlParameterScalarTypes.TIME, start),
-                ScalarQueryParameter("end", SqlParameterScalarTypes.TIME, end),
+                ScalarQueryParameter(
+                    "start_time", SqlParameterScalarTypes.TIME, start_time
+                ),
+                ScalarQueryParameter(
+                    "end_time", SqlParameterScalarTypes.TIME, end_time
+                ),
                 ScalarQueryParameter("date", SqlParameterScalarTypes.DATE, date),
                 # fmt: on
             ],
@@ -577,17 +581,17 @@ class CliQueryRoutines:
               project = COALESCE(@project, project),
               note = COALESCE(@note, note),
               billable = COALESCE(@billable, billable),
-              timestamp_start = TIMESTAMP_TRUNC(TIMESTAMP(DATETIME(COALESCE(@date, EXTRACT(DATE from start)), COALESCE(@start, TIME(start)))), SECOND),
-              start = DATETIME_TRUNC(DATETIME(COALESCE(@date, EXTRACT(DATE from start)), COALESCE(@start, TIME(start))), SECOND),
-              timestamp_end = TIMESTAMP_TRUNC(TIMESTAMP(DATETIME(COALESCE(@date, EXTRACT(DATE from `end`)), COALESCE(@end, TIME(`end`)))), SECOND),
-              `end` = DATETIME_TRUNC(DATETIME(COALESCE(@date, EXTRACT(DATE from `end`)), COALESCE(@end, TIME(`end`))), SECOND),
+              timestamp_start = TIMESTAMP_TRUNC(TIMESTAMP(DATETIME(COALESCE(@date, EXTRACT(DATE from start)), COALESCE(@start_time, TIME(start)))), SECOND),
+              start = DATETIME_TRUNC(DATETIME(COALESCE(@date, EXTRACT(DATE from start)), COALESCE(@start_time, TIME(start))), SECOND),
+              timestamp_end = TIMESTAMP_TRUNC(TIMESTAMP(DATETIME(COALESCE(@date, EXTRACT(DATE from `end`)), COALESCE(@end_time, TIME(`end`)))), SECOND),
+              `end` = DATETIME_TRUNC(DATETIME(COALESCE(@date, EXTRACT(DATE from `end`)), COALESCE(@end_time, TIME(`end`))), SECOND),
               date = COALESCE(@date, date),
               hours = ROUND(
                 SAFE_CAST(
                   SAFE_DIVIDE(
                     TIMESTAMP_DIFF(
-                      DATETIME(COALESCE(@date, EXTRACT(DATE from `end`)), COALESCE(@end, TIME(`end`))),
-                      DATETIME(COALESCE(@date, EXTRACT(DATE from start)), COALESCE(@start, TIME(start))),
+                      DATETIME(COALESCE(@date, EXTRACT(DATE from `end`)), COALESCE(@end_time, TIME(`end`))),
+                      DATETIME(COALESCE(@date, EXTRACT(DATE from start)), COALESCE(@start_time, TIME(start))),
                       SECOND
                     ),
                     3600

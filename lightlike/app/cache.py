@@ -384,8 +384,11 @@ class TimeEntryCache(_Entries):
         key: str,
         sequence: t.Sequence[str],
     ) -> t.Iterable[int]:
-        predicate = lambda e: (any([e[key].startswith(s) for s in sequence]))
-        return list(locate(entries, predicate))
+        def _match_id_predicate(e: dict[str, t.Any]) -> bool:
+            nonlocal sequence
+            return any([e[key].startswith(s) for s in sequence])
+
+        return list(locate(entries, _match_id_predicate))
 
     def exists(
         self,
@@ -406,15 +409,20 @@ class TimeEntryCache(_Entries):
 
     def remove(
         self,
-        entries: list[list[dict[str, t.Any]]],
         key: str,
         sequence: t.Sequence[str],
+        entries: list[list[dict[str, t.Any]]] | None = None,
     ) -> None:
-        with self.rw():
-            for entry_list in entries:
-                if idxs := self.index(entry_list, key, sequence):
-                    for idx in idxs:
-                        entry_list.pop(idx)
+        if not entries:
+            entries = [self.running_entries, self.paused_entries]
+
+        for entry_list in entries:
+            idxs: t.Iterable[int] = self.index(entry_list, key, sequence)
+            if not idxs:
+                continue
+            with self.rw():
+                for idx in idxs:
+                    entry_list.pop(idx)
 
     def _add_hours(
         self, now: datetime, timestamp_paused: datetime, paused_hours: Decimal
