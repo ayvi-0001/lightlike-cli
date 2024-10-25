@@ -2,7 +2,7 @@ import re
 import typing as t
 from contextlib import suppress
 from copy import copy
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from hashlib import sha1
 from inspect import cleandoc
@@ -13,7 +13,9 @@ from operator import truth
 import click
 from more_itertools import first, locate, one
 from rich import print as rprint
+from rich.console import Console
 from rich.syntax import Syntax
+from rich.table import Table
 from rich.text import Text
 
 from lightlike.__about__ import __appname_sc__
@@ -37,8 +39,6 @@ from lightlike.internal import appdir, markup, utils
 if t.TYPE_CHECKING:
     from google.cloud.bigquery import QueryJob
     from google.cloud.bigquery.table import Row
-    from rich.console import Console
-    from rich.table import Table
 
     from lightlike.app.cache import TimeEntryAppData, TimeEntryIdList
     from lightlike.client import CliQueryRoutines
@@ -172,7 +172,7 @@ def add(
     ctx_group: t.Sequence[click.Context],
     id_list: "TimeEntryIdList",
     appdata: "TimeEntryAppData",
-    console: "Console",
+    console: Console,
     routine: "CliQueryRoutines",
     project: str,
     start: datetime,
@@ -368,7 +368,7 @@ def yank_flag_help() -> str:
 def delete(
     ctx_group: t.Sequence[click.Context],
     id_list: "TimeEntryIdList",
-    console: "Console",
+    console: Console,
     cache: "TimeEntryCache",
     appdata: "TimeEntryAppData",
     routine: "CliQueryRoutines",
@@ -438,9 +438,9 @@ def delete(
                 if AppConfig().get("settings", "update-terminal-title", default=True):
                     console.set_window_title(__appname_sc__)
             elif cache.exists(cache.running_entries, [id_match]):
-                cache.remove([cache.running_entries], "id", [id_match])
+                cache.remove("id", [id_match], [cache.running_entries])
             elif cache.exists(cache.paused_entries, [id_match]):
-                cache.remove([cache.paused_entries], "id", [id_match])
+                cache.remove("id", [id_match], [cache.paused_entries])
 
         query_job: "QueryJob" = routine._delete_time_entries(matched_ids, wait=True)
 
@@ -454,7 +454,7 @@ def delete(
 def _get_entry_edits(
     matched_ids: list[str],
     entry_row: "Row",
-    console: "Console",
+    console: Console,
     project: str,
     note: str,
     billable: bool,
@@ -574,16 +574,18 @@ def _match_ids(
     id_list: "TimeEntryIdList",
     ids_to_match: list[str],
 ) -> t.Sequence[list[str]]:
-    predicate: t.Callable[[str], bool] = lambda i: (
-        any([i.startswith(m) for m in ids_to_match])
-    )
+    def _match_id_predicate(s: str) -> bool:
+        nonlocal ids_to_match
+        return any([s.startswith(m) for m in ids_to_match])
 
-    matched_idxs: t.Iterator[int] = locate(id_list.ids, predicate)
+    matched_idxs: t.Iterator[int] = locate(id_list.ids, _match_id_predicate)
     matched_ids: list[str] = list(map(lambda i: id_list.ids[i], matched_idxs))
-    missing: t.Callable[[str], bool] = lambda i: not any(
-        [m.startswith(i) for m in matched_ids]
-    )
-    non_matched_ids: list[str] = list(filter(missing, ids_to_match))
+
+    def _match_id_missing(s: str) -> bool:
+        nonlocal matched_ids
+        return not any([m.startswith(s) for m in matched_ids])
+
+    non_matched_ids: list[str] = list(filter(_match_id_missing, ids_to_match))
 
     if not matched_ids:
         ctx.fail("No matching ids.")
@@ -748,7 +750,7 @@ def edit(
     ctx_group: t.Sequence[click.Context],
     id_list: "TimeEntryIdList",
     appdata: "TimeEntryAppData",
-    console: "Console",
+    console: Console,
     routine: "CliQueryRoutines",
     id_options: list[str],
     use_last_timer_list: list[str],
@@ -891,8 +893,8 @@ def edit(
             project=edits.get("project"),
             note=edits.get("note"),
             billable=edits.get("billable"),
-            start=edits["start_time"].time() if "start_time" in edits else None,
-            end=edits["end_time"].time() if "end_time" in edits else None,
+            start_time=edits["start_time"].time() if "start_time" in edits else None,
+            end_time=edits["end_time"].time() if "end_time" in edits else None,
             date=edits.get("date"),
         )
 
@@ -975,7 +977,7 @@ def edit(
 @_pass.id_list
 @_pass.console
 def get(
-    console: "Console",
+    console: Console,
     id_list: "TimeEntryIdList",
     routine: "CliQueryRoutines",
     time_entry_id: str,
@@ -1318,7 +1320,7 @@ def list_(
     now: datetime,
     ctx_group: t.Sequence[click.Context],
     routine: "CliQueryRoutines",
-    console: "Console",
+    console: Console,
     date: datetime | None,
     today: datetime | None,
     yesterday: datetime | None,
@@ -1538,8 +1540,7 @@ def notes() -> None: ...
 @_pass.ctx_group(parents=1)
 def update_notes(
     ctx_group: t.Sequence[click.Context],
-    appdata: "TimeEntryAppData",
-    console: "Console",
+    console: Console,
     routine: "CliQueryRoutines",
     project: str,
 ) -> None:
@@ -1552,49 +1553,7 @@ def update_notes(
     Update how many days to look back with app:config:set:general:note-history.
     """
     ctx, parent = ctx_group
-    debug: bool = parent.params.get("debug", False)
-
-    try:
-        notes_to_edit: t.Sequence[str] = _questionary.checkbox(
-            message="Select notes to edit",
-            choices=sorted(shell_complete.notes.Notes().get(project)),
-        )
-    except AttributeError:
-        console.print(
-            markup.code(project),
-            "has no notes to edit.",
-            "If this was not the expected outcome,",
-            "Try adjusting the lookback window with",
-            "app:config:set:general:note-history",
-        )
-        return
-
-    if not notes_to_edit:
-        console.print(markup.dimmed("No notes selected, nothing happened."))
-        return
-
-    notes_to_replace: str = "\n".join(
-        map(lambda n: utils.alter_str(n, add_quotes=True), notes_to_edit)
-    )
-
-    new_note = PromptFactory.prompt_note(
-        project,
-        message="(new-note)",
-        rprompt="\nReplacing %s notes:\n%s" % (project, notes_to_replace),
-    )
-
-    query_job: "QueryJob" = routine._update_notes(
-        new_note=new_note,
-        old_note="".join(["(", "|".join(n for n in notes_to_edit), ")"]),
-        project=project,
-        wait=True,
-        render=True,
-        status_renderable=markup.status_message("Updating notes"),
-    )
-
-    sync_kwargs = {"trigger_query_job": query_job, "debug": debug}
-    threads.spawn(ctx, appdata.sync, sync_kwargs)
-    console.print("Updated notes for", markup.code(project))
+    console: Console,
 
 
 @click.command(
@@ -1611,14 +1570,14 @@ def update_notes(
 )
 @_pass.routine
 @_pass.console
-@_pass.active_time_entry
+@_pass.cache
 @_pass.ctx_group(parents=1)
 @_pass.now
 def pause(
     now: datetime,
     ctx_group: t.Sequence[click.Context],
     cache: "TimeEntryCache",
-    console: "Console",
+    console: Console,
     routine: "CliQueryRoutines",
 ) -> None:
     """
@@ -1629,6 +1588,10 @@ def pause(
     """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
+
+    if not cache:
+        console.print(markup.dimmed("There is no active time entry."))
+        return
 
     time_entry_id: str = cache.id
     query_job: "QueryJob" = routine._pause_time_entry(time_entry_id, now, wait=debug)
@@ -1694,7 +1657,7 @@ def resume(
     now: datetime,
     ctx_group: t.Sequence[click.Context],
     id_list: "TimeEntryIdList",
-    console: "Console",
+    console: Console,
     cache: "TimeEntryCache",
     routine: "CliQueryRoutines",
     entry: str,
@@ -1876,7 +1839,7 @@ def run(
     ctx_group: t.Sequence[click.Context],
     id_list: "TimeEntryIdList",
     appdata: "TimeEntryAppData",
-    console: "Console",
+    console: Console,
     routine: "CliQueryRoutines",
     cache: "TimeEntryCache",
     billable: bool | None,
@@ -1925,7 +1888,11 @@ def run(
     debug: bool = parent.params.get("debug", False)
 
     if stop_active and cache:
-        ctx.invoke(stop, debug)
+        routine._stop_time_entry(cache.id, now, wait=debug)
+        cache._clear_active()
+        if AppConfig().get("settings", "update-terminal-title", default=True):
+            console.set_window_title(__appname_sc__)
+
 
     project_default_billable: bool = False
     if billable is None:
@@ -2014,7 +1981,7 @@ def run(
 )
 @_pass.cache
 @_pass.console
-def show(console: "Console", cache: "TimeEntryCache", json_: bool) -> None:
+def show(console: Console, cache: "TimeEntryCache", json_: bool) -> None:
     """
     Display a table of local running/paused time entries.
     Entries are sorted top-down from active -> running -> paused:
@@ -2042,14 +2009,14 @@ def show(console: "Console", cache: "TimeEntryCache", json_: bool) -> None:
 )
 @_pass.routine
 @_pass.console
-@_pass.active_time_entry
+@_pass.cache
 @_pass.ctx_group(parents=1)
 @_pass.now
 def stop(
     now: datetime,
     ctx_group: t.Sequence[click.Context],
     cache: "TimeEntryCache",
-    console: "Console",
+    console: Console,
     routine: "CliQueryRoutines",
 ) -> None:
     """
@@ -2116,7 +2083,7 @@ def stop(
 @_pass.console
 @_pass.id_list
 @_pass.routine
-@_pass.active_time_entry
+@_pass.cache
 @_pass.ctx_group(parents=1)
 @_pass.now
 def switch(
@@ -2125,7 +2092,7 @@ def switch(
     cache: "TimeEntryCache",
     routine: "CliQueryRoutines",
     id_list: "TimeEntryIdList",
-    console: "Console",
+    console: Console,
     entry: str | None,
     continue_: bool,
 ) -> None:
@@ -2141,6 +2108,10 @@ def switch(
             timer:run --help / -h
     """
     ctx, parent = ctx_group
+
+    if not cache:
+        ctx.fail("There is no active time entry. Use timer:resume instead.")
+
     debug: bool = parent.params.get("debug", False)
 
     entries: list[dict[str, t.Any]] = cache.running_entries + cache.paused_entries
@@ -2255,7 +2226,7 @@ def switch(
 @click.option(
     "-S",
     "--stop",
-    "stop_",
+    "stop_active",
     show_default=True,
     is_flag=True,
     flag_value=True,
@@ -2269,7 +2240,7 @@ def switch(
     shell_complete=None,
 )
 @_pass.routine
-@_pass.active_time_entry
+@_pass.cache
 @_pass.console
 @_pass.appdata
 @_pass.ctx_group(parents=1)
@@ -2278,14 +2249,14 @@ def update(
     now: datetime,
     ctx_group: t.Sequence[click.Context],
     appdata: "TimeEntryAppData",
-    console: "Console",
+    console: Console,
     cache: "TimeEntryCache",
     routine: "CliQueryRoutines",
     billable: bool | None,
     project: str | None,
     start: datetime | None,
     note: str | None,
-    stop_: bool,
+    stop_active: bool,
 ) -> None:
     """
     Update the [b]active[/b] time entry.
@@ -2295,6 +2266,9 @@ def update(
     """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
+
+    if not cache:
+        ctx.fail("There is no active time entry.")
 
     if not any([project, note, billable is not None, start]):
         raise click.UsageError(message="No fields selected.", ctx=ctx)
@@ -2372,16 +2346,26 @@ def update(
     if not any(filter(lambda k: k in edits, ["project", "note", "billable", "start"])):
         ctx.fail("No fields to update.")
 
-    if stop_ and cache:
-        ctx.invoke(stop)
+    start_date: date | None = None
+    start_time: time | None = None
+    if "start" in edits:
+        start_time = edits["start"].time()
+        start_date = edits["start"].date()
 
     query_job: "QueryJob" = routine._update_time_entries(
         ids=[cache.id],
         project=edits.get("project"),
         note=edits.get("note"),
         billable=edits.get("billable"),
-        start=edits["start"].time() if "start" in edits else None,
+        date=start_date,
+        start_time=start_time,
     )
+
+    if stop_active:
+        routine._stop_time_entry(cache.id, now, wait=debug)
+        cache._clear_active()
+        if AppConfig().get("settings", "update-terminal-title", default=True):
+            console.set_window_title(__appname_sc__)
 
     sync_kwargs = {"trigger_query_job": query_job, "debug": debug}
     threads.spawn(ctx, appdata.sync, sync_kwargs)

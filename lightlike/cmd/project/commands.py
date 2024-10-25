@@ -440,11 +440,7 @@ def delete(
                 if AppConfig().get("settings", "update-terminal-title", default=True):
                     console.set_window_title(__appname_sc__)
 
-            cache.remove(
-                entries=[cache.running_entries, cache.paused_entries],
-                key="project",
-                sequence=[project],
-            )
+            cache.remove(key="project", sequence=[project])
 
 
 @click.command(
