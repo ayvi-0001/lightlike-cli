@@ -1612,9 +1612,6 @@ def pause(
         code="""\
         $ timer resume 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46
         $ t re 36c9fe5
-    
-        $ timer resume 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46 --stop
-        $ t re 36c9fe5 -S\
         """,
         lexer="fishshell",
         dedent=True,
@@ -1631,22 +1628,6 @@ def pause(
     required=False,
     shell_complete=shell_complete.entries.paused,
 )
-@click.option(
-    "-S",
-    "--stop",
-    "stop_",
-    show_default=True,
-    is_flag=True,
-    flag_value=True,
-    multiple=False,
-    type=click.BOOL,
-    help="Immediately stop the resumed time entry.",
-    required=False,
-    default=None,
-    callback=None,
-    metavar=None,
-    shell_complete=None,
-)
 @_pass.routine
 @_pass.cache
 @_pass.console
@@ -1661,7 +1642,6 @@ def resume(
     cache: "TimeEntryCache",
     routine: "CliQueryRoutines",
     entry: str,
-    stop_: bool,
 ) -> None:
     """
     Continue a paused entry.
@@ -1706,12 +1686,8 @@ def resume(
         if not cache.exists(cache.paused_entries, [matched_id]):
             raise click.UsageError(message="This entry is not paused.", ctx=ctx)
 
-        if stop_:
-            cache.remove([cache.paused_entries], "id", [matched_id])
-            routine._stop_time_entry(matched_id, now)
-        else:
-            cache.resume_entry(matched_id, now)
-            query_job = routine._resume_time_entry(matched_id, now)
+        cache.resume_entry(matched_id, now)
+        query_job = routine._resume_time_entry(matched_id, now)
 
     if debug:
         query_job.result()
@@ -1998,17 +1974,31 @@ def show(console: Console, cache: "TimeEntryCache", json_: bool) -> None:
 @click.command(
     cls=FormattedCommand,
     name="stop",
-    short_help="Stop active entry.",
+    short_help="Stop a time entry.",
     syntax=Syntax(
-        code="$ timer stop\n$ t st",
+        code="""
+        $ timer stop
+        $ t st
+
+        $ timer stop b95eb89
+        $ t st b95eb89\
+        """,
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
         background_color="#131310",
     ),
 )
+@utils.handle_keyboard_interrupt()
+@click.argument(
+    "entry",
+    type=click.STRING,
+    required=False,
+    shell_complete=shell_complete.entries.all_,
+)
 @_pass.routine
 @_pass.console
+@_pass.id_list
 @_pass.cache
 @_pass.ctx_group(parents=1)
 @_pass.now
@@ -2016,11 +2006,15 @@ def stop(
     now: datetime,
     ctx_group: t.Sequence[click.Context],
     cache: "TimeEntryCache",
+    id_list: "TimeEntryIdList",
     console: Console,
     routine: "CliQueryRoutines",
+    entry: str,
 ) -> None:
     """
-    Stop the [b]active[/b] entry.
+    No args will stop the [b]active[/b] entry, if it exists.
+
+    Pass an id to stop a specific time entry.
 
     [b]See[/]:
         timer:run --help / -h
@@ -2028,10 +2022,37 @@ def stop(
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
-    routine._stop_time_entry(cache.id, now, wait=debug)
-    cache._clear_active()
-    if AppConfig().get("settings", "update-terminal-title", default=True):
-        console.set_window_title(__appname_sc__)
+    if not entry:
+        if cache:
+            routine._stop_time_entry(cache.id, now, wait=debug)
+            cache._clear_active()
+            if AppConfig().get("settings", "update-terminal-title", default=True):
+                console.set_window_title(__appname_sc__)
+            return
+        else:
+            paused_entries = cache.get_updated_paused_entries(now)
+            table: Table = render.map_sequence_to_rich_table(
+                mappings=[*cache.running_entries, *paused_entries],
+            )
+            if not table.row_count:
+                ctx.fail("No paused entries.")
+
+            console.print(table)
+
+            select: str = _questionary.select(
+                message="Select an entry to resume",
+                choices=list(map(_get._id, paused_entries)),
+            )
+
+            entry = select
+
+    if not entry:
+        rprint(markup.dimmed("Canceled."))
+        return
+
+    matched_id = id_list.match_id(entry)
+    routine._stop_time_entry(matched_id, now)
+    cache.remove(key="id", sequence=[matched_id])
 
 
 @click.command(
