@@ -1061,36 +1061,6 @@ def get(
     shell_complete=None,
 )
 @click.option(
-    "-t",
-    "--today",
-    show_default=True,
-    is_flag=True,
-    flag_value="today",
-    multiple=False,
-    type=click.STRING,
-    help="Query today's date.",
-    required=False,
-    default=None,
-    callback=validate.callbacks.datetime_parsed,
-    metavar=None,
-    shell_complete=None,
-)
-@click.option(
-    "-y",
-    "--yesterday",
-    show_default=True,
-    is_flag=True,
-    flag_value="yesterday",
-    multiple=False,
-    type=click.STRING,
-    help="Query yesterday's date.",
-    required=False,
-    default=None,
-    callback=validate.callbacks.datetime_parsed,
-    metavar=None,
-    shell_complete=None,
-)
-@click.option(
     "-s",
     "--start",
     show_default=True,
@@ -1348,8 +1318,6 @@ def list_(
     routine: "CliQueryRoutines",
     console: Console,
     date: datetime | None,
-    today: datetime | None,
-    yesterday: datetime | None,
     start: datetime | None,
     end: datetime | None,
     current_week: bool,
@@ -1492,9 +1460,7 @@ def list_(
         )
 
     else:
-        query_date: datetime = (
-            date or today or yesterday or PromptFactory.prompt_date("(date)")
-        )
+        query_date = date or now
 
         where_clause = shell_complete.where._parse_click_options(
             flag=prompt_where, args=where, console=console, routine=routine
