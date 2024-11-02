@@ -1018,19 +1018,19 @@ def get(
 
         # case insensitive regex match - re2
         $ timer list --date 2d --match-note (?i)task.* --regex-engine re2
-        $ t l -d2d -rn (?i)task.* -re re2
+        $ t l -d2d -I (?i)task.* -re re2
 
         # case insensitive regex match - ECMAScript
         $ timer list --date 2d --match-note task.* --modifiers ig
-        $ t l -d2d -rn task.* -Mig
+        $ t l -d2d -I task.* -Mig
 
         # regex 
-        $ t l -t -rp ^(?!demo) # exclude projects beginning with 'demo'
+        $ t l -t -P ^(?!demo) # exclude projects beginning with 'demo'
 
         # list all entries this month from project 'myproject.example'
         # with notes containing words 'docs' or 'tests'
         $ timer list --current-month --match-project myproject.* --match-note docs --match-note tests
-        $ timer list -cm -rp myproject.* -rn docs -rn tests
+        $ timer list -cm -P myproject.* -I docs -I tests
 
         # list entries today before 12:00:00
         $ timer list --today time(start) >= \\"12:00:00\\"
@@ -1193,7 +1193,7 @@ def get(
     shell_complete=None,
 )
 @click.option(
-    "-rp",
+    "-P",
     "--match-project",
     show_default=True,
     multiple=True,
@@ -1206,12 +1206,38 @@ def get(
     shell_complete=None,
 )
 @click.option(
-    "-rn",
+    "-N",
     "--match-note",
     show_default=True,
     multiple=True,
     type=click.STRING,
     help="Expressions to match note.",
+    required=False,
+    default=None,
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
+@click.option(
+    "-E",
+    "--exclude",
+    show_default=True,
+    multiple=True,
+    type=click.STRING,
+    help="Exclude pattern matched against project name and/or note.",
+    required=False,
+    default=None,
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
+@click.option(
+    "-I",
+    "--include",
+    show_default=True,
+    multiple=True,
+    type=click.STRING,
+    help="Include pattern matched against project name and/or note.",
     required=False,
     default=None,
     callback=None,
@@ -1302,7 +1328,7 @@ def get(
 )
 @click.argument(
     "where",
-    type=click.STRING,
+    type=click.UNPROCESSED,
     required=False,
     default=None,
     callback=None,
@@ -1333,6 +1359,8 @@ def list_(
     all_: bool,
     match_project: t.Sequence[str],
     match_note: t.Sequence[str],
+    exclude: t.Sequence[str],
+    include: t.Sequence[str],
     modifiers: str,
     regex_engine: str,
     limit: int | None,
@@ -1352,12 +1380,20 @@ def list_(
         flags are processed before other date options.
         configure week start dates with app:config:set:general:week-start
 
-    --match-project / -rp:
+    --match-project / -P:
         match a regular expression against project names.
         this option can be repeated, with each pattern being separated by `|`.
 
-    --match-note / -rn:
+    --match-note / -N:
         match a regular expression against entry notes.
+        this option can be repeated, with each pattern being separated by `|`.
+
+    --exclude / -E:
+        exclude pattern matched against project name and/or note.
+        this option can be repeated, with each pattern being separated by `|`.
+
+    --include / -I:
+        include pattern matched against project name and/or note.
         this option can be repeated, with each pattern being separated by `|`.
 
     --modifiers / -M:
@@ -1404,6 +1440,8 @@ def list_(
             use_query_cache=not no_cache,
             match_project=match_project,
             match_note=match_note,
+            exclude=exclude,
+            include=include,
             modifiers=modifiers,
             regex_engine=regex_engine,
             limit=limit,
@@ -1445,6 +1483,8 @@ def list_(
             use_query_cache=not no_cache,
             match_project=match_project,
             match_note=match_note,
+            exclude=exclude,
+            include=include,
             modifiers=modifiers,
             regex_engine=regex_engine,
             limit=limit,
@@ -1466,6 +1506,8 @@ def list_(
             use_query_cache=not no_cache,
             match_project=match_project,
             match_note=match_note,
+            exclude=exclude,
+            include=include,
             modifiers=modifiers,
             regex_engine=regex_engine,
             limit=limit,

@@ -1272,6 +1272,8 @@ class CliQueryRoutines:
         where: str | None = None,
         match_project: t.Sequence[str] | None = None,
         match_note: t.Sequence[str] | None = None,
+        exclude: t.Sequence[str] | None = None,
+        include: t.Sequence[str] | None = None,
         modifiers: str | None = None,
         regex_engine: t.Literal["ECMAScript", "re2"] | str | None = "ECMAScript",
         limit: int | None = None,
@@ -1296,8 +1298,8 @@ class CliQueryRoutines:
 
             project_expression: str = "|".join(project_expressions)
             fmt_match_project = self._format_regular_expression(
-                field="project",
-                expression=project_expression,
+                fields="project",
+                expr=project_expression,
                 modifiers=modifiers,
                 regex_engine=regex_engine,
                 and_=True,
@@ -1311,11 +1313,43 @@ class CliQueryRoutines:
 
             note_expression: str = "|".join(note_expressions)
             fmt_match_note = self._format_regular_expression(
-                field="note",
-                expression=note_expression,
+                fields="note",
+                expr=note_expression,
                 modifiers=modifiers,
                 regex_engine=regex_engine,
                 and_=True,
+            )
+
+        fmt_exclude_expression: str = ""
+        if exclude:
+            exclude_expressions: list[str] = []
+            for pattern in exclude:
+                exclude_expressions.append(pattern)
+
+            exclude_expression: str = "|".join(exclude_expressions)
+            fmt_exclude_expression = self._format_regular_expression(
+                fields=["project", "note"],
+                expr=exclude_expression,
+                modifiers=modifiers,
+                regex_engine=regex_engine,
+                and_=True,
+                not_=True,
+            )
+
+        fmt_include_expression: str = ""
+        if include:
+            include_expressions: list[str] = []
+            for pattern in include:
+                include_expressions.append(pattern)
+
+            include_expression: str = "|".join(include_expressions)
+            fmt_include_expression = self._format_regular_expression(
+                fields=["project", "note"],
+                expr=include_expression,
+                modifiers=modifiers,
+                regex_engine=regex_engine,
+                and_=True,
+                not_=False,
             )
 
         target: str = cleandoc(
@@ -1385,11 +1419,13 @@ class CliQueryRoutines:
           {self.timesheet_id}
         WHERE
           TRUE
-          %s /* date */
-          %s /* date between */
-          %s /* additional where clause */
-          %s /* match project */
-          %s /* match note */
+          /* date */ %s
+          /* date between */ %s
+          /* additional where clause */ %s
+          /* match project */ %s
+          /* match note */ %s
+          /* exclude regex */ %s
+          /* include regex */ %s
         WINDOW
           timer AS (
             ORDER BY
@@ -1409,11 +1445,15 @@ class CliQueryRoutines:
         """
             % (
                 # fmt: off
-                f"AND date = \"{date}\"" if date else "",
-                f"AND date BETWEEN \"{start_date}\" AND \"{end_date}\"" if start_date and end_date else "",
+                f'AND date = "{date}"' if date else "",
+                f'AND date BETWEEN "{start_date}" AND "{end_date}"'
+                if start_date and end_date
+                else "",
                 f"AND {where}" if where else "",
                 fmt_match_project,
                 fmt_match_note,
+                fmt_exclude_expression,
+                fmt_include_expression,
                 f"LIMIT {limit}" if limit else "",
                 f"OFFSET {offset}" if limit and offset else "",
                 # fmt: on
@@ -1439,6 +1479,8 @@ class CliQueryRoutines:
         is_file: bool | None = False,
         match_project: t.Sequence[str] | None = None,
         match_note: t.Sequence[str] | None = None,
+        exclude: t.Sequence[str] | None = None,
+        include: t.Sequence[str] | None = None,
         modifiers: str | None = None,
         regex_engine: t.Literal["ECMAScript", "re2"] | str | None = "ECMAScript",
         use_query_cache: bool = True,
@@ -1461,8 +1503,8 @@ class CliQueryRoutines:
 
             project_expression: str = "|".join(project_expressions)
             fmt_match_project = self._format_regular_expression(
-                field="project",
-                expression=project_expression,
+                fields="project",
+                expr=project_expression,
                 modifiers=modifiers,
                 regex_engine=regex_engine,
                 and_=True,
@@ -1476,11 +1518,43 @@ class CliQueryRoutines:
 
             note_expression: str = "|".join(note_expressions)
             fmt_match_note = self._format_regular_expression(
-                field="note",
-                expression=note_expression,
+                fields="note",
+                expr=note_expression,
                 modifiers=modifiers,
                 regex_engine=regex_engine,
                 and_=True,
+            )
+
+        fmt_exclude_expression: str = ""
+        if exclude:
+            exclude_expressions: list[str] = []
+            for pattern in exclude:
+                exclude_expressions.append(pattern)
+
+            exclude_expression: str = "|".join(exclude_expressions)
+            fmt_exclude_expression = self._format_regular_expression(
+                fields=["project", "note"],
+                expr=exclude_expression,
+                modifiers=modifiers,
+                regex_engine=regex_engine,
+                and_=True,
+                not_=True,
+            )
+
+        fmt_include_expression: str = ""
+        if include:
+            include_expressions: list[str] = []
+            for pattern in include:
+                include_expressions.append(pattern)
+
+            include_expression: str = "|".join(include_expressions)
+            fmt_include_expression = self._format_regular_expression(
+                fields=["project", "note"],
+                expr=include_expression,
+                modifiers=modifiers,
+                regex_engine=regex_engine,
+                and_=True,
+                not_=False,
             )
 
         round_factor: int | None = None
@@ -1526,10 +1600,12 @@ class CliQueryRoutines:
               TRUE
               AND NOT archived
               AND NOT paused
-              %s /* date between */
-              %s /* match project */
-              %s /* match note */
-              %s /* additional where clause */
+              /* date between */ %s
+              /* match project */ %s
+              /* match note */ %s
+              /* exclude regex */ %s
+              /* include regex */ %s
+              /* additional where clause */ %s
             GROUP BY
               project,
               date,
@@ -1545,13 +1621,19 @@ class CliQueryRoutines:
             % (
                 # fmt: off
                 ", " if is_file else "\\n",
-                truth(round_), round_factor or 1, round_factor or 1,
-                f"AND date BETWEEN \"{start_date}\" AND \"{end_date}\"" if start_date and end_date else "",
+                truth(round_),
+                round_factor or 1,
+                round_factor or 1,
+                f'AND date BETWEEN "{start_date}" AND "{end_date}"'
+                if start_date and end_date
+                else "",
                 fmt_match_project,
                 fmt_match_note,
+                fmt_exclude_expression,
+                fmt_include_expression,
                 f"AND {where}" if where else "",
-                'HAVING hours != 0' if show_null_values else "",
-                'QUALIFY total_day != 0' if show_null_values else "",
+                "HAVING hours != 0" if show_null_values else "",
+                "QUALIFY total_day != 0" if show_null_values else "",
                 # fmt: on
             )
         )
@@ -1597,27 +1679,44 @@ class CliQueryRoutines:
 
     def _format_regular_expression(
         self,
-        field: str,
-        expression: str | None = None,
+        fields: str | list[str],
+        expr: str,
         modifiers: str | None = None,
         and_: bool = False,
+        not_: bool = False,
         regex_engine: t.Literal["ECMAScript", "re2"] | str | None = "ECMAScript",
     ) -> str:
-        match regex_engine:
-            case "ECMAScript":
-                return (
-                    f'{"AND " if and_ else ""}{self.dataset}.js_regex_contains({field}, r"{expression}", "{modifiers}")'
-                    if expression
-                    else ""
-                )
-            case "re2":
-                return (
-                    f'{"AND " if and_ else ""}REGEXP_CONTAINS({field}, r"{expression}")'
-                    if expression
-                    else ""
-                )
-            case _:
-                raise ValueError(f"Unknown regex engine: {regex_engine}")
+        expression = ""
+        and_op = "AND " if and_ else ""
+        not_op = "NOT " if not_ else ""
+        conditionals = f"{and_op}{not_op}"
+
+        if regex_engine == "ECMAScript":
+            fn = f"{self.dataset}.js_regex_contains"
+
+            if isinstance(fields, list):
+                filter_clauses = []
+                for field in fields:
+                    filter_clauses.append(f'{fn}({field},r"{expr}","{modifiers}")')
+                expression = f"{conditionals}({' OR '.join(filter_clauses)})"
+            else:
+                expression = f'{conditionals}{fn}({fields}, r"{expr}", "{modifiers}")'
+
+        elif regex_engine == "re2":
+            fn = "REGEXP_CONTAINS"
+
+            if isinstance(fields, list):
+                filter_clauses = []
+                for field in fields:
+                    filter_clauses.append(f'{fn}({field}, r"{expr}")')
+                expression = f"{conditionals}({' OR '.join(filter_clauses)})"
+            else:
+                expression = f'{conditionals}{fn}({fields}, r"{expr}")'
+
+        else:
+            raise ValueError(f"Unknown regex engine: {regex_engine}")
+
+        return expression
 
     @property
     def _all_routines_ids(self) -> list[str]:

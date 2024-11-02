@@ -478,7 +478,7 @@ def delete(
     shell_complete=None,
 )
 @click.option(
-    "-rn",
+    "-N",
     "--match-name",
     show_default=True,
     multiple=True,
@@ -491,7 +491,7 @@ def delete(
     shell_complete=None,
 )
 @click.option(
-    "-rd",
+    "-D",
     "--match-description",
     show_default=True,
     multiple=True,
@@ -590,8 +590,8 @@ def list_(
 
         where.append(
             routine._format_regular_expression(
-                field="name",
-                expression=name_expression,
+                fields="name",
+                expr=name_expression,
                 modifiers=modifiers,
                 regex_engine=regex_engine,
             )
@@ -599,15 +599,15 @@ def list_(
 
     if match_description:
         description_expressions: list[str] = []
-        for pattern in match_name:
+        for pattern in match_description:
             description_expressions.append(pattern)
 
         description_expression: str = "|".join(description_expressions)
 
         where.append(
             routine._format_regular_expression(
-                field="description",
-                expression=description_expression,
+                fields="description",
+                expr=description_expression,
                 modifiers=modifiers,
                 regex_engine=regex_engine,
             )
