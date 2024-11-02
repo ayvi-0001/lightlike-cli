@@ -194,7 +194,7 @@ print_option = click.option(
     shell_complete=None,
 )
 match_project = click.option(
-    "-rp",
+    "-P",
     "--match-project",
     show_default=True,
     multiple=True,
@@ -207,12 +207,38 @@ match_project = click.option(
     shell_complete=None,
 )
 match_note = click.option(
-    "-rn",
+    "-N",
     "--match-note",
     show_default=True,
     multiple=True,
     type=click.STRING,
     help="Expressions to match note.",
+    required=False,
+    default=None,
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
+exclude = click.option(
+    "-E",
+    "--exclude",
+    show_default=True,
+    multiple=True,
+    type=click.STRING,
+    help="Exclude pattern matched against project name and/or note.",
+    required=False,
+    default=None,
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
+include = click.option(
+    "-I",
+    "--include",
+    show_default=True,
+    multiple=True,
+    type=click.STRING,
+    help="Include pattern matched against project name and/or note.",
     required=False,
     default=None,
     callback=None,
@@ -260,11 +286,11 @@ regex_engine = click.option(
     
         # case insensitive regex match - re2
         $ timer summary table --current-year --output timesheet_%Y-%m-%dT%H_%M_%S.svg --regex-engine re2 --match-note (?i)task.*
-        $ t su t -cy -o timesheet_%Y-%m-%dT%H_%M_%S.svg -re re2 -rn (?i)task.*
+        $ t su t -cy -o timesheet_%Y-%m-%dT%H_%M_%S.svg -re re2 -I (?i)task.*
         
         # case insensitive regex match - ECMAScript
         $ timer summary table --current-year --output timesheet_%Y-%m-%dT%H_%M_%S.svg --match-note task.* --modifiers ig
-        $ t su t -cy -o timesheet_%Y-%m-%dT%H_%M_%S.svg -rn task.* -Mig
+        $ t su t -cy -o timesheet_%Y-%m-%dT%H_%M_%S.svg -I task.* -Mig
 
         $ timer summary table --start jan1 --end jul1 billable is true
         $ t su t -sjan1 -ejul1 billable is true\
@@ -276,20 +302,22 @@ regex_engine = click.option(
     ),
 )
 @utils.handle_keyboard_interrupt()
-@start_option
-@end_option
 @all_option
-@current_week_option
 @current_month_option
+@current_week_option
 @current_year_option
-@round_option
-@show_null_values
-@match_project
+@end_option
+@exclude
+@include
 @match_note
+@match_project
 @modifiers
 @regex_engine
-@where_option
+@round_option
+@show_null_values
+@start_option
 @where_clause
+@where_option
 @click.option(
     "-o",
     "--output",
@@ -318,6 +346,7 @@ regex_engine = click.option(
     metavar=None,
     shell_complete=None,
 )
+@open_in_editor
 @_pass.routine
 @_pass.console
 @_pass.ctx_group(parents=1)
@@ -330,18 +359,20 @@ def summary_table(
     start: datetime,
     end: datetime,
     all_: bool,
-    current_week: bool,
     current_month: bool,
+    current_week: bool,
     current_year: bool,
-    round_: str,
-    show_null_values: bool,
-    show_lines: bool,
-    output: Path | None,
-    match_project: t.Sequence[str],
+    exclude: t.Sequence[str],
+    include: t.Sequence[str],
     match_note: t.Sequence[str],
+    match_project: t.Sequence[str],
     modifiers: str,
-    regex_engine: str,
+    output: Path | None,
     prompt_where: bool,
+    regex_engine: str,
+    round_: str,
+    show_lines: bool,
+    show_null_values: bool,
     where: t.Sequence[str],
 ) -> None:
     """
@@ -376,12 +407,20 @@ def summary_table(
         flags are processed before other date options.
         configure week start dates with app:config:set:general:week-start.
 
-    --match-project / -rp:
+    --match-project / -P:
         match a regular expression against project names.
         this option can be repeated, with each pattern being separated by `|`.
 
-    --match-note / -rn:
+    --match-note / -N:
         match a regular expression against entry notes.
+        this option can be repeated, with each pattern being separated by `|`.
+
+    --exclude / -E:
+        exclude pattern matched against project name and/or note.
+        this option can be repeated, with each pattern being separated by `|`.
+
+    --include / -I:
+        include pattern matched against project name and/or note.
         this option can be repeated, with each pattern being separated by `|`.
 
     --modifiers / -M:
@@ -458,6 +497,8 @@ def summary_table(
             where=where_clause,
             match_project=match_project,
             match_note=match_note,
+            exclude=exclude,
+            include=include,
             modifiers=modifiers,
             regex_engine=regex_engine,
             round_=round_,
@@ -499,11 +540,11 @@ def summary_table(
     
         # case insensitive regex match - re2
         $ timer summary csv --current-year --output timesheet_%Y-%m-%dT%H_%M_%S.csv --regex-engine re2 --match-note (?i)task.*
-        $ t su c -cy -o timesheet_%Y-%m-%dT%H_%M_%S.csv -re re2 -rn (?i)task.*
+        $ t su c -cy -o timesheet_%Y-%m-%dT%H_%M_%S.csv -re re2 -I (?i)task.*
         
         # case insensitive regex match - ECMAScript
         $ timer summary csv --current-year --output timesheet_%Y-%m-%dT%H_%M_%S.csv --match-note task.* --modifiers ig
-        $ t su c -cy -o timesheet_%Y-%m-%dT%H_%M_%S.csv -rn task.* -Mig
+        $ t su c -cy -o timesheet_%Y-%m-%dT%H_%M_%S.csv -I task.* -Mig
         
         $ timer summary csv --start jan1 --end jul1 billable is true --print
         $ t su c -sjan1 -ejul1 billable is true -p\
@@ -515,21 +556,23 @@ def summary_table(
     ),
 )
 @utils.handle_keyboard_interrupt()
-@start_option
-@end_option
 @all_option
-@current_week_option
 @current_month_option
+@current_week_option
 @current_year_option
+@end_option
+@exclude
+@include
+@match_note
+@match_project
+@modifiers
+@print_option
+@regex_engine
 @round_option
 @show_null_values
-@print_option
-@match_project
-@match_note
-@modifiers
-@regex_engine
-@where_option
+@start_option
 @where_clause
+@where_option
 @click.option(
     "-o",
     "--output",
@@ -566,22 +609,24 @@ def summary_csv(
     ctx_group: t.Sequence[click.Context],
     console: Console,
     routine: "CliQueryRoutines",
-    start: datetime,
-    end: datetime,
     all_: bool,
-    current_week: bool,
     current_month: bool,
+    current_week: bool,
     current_year: bool,
+    exclude: t.Sequence[str],
+    include: t.Sequence[str],
+    end: datetime,
+    match_note: t.Sequence[str],
+    match_project: t.Sequence[str],
+    modifiers: str,
     output: Path | None,
+    print_: bool,
+    prompt_where: bool,
+    quoting: str,
+    regex_engine: str,
     round_: str,
     show_null_values: bool,
-    print_: bool,
-    quoting: str,
-    match_project: t.Sequence[str],
-    match_note: t.Sequence[str],
-    modifiers: str,
-    regex_engine: str,
-    prompt_where: bool,
+    start: datetime,
     where: t.Sequence[str],
 ) -> None:
     """
@@ -620,12 +665,20 @@ def summary_csv(
         flags are processed before other date options.
         configure week start dates with app:config:set:general:week-start.
 
-    --match-project / -rp:
+    --match-project / -P:
         match a regular expression against project names.
         this option can be repeated, with each pattern being separated by `|`.
 
-    --match-note / -rn:
+    --match-note / -N:
         match a regular expression against entry notes.
+        this option can be repeated, with each pattern being separated by `|`.
+
+    --exclude / -E:
+        exclude pattern matched against project name and/or note.
+        this option can be repeated, with each pattern being separated by `|`.
+
+    --include / -I:
+        include pattern matched against project name and/or note.
         this option can be repeated, with each pattern being separated by `|`.
 
     --modifiers / -M:
@@ -710,6 +763,8 @@ def summary_csv(
             where=where_clause,
             match_project=match_project,
             match_note=match_note,
+            exclude=exclude,
+            include=include,
             modifiers=modifiers,
             regex_engine=regex_engine,
             round_=round_,
@@ -766,11 +821,11 @@ def summary_csv(
         
         # case insensitive regex match - re2
         $ timer summary json --current-year --output timesheet_%Y-%m-%dT%H_%M_%S.json --regex-engine re2 --match-note (?i)task.*
-        $ t su j -cy -o timesheet_%Y-%m-%dT%H_%M_%S.json -re re2 -rn (?i)task.*
+        $ t su j -cy -o timesheet_%Y-%m-%dT%H_%M_%S.json -re re2 -I (?i)task.*
         
         # case insensitive regex match - ECMAScript
         $ timer summary json --current-year --output timesheet_%Y-%m-%dT%H_%M_%S.json --match-note task.* --modifiers ig
-        $ t su j -cy -o timesheet_%Y-%m-%dT%H_%M_%S.json -rn task.* -Mig\
+        $ t su j -cy -o timesheet_%Y-%m-%dT%H_%M_%S.json -I task.* -Mig\
         
         $ timer summary json --start jan1 --end jul1 billable is true --print
         $ t su j -sjan1 -ejul1 billable is true -p\
@@ -782,20 +837,22 @@ def summary_csv(
     ),
 )
 @utils.handle_keyboard_interrupt()
-@start_option
-@end_option
 @all_option
-@current_week_option
 @current_month_option
+@current_week_option
 @current_year_option
-@round_option
-@show_null_values
-@match_project
+@end_option
+@exclude
+@include
 @match_note
+@match_project
 @modifiers
 @regex_engine
-@where_option
+@round_option
+@show_null_values
+@start_option
 @where_clause
+@where_option
 @click.option(
     "-o",
     "--output",
@@ -833,22 +890,24 @@ def summary_json(
     ctx_group: t.Sequence[click.Context],
     console: Console,
     routine: "CliQueryRoutines",
-    start: datetime,
-    end: datetime,
     all_: bool,
-    current_week: bool,
     current_month: bool,
+    current_week: bool,
     current_year: bool,
+    exclude: t.Sequence[str],
+    include: t.Sequence[str],
+    end: datetime,
+    match_note: t.Sequence[str],
+    match_project: t.Sequence[str],
+    modifiers: str,
+    orient: str,
     output: Path | None,
+    print_: bool,
+    prompt_where: bool,
+    regex_engine: str,
     round_: str,
     show_null_values: bool,
-    print_: bool,
-    orient: str,
-    match_project: t.Sequence[str],
-    match_note: t.Sequence[str],
-    modifiers: str,
-    regex_engine: str,
-    prompt_where: bool,
+    start: datetime,
     where: t.Sequence[str],
 ) -> None:
     """
@@ -891,18 +950,26 @@ def summary_json(
         default is [code]records[/code].
         available choices are; columns, index, records, split, table, values.
             split = dict like {"index" -> [index], "columns" -> [columns], "data" -> [values]}
-            records = list like [{column -> value}, … , {column -> value}]
+            records = list like [{column -> value}, ... , {column -> value}]
             index = dict like {index -> {column -> value}}
             columns = dict like {column -> {index -> value}}
             values = just the values array
             table = dict like {"schema": {schema}, "data": {data}}
 
-    --match-project / -rp:
+    --match-project / -P:
         match a regular expression against project names.
         this option can be repeated, with each pattern being separated by `|`.
 
-    --match-note / -rn:
+    --match-note / -N:
         match a regular expression against entry notes.
+        this option can be repeated, with each pattern being separated by `|`.
+
+    --exclude / -E:
+        exclude pattern matched against project name and/or note.
+        this option can be repeated, with each pattern being separated by `|`.
+
+    --include / -I:
+        include pattern matched against project name and/or note.
         this option can be repeated, with each pattern being separated by `|`.
 
     --modifiers / -M:
@@ -987,6 +1054,8 @@ def summary_json(
             where=where_clause,
             match_project=match_project,
             match_note=match_note,
+            exclude=exclude,
+            include=include,
             modifiers=modifiers,
             regex_engine=regex_engine,
             round_=round_,

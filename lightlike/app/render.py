@@ -109,7 +109,7 @@ def map_sequence_to_rich_table(
     row_kwargs: t.Mapping[str, t.Any] | None = None,
     table_kwargs: t.Mapping[str, t.Any] | None = None,
     column_kwargs: t.Mapping[str, t.Any] | None = None,
-    no_color: bool = False,
+    no_color: bool = True,
 ) -> Table:
     default = {
         "box": box.MARKDOWN,
