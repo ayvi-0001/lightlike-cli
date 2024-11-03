@@ -1,3 +1,4 @@
+import os
 import re
 import typing as t
 from contextlib import suppress
@@ -14,6 +15,7 @@ import click
 from more_itertools import first, locate, one
 from rich import print as rprint
 from rich.console import Console
+from rich.markup import escape
 from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
@@ -1544,15 +1546,16 @@ def notes() -> None: ...
     cls=FormattedCommand,
     name="update",
     no_args_is_help=True,
-    short_help="Interactively update notes.",
+    short_help="Replace notes through the default text editor.",
     syntax=Syntax(
-        code="$ timer notes update lightlike-cli # interactive",
+        code="$ timer notes update lightlike-cli",
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
         background_color="#131310",
     ),
 )
+@utils.handle_keyboard_interrupt()
 @click.argument(
     "project",
     nargs=1,
@@ -1560,29 +1563,115 @@ def notes() -> None: ...
     callback=validate.active_project,
     shell_complete=shell_complete.projects.from_argument,
 )
-@utils.handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Did not update notes.")),
+@click.option(
+    "-d",
+    "--dry-run",
+    show_default=True,
+    is_flag=True,
+    flag_value=True,
+    multiple=False,
+    hidden=True,
+    type=click.BOOL,
+    required=False,
+    default=None,
+    callback=None,
+    metavar=None,
+    shell_complete=None,
 )
 @_pass.routine
 @_pass.console
-@_pass.appdata
 @_pass.ctx_group(parents=1)
 def update_notes(
     ctx_group: t.Sequence[click.Context],
     console: Console,
     routine: "CliQueryRoutines",
     project: str,
+    dry_run: bool,
 ) -> None:
     """
-    Interactively update notes.
+    Update notes for a project through the default text editor.
 
-    Select which notes to replace with [code]space[/code]. Press [code]enter[/code] to continue with the selection.
-    Enter a new note, and all selected notes will be replaced.
-    There is a lookback window so old notes do not clutter the autocompletions.
-    Update how many days to look back with app:config:set:general:note-history.
+    A temporary file will open with all notes for the given project.
+    There are 2 identical columns. Any edits to the note in the right column will be made against all
+    timesheet entries matching the original note on the left.
+    If the file is closed without saving, no edits will be applied.
+    Use option `--dry-run` / `-d` to see the query without making any changes.
     """
     ctx, parent = ctx_group
-    console: Console,
+
+    query_job = routine._select(
+        resource=routine.timesheet_id,
+        distinct=True,
+        fields=["note"],
+        where=[f'project = "{project}"', "note is not null"],
+        order=["note"],
+    )
+
+    notes = list(map(_get.note, query_job))
+    text = ""
+
+    for idx, note in enumerate(notes):
+        whitespace = " " * ((max(map(len, notes)) + 4) - len(note))
+        text += f"{note}{whitespace}\t{note}"
+        if idx < len(notes):
+            text += "\n"
+
+    default_editor: str | None = os.environ.get("EDITOR")
+    editor: str | None = AppConfig().get(
+        "settings",
+        "editor",
+        default=default_editor,
+    )
+
+    if not editor:
+        ctx.fail("Cannot determine $EDITOR.")
+
+    result: str | None = click.edit(
+        text=text,
+        editor=editor,
+        require_save=True,
+    )
+
+    if not result:
+        console.print(markup.dimmed("No edits made."))
+        raise click.exceptions.Exit()
+
+    replacements = {}
+    for line in result.splitlines():
+        old_note, new_note = line.split("\t")
+        old_note, new_note = old_note.strip(), new_note.strip()
+        if old_note != new_note:
+            replacements[old_note] = escape(new_note)
+
+    if not replacements:
+        console.print(markup.dimmed("No edits made."))
+        raise click.exceptions.Exit()
+
+    case_statement: str = "CASE note "
+    where_statement: str = ""
+
+    for idx, (k, v) in enumerate(replacements.items()):
+        case_statement += f'WHEN "{k}" THEN "{v}" '
+        where_statement += f'"{k}",'
+
+    case_statement += "ELSE note END"
+    where_statement = where_statement.strip(",")
+
+    query = " ".join(
+        [
+            f"UPDATE {routine.timesheet_id}",
+            f"SET note = {case_statement}",
+            f'WHERE project = "{project}" AND note in ({where_statement})',
+        ]
+    )
+
+    if dry_run:
+        console.print(query)
+        console.print(markup.dimmed("Dry run. No changes made against table."))
+        return
+
+    with console.status("Updating notes..") as status:
+        routine._query_and_wait(query, status=status)
 
 
 @click.command(
