@@ -209,13 +209,15 @@ class ReplCompleter(Completer):
                 for cmd_name in self.ctx_command.list_commands(self.parsed_ctx):
                     command: click.Command | None = None
                     command = self.ctx_command.get_command(self.parsed_ctx, cmd_name)
+
                     if not command or getattr(command, "hidden", False):
                         continue
+
                     if self.ctx_command.chain is True:
-                        if not cmd_name.startswith(args[-1]):
-                            continue
-                        ctx_cmd_name: str | None = self.ctx_command.name
-                        if ctx_cmd_name and not ctx_cmd_name.startswith(args[-1]):
+                        if (
+                            cmd_name.startswith(args[-1])
+                            and not self.ctx_command.name.startswith(args[-1])  # type:ignore [union-attr]
+                        ):
                             chained_command_choices = self._complete_cmd_args(
                                 ctx_command=command,
                                 incomplete=incomplete,

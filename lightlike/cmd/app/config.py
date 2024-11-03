@@ -12,7 +12,7 @@ from rich import print as rprint
 from rich.console import Console
 from rich.syntax import Syntax
 
-from lightlike.__about__ import __appdir__, __config__
+from lightlike.__about__ import __config__
 from lightlike.app import shell_complete, threads, validate
 from lightlike.app.cache import TimeEntryAppData
 from lightlike.app.config import AppConfig
