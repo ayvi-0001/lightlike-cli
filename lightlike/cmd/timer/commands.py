@@ -161,6 +161,18 @@ def default_timer_add(config: AppConfig) -> str:
     metavar=None,
     shell_complete=shell_complete.Param("billable").bool,
 )
+@click.argument(
+    "note-parts",
+    type=click.UNPROCESSED,
+    required=False,
+    default=None,
+    callback=None,
+    nargs=-1,
+    metavar=None,
+    expose_value=True,
+    is_eager=False,
+    shell_complete=None,
+)
 @_pass.routine
 @_pass.console
 @_pass.appdata
@@ -179,6 +191,7 @@ def add(
     end: datetime,
     note: str,
     billable: bool,
+    note_parts: t.Sequence[str],
 ) -> None:
     """
     Add a completed time entry.
@@ -208,9 +221,17 @@ def add(
         set project default billable value when first creating a project
         with project:create, using --default-billable / -b
         update an existing project's with project:set:default-billable.
+
+    [NOTE ARGS]:
+        all unprocessed arguments will be joined to create the note field.
+        this only takes into effect if the `--note` / `-n` option is unused.
+
     """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
+
+    if not note and note_parts:
+        note = " ".join(note_parts)
 
     project = project or PromptFactory.prompt_project()
     start_param = one(filter(lambda p: p.name == "start", ctx.command.params))
@@ -1811,6 +1832,18 @@ def resume(
     metavar=None,
     shell_complete=None,
 )
+@click.argument(
+    "note-parts",
+    type=click.UNPROCESSED,
+    required=False,
+    default=None,
+    callback=None,
+    nargs=-1,
+    metavar=None,
+    expose_value=True,
+    is_eager=False,
+    shell_complete=None,
+)
 @_pass.cache
 @_pass.routine
 @_pass.console
@@ -1832,6 +1865,7 @@ def run(
     note: str,
     pause_active: bool,
     stop_active: bool,
+    note_parts: t.Sequence[str],
 ) -> None:
     """
     Start a new time entry.
@@ -1853,7 +1887,7 @@ def run(
         update how many days to look back with app:config:set:general:note-history.
 
     --billable / -b:
-        sset billable field. if not provided, the default setting for the project is used.
+        set billable field. if not provided, the default setting for the project is used.
         set project default billable value when first creating a project
         with project:create, using --default-billable / -b
         update an existing project's with project:set:default-billable.
@@ -1861,6 +1895,10 @@ def run(
     --start / -s:
         start the entry at an earlier time.
         if not provided, the entry starts now.
+
+    [NOTE ARGS]:
+        all unprocessed arguments will be joined to create the note field.
+        this only takes into effect if the `--note` / `-n` option is unused.
 
     [b]See[/]:
         timer:stop - stop the [b]active[/b] entry.
@@ -1877,6 +1915,8 @@ def run(
         if AppConfig().get("settings", "update-terminal-title", default=True):
             console.set_window_title(__appname_sc__)
 
+    if not note and note_parts:
+        note = " ".join(note_parts)
 
     project_default_billable: bool = False
     if billable is None:
@@ -2268,6 +2308,18 @@ def switch(
     metavar=None,
     shell_complete=None,
 )
+@click.argument(
+    "note-parts",
+    type=click.UNPROCESSED,
+    required=False,
+    default=None,
+    callback=None,
+    nargs=-1,
+    metavar=None,
+    expose_value=True,
+    is_eager=False,
+    shell_complete=None,
+)
 @_pass.routine
 @_pass.cache
 @_pass.console
@@ -2286,9 +2338,14 @@ def update(
     start: datetime | None,
     note: str | None,
     stop_active: bool,
+    note_parts: t.Sequence[str],
 ) -> None:
     """
     Update the [b]active[/b] time entry.
+
+    [NOTE ARGS]:
+        all unprocessed arguments will be joined to create the note field.
+        this only takes into effect if the `--note` / `-n` option is unused.
 
     [b]See[/]:
         timer:edit for making changes to entries that have already stopped.
@@ -2304,6 +2361,9 @@ def update(
 
     copy: dict[str, t.Any] = cache.active.copy()
     edits: dict[str, t.Any] = {}
+
+    if not note and note_parts:
+        note = " ".join(note_parts)
 
     if note:
         if note == cache.note:
