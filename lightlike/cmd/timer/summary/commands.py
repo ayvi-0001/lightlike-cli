@@ -1,4 +1,5 @@
 import csv
+import os
 import platform
 import tempfile
 import typing as t
@@ -271,6 +272,20 @@ regex_engine = click.option(
     metavar=None,
     shell_complete=None,
 )
+open_in_editor = click.option(
+    "--open-in-editor",
+    show_default=True,
+    is_flag=True,
+    flag_value=True,
+    multiple=False,
+    type=click.BOOL,
+    help="",
+    required=False,
+    default=None,
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
 
 
 @click.command(
@@ -367,6 +382,7 @@ def summary_table(
     match_note: t.Sequence[str],
     match_project: t.Sequence[str],
     modifiers: str,
+    open_in_editor: bool,
     output: Path | None,
     prompt_where: bool,
     regex_engine: str,
@@ -514,17 +530,35 @@ def summary_table(
         rprint(markup.dimmed("No results"))
         raise click.exceptions.Exit()
 
-    with Console(record=True, style=_console.CONSOLE_CONFIG.style) as console:
-        console.print(Padding(table, (1, 0, 0, 0)))
+    if open_in_editor:
+        tmpfile = Path(tempfile.mktemp(suffix="_timesheet"))
+        tmpfile.touch()
 
-        uri: str
-        path: str
-        if output is not None:
-            resolved: Path = output.resolve()
-            uri = resolved.as_uri()
-            path = resolved.as_posix()
-            console.save_svg(path, code_format=_CONSOLE_SVG_FORMAT)
-            console.print("Saved to", markup.link(path, uri))
+        with open(f"{tmpfile}", mode="w") as f:
+            with Console(file=f) as console:
+                console.print(table)
+
+        default_editor = os.environ.get("EDITOR")
+        editor: str | None = (
+            AppConfig().get("settings", "editor", default=default_editor) or None
+        )
+        if editor:
+            click.edit(editor=editor, filename=f"{tmpfile}", require_save=False)
+
+        tmpfile.unlink(missing_ok=True)
+
+    else:
+        with Console(record=True, style=_console.CONSOLE_CONFIG.style) as console:
+            console.print(Padding(table, (1, 0, 0, 0)))
+
+            uri: str
+            path: str
+            if output is not None:
+                resolved: Path = output.resolve()
+                uri = resolved.as_uri()
+                path = resolved.as_posix()
+                console.save_svg(path, code_format=_CONSOLE_SVG_FORMAT)
+                console.print("Saved to", markup.link(path, uri))
 
 
 @click.command(
