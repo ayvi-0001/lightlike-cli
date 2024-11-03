@@ -224,7 +224,7 @@ def add(
         with project:create, using --default-billable / -b
         update an existing project's with project:set:default-billable.
 
-    [NOTE ARGS]:
+    [bold #34e2e2]NOTE PARTS[/]:
         all unprocessed arguments will be joined to create the note field.
         this only takes into effect if the `--note` / `-n` option is unused.
 
@@ -1729,7 +1729,7 @@ def pause(
     syntax=Syntax(
         code="""\
         $ timer resume 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46
-        $ t re 36c9fe5
+        $ t re 36c9fe5\
         """,
         lexer="fishshell",
         dedent=True,
@@ -1985,7 +1985,7 @@ def run(
         start the entry at an earlier time.
         if not provided, the entry starts now.
 
-    [NOTE ARGS]:
+    [bold #34e2e2]NOTE PARTS[/]:
         all unprocessed arguments will be joined to create the note field.
         this only takes into effect if the `--note` / `-n` option is unused.
 
@@ -2113,7 +2113,7 @@ def show(console: Console, cache: "TimeEntryCache", json_: bool) -> None:
     name="stop",
     short_help="Stop a time entry.",
     syntax=Syntax(
-        code="""
+        code="""\
         $ timer stop
         $ t st
 
@@ -2432,7 +2432,7 @@ def update(
     """
     Update the [b]active[/b] time entry.
 
-    [NOTE ARGS]:
+    [bold #34e2e2]NOTE PARTS[/]:
         all unprocessed arguments will be joined to create the note field.
         this only takes into effect if the `--note` / `-n` option is unused.
 
