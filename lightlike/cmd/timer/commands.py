@@ -227,12 +227,11 @@ def add(
     [bold #34e2e2]NOTE PARTS[/]:
         all unprocessed arguments will be joined to create the note field.
         this only takes into effect if the `--note` / `-n` option is unused.
-
     """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
-    if not note and note_parts:
+    if note == "None" and note_parts:
         note = " ".join(note_parts)
 
     project = project or PromptFactory.prompt_project()
@@ -2004,7 +2003,7 @@ def run(
         if AppConfig().get("settings", "update-terminal-title", default=True):
             console.set_window_title(__appname_sc__)
 
-    if not note and note_parts:
+    if note == "None" and note_parts:
         note = " ".join(note_parts)
 
     project_default_billable: bool = False
@@ -2451,7 +2450,7 @@ def update(
     copy: dict[str, t.Any] = cache.active.copy()
     edits: dict[str, t.Any] = {}
 
-    if not note and note_parts:
+    if note == "None" and note_parts:
         note = " ".join(note_parts)
 
     if note:
