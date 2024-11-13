@@ -17,7 +17,7 @@ from rich.padding import Padding
 from rich.panel import Panel
 
 from lightlike import _console
-from lightlike.__about__ import __appdir__, __version__
+from lightlike.__about__ import __version__
 from lightlike.app import _get, _questionary
 from lightlike.app.config import AppConfig
 from lightlike.client._credentials import _get_credentials_from_config
@@ -97,7 +97,7 @@ def authorize_bigquery_client() -> bigquery.Client:
 
     except Exception as error:
         if "cannot access local variable 'service_account_key'" in f"{error}":
-            rprint(markup.failure(f"Auth Failed. Incorrect Pass."))
+            rprint(markup.failure("Auth Failed. Incorrect Pass."))
         else:
             rprint(markup.failure(f"Auth failed: {error}"))
             AppConfig()._update_user_credentials(password=None, stay_logged_in=False)
@@ -105,8 +105,8 @@ def authorize_bigquery_client() -> bigquery.Client:
         return authorize_bigquery_client()
 
 
-def _update_cursor_global_project(l: dict[str, t.Any]) -> None:
-    client: bigquery.Client | None = l.get("client")
+def _update_cursor_global_project(local_params: dict[str, t.Any]) -> None:
+    client: bigquery.Client | None = local_params.get("client")
     if client and isinstance(client, bigquery.Client):
         import lightlike.app.cursor
 

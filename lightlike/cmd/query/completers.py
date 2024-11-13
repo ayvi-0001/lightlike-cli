@@ -36,7 +36,6 @@ class LoopNestedCompleter(Completer):
     original_keywords: dict[str, t.Any] = SQL_KEYWORDS
 
     class _LastNestedWordCompleter(Completer):
-
         def __init__(self, words: list[str], meta: dict[str, str] = {}) -> None:
             self.words = words
             self.meta = meta

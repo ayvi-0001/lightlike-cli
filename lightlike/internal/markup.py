@@ -54,7 +54,7 @@ dimmed: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="#888888")
 code: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="bold #f08375")
 command: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="bold #3465a4")
 failure: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="failure")
-link: t.Callable[..., Text] = lambda t, l: Text(text=f"{t!s}", style=Style(link=l, underline=True, color="bright_blue", italic=False, bold=False))
+link: t.Callable[..., Text] = lambda t, l: Text(text=f"{t!s}", style=Style(link=l, underline=True, color="bright_blue", italic=False, bold=False)) # noqa: E741
 log_error: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="log.error")
 pygments_keyword: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="#6b90f7")
 repr_attrib_equal: t.Callable[..., Text] = lambda: Text(text="=", style="repr_attrib_equal")

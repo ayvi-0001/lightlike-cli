@@ -29,7 +29,6 @@ class _CallableNumberRangeBase(_NumberParamTypeBase):
         param: t.Optional[click.Parameter],
         ctx: t.Optional[click.Context],
     ) -> t.Any:
-
         if self.min and callable(self.min):
             _min = self.min()
         else:

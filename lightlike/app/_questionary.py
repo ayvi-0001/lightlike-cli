@@ -30,7 +30,6 @@ __all__: t.Sequence[str] = (
 
 STYLE: Style
 if not __config__.exists():
-
     STYLE = Style.from_dict(rtoml.load(constant.PROMPT_STYLE))
 else:
     from lightlike.app.config import AppConfig

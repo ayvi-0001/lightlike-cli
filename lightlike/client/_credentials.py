@@ -224,7 +224,8 @@ def _select_project(credentials: google.auth.credentials.Credentials) -> str:
         bigquery.Client(credentials=credentials).list_projects()
     )
 
-    project_display: t.Callable[["Project"], str] = lambda p: " | ".join(
+    project_display: t.Callable[["Project"], str]
+    project_display = lambda p: " | ".join(  # noqa:E731
         [
             p.friendly_name,
             p.project_id,

@@ -8,6 +8,8 @@ from lightlike.app.core import LazyAliasedGroup
 
 __all__: t.Sequence[str] = ("scheduler",)
 
+STATE_STOPPED = 0
+
 
 @click.group(
     name="scheduler",
@@ -46,7 +48,7 @@ def scheduler(ctx: click.Context, debug: bool) -> None:
         "system-command",
     ):
         scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
-        if scheduler.state == (STATE_STOPPED := 0):
+        if scheduler.state == STATE_STOPPED:
             print(
                 "[dimmed]Scheduler is stopped.",
                 "Use scheduler:start before running command.",

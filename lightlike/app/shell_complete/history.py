@@ -34,7 +34,7 @@ class HistoryCompleter(Completer):
             history = unique_everseen(list(map(lambda s: s.strip(), history_strings)))
             console_width = get_console().width
 
-            match_word_before_cursor = lambda l: match_str(
+            match_word_before_cursor = lambda l: match_str(  # noqa:E731,E741
                 text_before_cursor, l, method="startswith"
             )
             matches = list(filter(match_word_before_cursor, history))

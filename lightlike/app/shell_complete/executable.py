@@ -45,7 +45,7 @@ class ExecutableCompleter(Completer):
         else:
             expressions = []
 
-        matches: t.Callable[[Path], bool] = lambda p: not any(
+        matches: t.Callable[[Path], bool] = lambda p: not any(  # noqa:E731
             exp.match(p.as_posix()) for exp in expressions
         )
 
@@ -81,7 +81,7 @@ class ExecutableCompleter(Completer):
     ) -> t.Iterator[Completion]:
         try:
             word_before_cursor = document.get_word_before_cursor(WORD=True)
-            match_word_before_cursor = lambda l: match_str(word_before_cursor, l.name)
+            match_word_before_cursor = lambda l: match_str(word_before_cursor, l.name)  # noqa:E731,E741
             matches = list(filter(match_word_before_cursor, self.executables))
 
             for path in sorted(matches, key=lambda p: p.name):

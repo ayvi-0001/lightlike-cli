@@ -33,7 +33,7 @@ class Build:
 
     @property
     def scripts(self) -> t.Sequence[Path]:
-        filter_fn = lambda p: p.suffix == ".sql" and not p.name.startswith("_")
+        filter_fn = lambda p: p.suffix == ".sql" and not p.name.startswith("_")  # noqa:E731,E741
         return tuple(filter(filter_fn, self.path.iterdir()))
 
     @property

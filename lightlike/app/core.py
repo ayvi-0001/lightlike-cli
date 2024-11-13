@@ -342,7 +342,7 @@ def _group_help(
     lines = help_text.split("\n")
     if lines != [""]:
         yield ReplHighlighter()(
-            render(cleandoc("\n".join(map(lambda l: l.replace("\n", " "), lines))))
+            render(cleandoc("\n".join(map(lambda l: l.replace("\n", " "), lines))))  # noqa: E741
         )
 
 

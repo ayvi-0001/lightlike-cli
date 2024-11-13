@@ -173,7 +173,7 @@ def prerun_autocomplete() -> None:
 def regexp_replace(patterns: t.Mapping[str, str | None], text: str) -> str:
     mapped: dict[str, str] = dict((re.escape(k), v or "") for k, v in patterns.items())
     pattern: re.Pattern[str] = re.compile("|".join(mapped.keys()))
-    escape: t.Callable[..., str] = lambda m: mapped[re.escape(m.group(0))]
+    escape: t.Callable[..., str] = lambda m: mapped[re.escape(m.group(0))]  # noqa:E731
     replaced: str = pattern.sub(escape, text)
     return replaced
 

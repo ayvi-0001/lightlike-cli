@@ -333,8 +333,11 @@ def _log_statistics(console: Console, query_job: "QueryJob") -> None:
             console.log(
                 # fmt: off
                 execution.name,
-                " (", markup.repr_number(execution.end - execution.start),") slot_ms: ",
-                markup.repr_number(execution._properties["slotMs"]), " ",
+                " (",
+                markup.repr_number(execution.end - execution.start),
+                ") slot_ms: ",
+                markup.repr_number(execution._properties["slotMs"]),
+                " ",
                 markup.bold(execution.input_stages),
                 " shuffle_output_bytes: ",
                 markup.repr_number(execution.shuffle_output_bytes),
