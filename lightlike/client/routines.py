@@ -764,7 +764,7 @@ class CliQueryRoutines:
         )
 
         query = cleandoc(
-            f"""
+            rf"""
         DECLARE query, version STRING;
         
         SET version = (
@@ -832,7 +832,7 @@ class CliQueryRoutines:
         )
 
         target: str = cleandoc(
-            f"""
+            rf"""
             SELECT
               table_name,
               TIMESTAMP_TRUNC(creation_time, second) AS creation_time,
