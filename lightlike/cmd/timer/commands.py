@@ -363,7 +363,7 @@ def yank_flag_help() -> str:
     help="Use all ids from the latest timer:list cmd.",
     required=False,
     default=None,
-    callback=validate.callbacks.timer_list_cache_exists,
+    callback=validate.callbacks.timer_list_cache_idx,
     metavar=None,
     shell_complete=None,
 )
@@ -373,7 +373,10 @@ def yank_flag_help() -> str:
     cls=DynamicHelpOption,
     show_default=True,
     multiple=True,
-    type=CallableIntRange(1, lambda: len(loads(appdir.TIMER_LIST_CACHE.read_text()))),
+    type=CallableIntRange(
+        min=lambda: -len(loads(appdir.TIMER_LIST_CACHE.read_text())),
+        max=lambda: len(loads(appdir.TIMER_LIST_CACHE.read_text())),
+    ),
     help=yank_flag_help,
     required=False,
     default=None,
@@ -409,7 +412,7 @@ def delete(
         pull an id from the latest timer:list results.
         option must be an integer within the range of the cached list.
         the id of the corresponding row will be passed to the command.
-        this option can be repeated and combined with --id / -i.
+        this option supports negative indexing, and can be repeated and combined with --id / -i.
         e.g.
 
         ```
@@ -419,9 +422,11 @@ def delete(
         |-----|---------|   ...
         |   1 | a6c8e8e |   ...
         |   2 | e01812e |   ...
+        |   3 | dfe6b73 |   ...
         ```
 
         --yank 2 [d](or -y2)[/d] would be the same as typing --id e01812e
+        --yank -1 [d](or -y-1)[/d] would be the same as typing --id dfe6b73
 
     --use-list-timer-list / -u:
         pass all id's from the most recent timer:list result to this command
@@ -667,7 +672,7 @@ def _match_ids(
     help="Use all ids from the latest timer:list cmd.",
     required=False,
     default=None,
-    callback=validate.callbacks.timer_list_cache_exists,
+    callback=validate.callbacks.timer_list_cache_idx,
     metavar=None,
     shell_complete=None,
 )
@@ -677,7 +682,10 @@ def _match_ids(
     cls=DynamicHelpOption,
     show_default=True,
     multiple=True,
-    type=CallableIntRange(1, lambda: len(loads(appdir.TIMER_LIST_CACHE.read_text()))),
+    type=CallableIntRange(
+        min=lambda: -len(loads(appdir.TIMER_LIST_CACHE.read_text())),
+        max=lambda: len(loads(appdir.TIMER_LIST_CACHE.read_text())),
+    ),
     help=yank_flag_help,
     required=False,
     default=None,
@@ -795,7 +803,7 @@ def edit(
         pull an id from the latest timer:list results.
         option must be an integer within the range of the cached list.
         the id of the corresponding row will be passed to the command.
-        this option can be repeated and combined with --id / -i.
+        this option supports negative indexing, and can be repeated and combined with --id / -i.
         e.g.
 
         ```
@@ -805,9 +813,11 @@ def edit(
         |-----|---------|   ...
         |   1 | a6c8e8e |   ...
         |   2 | e01812e |   ...
+        |   3 | dfe6b73 |   ...
         ```
 
         --yank 2 [d](or -y2)[/d] would be the same as typing --id e01812e
+        --yank -1 [d](or -y-1)[/d] would be the same as typing --id dfe6b73
 
     --use-list-timer-list / -u:
         pass all id's from the most recent timer:list result to this command

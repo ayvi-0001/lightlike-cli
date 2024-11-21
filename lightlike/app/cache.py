@@ -446,32 +446,34 @@ class TimeEntryCache(_Entries):
 
         return updated_paused_entries
 
-    def _to_meta(
-        self,
-        entry: dict[str, t.Any],
-        now: datetime,
+    def _to_help_str(
+        self, entry: dict[str, t.Any], now: datetime, sep: str = "|"
     ) -> str:
-        meta = "{project}".format(project=entry.get("project"))
+        help_str = "project='{project}'".format(project=entry.get("project"))
 
-        if _note := self._ifnull(entry["note"]):
-            meta += ", {note}".format(
-                note=f"{_note[:50]}..." if len(_note) > 50 else _note
+        note = self._ifnull(entry["note"])
+        if note:
+            help_str += " {sep} note='{note}'".format(
+                sep=sep, note=f"{note[:50]}..." if len(note) > 50 else note
             )
-        else:
-            start = entry.get("start")
-            if start and start != "null":
-                meta += ", start={start_date}{start_time}".format(
-                    start_date=f"{start.date()}-" if start.date() != now.date() else "",
-                    start_time=start.time(),
-                )
+
+        start = entry.get("start")
+        if start and start != "null":
+            start_date = start.date()
+            start_time = start.time()
+            help_str += " {sep} start={start_date}{start_time}".format(
+                sep=sep,
+                start_date=f"{start_date}-" if start_date != now.date() else "",
+                start_time=start_time,
+            )
 
         timestamp_paused = entry.get("timestamp_paused")
         if timestamp_paused and timestamp_paused != "null":
-            meta += ", paused=True"
+            help_str += f" {sep} paused=True"
         else:
-            meta += ", running=True"
+            help_str += f" {sep} running=True"
 
-        return f"[{meta}]"
+        return help_str
 
     def _reset(self) -> None:
         with self.rw():

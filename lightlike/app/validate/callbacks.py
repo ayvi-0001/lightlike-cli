@@ -1,8 +1,10 @@
 import typing as t
 from datetime import datetime
+from functools import partial
 from inspect import cleandoc
 from json import loads
-from operator import truth
+from math import copysign
+from operator import getitem, truth
 from pathlib import Path
 
 import click
@@ -26,7 +28,6 @@ __all__: t.Sequence[str] = (
     "summary_path",
     "print_or_output",
     "current_time_period_flags",
-    "timer_list_cache_exists",
     "timer_list_cache_idx",
 )
 
@@ -190,25 +191,34 @@ def current_time_period_flags(
     return False
 
 
-def timer_list_cache_exists(
-    ctx: click.Context, param: click.Parameter, value: t.Any
-) -> t.Any:
-    if value:
-        if appdir.TIMER_LIST_CACHE.exists():
-            timer_list_cache = loads(appdir.TIMER_LIST_CACHE.read_text())
-            return list(timer_list_cache.values())
-        else:
-            raise click.ClickException("Timer list cache does not exist.")
-
-
 def timer_list_cache_idx(
-    ctx: click.Context, param: click.Parameter, values: t.Sequence[int]
+    ctx: click.Context,
+    param: click.Parameter,
+    value: t.Sequence[int] | bool,
 ) -> list[str] | None:
-    if not values and not ctx.resilient_parsing:
+    if not value and not ctx.resilient_parsing:
         return None
 
-    if appdir.TIMER_LIST_CACHE.exists():
-        timer_list_cache = loads(appdir.TIMER_LIST_CACHE.read_text())
-        return [timer_list_cache.get(f"{idx - 1}") for idx in values]
-    else:
+    if not appdir.TIMER_LIST_CACHE.exists():
         raise click.ClickException("Timer list cache does not exist.")
+
+    timer_list_cache = loads(appdir.TIMER_LIST_CACHE.read_text(encoding="utf-8"))
+
+    entry_ids: list[str] = []
+
+    if isinstance(value, bool) and value is True:
+        entry_ids = list(timer_list_cache.values())
+    else:
+        keys = list(timer_list_cache.keys())
+
+        idxs = []
+        for idx in value:
+            if copysign(1, idx) == -1:
+                adjusted_idx = keys[idx]
+            else:
+                adjusted_idx = f"{idx - 1}"
+            idxs.append(adjusted_idx)
+
+        entry_ids = list(map(partial(getitem, timer_list_cache), idxs))
+
+    return entry_ids
