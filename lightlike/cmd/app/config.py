@@ -1,4 +1,3 @@
-import os
 import typing as t
 from contextlib import suppress
 from dataclasses import dataclass
@@ -47,10 +46,7 @@ P = t.ParamSpec("P")
 def edit(console: Console) -> None:
     """Edit the config file located in the users home directory using the default text editor."""
     path: str = f"{__config__.resolve().as_posix()}"
-    default_editor = os.environ.get("EDITOR")
-    editor: str | None = (
-        AppConfig().get("settings", "editor", default=default_editor) or None
-    )
+    editor: str | None = AppConfig().editor
 
     if editor:
         click.edit(editor=editor, filename=path, extension=".toml", require_save=False)

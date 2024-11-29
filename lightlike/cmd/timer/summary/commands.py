@@ -1,5 +1,4 @@
 import csv
-import os
 import platform
 import tempfile
 import typing as t
@@ -538,10 +537,7 @@ def summary_table(
             with Console(file=f) as console:
                 console.print(table)
 
-        default_editor = os.environ.get("EDITOR")
-        editor: str | None = (
-            AppConfig().get("settings", "editor", default=default_editor) or None
-        )
+        editor: str | None = AppConfig().editor
         if editor:
             click.edit(editor=editor, filename=f"{tmpfile}", require_save=False)
 

@@ -171,7 +171,6 @@ def _start_command(url: str, wait: bool = False, locate: bool = False) -> str:
 def dir_(console: Console, start: bool) -> None:
     """
     Open app directory.
-
         --start / -s:
             default option.
             open app directory with the system command [code]start[/code].
@@ -180,21 +179,18 @@ def dir_(console: Console, start: bool) -> None:
             open the app directory using the configured text-editor.
             configure text-editor with app:config:set:general:editor.
     """
-    path: str = f"{__appdir__.resolve()}"
+    path: str = __appdir__.resolve().as_posix()
 
     if start:
         click.launch(path)
         console.print(f"$ {_start_command(path, locate=True)}")
     else:
-        default_editor = os.environ.get("EDITOR")
-        editor: str | None = (
-            AppConfig().get("settings", "editor", default=default_editor) or None
-        )
+        editor: str | None = AppConfig().editor
         if editor:
             click.edit(editor=editor, filename=path, require_save=False)
             console.print("$", editor, markup.link(path, path))
         else:
-            console.print("editor not set.")
+            console.print("Editor not set.")
             click.launch(path)
             console.print(f"$ {_start_command(path, locate=True)}")
 

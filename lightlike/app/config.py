@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import typing as t
 from contextlib import contextmanager
 from functools import wraps
@@ -94,6 +95,13 @@ class AppConfig(metaclass=factory._Singleton):
     def stay_logged_in(self) -> bool | None:
         stay_logged_in: bool | None = self.get("user", "stay-logged-in")
         return stay_logged_in
+
+    @property
+    def editor(self) -> str | None:
+        editor: str | None = self.get(
+            "settings", "editor", default=os.environ.get("EDITOR")
+        )
+        return editor
 
     @property
     def tzname(self) -> str:
