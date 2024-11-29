@@ -5,6 +5,7 @@ import click
 import google.auth
 import google.auth.credentials
 from rich import print as rprint
+from rich.syntax import Syntax
 from rich.table import Table
 
 from lightlike.app import _questionary, render
@@ -21,12 +22,13 @@ if t.TYPE_CHECKING:
     from rich.console import Console
 
 __all__: t.Sequence[str] = (
-    "snapshot",
-    "query",
     "init",
-    "show",
     "projects",
+    "query",
     "reset",
+    "run_bq_build",
+    "show",
+    "snapshot",
 )
 
 
@@ -226,3 +228,43 @@ def reset(ctx: click.Context, console: "Console") -> bool:
 def reset_callback(result: bool) -> None:
     if result:
         reconfigure()
+
+
+@click.command(
+    cls=FormattedCommand,
+    name="run-build",
+    short_help="Run BigQuery scripts. Tables only built if missing.",
+    syntax=Syntax(
+        code="$ app run-build",
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
+)
+@utils.handle_keyboard_interrupt()
+@click.option(
+    "-y",
+    "--yes",
+    show_default=True,
+    is_flag=True,
+    flag_value=True,
+    multiple=False,
+    type=click.BOOL,
+    help="Accept all prompts",
+    required=False,
+    hidden=True,
+    default=None,
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
+def run_bq_build(yes: bool) -> None:
+    """
+    Run BigQuery scripts.
+
+    Executes all necessary scripts in BigQuery for this cli to run. Table's are only built if they do not exist.
+    """
+    from lightlike.client import provision_bigquery_resources
+
+    provision_bigquery_resources(client=get_client(), force=True, yes=yes)

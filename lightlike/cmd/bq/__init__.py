@@ -11,12 +11,13 @@ __all__: t.Sequence[str] = ("bq",)
     name="bq",
     cls=LazyAliasedGroup,
     lazy_subcommands={
-        "snapshot": "lightlike.cmd.bq.commands:snapshot",
-        "query": "lightlike.cmd.bq.commands:query",
         "init": "lightlike.cmd.bq.commands:init",
-        "show": "lightlike.cmd.bq.commands:show",
         "projects": "lightlike.cmd.bq.commands:projects",
+        "query": "lightlike.cmd.bq.commands:query",
         "reset": "lightlike.cmd.bq.commands:reset",
+        "run-build": "lightlike.cmd.bq.commands:run_bq_build",
+        "show": "lightlike.cmd.bq.commands:show",
+        "snapshot": "lightlike.cmd.bq.commands:snapshot",
     },
     short_help="BigQuery client settings & commands.",
 )

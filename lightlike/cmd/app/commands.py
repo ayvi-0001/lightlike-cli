@@ -15,7 +15,7 @@ from lightlike.app import _questionary, validate
 from lightlike.app.cache import TimeEntryAppData, TimeEntryCache, TimeEntryIdList
 from lightlike.app.config import AppConfig
 from lightlike.app.core import FormattedCommand, LazyAliasedGroup
-from lightlike.client import CliQueryRoutines, get_client
+from lightlike.client import CliQueryRoutines
 from lightlike.cmd import _pass
 from lightlike.internal import markup, utils
 
@@ -26,7 +26,6 @@ __all__: t.Sequence[str] = (
     "dir_",
     "inspect_console",
     "parse_date",
-    "run_bq",
     "source_dir",
     "sync",
 )
@@ -193,48 +192,6 @@ def dir_(console: Console, start: bool) -> None:
             console.print("Editor not set.")
             click.launch(path)
             console.print(f"$ {_start_command(path, locate=True)}")
-
-
-@click.command(
-    cls=FormattedCommand,
-    name="run-bq",
-    short_help="Run BigQuery scripts. Tables only built if missing.",
-    syntax=Syntax(
-        code="$ app run-bq",
-        lexer="fishshell",
-        dedent=True,
-        line_numbers=True,
-        background_color="#131310",
-    ),
-)
-@utils.handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Canceled Build.")),
-)
-@click.option(
-    "-y",
-    "--yes",
-    show_default=True,
-    is_flag=True,
-    flag_value=True,
-    multiple=False,
-    type=click.BOOL,
-    help="Accept all prompts",
-    required=False,
-    hidden=True,
-    default=None,
-    callback=None,
-    metavar=None,
-    shell_complete=None,
-)
-def run_bq(yes: bool) -> None:
-    """
-    Run BigQuery scripts.
-
-    Executes all necessary scripts in BigQuery for this cli to run. Table's are only built if they do not exist.
-    """
-    from lightlike.client import provision_bigquery_resources
-
-    provision_bigquery_resources(client=get_client(), force=True, yes=yes)
 
 
 @click.command(
