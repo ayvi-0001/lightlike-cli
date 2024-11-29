@@ -1,5 +1,4 @@
 import csv
-import platform
 import tempfile
 import typing as t
 from datetime import datetime
@@ -736,9 +735,11 @@ def summary_csv(
         joined together by a space to form the where clause.
         the word "WHERE" is stripped from the start of the string, if it exists.
     """
-    if "android" in platform.release():
+    try:
+        import pandas  # noqa: F401
+    except Exception as error:
         console.print(
-            "[b][red]summary:csv and summary:json not currently supported on android."
+            f"[b][red]Must have pandas installed to use this command: {error}."
         )
         raise click.exceptions.Exit()
 
@@ -1027,9 +1028,11 @@ def summary_json(
         joined together by a space to form the where clause.
         the word "WHERE" is stripped from the start of the string, if it exists.
     """
-    if "android" in platform.release():
+    try:
+        import pandas  # noqa: F401
+    except Exception as error:
         console.print(
-            "[b][red]summary:csv and summary:json not currently supported on android."
+            f"[b][red]Must have pandas installed to use this command: {error}."
         )
         raise click.exceptions.Exit()
 
