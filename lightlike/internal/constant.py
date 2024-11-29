@@ -88,7 +88,6 @@ app = "lightlike.cmd.app:app"
 bq = "lightlike.cmd.bq:bq"
 project = "lightlike.cmd.project:project"
 timer = "lightlike.cmd.timer:timer"
-scheduler = "lightlike.cmd.scheduler:scheduler"
 
 [prompt.style]
 "prompt.user" = "fg:#bfabff bold"
