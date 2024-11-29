@@ -1,6 +1,7 @@
 import typing as t
 from datetime import datetime
 from os import getenv
+from time import perf_counter_ns, time
 
 import click
 import rtoml
@@ -134,13 +135,7 @@ def render_query(
 ) -> None:
     with console.status(markup.status_message("Running Query")) as status:
         try:
-            query_job = routine._query(
-                target=query,
-                wait=True,
-                render=True,
-                status=status,
-                suppress=True,
-            )
+            query_job = routine._query(target=query, wait=True, suppress=True)
         except click.UsageError as e:
             console.log(e.message)
             return
@@ -149,9 +144,17 @@ def render_query(
             console.log(routine._format_error_message(query_job))
             return
 
-        resource = routine._query_job_url(query_job)
+        resource = (
+            "{base_url}project={project_id}&j=bq:{region}:{job_id}&{end_point}".format(
+                base_url="https://console.cloud.google.com/bigquery?",
+                project_id=query_job.project,
+                region=query_job.location,
+                job_id=query_job.job_id,
+                end_point="page=queryresults",
+            )
+        )
         console.log(f"resource_url: [link={resource}][repr.url]{resource}")
-        elapsed_time = routine._elapsed_time(query_job)
+        elapsed_time = _elapsed_time(query_job)
         console.log(f"elapsed_time: {elapsed_time}")
         if query_job.cache_hit and not getenv("LIGHTLIKE_CLI_DEV"):
             console.log(f"cache_hit: {True}")
@@ -295,6 +298,18 @@ def render_query(
 
         elif not total_rows and query_job.statement_type == "SELECT":
             console.log("[#ec8015]No rows returned")
+
+
+def _elapsed_time(query_job: "QueryJob", start: float | None = None) -> str:
+    if start:
+        ns = (perf_counter_ns() - start) * 1.0e-9
+    elif query_job.ended:
+        ns = query_job.ended.timestamp() - query_job.started.timestamp()
+    else:
+        ns = time() - query_job.started.timestamp()
+
+    w, d = str(round(ns, 4)).split(".")
+    return f"{w}.{'0' * (4 - len(d)) + d}"
 
 
 def _log_statistics(console: Console, query_job: "QueryJob") -> None:

@@ -4,7 +4,7 @@ import re
 import typing as t
 from inspect import classify_class_attrs, cleandoc
 from operator import truth
-from time import perf_counter_ns, sleep, time
+from time import sleep
 
 import click
 from google.cloud.bigquery import QueryJob, QueryJobConfig
@@ -14,7 +14,6 @@ from google.cloud.bigquery.query import (
     SqlParameterScalarTypes,
 )
 from more_itertools import filter_map
-from rich import get_console
 from rich.text import Text
 
 from lightlike.app.config import AppConfig
@@ -1684,7 +1683,7 @@ class CliQueryRoutines:
         modifiers: str | None = None,
         and_: bool = False,
         not_: bool = False,
-        regex_engine: t.Literal["ECMAScript", "re2"] | str | None = "ECMAScript",
+        regex_engine: t.Literal["ECMAScript", "re2"] | str = "ECMAScript",
     ) -> str:
         expression = ""
         and_op = "AND " if and_ else ""
@@ -1737,30 +1736,6 @@ class CliQueryRoutines:
         )
         return procedures + functions
 
-    def _elapsed_time(self, query_job: "QueryJob", start: float | None = None) -> str:
-        if start:
-            ns = (perf_counter_ns() - start) * 1.0e-9
-        elif query_job.ended:
-            ns = query_job.ended.timestamp() - query_job.started.timestamp()
-        else:
-            ns = time() - query_job.started.timestamp()
-
-        w, d = str(round(ns, 4)).split(".")
-        return f"{w}.{'0' * (4 - len(d)) + d}"
-
-    def _update_elapsed_time(
-        self,
-        query_job: "QueryJob",
-        status: "Status",
-        status_message: "RenderableType | None",
-        start: float | None = None,
-    ) -> None:
-        elapsed_time = markup.repr_number(self._elapsed_time(query_job, start=start))
-        if isinstance(status_message, Text):
-            status.update(Text.assemble(status_message, " ", elapsed_time))
-        else:
-            status.update(f"[status.message]{status_message} {elapsed_time.markup}")
-
     def _format_error_message(
         self, query_job: QueryJob, target: str | None = None
     ) -> str:
@@ -1772,40 +1747,3 @@ class CliQueryRoutines:
             return Text.assemble(query_string, markup.br(error[0]), message).markup
         else:
             return Text.assemble(query_string, markup.br(query_job._exception)).markup
-
-    def _format_job_cancel_message(self, query_job: QueryJob) -> Text:
-        return Text.assemble(
-            markup.br("Sent request to cancel job. "),
-            "It's not possible to check if a job was canceled in the API. ",
-            "To verify if the job was canceled or not, see the ",
-            markup.link("job results", self._query_job_url(query_job)),
-            " in console.\n",
-            markup.repr_url(self._query_job_url(query_job)),
-        )
-
-    def _cancel_job(self, query_job: "QueryJob") -> None:
-        if query_job.cancel():
-            raise click.UsageError(
-                message=self._format_job_cancel_message(query_job).markup,
-                ctx=click.get_current_context(silent=True),
-            )
-        else:
-            raise click.UsageError(
-                message=Text.assemble(
-                    markup.br("Failed to request job cancel"),
-                    ", see the job results in console.\n",
-                    markup.repr_url(self._query_job_url(query_job)),
-                ).markup,
-                ctx=click.get_current_context(silent=True),
-            )
-
-    def _query_job_url(self, query_job: "QueryJob") -> str:
-        return (
-            "{base_url}project={project_id}&j=bq:{region}:{job_id}&{end_point}".format(
-                base_url="https://console.cloud.google.com/bigquery?",
-                project_id=query_job.project,
-                region=query_job.location,
-                job_id=query_job.job_id,
-                end_point="page=queryresults",
-            )
-        )
