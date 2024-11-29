@@ -1,8 +1,7 @@
 import getpass
 import socket
 import typing as t
-from datetime import datetime, timedelta
-from decimal import Decimal
+from datetime import datetime
 from pathlib import Path
 
 import rtoml
@@ -12,7 +11,7 @@ from rich import get_console
 from lightlike.__about__ import __appdir__
 from lightlike.app.cache import EntriesInMemory
 from lightlike.app.config import AppConfig
-from lightlike.app.dates import now, seconds_to_time_parts
+from lightlike.app.dates import date_diff, now
 from lightlike.app.shell_complete.dynamic import global_completers
 
 if t.TYPE_CHECKING:
@@ -61,7 +60,7 @@ def build(message: str | None = None) -> t.Callable[[], StyleAndTextTuples]:
         cwd: Path = Path.cwd()
 
         _extend_base(cursor, cwd)
-        GCP_PROJECT and _extend_active_project(cursor, GCP_PROJECT)
+        _extend_active_project(cursor, GCP_PROJECT)
         _extend_git_branch(cursor, cwd)
 
         if cache := EntriesInMemory():
@@ -70,9 +69,9 @@ def build(message: str | None = None) -> t.Callable[[], StyleAndTextTuples]:
             if UPDATE_TERMINAL_TITLE:
                 get_console().set_window_title(f"{timer} | {cache.project}")
 
-            _extend_timer(cursor, timer)
+            cursor.extend([("class:prompt.timer", timer)])
 
-        _extend_cursor_pointer(cursor)
+        cursor.extend([("class:cursor", "\n$ ")])
 
         return lambda: cursor
 
@@ -81,7 +80,7 @@ def build(message: str | None = None) -> t.Callable[[], StyleAndTextTuples]:
         cwd: Path = Path.cwd()
 
         _extend_base(cursor, cwd)
-        GCP_PROJECT and _extend_active_project(cursor, GCP_PROJECT)
+        _extend_active_project(cursor, GCP_PROJECT)
         _extend_git_branch(cursor, cwd)
 
         if cache := EntriesInMemory():
@@ -90,9 +89,9 @@ def build(message: str | None = None) -> t.Callable[[], StyleAndTextTuples]:
             if UPDATE_TERMINAL_TITLE:
                 get_console().set_window_title(f"{timer} | {cache.project}")
 
-            _extend_timer(cursor, timer)
+            cursor.extend([("class:prompt.timer", timer)])
 
-        _extend_cursor_pointer(cursor, message or "")
+        cursor.extend([("class:cursor", f"\n{message} $ ")])
 
         return cursor
 
@@ -184,26 +183,11 @@ def _extend_git_branch(cursor: StyleAndTextTuples, cwd: Path) -> None:
     )
 
 
-def _extend_cursor_pointer(cursor: StyleAndTextTuples, message: str = "") -> None:
-    pointer = f"\n{message}{'$ ' if not message else ' $ '}"
-    cursor.extend([("class:cursor", pointer)])
-
-
-def _extend_timer(cursor: StyleAndTextTuples, timer: str) -> None:
-    cursor.extend([("class:prompt.timer", timer)])
-
-
 def _timer(cache: EntriesInMemory) -> str:
-    paused_hours: Decimal = cache.paused_hours
-    start: datetime = cache.start
-
     global TIMEZONE
-    if paused_hours:
-        phr, pmin, psec = seconds_to_time_parts(paused_hours * Decimal(3600))
-        paused_delta: timedelta = timedelta(hours=phr, minutes=pmin, seconds=psec)
-        return f" {(now(TIMEZONE) - start) - paused_delta} "
-    else:
-        return f" {now(TIMEZONE) - start} "
+    start: datetime = cache.start
+    duration, hours = date_diff(start, now(TIMEZONE), cache.paused_hours)
+    return f" {duration} "
 
 
 def _extend_base(cursor: StyleAndTextTuples, cwd: Path) -> None:
@@ -237,6 +221,8 @@ def _extend_base(cursor: StyleAndTextTuples, cwd: Path) -> None:
 
 
 def _extend_active_project(cursor: StyleAndTextTuples, project: str) -> None:
+    if not project:
+        return
     cursor.extend(
         [
             ("class:prompt.project.parenthesis", " ("),

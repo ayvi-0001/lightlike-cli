@@ -30,6 +30,7 @@ __all__: t.Sequence[str] = (
     "combine_new_date_into_end",
     "seconds_to_time_parts",
     "calculate_duration",
+    "date_diff",
 )
 
 
@@ -286,3 +287,21 @@ def calculate_duration(
     total_seconds: int = int(duration.total_seconds())
     hours: Decimal = round(Decimal(total_seconds) / Decimal(3600), 4)
     return hours
+
+
+def date_diff(
+    date_start: datetime,
+    date_end: datetime,
+    subtract_hours: float,
+) -> tuple[timedelta, Decimal]:
+    time_parts: tuple[int, int, int] = seconds_to_time_parts(
+        Decimal(subtract_hours or 0) * Decimal(3600)
+    )
+    subtract_hours, paused_minutes, paused_seconds = time_parts
+    duration: timedelta = (date_end - date_start) - timedelta(
+        hours=subtract_hours,
+        minutes=paused_minutes,
+        seconds=paused_seconds,
+    )
+    hours: Decimal = round(Decimal(duration.total_seconds()) / Decimal(3600), 4)
+    return duration, hours

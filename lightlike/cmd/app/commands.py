@@ -1,8 +1,7 @@
 import os
 import sys
 import typing as t
-from datetime import datetime, timedelta
-from decimal import Decimal
+from datetime import datetime
 from pathlib import Path
 from subprocess import list2cmdline
 
@@ -12,7 +11,7 @@ from rich.console import Console
 from rich.syntax import Syntax
 
 from lightlike.__about__ import __appdir__
-from lightlike.app import _questionary, dates, validate
+from lightlike.app import _questionary, validate
 from lightlike.app.cache import TimeEntryAppData, TimeEntryCache, TimeEntryIdList
 from lightlike.app.config import AppConfig
 from lightlike.app.core import FormattedCommand, LazyAliasedGroup
@@ -490,16 +489,9 @@ def date_diff(
     date_end: datetime,
     subtract_hours: float,
 ) -> None:
-    time_parts = dates.seconds_to_time_parts(
-        Decimal(subtract_hours or 0) * Decimal(3600)
-    )
-    subtract_hours, paused_minutes, paused_seconds = time_parts
-    duration = (date_end - date_start) - timedelta(
-        hours=subtract_hours,
-        minutes=paused_minutes,
-        seconds=paused_seconds,
-    )
-    hours = round(Decimal(duration.total_seconds()) / Decimal(3600), 4)
+    from lightlike.app.dates import date_diff
+
+    duration, hours = date_diff(date_start, date_end, subtract_hours)
     console.print("Duration:", duration)
     console.print("Hours:", hours)
 
