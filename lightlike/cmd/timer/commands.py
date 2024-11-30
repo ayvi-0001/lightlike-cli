@@ -462,8 +462,6 @@ def delete(
         for id_match in matched_ids:
             if cache.id == id_match:
                 cache._clear_active()
-                if AppConfig().get("settings", "update-terminal-title", default=True):
-                    console.set_window_title(__appname_sc__)
             elif cache.exists(cache.running_entries, [id_match]):
                 cache.remove("id", [id_match], [cache.running_entries])
             elif cache.exists(cache.paused_entries, [id_match]):
@@ -1723,8 +1721,6 @@ def pause(
     time_entry_id: str = cache.id
     query_job: "QueryJob" = routine._pause_time_entry(time_entry_id, now, wait=debug)
     cache.pause_entry(0, now)
-    if AppConfig().get("settings", "update-terminal-title", default=True):
-        console.set_window_title(__appname_sc__)
 
     if debug:
         query_job.result()
@@ -2010,8 +2006,6 @@ def run(
     if stop_active and cache:
         routine._stop_time_entry(cache.id, now, wait=debug)
         cache._clear_active()
-        if AppConfig().get("settings", "update-terminal-title", default=True):
-            console.set_window_title(__appname_sc__)
 
     if note == "None" and note_parts:
         note = " ".join(note_parts)
@@ -2172,8 +2166,6 @@ def stop(
         if cache:
             routine._stop_time_entry(cache.id, now, wait=debug)
             cache._clear_active()
-            if AppConfig().get("settings", "update-terminal-title", default=True):
-                console.set_window_title(__appname_sc__)
             return
         else:
             paused_entries = cache.get_updated_paused_entries(now)
@@ -2551,8 +2543,6 @@ def update(
     if stop_active:
         routine._stop_time_entry(cache.id, now, wait=debug)
         cache._clear_active()
-        if AppConfig().get("settings", "update-terminal-title", default=True):
-            console.set_window_title(__appname_sc__)
 
     sync_kwargs = {"trigger_query_job": query_job, "debug": debug}
     threads.spawn(ctx, appdata.sync, sync_kwargs)

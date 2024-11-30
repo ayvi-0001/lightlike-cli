@@ -7,8 +7,9 @@ from pathlib import Path
 import rtoml
 from prompt_toolkit.formatted_text import fragment_list_width
 from rich import get_console
+from rich.console import Console
 
-from lightlike.__about__ import __appdir__
+from lightlike.__about__ import __appdir__, __appname_sc__
 from lightlike.app.cache import EntriesInMemory
 from lightlike.app.config import AppConfig
 from lightlike.app.dates import date_diff, now
@@ -39,6 +40,7 @@ TIMEZONE: "_TzInfo" = AppConfig().tzinfo
 UPDATE_TERMINAL_TITLE: bool = AppConfig().get(
     "settings", "update-terminal-title", default=True
 )
+TERMINAL_TITLE: str = ""
 RPROMPT_DATE_FORMAT: str = AppConfig().get(
     "settings", "rprompt-date-format", default="[%H:%M:%S]"
 )
@@ -56,6 +58,7 @@ PATH: str | None = GIT_INFO.get("path")
 
 def build(message: str | None = None) -> t.Callable[[], StyleAndTextTuples]:
     if not message:
+        console: Console = get_console()
         cursor: StyleAndTextTuples = []
         cwd: Path = Path.cwd()
 
@@ -63,19 +66,29 @@ def build(message: str | None = None) -> t.Callable[[], StyleAndTextTuples]:
         _extend_active_project(cursor, GCP_PROJECT)
         _extend_git_branch(cursor, cwd)
 
+        global TERMINAL_TITLE
         if cache := EntriesInMemory():
             timer: str = _timer(cache)
 
             if UPDATE_TERMINAL_TITLE:
-                get_console().set_window_title(f"{timer} | {cache.project}")
+                title: str = f"{timer} | {cache.project}"
+                console.set_window_title(title)
+                TERMINAL_TITLE = title
 
             cursor.extend([("class:prompt.timer", timer)])
+
+        else:
+            if UPDATE_TERMINAL_TITLE:
+                if TERMINAL_TITLE != __appname_sc__:
+                    console.set_window_title(__appname_sc__)
+                    TERMINAL_TITLE = __appname_sc__
 
         cursor.extend([("class:cursor", "\n$ ")])
 
         return lambda: cursor
 
     def build_with_message(message: str | None = message) -> StyleAndTextTuples:
+        console: Console = get_console()
         cursor: StyleAndTextTuples = []
         cwd: Path = Path.cwd()
 
@@ -83,13 +96,22 @@ def build(message: str | None = None) -> t.Callable[[], StyleAndTextTuples]:
         _extend_active_project(cursor, GCP_PROJECT)
         _extend_git_branch(cursor, cwd)
 
+        global TERMINAL_TITLE
         if cache := EntriesInMemory():
             timer: str = _timer(cache)
 
             if UPDATE_TERMINAL_TITLE:
-                get_console().set_window_title(f"{timer} | {cache.project}")
+                title: str = f"{timer} | {cache.project}"
+                console.set_window_title(title)
+                TERMINAL_TITLE = title
 
             cursor.extend([("class:prompt.timer", timer)])
+
+        else:
+            if UPDATE_TERMINAL_TITLE:
+                if TERMINAL_TITLE != __appname_sc__:
+                    console.set_window_title(__appname_sc__)
+                    TERMINAL_TITLE = __appname_sc__
 
         cursor.extend([("class:cursor", f"\n{message} $ ")])
 

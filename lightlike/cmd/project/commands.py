@@ -7,10 +7,8 @@ from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
-from lightlike.__about__ import __appname_sc__
 from lightlike.app import _get, _questionary, render, shell_complete, threads, validate
 from lightlike.app.autosuggest import threaded_autosuggest
-from lightlike.app.config import AppConfig
 from lightlike.app.core import AliasedGroup, FormattedCommand
 from lightlike.app.prompt import PromptFactory
 from lightlike.cmd import _pass
@@ -437,8 +435,6 @@ def delete(
 
             if cache and cache.project == project:
                 cache._clear_active()
-                if AppConfig().get("settings", "update-terminal-title", default=True):
-                    console.set_window_title(__appname_sc__)
 
             cache.remove(key="project", sequence=[project])
 

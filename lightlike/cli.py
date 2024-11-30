@@ -196,9 +196,6 @@ def run_cli(name: str = "lightlike") -> None:
         obj={"get_scheduler": get_scheduler},
     )
 
-    if AppConfig().get("settings", "update-terminal-title", default=True):
-        get_console().set_window_title(__appname_sc__)
-
     # If no invoked subcommand, cli is launched through REPL,
     # Don't show cli name in help/usage contexts.
     prog_name: str = "" if len(sys.argv) == 1 else name
