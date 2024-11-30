@@ -209,10 +209,6 @@
 
 ![app_dir](/docs/assets/svg/app_dir.svg)
 
-### `app:run-bq`
-
-![app_run_bq](/docs/assets/svg/app_run-bq.svg)
-
 ### `app:sync`
 
 ![app_sync](/docs/assets/svg/app_sync.svg)
@@ -250,23 +246,3 @@
 ### `bq:show`
 
 ![bq_show](/docs/assets/svg/bq_show.svg)
-
-### `bq:snapshot`
-
-![bq_snapshot](/docs/assets/svg/bq_snapshot.svg)
-
-### `bq:snapshot:create`
-
-![bq_snapshot_create](/docs/assets/svg/bq_snapshot_create.svg)
-
-### `bq:snapshot:delete`
-
-![bq_snapshot_delete](/docs/assets/svg/bq_snapshot_delete.svg)
-
-### `bq:snapshot:list`
-
-![bq_snapshot_list](/docs/assets/svg/bq_snapshot_list.svg)
-
-### `bq:snapshot:restore`
-
-![bq_snapshot_restore](/docs/assets/svg/bq_snapshot_restore.svg)

@@ -3,7 +3,7 @@ from typing import Sequence
 from lightlike.app.shell_complete import entries, notes, projects, where
 from lightlike.app.shell_complete.dynamic import global_completer
 from lightlike.app.shell_complete.param import LiteralEvalArg, LiteralEvalOption, Param
-from lightlike.app.shell_complete.path import path, snapshot
+from lightlike.app.shell_complete.path import path, timestamp_file
 from lightlike.app.shell_complete.repl import repl
 
 __all__: Sequence[str] = (
@@ -16,6 +16,6 @@ __all__: Sequence[str] = (
     "path",
     "projects",
     "repl",
-    "snapshot",
+    "timestamp_file",
     "where",
 )

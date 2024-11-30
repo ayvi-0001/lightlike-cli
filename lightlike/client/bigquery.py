@@ -262,6 +262,6 @@ def update_routine_diff(client: bigquery.Client) -> None:
     except Exception:
         console.log(
             markup.br("Failed to update BigQuery scripts."),
-            markup.br("Try running command app:run-bq"),
+            markup.br("Try running command bq:run-build"),
             markup.br("or some functions may not work properly."),
         )

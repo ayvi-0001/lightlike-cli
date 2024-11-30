@@ -34,7 +34,6 @@ app_commands+=(
     "app date-diff"
     "app dir"
     "app parse-date"
-    "app run-bq"
     "app sync"
 )
 app_config_commands+=(
@@ -65,11 +64,7 @@ bq_commands+=(
     "bq query"
     "bq reset"
     "bq show"
-    "bq snapshot"
-    "bq snapshot create"
-    "bq snapshot delete"
-    "bq snapshot list"
-    "bq snapshot restore"
+    "bq run-build"
 )
 project_commands+=(
     "project"

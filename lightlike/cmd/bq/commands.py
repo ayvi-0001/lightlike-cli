@@ -10,7 +10,7 @@ from rich.table import Table
 
 from lightlike.app import _questionary, render
 from lightlike.app.config import AppConfig
-from lightlike.app.core import AliasedGroup, FormattedCommand, LazyAliasedGroup
+from lightlike.app.core import AliasedGroup, FormattedCommand
 from lightlike.client._credentials import _select_credential_source, _select_project
 from lightlike.client.bigquery import get_client, reconfigure
 from lightlike.cmd import _pass
@@ -28,24 +28,7 @@ __all__: t.Sequence[str] = (
     "reset",
     "run_bq_build",
     "show",
-    "snapshot",
 )
-
-
-@click.group(
-    name="snapshot",
-    cls=LazyAliasedGroup,
-    lazy_subcommands={
-        "create": "lightlike.cmd.bq.snapshot:create",
-        "delete": "lightlike.cmd.bq.snapshot:delete",
-        "list": "lightlike.cmd.bq.snapshot:list_",
-        "restore": "lightlike.cmd.bq.snapshot:restore",
-    },
-    short_help="Create/restore snapshots.",
-)
-@click.option("-d", "--debug", is_flag=True, hidden=True)
-def snapshot(debug: bool) -> None:
-    """Create/restore snapshots."""
 
 
 @click.command(

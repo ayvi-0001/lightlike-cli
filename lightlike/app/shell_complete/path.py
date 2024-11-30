@@ -25,7 +25,7 @@ if t.TYPE_CHECKING:
 __all__: t.Sequence[str] = (
     "path",
     "PathCompleter",
-    "snapshot",
+    "timestamp_file",
 )
 
 
@@ -196,7 +196,7 @@ class PathCompleter(Completer):
             return text
 
 
-def snapshot(
+def timestamp_file(
     prefix: str, suffix: str = ""
 ) -> t.Callable[..., t.Sequence[CompletionItem]]:
     completion_items: list[CompletionItem] = []

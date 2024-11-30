@@ -332,7 +332,7 @@ def timezone_setting_callback(_locals: dict[str, t.Any]) -> None:
         config["settings"].update(timezone=tz)
 
     rprint(
-        "[b]You will also need to run app:run-bq to",
+        "[b]You will also need to run bq:run-build to",
         "rebuild procedures using this new timezone.",
     )
 
@@ -350,7 +350,7 @@ timezone = SettingsCommand(
     help="""
     Timezone used for all date/time conversions.
 
-    If this value is updated, run app:run-bq to rebuild procedures in BigQuery using the new timezone.
+    If this value is updated, run bq:run-build to rebuild procedures in BigQuery using the new timezone.
     """,
     short_help="Timezone used for all date/time conversions.",
     syntax=Syntax(

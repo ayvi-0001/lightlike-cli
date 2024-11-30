@@ -342,7 +342,7 @@ open_in_editor = click.option(
     default=None,
     callback=validate.callbacks.summary_path,
     metavar="SVG",
-    shell_complete=shell_complete.snapshot("timesheet", ".svg"),
+    shell_complete=shell_complete.timestamp_file("timesheet", ".svg"),
 )
 @click.option(
     "-l",
@@ -613,7 +613,7 @@ def summary_table(
     default=None,
     callback=validate.callbacks.summary_path,
     metavar="CSV",
-    shell_complete=shell_complete.snapshot("timesheet", ".csv"),
+    shell_complete=shell_complete.timestamp_file("timesheet", ".csv"),
 )
 @click.option(
     "--quoting",
@@ -895,7 +895,7 @@ def summary_csv(
     default=None,
     callback=validate.callbacks.summary_path,
     metavar="JSON",
-    shell_complete=shell_complete.snapshot("timesheet", ".json"),
+    shell_complete=shell_complete.timestamp_file("timesheet", ".json"),
 )
 @print_option
 @click.option(

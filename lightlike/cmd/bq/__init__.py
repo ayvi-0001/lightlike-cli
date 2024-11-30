@@ -17,7 +17,6 @@ __all__: t.Sequence[str] = ("bq",)
         "reset": "lightlike.cmd.bq.commands:reset",
         "run-build": "lightlike.cmd.bq.commands:run_bq_build",
         "show": "lightlike.cmd.bq.commands:show",
-        "snapshot": "lightlike.cmd.bq.commands:snapshot",
     },
     short_help="BigQuery client settings & commands.",
 )
