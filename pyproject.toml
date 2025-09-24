@@ -110,10 +110,3 @@ path = "lightlike/__about__.py"
 source = "code"
 search-paths = ["lightlike"]
 pattern = "__version__: Final[str] = \"'b(?P<version>[^']+)'\""
-
-[tool.pytest.ini_options]
-pythonpath = ["."]
-
-[tool.pytest]
-log_cli = true
-log_level = "DEBUG"
