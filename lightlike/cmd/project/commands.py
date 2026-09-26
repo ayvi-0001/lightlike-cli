@@ -262,14 +262,14 @@ def create(
     description: str,
     default_billable: bool,
 ) -> None:
-    """
+    r"""
     Create a new project.
 
     For interactive prompt, pass no options.
     The name [code]no-project[/code] is reserved for the default setting.
 
     --name / -n:
-        must match regex [code]^\[a-zA-Z0-9-\\_\\.]{3,30}$[/code].
+        must match regex [code]^\[a-zA-Z0-9-\_\.]{3,30}$[/code].
     """
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
