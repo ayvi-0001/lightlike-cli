@@ -196,7 +196,7 @@ def dir_(console: Console, start: bool) -> None:
 
 @click.command(
     cls=FormattedCommand,
-    name="show-console",
+    name="inspect-console",
     hidden=True,
     short_help="Inspect global console.",
 )
