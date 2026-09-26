@@ -52,9 +52,8 @@ from lightlike.__about__ import (
     __repo__,
     __version__,
 )
-
-from lightlike.app import render
 from lightlike.app.core import LazyAliasedGroup
+from lightlike.app.render import cli_info
 from lightlike.internal import appdir, constant, utils
 
 __all__: t.Sequence[str] = ("main",)
@@ -66,11 +65,14 @@ warnings.filterwarnings("ignore", category=SyntaxWarning)
 LOCK: InterProcessLock = InterProcessLock(__lock__, logger=appdir.log())
 
 
-def main() -> None:
+def main(disable_lock: bool = False) -> None:
     _check_lock(LOCK)
-    _console.if_not_quiet_start(render.cli_info)()
+    _console.if_not_quiet_start(cli_info)()
+
     log_error: partial[None] = partial(
-        appdir.console_log_error, notify=True, patch_stdout=True
+        appdir.console_log_error,
+        notify=True,
+        patch_stdout=True,
     )
 
     try:
@@ -80,7 +82,7 @@ def main() -> None:
         sys.exit(2)
 
     try:
-        run_cli()
+        run_cli(locked=disable_lock)
     except Exception as error:
         log_error(error)
     finally:
@@ -112,7 +114,6 @@ def build_cli(
         ctx.obj = obj or {}
 
         if ctx.invoked_subcommand is None:
-            _console.if_not_quiet_start(get_console().log)("Starting REPL")
             from lightlike.app._repl import repl
 
             repl(ctx=ctx, **repl_kwargs)
@@ -122,7 +123,7 @@ def build_cli(
     return cli
 
 
-def run_cli(name: str = "lightlike") -> None:
+def run_cli(name: str = "lightlike", locked: bool = True) -> None:
     from lightlike.app.config import AppConfig  # isort: split
     from lightlike.app import call_on_close, cursor, dates, shell_complete
     from lightlike.app.cache import TimeEntryCache
@@ -205,7 +206,10 @@ def run_cli(name: str = "lightlike") -> None:
     # Don't show cli name in help/usage contexts.
     prog_name: str = "" if len(sys.argv) == 1 else name
 
-    with LOCK:
+    if locked:
+        with LOCK:
+            cli(prog_name=prog_name)
+    else:
         cli(prog_name=prog_name)
 
 
