@@ -65,7 +65,7 @@ class NewProject(Validator):
                 cursor_position=0,
                 message="Name too short.",
             )
-        elif len(document.text) > 25:
+        elif len(document.text) > 30:
             raise ValidationError(
                 cursor_position=0,
                 message="Name too long.",
