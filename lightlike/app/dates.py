@@ -2,6 +2,7 @@ import typing as t
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import Decimal
+from inspect import cleandoc
 from math import copysign
 
 import click
@@ -118,8 +119,8 @@ def parse_date(
     if date == "n":
         date = "now"
 
-    parsed_date = dateparser.parse(
-        date,
+    parsed_date: datetime | None = dateparser.parse(
+        date_string=date,
         settings=t.cast("_Settings", _settings),
         date_formats=ADDITIONAL_DATE_FORMATS,
     )
@@ -137,7 +138,11 @@ def parse_date_range_flags(start: datetime, end: datetime) -> DateParams:
 
     if total_seconds < 0 or copysign(1, duration.days) == -1:
         raise click.UsageError(
-            message="Cannot set --start / -s before --end / -e.",
+            message=cleandoc(f"""\
+                Cannot set --start / -s before --end / -e.
+                start: {start}
+                end: {end}\
+                """),
             ctx=click.get_current_context(silent=True),
         )
 
@@ -256,6 +261,26 @@ def seconds_to_time_parts(seconds: Decimal) -> tuple[int, int, int]:
     return int(hours), int(minutes), int(seconds)
 
 
+def seconds_to_hours(
+    seconds: Decimal | float | None = None,
+    ndigits: int | None = None,
+) -> Decimal:
+    hours = Decimal(seconds or 0) / Decimal(3600)
+    if ndigits:
+        hours = round(hours, ndigits)
+    return hours
+
+
+def hours_to_seconds(
+    hours: Decimal | float | None = None,
+    ndigits: int | None = None,
+) -> Decimal:
+    seconds = Decimal(hours or 0) * Decimal(3600)
+    if ndigits:
+        seconds = round(seconds, ndigits)
+    return seconds
+
+
 def calculate_duration(
     start_date: datetime,
     end_date: datetime,
@@ -269,7 +294,7 @@ def calculate_duration(
         if isinstance(paused_hours, float):
             paused_hours = Decimal(paused_hours)
 
-        time_parts_paused = seconds_to_time_parts(Decimal(paused_hours) * Decimal(3600))
+        time_parts_paused = seconds_to_time_parts(hours_to_seconds(paused_hours))
         paused_hours, paused_minutes, paused_seconds = time_parts_paused
         paused_delta: timedelta = timedelta(
             hours=paused_hours,
@@ -282,8 +307,7 @@ def calculate_duration(
         if raise_if_negative:
             if exception:
                 raise exception
-            else:
-                raise ValueError(f"Negative duration: {duration.total_seconds()}")
+            raise ValueError(f"Negative duration: {duration.total_seconds()}")
 
     total_seconds: int = int(duration.total_seconds())
     hours: Decimal = round(Decimal(total_seconds) / Decimal(3600), 4)
@@ -293,16 +317,31 @@ def calculate_duration(
 def date_diff(
     date_start: datetime,
     date_end: datetime,
-    subtract_hours: float,
+    subtract_hours: Decimal | float | None = None,
+    add_hours: Decimal | float | None = None,
 ) -> tuple[timedelta, Decimal]:
-    time_parts: tuple[int, int, int] = seconds_to_time_parts(
-        Decimal(subtract_hours or 0) * Decimal(3600)
-    )
-    subtract_hours, paused_minutes, paused_seconds = time_parts
-    duration: timedelta = (date_end - date_start) - timedelta(
-        hours=subtract_hours,
-        minutes=paused_minutes,
-        seconds=paused_seconds,
-    )
-    hours: Decimal = round(Decimal(duration.total_seconds()) / Decimal(3600), 4)
+    duration: timedelta = date_end - date_start
+
+    if subtract_hours:
+        neg_time_parts: tuple[int, int, int] = seconds_to_time_parts(
+            hours_to_seconds(subtract_hours),
+        )
+        paused_hours, paused_minutes, paused_seconds = neg_time_parts
+        duration = duration - timedelta(
+            hours=paused_hours,
+            minutes=paused_minutes,
+            seconds=paused_seconds,
+        )
+    if add_hours:
+        pos_time_parts: tuple[int, int, int] = seconds_to_time_parts(
+            hours_to_seconds(add_hours),
+        )
+        paused_hours, paused_minutes, paused_seconds = pos_time_parts
+        duration = duration + timedelta(
+            hours=paused_hours,
+            minutes=paused_minutes,
+            seconds=paused_seconds,
+        )
+
+    hours: Decimal = seconds_to_hours(duration.total_seconds(), ndigits=4)
     return duration, hours
