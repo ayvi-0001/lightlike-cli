@@ -41,7 +41,7 @@ def all_(
     cache = TimeEntryCache()
     completions: list[CompletionItem] = []
 
-    if ctx.params.get(param.name or ""):
+    if param.name and ctx.params.get(param.name):
         return completions
 
     if cache.paused_entries:
