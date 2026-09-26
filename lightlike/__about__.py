@@ -21,9 +21,10 @@
 # SOFTWARE.
 
 import sys
+from collections.abc import Sequence
 from os import getenv
 from pathlib import Path
-from typing import Final, Sequence
+from typing import Final
 
 from click import get_app_dir
 from rich import print
@@ -32,9 +33,9 @@ __all__: Sequence[str] = (
     "__appdir__",
     "__appname__",
     "__appname_sc__",
-    "__cli_help__",
     "__config__",
     "__configdir__",
+    "__help__",
     "__lock__",
     "__repo__",
     "__version__",
@@ -119,47 +120,41 @@ __repo__: Final[str] = "https://github.com/ayvi-0001/lightlike-cli"
 # fmt: on
 
 
-__cli_help__: str = f"""\
-[b]Completion[/b]:
-    press [code]ctrl space[/code] or [code]tab[/code] to display.
-    [code]:c{{1 | 2 | 3 | 4}}[/code] to add/remove completions from the global completer.
-    {", ".join(
-        [
-            "[code]1[/code] = commands",
-            "[code]2[/code] = history",
-            "[code]3[/code] = path",
-            "[code]4[/code] = executables",
-        ]
-    )}
-    path autocompletion is automatic for [code]cd[/code].
+__help__: str = f"""\
+[b]Completion[/b]: press [code]ctrl space[/code] or [code]tab[/code] to display.
+            [code]:c{{1 | 2 | 3 | 4}}[/code] to add/remove completions from the global completer.
+            {", ".join(
+                [
+                    "[code]1[/code] = commands",
+                    "[code]2[/code] = history",
+                    "[code]3[/code] = path",
+                    "[code]4[/code] = executables",
+                ]
+            )}
+            path autocompletion is automatic for [code]cd[/code].
 
-[b]Commands[/b]:
-    commands are aliased, use the shortest unique string of the command path.
-    add/remove commands in the config file -> cli.commands.
-    commands not recognized by the available top-level commands paths are passed to the shell.
-    [yellow]see[/] app:config:set:general:shell --help / -h to configure what shell is used.
+[b]Commands[/b]: commands are aliased, use the shortest unique string of the command path.
+          add/remove commands in the config file -> cli.commands.
+          commands not recognized by the available top-level commands paths are passed to the shell.
+          [yellow]see[/] app:config:set:general:shell --help / -h to configure what shell is used.
 
-[b]Time entry ids[/b]:
-    time entry ids are the sha1 hash of the project, note, and start timestamp.
-    if any fields are later edited, the id will not change.
-    for commands using an id, supply the first several characters,
-    as long as it is unique, a matching id will be found.
+[b]Entry ids[/b]: time entry ids are the sha1 hash of the project, note, and start timestamp.
+           if any fields are later edited, the id will not change.
+           for commands that req. an id, supply the first several characters and a matching id will be found.
 
-[b]Date/time fields[/b]:
-    arguments/options for date/time use the dateparser module to parse the input.
-    if it's unable too parse the string, an error will raise.
-    unless explicitly stated in the string or customized in the config,
-    dates are relative to today and prefer the past.
-    [yellow]see[/] app:parse-date to see examples of strings to pass to parser.
+[b]Datetime fields[/b]: arguments/options for date/time use the dateparser module to parse the input.
+                 dates relative to today/prefer the past, unless explicitly stated or edited in config,
+                 [yellow]see[/] app:parse-date to see examples of strings to pass to parser.
 
 [b]Help[/b]: add --help / -h to command/group.
-
 [b]Exit[/b]: type [code]exit[/code] | press [code]:q[/code] | press [code]ctrl q[/code]
-
 [b]Repo[/b]: [repr.url][link={__repo__}]{__repo__}[/link][/]
 
-{'LIGHTLIKE_ENV: %s' % LIGHTLIKE_ENV if LIGHTLIKE_ENV else ''}
 VERSION = {__version__}
 LIGHTLIKE_APP_DIR = {LIGHTLIKE_APP_DIR.as_posix()}
 LIGHTLIKE_CONFIG_DIR = {LIGHTLIKE_CONFIG_DIR.as_posix()}
 """
+
+if LIGHTLIKE_ENV:
+    __help__ += "\n"
+    __help__ += "LIGHTLIKE_ENV: %s" % LIGHTLIKE_ENV

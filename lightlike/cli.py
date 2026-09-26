@@ -41,8 +41,7 @@ warnings.filterwarnings("ignore", category=PytzUsageWarning)
 
 from lightlike import _console
 from lightlike.__about__ import (
-    __appname_sc__,
-    __cli_help__,
+    __help__,
     __config__,
     __lock__,
     __repo__,
@@ -182,7 +181,7 @@ def run_cli(name: str = "lightlike") -> None:
 
     cli: LazyAliasedGroup = build_cli(
         name=name,
-        help=__cli_help__,
+        help=__help__,
         repl_kwargs=repl_kwargs,
         lazy_subcommands=_build_lazy_subcommands(
             config=AppConfig().get("cli", "commands", default={})
