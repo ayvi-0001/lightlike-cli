@@ -20,26 +20,33 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# ruff: noqa: E402
+# install rich traceback and reconfigure console before other imports.
+
+import click
+from rich.traceback import install
+
+install(suppress=[click])
+
+
+from lightlike import _console
+
+_console.reconfigure()
+
 
 import sys
 import typing as t
 import warnings
 from functools import partial
 
-import click
 import rtoml
 from fasteners import InterProcessLock, try_lock
 from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.styles import Style
 from pytz_deprecation_shim._exceptions import PytzUsageWarning
 from rich import get_console
-from rich.traceback import install
 
-install(suppress=[click])
 warnings.filterwarnings("ignore", category=PytzUsageWarning)
 
-from lightlike import _console
 from lightlike.__about__ import (
     __help__,
     __config__,
@@ -47,8 +54,6 @@ from lightlike.__about__ import (
     __repo__,
     __version__,
 )
-
-_console.reconfigure()
 
 from lightlike.app import render
 from lightlike.app.core import LazyAliasedGroup
