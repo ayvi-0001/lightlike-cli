@@ -152,13 +152,15 @@ def parse_date_range_flags(start: datetime, end: datetime) -> DateParams:
 def get_relative_week(
     now: datetime,
     setting: int,
-    week: t.Literal["current", "previous"] = "current",
+    week: t.Literal["current", "previous", "next"] = "current",
 ) -> DateParams:
     match week:
         case "current":
             start_date = datetime.combine(now, datetime.min.time())
         case "previous":
             start_date = datetime.combine(now, datetime.min.time()) - timedelta(days=7)
+        case "next":
+            start_date = datetime.combine(now, datetime.min.time()) + timedelta(days=7)
 
     match setting:
         case 0:
@@ -167,8 +169,7 @@ def get_relative_week(
             delta = timedelta(days=start_date.weekday() % 7)
         case _:
             raise click.BadParameter(
-                message="Invalid setting for `week-start`. "
-                "Value must be either 1 or 0.",
+                message="Invalid setting for `week-start`. Value must be either 1 or 0.",
                 ctx=click.get_current_context(silent=True),
             )
 
