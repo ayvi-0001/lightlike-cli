@@ -45,8 +45,6 @@ from prompt_toolkit.styles import Style
 from pytz_deprecation_shim._exceptions import PytzUsageWarning
 from rich import get_console
 
-warnings.filterwarnings("ignore", category=PytzUsageWarning)
-
 from lightlike.__about__ import (
     __help__,
     __config__,
@@ -61,6 +59,9 @@ from lightlike.internal import appdir, constant, utils
 
 __all__: t.Sequence[str] = ("main",)
 
+
+warnings.filterwarnings("ignore", category=PytzUsageWarning)
+warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 LOCK: InterProcessLock = InterProcessLock(__lock__, logger=appdir.log())
 
