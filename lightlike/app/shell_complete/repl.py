@@ -108,6 +108,9 @@ class ReplCompleter(Completer):
         choices: list[Completion] = []
         param_called: bool = False
 
+        if "--" in args:
+            return choices
+
         for param in ctx_command.params:
             if getattr(param, "hidden", False):
                 choices.extend(
@@ -210,7 +213,12 @@ class ReplCompleter(Completer):
                     command: click.Command | None = None
                     command = self.ctx_command.get_command(self.parsed_ctx, cmd_name)
 
-                    if not command or getattr(command, "hidden", False):
+                    if any(
+                        [
+                            not command,
+                            getattr(command, "hidden", False),
+                        ]
+                    ):
                         continue
 
                     if self.ctx_command.chain is True:
