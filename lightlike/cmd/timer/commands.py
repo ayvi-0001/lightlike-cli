@@ -1594,11 +1594,13 @@ def notes() -> None: ...
     shell_complete=None,
 )
 @_pass.routine
+@_pass.appdata
 @_pass.console
 @_pass.ctx_group(parents=1)
 def update_notes(
     ctx_group: t.Sequence[click.Context],
     console: Console,
+    appdata: "TimeEntryAppData",
     routine: "CliQueryRoutines",
     project: str,
     dry_run: bool,
@@ -1612,7 +1614,7 @@ def update_notes(
     If the file is closed without saving, no edits will be applied.
     Use option `--dry-run` / `-d` to see the query without making any changes.
     """
-    ctx, parent = ctx_group
+    ctx, _ = ctx_group
 
     query_job = routine._select(
         resource=routine.timesheet_id,
@@ -1622,7 +1624,7 @@ def update_notes(
         order=["note"],
     )
 
-    notes = list(map(_get.note, query_job))
+    notes = list[str](map(_get.note, query_job))
     text = ""
 
     for idx, note in enumerate(notes):
@@ -1631,12 +1633,7 @@ def update_notes(
         if idx < len(notes):
             text += "\n"
 
-    default_editor: str | None = os.environ.get("EDITOR")
-    editor: str | None = AppConfig().get(
-        "settings",
-        "editor",
-        default=default_editor,
-    )
+    editor: str | None = AppConfig().editor
 
     if not editor:
         ctx.fail("Cannot determine $EDITOR.")
@@ -1685,8 +1682,8 @@ def update_notes(
         console.print(markup.dimmed("Dry run. No changes made against table."))
         return
 
-    with console.status("Updating notes..") as status:
-        routine._query_and_wait(query, status=status)
+    with console.status("Updating notes"):
+        routine._query(query, wait=True)
 
     threads.spawn(ctx=ctx, fn=appdata.sync, delay=2)
 
