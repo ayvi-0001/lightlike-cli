@@ -1,4 +1,5 @@
 import csv
+import os
 import tempfile
 import typing as t
 from datetime import datetime
@@ -476,7 +477,12 @@ def summary_table(
         joined together by a space to form the where clause.
         the word "WHERE" is stripped from the start of the string, if it exists.
     """
-    ctx, parent = ctx_group
+    ctx, _ = ctx_group
+
+    if not exclude:
+        lightlike_list_exclude = os.environ.get("LIGHTLIKE_LIST_EXCLUDE")
+        if lightlike_list_exclude:
+            exclude = lightlike_list_exclude.split(",")
 
     if all_:
         where_clause: str = shell_complete.where._parse_click_options(

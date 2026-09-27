@@ -1418,6 +1418,11 @@ def list_(
         routine=routine,
     )
 
+    if not exclude:
+        lightlike_list_exclude = os.environ.get("LIGHTLIKE_LIST_EXCLUDE")
+        if lightlike_list_exclude:
+            exclude = lightlike_list_exclude.split(",")
+
     if all_:
         rows = routine._list_timesheet(
             exclude=exclude,
