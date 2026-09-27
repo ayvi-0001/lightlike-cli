@@ -479,11 +479,11 @@ class TimeEntryCache(_Entries):
     def _to_help_str(
         self, entry: dict[str, t.Any], now: datetime, sep: str = "|"
     ) -> str:
-        help_str = "project='{project}'".format(project=entry.get("project"))
+        help_str = "'{project}'".format(project=entry.get("project"))
 
         note = self._ifnull(entry["note"])
         if note:
-            help_str += " {sep} note='{note}'".format(
+            help_str += " {sep} '{note}'".format(
                 sep=sep, note=f"{note[:50]}..." if len(note) > 50 else note
             )
 
@@ -491,7 +491,7 @@ class TimeEntryCache(_Entries):
         if start and start != "null":
             start_date = start.date()
             start_time = start.time()
-            help_str += " {sep} start={start_date}{start_time}".format(
+            help_str += " {sep} {start_date}{start_time}".format(
                 sep=sep,
                 start_date=f"{start_date}-" if start_date != now.date() else "",
                 start_time=start_time,
@@ -499,9 +499,9 @@ class TimeEntryCache(_Entries):
 
         timestamp_paused = entry.get("timestamp_paused")
         if timestamp_paused and timestamp_paused != "null":
-            help_str += f" {sep} paused=True"
+            help_str += f" {sep} paused"
         else:
-            help_str += f" {sep} running=True"
+            help_str += f" {sep} running"
 
         return help_str
 
