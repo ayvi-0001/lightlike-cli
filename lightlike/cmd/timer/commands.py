@@ -2445,14 +2445,14 @@ def update(
     if not cache:
         ctx.fail("There is no active time entry.")
 
+    if not note and note_parts:
+        note = " ".join(note_parts)
+
     if not any([project, note, billable is not None, start]):
         raise click.UsageError(message="No fields selected.", ctx=ctx)
 
     copy: dict[str, t.Any] = cache.active.copy()
     edits: dict[str, t.Any] = {}
-
-    if note == "None" and note_parts:
-        note = " ".join(note_parts)
 
     if note:
         if note == cache.note:
