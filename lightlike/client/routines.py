@@ -796,6 +796,7 @@ class CliQueryRoutines:
         include: t.Sequence[str] | None = None,
         modifiers: str | None = None,
         regex_engine: t.Literal["ECMAScript", "re2"] | str = "ECMAScript",
+        order_by: t.Literal["date", "project"] | str = "date",
     ) -> Rows:
         timesheet = self._table_timesheet
 
@@ -889,11 +890,19 @@ class CliQueryRoutines:
 
         grouped_cte = grouped.cte("grouped")
 
-        window_order: list[sq.ColumnElement[t.Any]] = [
-            grouped_cte.c.date,
-            grouped_cte.c.project,
-            grouped_cte.c.billable,
-        ]
+        window_order: list[sq.ColumnElement[t.Any]]
+        if order_by == "project":
+            window_order = [
+                grouped_cte.c.project,
+                grouped_cte.c.date,
+                grouped_cte.c.billable,
+            ]
+        else:
+            window_order = [
+                grouped_cte.c.date,
+                grouped_cte.c.project,
+                grouped_cte.c.billable,
+            ]
 
         sum_hours = sq.func.sum(grouped_cte.c.hours)
         precision = sq.literal_column("4")
@@ -929,7 +938,10 @@ class CliQueryRoutines:
         if show_null_values:
             executable = executable.where(windowed.c.total_day != sq.literal_column("0"))
 
-        executable = executable.order_by(windowed.c.date, windowed.c.project)
+        if order_by == "project":
+            executable = executable.order_by(windowed.c.project, windowed.c.date)
+        else:
+            executable = executable.order_by(windowed.c.date, windowed.c.project)
 
         try:
             with self.engine.begin() as conn:

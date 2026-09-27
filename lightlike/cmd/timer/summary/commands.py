@@ -269,6 +269,19 @@ regex_engine = click.option(
     metavar=None,
     shell_complete=None,
 )
+order_by = click.option(
+    "-O",
+    "--order-by",
+    show_default=True,
+    multiple=False,
+    type=click.Choice(["date", "project"]),
+    help="Order by date or project first.",
+    required=False,
+    default="date",
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
 open_in_editor = click.option(
     "--open-in-editor",
     show_default=True,
@@ -324,6 +337,7 @@ open_in_editor = click.option(
 @match_note
 @match_project
 @modifiers
+@order_by
 @regex_engine
 @round_option
 @show_null_values
@@ -380,6 +394,7 @@ def summary_table(
     match_project: t.Sequence[str],
     modifiers: t.Sequence[str],
     open_in_editor: bool,
+    order_by: str,
     output: Path | None,
     prompt_where: bool,
     regex_engine: str,
@@ -473,6 +488,7 @@ def summary_table(
             match_project=match_project,
             match_note=match_note,
             modifiers=modifiers,
+            order_by=order_by,
             regex_engine=regex_engine,
             round_=round_,
             show_null_values=not show_null_values,
@@ -513,6 +529,7 @@ def summary_table(
             match_note=match_note,
             match_project=match_project,
             modifiers=modifiers,
+            order_by=order_by,
             regex_engine=regex_engine,
             round_=round_,
             show_null_values=not show_null_values,
@@ -594,6 +611,7 @@ def summary_table(
 @match_note
 @match_project
 @modifiers
+@order_by
 @print_option
 @regex_engine
 @round_option
@@ -648,6 +666,7 @@ def summary_csv(
     match_project: t.Sequence[str],
     modifiers: str,
     output: Path | None,
+    order_by: str,
     print_: bool,
     prompt_where: bool,
     quoting: str,
@@ -756,6 +775,7 @@ def summary_csv(
             match_project=match_project,
             match_note=match_note,
             modifiers=modifiers,
+            order_by=order_by,
             regex_engine=regex_engine,
             round_=round_,
             show_null_values=not show_null_values,
@@ -796,6 +816,7 @@ def summary_csv(
             exclude=exclude,
             include=include,
             modifiers=modifiers,
+            order_by=order_by,
             regex_engine=regex_engine,
             round_=round_,
             show_null_values=not show_null_values,
@@ -877,6 +898,7 @@ def summary_csv(
 @match_note
 @match_project
 @modifiers
+@order_by
 @regex_engine
 @round_option
 @show_null_values
@@ -930,6 +952,7 @@ def summary_json(
     match_note: t.Sequence[str],
     match_project: t.Sequence[str],
     modifiers: str,
+    order_by: str,
     orient: str,
     output: Path | None,
     print_: bool,
@@ -1049,6 +1072,7 @@ def summary_json(
             match_project=match_project,
             match_note=match_note,
             modifiers=modifiers,
+            order_by=order_by,
             regex_engine=regex_engine,
             round_=round_,
             show_null_values=not show_null_values,
@@ -1089,6 +1113,7 @@ def summary_json(
             exclude=exclude,
             include=include,
             modifiers=modifiers,
+            order_by=order_by,
             regex_engine=regex_engine,
             round_=round_,
             show_null_values=not show_null_values,
