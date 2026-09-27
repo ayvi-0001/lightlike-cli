@@ -371,40 +371,39 @@ class TimeEntryCache(_Entries):
             self.paused_entries.pop(idx)
 
     def pause_entry(self, idx: int, timestamp: datetime) -> None:
-        if idx == 0:
-            with self.rw():
+        with self.rw():
+            if idx == 0:
                 self.active["paused"] = True
                 self.active["timestamp_paused"] = timestamp
                 self.paused_entries.append(self.active.copy())
                 if self.count_running_entries == 1:
-                    self.id = None  # type: ignore[assignment]
-                    self.start = None  # type: ignore[assignment]
-                    self.timestamp_paused = None  # type: ignore[assignment]
-                    self.project = None  # type: ignore[assignment]
-                    self.note = None  # type: ignore[assignment]
-                    self.billable = None  # type: ignore[assignment]
+                    self.id = None
+                    self.start = None
+                    self.timestamp_paused = None
+                    self.project = None
+                    self.note = None
+                    self.billable = None
                     self.paused = False
-                    self.paused_hours = "0"  # type: ignore[assignment]
+                    self.paused_hours = "0"
                 else:
                     self.running_entries.pop(0)
-        else:
-            with self.rw():
+            else:
                 entry = self.running_entries.pop(idx)
                 entry["paused"] = True
                 entry["timestamp_paused"] = timestamp
                 self.paused_entries.append(entry)
 
-    def _clear_active(self) -> None:
+    def clear_active(self) -> None:
         with self.rw():
             if self.count_running_entries == 1:
-                self.id = None  # type: ignore[assignment]
-                self.start = None  # type: ignore[assignment]
-                self.timestamp_paused = None  # type: ignore[assignment]
-                self.project = None  # type: ignore[assignment]
-                self.note = None  # type: ignore[assignment]
-                self.billable = None  # type: ignore[assignment]
+                self.id = None
+                self.start = None
+                self.timestamp_paused = None
+                self.project = None
+                self.note = None
+                self.billable = None
                 self.paused = False
-                self.paused_hours = "0"  # type: ignore[assignment]
+                self.paused_hours = "0"
             else:
                 self.running_entries.pop(0)
 

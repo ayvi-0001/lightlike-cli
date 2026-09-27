@@ -461,7 +461,7 @@ def delete(
 
         for id_match in matched_ids:
             if cache.id == id_match:
-                cache._clear_active()
+                cache.clear_active()
             elif cache.exists(cache.running_entries, [id_match]):
                 cache.remove("id", [id_match], [cache.running_entries])
             elif cache.exists(cache.paused_entries, [id_match]):
@@ -2004,7 +2004,7 @@ def run(
 
     if stop_active and cache:
         routine._stop_time_entry(cache.id, now, wait=debug)
-        cache._clear_active()
+        cache.clear_active()
 
     if note == "None" and note_parts:
         note = " ".join(note_parts)
@@ -2164,7 +2164,7 @@ def stop(
     if not entry:
         if cache:
             routine._stop_time_entry(cache.id, now, wait=debug)
-            cache._clear_active()
+            cache.clear_active()
             return
         else:
             paused_entries = cache.get_updated_paused_entries(now)
@@ -2541,7 +2541,7 @@ def update(
 
     if stop_active:
         routine._stop_time_entry(cache.id, now, wait=debug)
-        cache._clear_active()
+        cache.clear_active()
 
     sync_kwargs = {"trigger_query_job": query_job, "debug": debug}
     threads.spawn(ctx, appdata.sync, sync_kwargs)

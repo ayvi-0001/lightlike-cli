@@ -434,7 +434,7 @@ def delete(
             )
 
             if cache and cache.project == project:
-                cache._clear_active()
+                cache.clear_active()
 
             cache.remove(key="project", sequence=[project])
 
