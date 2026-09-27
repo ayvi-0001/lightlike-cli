@@ -55,6 +55,30 @@ class Param:
 
         return completion_items
 
+    def regex_flags(
+        self,
+        ctx: click.Context,
+        param: click.Parameter,
+        incomplete: str,
+    ) -> t.Sequence[CompletionItem]:
+        flags = [
+            CompletionItem(value="A", help="re.RegexFlag.ASCII"),
+            CompletionItem(value="I", help="re.RegexFlag.IGNORECASE"),
+            CompletionItem(value="L", help="re.RegexFlag.LOCALE"),
+            CompletionItem(value="M", help="re.RegexFlag.MULTILINE"),
+            CompletionItem(value="S", help="re.RegexFlag.DOTALL"),
+            CompletionItem(value="X", help="re.RegexFlag.VERBOSE"),
+            CompletionItem(value="U", help="re.RegexFlag.UNICODE"),
+        ]
+
+        completion_items = []
+
+        for item in flags:
+            if utils.match_str(incomplete, item.value):
+                completion_items.append(item)
+
+        return completion_items
+
 
 class LiteralEvalOption(click.Option):
     def type_cast_value(self, ctx: click.Context, value: t.Any) -> t.Any:
