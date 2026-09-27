@@ -34,7 +34,6 @@ from lightlike.app.cache import TimeEntryCache
 from lightlike.app.config import AppConfig
 from lightlike.app.core import AliasedGroup, FormattedCommand
 from lightlike.app.prompt import PromptFactory
-from lightlike.app.shell_complete.types import CallableIntRange, DynamicHelpOption
 from lightlike.cmd import _pass
 from lightlike.internal import appdir, markup, utils
 
@@ -373,10 +372,10 @@ def yank_flag_help() -> str:
 @click.option(
     "-y",
     "--yank",
-    cls=DynamicHelpOption,
+    cls=shell_complete.DynamicHelpOption,
     show_default=True,
     multiple=True,
-    type=CallableIntRange(
+    type=shell_complete.CallableIntRange(
         min=lambda: -len(loads(appdir.TIMER_LIST_CACHE.read_text())),
         max=lambda: len(loads(appdir.TIMER_LIST_CACHE.read_text())),
     ),
@@ -687,10 +686,10 @@ def _match_ids(
 @click.option(
     "-y",
     "--yank",
-    cls=DynamicHelpOption,
+    cls=shell_complete.DynamicHelpOption,
     show_default=True,
     multiple=True,
-    type=CallableIntRange(
+    type=shell_complete.CallableIntRange(
         min=lambda: -len(loads(appdir.TIMER_LIST_CACHE.read_text())),
         max=lambda: len(loads(appdir.TIMER_LIST_CACHE.read_text())),
     ),
