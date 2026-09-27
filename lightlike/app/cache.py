@@ -213,7 +213,6 @@ class TimeEntryCache(_Entries):
             "project",
             "note",
             "billable",
-            "paused",
             "paused_hours",
             "hours",
         ]
@@ -222,6 +221,8 @@ class TimeEntryCache(_Entries):
         for entry in self.running_entries.copy():
             if not self._ifnull(entry["id"]):
                 continue
+
+            entry.pop("paused")
 
             if self._ifnull(entry["start"]):
                 hours = dates.calculate_duration(
@@ -236,6 +237,8 @@ class TimeEntryCache(_Entries):
             entries.append(entry)
 
         for entry in self.paused_entries.copy():
+            entry.pop("paused")
+
             new_paused_hour = self._add_hours(
                 now, entry["timestamp_paused"], entry["paused_hours"]
             )
@@ -258,21 +261,35 @@ class TimeEntryCache(_Entries):
             return
 
         table = Table(box=box.MARKDOWN, border_style="bold", show_header=True)
-        reduce(
-            lambda n, f: table.add_column(
-                f, **self._map_column_styles(f, get_console().width)
-            ),
-            fields,
-            None,
-        )
-        reduce(
-            lambda n, r: table.add_row(
-                *render.map_cell_style(r.values()),
-                style=self._map_row_style(r),
-            ),
-            entries,
-            None,
-        )
+
+        exclude_columns = ["timestamp_paused", "paused_hours"]
+
+        for field in fields:
+            if console.width <= 120 and field in exclude_columns:
+                continue
+
+            table.add_column(
+                header=field,
+                **self._map_column_styles(field, console.width),
+            )
+
+        for entry in entries:
+            values = []
+
+            for key, value in entry.items():
+                if console.width <= 120 and key in exclude_columns:
+                    continue
+
+                if isinstance(value, datetime):
+                    value = value.strftime("%Y-%m-%d %H:%M:%S")
+
+                values.append(value)
+
+            table.add_row(
+                *render.map_cell_style(values),
+                style=self._map_row_style(entry),
+            )
+
         yield table
 
     def __rich_measure__(
