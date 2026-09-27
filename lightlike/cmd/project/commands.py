@@ -430,12 +430,12 @@ def delete(
     shell_complete=None,
 )
 @click.option(
-    "-N",
-    "--match-name",
+    "-E",
+    "--exclude",
     show_default=True,
     multiple=True,
     type=click.STRING,
-    help="Expressions to match project name.",
+    help="Exclude pattern matched against project name and/or note.",
     required=False,
     default=None,
     callback=None,
@@ -443,12 +443,12 @@ def delete(
     shell_complete=None,
 )
 @click.option(
-    "-D",
-    "--match-description",
+    "-I",
+    "--include",
     show_default=True,
     multiple=True,
     type=click.STRING,
-    help="Expressions to match project description.",
+    help="Include pattern matched against project name and/or note.",
     required=False,
     default=None,
     callback=None,
@@ -464,6 +464,22 @@ def delete(
     help="Modifiers to pass to RegExp. (ECMAScript only)",
     required=False,
     default="",
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
+@click.option(
+    "-O",
+    "--order-by",
+    show_default=True,
+    multiple=False,
+    type=click.Choice(
+        ["created:asc", "created:desc", "name:asc", "name:desc"],
+        case_sensitive=False,
+    ),
+    help="Order table.",
+    required=False,
+    default="created:desc",
     callback=None,
     metavar=None,
     shell_complete=None,
@@ -487,9 +503,10 @@ def list_(
     console: "Console",
     routine: "CliQueryRoutines",
     all_: bool,
-    match_name: t.Sequence[str],
-    match_description: t.Sequence[str],
+    exclude: t.Sequence[str],
+    include: t.Sequence[str],
     modifiers: str,
+    order_by: str,
     regex_engine: str,
 ) -> None:
     """
@@ -498,12 +515,12 @@ def list_(
     --all / -a:
         include archived projects.
 
-    --match-name / -rp:
-        match a regular expression against project names.
+    --exclude / -E:
+        exclude pattern matched against project name and/or note.
         this option can be repeated, with each pattern being separated by `|`.
 
-    --match-description/ -rd:
-        match a regular expression against project description.
+    --include / -I:
+        include pattern matched against project name and/or note.
         this option can be repeated, with each pattern being separated by `|`.
 
     --modifiers / -M:
@@ -523,55 +540,55 @@ def list_(
         "name",
         "description",
         "default_billable",
-        "date(created) AS created",
+        "created",
     ]
     if all_:
-        fields.append("date(archived) AS archived")
+        fields.append("archived")
 
     where: list[str] = []
 
     if not all_:
         where.append("archived is null")
 
-    if match_name:
-        name_expressions: list[str] = []
-        for pattern in match_name:
-            name_expressions.append(pattern)
+    fmt_exclude_expression: str = ""
+    if exclude:
+        exclude_expressions: list[str] = []
+        for pattern in exclude:
+            exclude_expressions.append(pattern)
 
-        name_expression: str = "|".join(name_expressions)
-
-        where.append(
-            routine._format_regular_expression(
-                fields="name",
-                expr=name_expression,
-                modifiers=modifiers,
-                regex_engine=regex_engine,
-            )
+        exclude_expression: str = "|".join(exclude_expressions)
+        fmt_exclude_expression = routine._format_regular_expression(
+            fields=["name", "description"],
+            expr=exclude_expression,
+            modifiers=modifiers,
+            regex_engine=regex_engine,
+            not_=True,
         )
 
-    if match_description:
-        description_expressions: list[str] = []
-        for pattern in match_description:
-            description_expressions.append(pattern)
+        where.append(fmt_exclude_expression)
 
-        description_expression: str = "|".join(description_expressions)
+    fmt_include_expression: str = ""
+    if include:
+        include_expressions: list[str] = []
+        for pattern in include:
+            include_expressions.append(pattern)
 
-        where.append(
-            routine._format_regular_expression(
-                fields="description",
-                expr=description_expression,
-                modifiers=modifiers,
-                regex_engine=regex_engine,
-            )
+        include_expression: str = "|".join(include_expressions)
+        fmt_include_expression = routine._format_regular_expression(
+            fields=["name", "description"],
+            expr=include_expression,
+            modifiers=modifiers,
+            regex_engine=regex_engine,
+            not_=False,
         )
 
-    order: list[str] = ["created desc"]
+        where.append(fmt_include_expression)
 
     query_job = routine._select(
         resource=routine.projects_id,
         fields=fields,
         where=where,
-        order=order,
+        order=[order_by.replace(":", " ")],
     )
 
     table: Table = render.map_sequence_to_rich_table(
