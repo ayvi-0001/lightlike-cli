@@ -644,6 +644,13 @@ class TimeEntryCache(_Entries):
                 "min_width": 19,
                 "max_width": 25,
             }
+            if console_width <= 90:
+                _kwargs |= {
+                    "min_width": 10,
+                    "max_width": 10,
+                    "overflow": "fold",
+                    "no_wrap": False,
+                }
         elif field in ("billable", "paused"):
             _kwargs |= {
                 # "header_style": "red",
