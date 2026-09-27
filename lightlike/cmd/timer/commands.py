@@ -2222,22 +2222,6 @@ def stop(
     required=False,
     shell_complete=shell_complete.entries.all_,
 )
-@click.option(
-    "-c",
-    "--continue",
-    "continue_",
-    show_default=True,
-    is_flag=True,
-    flag_value=True,
-    multiple=False,
-    type=click.BOOL,
-    help="Active entry continues to run after switching.",
-    required=False,
-    default=False,
-    callback=None,
-    metavar=None,
-    shell_complete=None,
-)
 @_pass.console
 @_pass.id_list
 @_pass.routine
@@ -2252,18 +2236,14 @@ def switch(
     id_list: "TimeEntryIdList",
     console: Console,
     entry: str | None,
-    continue_: bool,
 ) -> None:
     """
     Switch the active time entry.
 
-    Pauses the active entry and resumes the selected entry.
+    Pauses the active entry and resume/focus the selected entry.
 
-        --continue / -c:
-            do not pause the active entry during switch.
-
-        [b]See[/]:
-            timer:run --help / -h
+    [b]See[/]:
+        timer:run --help / -h
     """
     ctx, parent = ctx_group
 
@@ -2307,7 +2287,7 @@ def switch(
         routine._pause_time_entry(cache.id, now, wait=debug)
         debug and console.log("[DEBUG]", f"pausing entry {cache.id}")
 
-    cache.switch_active_entry(select, now, continue_)
+    cache.switch_entry(select, now, pause=True)
 
 
 @click.command(

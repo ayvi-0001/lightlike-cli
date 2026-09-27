@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from decimal import Decimal
 from functools import cached_property, reduce
-from operator import xor
+from operator import truth, xor
 from pathlib import Path
 
 import click
@@ -340,16 +340,16 @@ class TimeEntryCache(_Entries):
                 },
             )
 
-    def switch_active_entry(
-        self, entry_id: str, now: datetime, continue_: bool
-    ) -> None:
-        if idx := self.index(self.running_entries, "id", [entry_id]):
+    def switch_entry(self, entry_id: str, now: datetime, pause: bool = False) -> None:
+        idx: t.Iterable[int] = self.index(self.running_entries, "id", [entry_id])
+
+        if idx:
             with self.rw():
                 self.running_entries.insert(0, self.running_entries.pop(one(idx)))
-            if not continue_:
+            if pause:
                 self.pause_entry(one(idx), now)
         else:
-            if not continue_:
+            if pause:
                 self.pause_entry(0, now)
             self.resume_entry(entry_id, now)
 
@@ -424,7 +424,7 @@ class TimeEntryCache(_Entries):
         entries: list[dict[str, t.Any]],
         id_sequence: t.Sequence[str],
     ) -> bool:
-        return True if self.index(entries, "id", id_sequence) else False
+        return truth(self.index(entries, "id", id_sequence))
 
     def get(
         self,
