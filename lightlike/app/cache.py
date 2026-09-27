@@ -20,7 +20,6 @@ from rich.table import Table
 from rich.text import Text
 
 from lightlike import _fasteners
-from lightlike.__about__ import __appname_sc__
 from lightlike.app import _get, dates, render
 from lightlike.app.config import AppConfig
 from lightlike.client import CliQueryRoutines
@@ -29,7 +28,6 @@ from lightlike.internal import appdir, factory, markup, utils
 if t.TYPE_CHECKING:
     from datetime import _TzInfo
 
-    from google.cloud.bigquery import QueryJob
     from google.cloud.bigquery.table import Row
     from rich.console import Console, ConsoleOptions, RenderResult
 
@@ -457,9 +455,9 @@ class TimeEntryCache(_Entries):
         self, now: datetime, timestamp_paused: datetime, paused_hours: Decimal
     ) -> Decimal:
         diff: timedelta = now - timestamp_paused
-        prev_paused_sec = Decimal(paused_hours) * Decimal(3600)
+        prev_paused_sec: Decimal = dates.hours_to_seconds(paused_hours)
         new_paused_sec = Decimal(diff.total_seconds()) + prev_paused_sec
-        new_paused_hours = Decimal(new_paused_sec) / Decimal(3600)
+        new_paused_hours = dates.seconds_to_hours(new_paused_sec)
         return new_paused_hours
 
     def get_updated_paused_entries(self, now: datetime) -> list[dict[str, t.Any]]:
@@ -580,8 +578,8 @@ class TimeEntryCache(_Entries):
                 }
             )
 
-        if AppConfig().get("settings", "update-terminal-title", default=True):
-            get_console().set_window_title(__appname_sc__)
+        # if AppConfig().get("settings", "update-terminal-title", default=True):
+        #     get_console().set_window_title(__appname_sc__)
         with self.rw() as cache:
             cache.running_entries = running_entries
             cache.paused_entries = paused_entries
@@ -684,9 +682,6 @@ class TimeEntryIdList(metaclass=factory._Singleton):
         )
         return list(map(_get._id, query_job))
 
-    def clear(self) -> None:
-        del self.__dict__["ids"]
-
     def match_id(self, input_id: str) -> str:
         matching = list(filter(lambda i: i.startswith(input_id), self.ids))
 
@@ -716,27 +711,22 @@ class TimeEntryIdList(metaclass=factory._Singleton):
         match = first(matching)
         return match
 
-    def reset(
-        self,
-        trigger_query_job: "QueryJob | None" = None,
-        debug: bool = False,
-    ) -> None:
+    def reset(self, debug: bool = False) -> None:
         try:
-            if trigger_query_job and not trigger_query_job.done():
-                trigger_query_job.result()
-            self.clear()
+            del self.__dict__["ids"]
         except Exception as error:
             appdir.log().error(f"Error resetting session ids: {error}")
+
         self.ids
 
-    def add(self, input_id: str, debug: bool = False) -> None:
-        self.ids.extend([input_id])
+    def add(self, entry_id: str, debug: bool = False) -> None:
+        self.ids.extend([entry_id])
         debug and patch_stdout(raw=True)(get_console().log)(
-            "[DEBUG]", f"Added id {input_id} to id list."
+            "[DEBUG]", f"Added id {entry_id} to id list."
         )
 
-    def remove(self, input_ids: list[str], debug: bool = False) -> None:
-        for input_id in input_ids:
+    def remove(self, entry_ids: list[str], debug: bool = False) -> None:
+        for input_id in entry_ids:
             idx: int = self.ids.index(input_id)
             self.ids.pop(idx)
             debug and patch_stdout(raw=True)(get_console().log)(
@@ -748,11 +738,7 @@ class TimeEntryAppData:
     def __init__(self, path: Path = appdir.ENTRY_APPDATA) -> None:
         self.path = path
 
-    def sync(
-        self,
-        trigger_query_job: "QueryJob | None" = None,
-        debug: bool = False,
-    ) -> None:
+    def sync(self, debug: bool = False) -> None:
         console = get_console()
 
         debug and patch_stdout(raw=True)(console.log)(
@@ -778,9 +764,6 @@ class TimeEntryAppData:
                 appdata["active"].update({row.name: project})
             else:
                 appdata["archived"].update({row.name: project})
-
-        if trigger_query_job and not trigger_query_job.done():
-            trigger_query_job.result()
 
         notes_query = routine._select(
             resource=CliQueryRoutines().timesheet_id,

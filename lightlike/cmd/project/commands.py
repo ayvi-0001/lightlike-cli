@@ -302,7 +302,7 @@ def create(
         status_renderable=markup.status_message("Creating project"),
     )
 
-    threads.spawn(ctx, appdata.sync, {"trigger_query_job": query_job, "debug": debug})
+    threads.spawn(ctx, appdata.sync, {"debug": debug})
     console.print("Created new project:", markup.code(name))
 
 
@@ -815,7 +815,7 @@ def set_project_description(
     try:
         active_projects = appdata.load()["active"]
     except KeyError:
-        appdata.sync()
+        appdata.sync(debug=debug)
         active_projects = appdata.load()["active"]
 
     project_appdata: dict[str, t.Any] = active_projects[project]

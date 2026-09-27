@@ -261,7 +261,7 @@ def add(
         active_projects = data["active"]
         project_default_billable: bool = active_projects[project]["default_billable"]
     except KeyError:
-        appdata.sync()
+        appdata.sync(debug=debug)
         data = appdata.load()
         active_projects = data["active"]
         project_default_billable = active_projects[project]["default_billable"]
@@ -283,9 +283,12 @@ def add(
         billable=billable or project_default_billable,
     )
 
-    sync_kwargs = {"trigger_query_job": query_job, "debug": debug}
-    threads.spawn(ctx, id_list.add, {"input_id": time_entry_id, "debug": debug})
-    note != "None" and threads.spawn(ctx, appdata.sync, sync_kwargs)
+    threads.spawn(
+        ctx=ctx,
+        fn=id_list.add,
+        kwargs={"entry_id": time_entry_id, "debug": debug},
+    )
+    note != "None" and threads.spawn(ctx=ctx, fn=appdata.sync)
 
     console.print(
         "Added record:",
@@ -471,9 +474,16 @@ def delete(
 
         console.print("Deleted time entries")
 
-        kwargs = {"trigger_query_job": query_job, "debug": debug}
-        threads.spawn(ctx, appdata.sync, kwargs)
-        threads.spawn(ctx, id_list.reset, kwargs)
+        threads.spawn(
+            ctx=ctx,
+            fn=appdata.sync,
+            kwargs={"debug": debug},
+        )
+        threads.spawn(
+            ctx=ctx,
+            fn=id_list.remove,
+            kwargs={"entry_ids": matched_ids, "debug": debug},
+        )
 
 
 def _get_entry_edits(
@@ -975,8 +985,7 @@ def edit(
             "records:" if len(matched_ids) > 1 else "record:",
             render.create_table_diff(original_records, new_records),
         )
-        sync_kwargs = {"trigger_query_job": query_job, "debug": debug}
-        threads.spawn(ctx, appdata.sync, sync_kwargs)
+        threads.spawn(ctx, appdata.sync, kwargs={"debug": debug})
 
 
 @click.command(
@@ -1679,6 +1688,8 @@ def update_notes(
     with console.status("Updating notes..") as status:
         routine._query_and_wait(query, status=status)
 
+    threads.spawn(ctx=ctx, fn=appdata.sync, delay=2)
+
 
 @click.command(
     cls=FormattedCommand,
@@ -2061,9 +2072,18 @@ def run(
         query_job.result()
         console.log("[DEBUG]", f"started entry {time_entry_id}")
 
-    sync_kwargs = {"trigger_query_job": query_job, "debug": debug}
-    threads.spawn(ctx, appdata.sync, sync_kwargs)
-    threads.spawn(ctx, id_list.add, {"input_id": time_entry_id, "debug": debug})
+    threads.spawn(
+        ctx=ctx,
+        fn=appdata.sync,
+        kwargs={"debug": debug},
+        delay=2,
+    )
+    threads.spawn(
+        ctx=ctx,
+        fn=id_list.add,
+        kwargs={"entry_id": time_entry_id, "debug": debug},
+        delay=2,
+    )
 
 
 @click.command(
@@ -2523,8 +2543,7 @@ def update(
         routine._stop_time_entry(cache.id, now, wait=debug)
         cache.clear_active()
 
-    sync_kwargs = {"trigger_query_job": query_job, "debug": debug}
-    threads.spawn(ctx, appdata.sync, sync_kwargs)
+    threads.spawn(ctx=ctx, fn=appdata.sync, kwargs={"debug": debug})
 
     original_record = {
         "id": copy["id"][:7],
