@@ -46,6 +46,7 @@ __all__: t.Sequence[str] = (
     "add",
     "delete",
     "edit",
+    "focus",
     "get",
     "list_",
     "notes",
@@ -2362,6 +2363,87 @@ def switch(
 
     # pause active entry local, switch active entry idx
     cache.switch_entry(select, now, pause=True)
+
+
+@click.command(
+    cls=FormattedCommand,
+    name="focus",
+    short_help="Set a running entry as active.",
+    syntax=Syntax(
+        code="""\
+        $ timer focus 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46
+        $ t f 36c9fe\
+        """,
+        lexer="fishshell",
+        dedent=True,
+        line_numbers=True,
+        background_color="#131310",
+    ),
+)
+@utils.handle_keyboard_interrupt()
+@click.argument(
+    "entry",
+    type=click.STRING,
+    required=False,
+    shell_complete=shell_complete.entries.all_,
+)
+@_pass.console
+@_pass.id_list
+@_pass.routine
+@_pass.cache
+@_pass.ctx_group(parents=1)
+@_pass.now
+def focus(
+    now: datetime,
+    ctx_group: t.Sequence[click.Context],
+    cache: "TimeEntryCache",
+    routine: "CliQueryRoutines",
+    id_list: "TimeEntryIdList",
+    console: Console,
+    entry: str | None,
+) -> None:
+    ctx, parent = ctx_group
+    debug: bool = parent.params.get("debug", False)
+
+    scheduler: SchedulerCallable = ctx.find_root().obj.get("get_scheduler")
+
+    entries: list[dict[str, t.Any]] = cache.running_entries + cache.paused_entries
+
+    if len(entries) == 1:
+        console.print(markup.dimmed("No time entries to select from."))
+        raise click.exceptions.Exit()
+
+    if not entry:
+        table: Table = render.map_sequence_to_rich_table(entries)
+        if not table.row_count:
+            rprint(markup.dimmed("No results"))
+            raise click.exceptions.Exit()
+
+        console.print(table)
+
+        choices: list[str] = list(
+            filter(lambda i: not cache.id.startswith(i), map(_get._id, entries)),
+        )
+
+        select: str = _questionary.select(
+            message="Select a time entry.",
+            instruction="(active entry excluded)",
+            choices=choices,
+        )
+    else:
+        select = id_list.match_id(entry)
+
+    if cache.index(cache.paused_entries, "id", [select]):
+        scheduler().add_job(
+            func=routine._resume_time_entry,
+            trigger="date",
+            run_date=datetime.now(),
+            kwargs={"id": select, "time_resume": now},
+        )
+
+        debug and console.log("[DEBUG]", f"resuming entry {select}")
+
+    cache.switch_entry(select, now)
 
 
 @click.command(

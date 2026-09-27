@@ -14,6 +14,7 @@ __all__: t.Sequence[str] = ("timer",)
         "add": "lightlike.cmd.timer.commands:add",
         "delete": "lightlike.cmd.timer.commands:delete",
         "edit": "lightlike.cmd.timer.commands:edit",
+        "focus": "lightlike.cmd.timer.commands:focus",
         "get": "lightlike.cmd.timer.commands:get",
         "list": "lightlike.cmd.timer.commands:list_",
         "notes": "lightlike.cmd.timer.commands:notes",
