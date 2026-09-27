@@ -231,6 +231,12 @@ class TimeEntryCache(_Entries):
                     paused_hours=Decimal(entry["paused_hours"] or 0),
                 )
                 entry["hours"] = hours
+
+                if hours > 24:
+                    if "days" not in fields:
+                        fields.extend(["days"])
+                if "days" in fields:
+                    entry["days"] = round(hours / 24, 2)
             else:
                 entry["hours"] = 0
 
@@ -248,17 +254,24 @@ class TimeEntryCache(_Entries):
                 paused_hours=new_paused_hour,
             )
 
+            if hours > 24:
+                if "days" not in fields:
+                    fields.extend(["days"])
+                entry["days"] = round(hours / 24, 2)
+
             entry["paused_hours"] = round(new_paused_hour, 4)
-            entry["hours"] = hours or 0
+            entry["hours"] = hours
+
             entries.append(entry)
 
         if not entries:
             console.print(markup.dimmed("No entries found"))
             return
 
-        if console.width <= 125:
-            console.print_json(data=entries, default=str, indent=4)
-            return
+        if "days" in fields:
+            for entry in entries:
+                if "days" not in entry:
+                    entry["days"] = round(entry["hours"] / 24, 2)
 
         table = Table(box=box.MARKDOWN, border_style="bold", show_header=True)
 
