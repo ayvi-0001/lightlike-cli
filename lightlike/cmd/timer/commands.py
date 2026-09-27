@@ -12,6 +12,8 @@ from math import copysign
 from operator import truth
 
 import click
+import sqlalchemy as sq
+from apscheduler.schedulers.background import BackgroundScheduler
 from more_itertools import first, locate, one
 from rich import print as rprint
 from rich.console import Console
@@ -20,7 +22,6 @@ from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
-from lightlike.__about__ import __appname_sc__
 from lightlike.app import (
     _get,
     _questionary,
@@ -38,9 +39,6 @@ from lightlike.cmd import _pass
 from lightlike.internal import appdir, markup, utils
 
 if t.TYPE_CHECKING:
-    from google.cloud.bigquery import QueryJob
-    from google.cloud.bigquery.table import Row
-
     from lightlike.app.cache import TimeEntryAppData, TimeEntryIdList
     from lightlike.client import CliQueryRoutines
 
@@ -61,7 +59,7 @@ __all__: t.Sequence[str] = (
 )
 
 
-P = t.ParamSpec("P")
+SchedulerCallable: t.TypeAlias = t.Callable[[], BackgroundScheduler]
 
 
 def default_timer_add(config: AppConfig) -> str:
@@ -230,6 +228,8 @@ def add(
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
+    scheduler: SchedulerCallable = ctx.find_root().obj.get("get_scheduler")
+
     if note == "None" and note_parts:
         note = " ".join(note_parts)
 
@@ -273,13 +273,19 @@ def add(
 
     time_entry_id = sha1(f"{project}{note}{start_local}".encode()).hexdigest()
 
-    query_job: "QueryJob" = routine._add_time_entry(
-        id=time_entry_id,
-        project=project,
-        note=note,
-        start_time=start_local,
-        end_time=end_local,
-        billable=billable or project_default_billable,
+    scheduler().add_job(
+        func=routine._add_time_entry,
+        trigger="date",
+        run_date=datetime.now(),
+        kwargs={
+            "id": time_entry_id,
+            "project": project,
+            "note": note or "None",
+            "start_time": start_local,
+            "end_time": end_local,
+            "hours": hours,
+            "billable": billable if billable in (True, False) else project_default_billable,
+        },
     )
 
     threads.spawn(
@@ -289,31 +295,31 @@ def add(
     )
     note != "None" and threads.spawn(ctx=ctx, fn=appdata.sync)
 
+    mappings = [
+        {
+            "id": time_entry_id[:7],
+            "project": project,
+            "date": start_local.date(),
+            "start": start_local.time(),
+            "end": end_local.time(),
+            "note": note or "None",
+            "billable": billable if billable in (True, False) else project_default_billable,
+            "hours": hours,
+        },
+    ]
+
     console.print(
         "Added record:",
-        render.map_sequence_to_rich_table(
-            mappings=[
-                {
-                    "id": time_entry_id[:7],
-                    "project": project,
-                    "date": start_local.date(),
-                    "start": start_local.time(),
-                    "end": end_local.time(),
-                    "note": note or "None",
-                    "billable": billable or project_default_billable,
-                    "hours": hours,
-                }
-            ],
-        ),
+        render.map_sequence_to_rich_table(mappings=mappings),
     )
 
 
 def yank_flag_help() -> str:
     if appdir.TIMER_LIST_CACHE.exists():
-        timer_list_cache = loads(appdir.TIMER_LIST_CACHE.read_text())
-        len_cache = len(timer_list_cache)
+        timer_list_cache: dict[str, str] = loads(appdir.TIMER_LIST_CACHE.read_text())
+        len_cache: int = len(timer_list_cache)
         if len_cache > 0:
-            return f"Pull id from latest timer:list cmd. Cache range: 1<=x<={len_cache}"
+            return f"Pull id from latest timer:list cmd. Cache range: {-len_cache}<=x<={len_cache}"
 
     return "Pull id from latest timer:list cmd. Current cache is empty."
 
@@ -437,6 +443,8 @@ def delete(
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
+    scheduler: SchedulerCallable = ctx.find_root().obj.get("get_scheduler")
+
     ids_to_match: list[str] = [
         *(id_options or []),
         *(yank or []),
@@ -447,19 +455,16 @@ def delete(
         param = one(filter(lambda p: p.name == "id_options", ctx.command.params))
         raise click.MissingParameter(ctx=ctx, param=param)
 
-    with console.status(
-        status=markup.status_message("Matching time entry ids")
-    ) as status:
+    with console.status(status=markup.status_message("Deleting entries")):
         matched_ids, non_matched_ids = _match_ids(
             ctx=ctx,
             id_list=id_list,
             ids_to_match=ids_to_match,
         )
         console.print(markup.bg("Matched "), matched_ids, end="")
-        non_matched_ids and console.print(
-            markup.red("Non-matched "), non_matched_ids, end=""
-        )
-        status.update(markup.status_message("Retrieving data."))
+
+        if non_matched_ids:
+            console.print(markup.red("Non-matched "), non_matched_ids, end="")
 
         for id_match in matched_ids:
             if cache.id == id_match:
@@ -469,7 +474,12 @@ def delete(
             elif cache.exists(cache.paused_entries, [id_match]):
                 cache.remove("id", [id_match], [cache.paused_entries])
 
-        query_job: "QueryJob" = routine._delete_time_entries(matched_ids, wait=True)
+        scheduler().add_job(
+            func=routine._delete_time_entries,
+            trigger="date",
+            run_date=datetime.now(),
+            kwargs={"ids": matched_ids},
+        )
 
         console.print("Deleted time entries")
 
@@ -487,7 +497,7 @@ def delete(
 
 def _get_entry_edits(
     matched_ids: list[str],
-    entry_row: "Row",
+    entry_row: dict[str, t.Any],
     console: Console,
     project: str,
     note: str,
@@ -506,6 +516,9 @@ def _get_entry_edits(
         edits["billable"] = billable
 
     match truth(date), truth(start_time), truth(end_time):
+        # Only include date.
+        # Procedure in BigQuery will handle updating each
+        # individual time entries start and end times.
         case True, True, True:
             new_date, new_start, new_end = dates.combine_new_date_into_start_and_end(
                 in_datetime=date, in_start=start_time, in_end=end_time
@@ -515,43 +528,40 @@ def _get_entry_edits(
             edits["date"] = new_date
         case True, True, False:
             new_date, new_start, new_end = dates.combine_new_date_into_start(
-                in_datetime=date, in_start=start_time, in_end=entry_row.end
+                in_datetime=date, in_start=start_time, in_end=entry_row["end"]
             )
             edits["start_time"] = new_start
             edits["date"] = new_date
         case True, False, False:
             new_date, new_start, new_end = dates.combine_new_date_into_start_and_end(
                 in_datetime=date,
-                in_start=entry_row.start,
-                in_end=entry_row.end,
+                in_start=entry_row["start"],
+                in_end=entry_row["end"],
             )
-            # Only include date.
-            # Procedure in BigQuery will handle updating each
-            # individual time entries start and end times.
             edits["date"] = new_date
         case True, False, True:
             new_date, new_start, new_end = dates.combine_new_date_into_end(
-                in_datetime=date, in_start=entry_row.start, in_end=end_time
+                in_datetime=date, in_start=entry_row["start"], in_end=end_time
             )
             edits["end_time"] = new_end
             edits["date"] = new_date
         case False, True, False:
             new_date, new_start, new_end = dates.combine_new_date_into_start(
-                in_datetime=entry_row.start,
+                in_datetime=entry_row["start"],
                 in_start=start_time,
-                in_end=entry_row.end,
+                in_end=entry_row["end"],
             )
             edits["start_time"] = new_start
         case False, False, True:
             new_date, new_start, new_end = dates.combine_new_date_into_end(
-                in_datetime=entry_row.start,
-                in_start=entry_row.start,
+                in_datetime=entry_row["start"],
+                in_start=entry_row["start"],
                 in_end=end_time,
             )
             edits["end_time"] = new_end
         case False, True, True:
             new_date, new_start, new_end = dates.combine_new_date_into_start_and_end(
-                in_datetime=entry_row.start,
+                in_datetime=entry_row["start"],
                 in_start=start_time,
                 in_end=end_time,
             )
@@ -559,10 +569,10 @@ def _get_entry_edits(
             edits["end_time"] = new_end
 
     if any([truth(date), truth(start_time), truth(end_time)]):
-        paused_hours = entry_row.paused_hours
+        paused_hours = entry_row["paused_hours"]
         duration = new_end - new_start
         paused_hours, paused_minutes, paused_seconds = dates.seconds_to_time_parts(
-            Decimal(paused_hours or 0) * Decimal(3600)
+            dates.hours_to_seconds(paused_hours),
         )
 
         duration = duration - timedelta(
@@ -570,33 +580,34 @@ def _get_entry_edits(
             minutes=paused_minutes,
             seconds=paused_seconds,
         )
+        total_seconds: float = duration.total_seconds()
 
-        if duration.total_seconds() < 0 or copysign(1, duration.days) == -1:
-            matched_ids.pop(matched_ids.index(entry_row.id))
+        if total_seconds < 0 or copysign(1, duration.days) == -1:
+            matched_ids.pop(matched_ids.index(entry_row["id"]))
 
             _compare_start = (
-                f"original start = {entry_row.start.strftime('%Y-%m-%d %H:%M:%S')}"
+                f"original start = {entry_row['start'].strftime('%Y-%m-%d %H:%M:%S')}"
                 f" | new start {new_start.strftime('%Y-%m-%d %H:%M:%S')}"
             )
             _compare_end = (
-                f"original end = {entry_row.end.strftime('%Y-%m-%d %H:%M:%S')}"
+                f"original end = {entry_row['end'].strftime('%Y-%m-%d %H:%M:%S')}"
                 f" | new end {new_end.strftime('%Y-%m-%d %H:%M:%S')}"
             )
             console.print(
                 cleandoc(
                     f"""
-            [code]{entry_row.id}[/code] updates failed: Negative Duration.
+            [code]{entry_row["id"]}[/code] updates failed: Negative Duration.
             {_compare_start}
             {_compare_end}
-            paused_hours = [repr.number]{entry_row.paused_hours}[/repr.number]
+            paused_hours = [repr.number]{entry_row["paused_hours"]}[/repr.number]
             duration = {duration}
             Removed from edits.
-                """
-                )
+                """,
+                ),
             )
             return None
 
-        hours = round(Decimal(duration.total_seconds()) / Decimal(3600), 4)
+        hours = dates.seconds_to_hours(total_seconds, ndigits=4)
         edits["paused_hours"] = None
         edits["hours"] = hours
 
@@ -886,18 +897,18 @@ def edit(
 
         status.update(markup.status_message("Retrieving data"))
         try:
-            matched_entries: "QueryJob" = routine._get_time_entries(matched_ids)
+            matched_entries: list[dict[str, t.Any]] = [r._asdict() for r in routine._get_time_entries(
+                ids=matched_ids,
+            )]
         except Exception as error:
             console.print(markup.br("Error:"), error)
             raise click.exceptions.Exit()
 
-        debug and console.log("[DEBUG]", matched_entries)
-
         all_edits: list[dict[str, t.Any]] = []
-        for entry_row in matched_entries:
+        for row in matched_entries:
             edits = _get_entry_edits(
                 matched_ids=matched_ids,
-                entry_row=entry_row,
+                entry_row=row,
                 console=console,
                 project=project,
                 note=note,
@@ -909,14 +920,13 @@ def edit(
 
             if not edits:
                 continue
-            else:
-                all_edits.append(edits)
+            all_edits.append(edits)
 
         debug and console.log("[DEBUG]", all_edits)
 
         status_renderable = Text.assemble(
             markup.status_message(
-                "Editing %s: " % ("entries" if len(matched_ids) > 1 else "entry")
+                "Editing %s: " % ("entries" if len(matched_ids) > 1 else "entry"),
             ),
             Text.join(Text(", "), [markup.code(_id[:7]) for _id in matched_ids]),
         )
@@ -927,7 +937,7 @@ def edit(
         edits = first(all_edits)
         status.update(status_renderable)
 
-        query_job: "QueryJob" = routine._update_time_entries(
+        routine._update_time_entries(
             ids=matched_ids,
             project=edits.get("project"),
             note=edits.get("note"),
@@ -940,12 +950,12 @@ def edit(
         original_records = []
         new_records = []
 
-        for entry_row, edits in t.cast(
-            t.Sequence[tuple["Row", dict[str, t.Any]]],
-            zip(matched_entries, all_edits),
+        for row, edits in t.cast(
+            "t.Sequence[tuple[sq.Row[t.Any], dict[str, t.Any]]]",
+            zip(matched_entries, all_edits, strict=False),
         ):
-            _start_datetime = entry_row.start
-            _end_datetime = entry_row.end
+            _start_datetime = row.get("start")
+            _end_datetime = row.get("end")
 
             try:
                 _start_time = _start_datetime.time()
@@ -953,20 +963,20 @@ def edit(
             except Exception:
                 ctx.fail(
                     "Failed to retrieve start/end times. Possible there is "
-                    "still an job running on one of these records. "
-                    "Please wait a moment and try again."
+                    "still a job running on one of these records. "
+                    "Please wait a moment and try again.",
                 )
 
             original_record = {
-                "id": entry_row.id[:7],
-                "project": entry_row.project,
-                "date": entry_row.date,
+                "id": row.get("id")[:7],
+                "project": row.get("project"),
+                "date": row.get("date"),
                 "start_time": _start_time,
                 "end_time": _end_time,
-                "note": entry_row.note,
-                "billable": entry_row.billable,
-                "paused_hours": entry_row.paused_hours or 0,
-                "hours": round(Decimal(entry_row.hours), 4),
+                "note": row.get("note"),
+                "billable": row.get("billable"),
+                "paused_hours": row.get("paused_hours") or 0,
+                "hours": round(Decimal(row.get("hours")), 4),
             }
             original_records.append(original_record)
 
@@ -1021,15 +1031,17 @@ def get(
     time_entry_id: str,
 ) -> None:
     """Retrieve a single time entry."""
-    query_job: "QueryJob" = routine._get_time_entries(
-        [id_list.match_id(time_entry_id)], wait=True, render=True
+    rows: t.Sequence[sq.Row[t.Any]] = routine._get_time_entries(
+        [id_list.match_id(time_entry_id)],
     )
-    rows: list["Row"] = list(query_job.result())
     if not rows:
         console.print(markup.dimmed("Id not found"))
     else:
-        data = {k: v for k, v in one(rows).items()}
-        console.print_json(data=data, default=str, indent=4)
+        console.print_json(
+            data=dict(one(rows).items()),
+            default=str,
+            indent=4,
+        )
 
 
 @click.command(
@@ -1265,19 +1277,6 @@ def get(
     shell_complete=shell_complete.Param("modifiers").regex_flags,
 )
 @click.option(
-    "-re",
-    "--regex-engine",
-    show_default=True,
-    multiple=False,
-    type=click.Choice(["ECMAScript", "re2"]),
-    help="Regex engine to use.",
-    required=False,
-    default="ECMAScript",
-    callback=None,
-    metavar=None,
-    shell_complete=None,
-)
-@click.option(
     "-w",
     "--prompt-where",
     show_default=True,
@@ -1318,21 +1317,6 @@ def get(
     metavar=None,
     shell_complete=None,
 )
-@click.option(
-    "-nc",
-    "--no-cache",
-    show_default=True,
-    is_flag=True,
-    flag_value=True,
-    multiple=False,
-    type=click.BOOL,
-    help="Don't use query cache. *Deprecated*",
-    required=False,
-    default=False,
-    callback=None,
-    metavar=None,
-    shell_complete=None,
-)
 @click.argument(
     "where",
     type=click.UNPROCESSED,
@@ -1367,10 +1351,8 @@ def list_(
     exclude: t.Sequence[str],
     include: t.Sequence[str],
     modifiers: t.Sequence[str],
-    regex_engine: str,
     limit: int | None,
     offset: int | None,
-    no_cache: bool,
     prompt_where: bool,
     where: t.Sequence[str],
 ) -> None:
@@ -1404,12 +1386,7 @@ def list_(
     --modifiers / -M:
         modifiers to pass to RegExp. (ECMAScript only)
 
-    --regex-engine / -re:
-        which regex engine to use.
-        re2 = google's regular expression library used by all bigquery regex functions.
-        ECMAScript = javascript regex syntax.
-
-        example:
+    Example:
         re2 does not allow perl operator's such as negative lookaheads, while ECMAScript does.
         to run a case-insensitive regex match in re2, use the inline modifier [repr.str]"(?i)"[/repr.str],
         for ECMAScript, use the --modifiers / -M option with [repr.str]"i"[/repr.str]
@@ -1426,31 +1403,30 @@ def list_(
         joined together by a space to form the where clause.
         the word "WHERE" is stripped from the start of the string, if it exists.
     """
-    ctx, parent = ctx_group
+    ctx, _ = ctx_group
 
     if offset and not limit:
         console.print(
             "--offset / -o does not do anything without also using --limit / -l"
         )
 
-    query_job: "QueryJob"
+    where_clause: str = shell_complete.where._parse_click_options(
+        flag=prompt_where,
+        args=where,
+        console=console,
+        routine=routine,
+    )
 
     if all_:
-        where_clause: str = shell_complete.where._parse_click_options(
-            flag=prompt_where, args=where, console=console, routine=routine
-        )
-
-        query_job = routine._list_timesheet(
-            where=where_clause,
-            use_query_cache=not no_cache,
-            match_project=match_project,
-            match_note=match_note,
+        rows = routine._list_timesheet(
             exclude=exclude,
             include=include,
-            modifiers=modifiers,
-            regex_engine=regex_engine,
             limit=limit,
+            match_note=match_note,
+            match_project=match_project,
+            modifiers=modifiers,
             offset=offset,
+            where=where_clause,
         )
 
     elif any((start, end, current_week, current_month, current_year, previous_week)):
@@ -1476,58 +1452,108 @@ def list_(
                 start or PromptFactory.prompt_date("(start-date)"),
                 end or PromptFactory.prompt_date("(end-date)"),
             )
+        else:
+            raise click.exceptions.Exit()
 
-        where_clause = shell_complete.where._parse_click_options(
-            flag=prompt_where, args=where, console=console, routine=routine
-        )
-
-        query_job = routine._list_timesheet(
+        rows = routine._list_timesheet(
             start_date=date_params.start.date(),
             end_date=date_params.end.date(),
             where=where_clause,
-            use_query_cache=not no_cache,
+            include=include,
+            exclude=exclude,
             match_project=match_project,
             match_note=match_note,
-            exclude=exclude,
-            include=include,
             modifiers=modifiers,
-            regex_engine=regex_engine,
             limit=limit,
             offset=offset,
         )
 
     else:
         query_date = date or now
-
-        where_clause = shell_complete.where._parse_click_options(
-            flag=prompt_where, args=where, console=console, routine=routine
-        )
-
-        query_job = routine._list_timesheet(
+        rows = routine._list_timesheet(
             date=query_date.date(),
             where=where_clause,
-            use_query_cache=not no_cache,
+            include=include,
+            exclude=exclude,
             match_project=match_project,
             match_note=match_note,
-            exclude=exclude,
-            include=include,
             modifiers=modifiers,
-            regex_engine=regex_engine,
             limit=limit,
             offset=offset,
         )
 
-    rows: list[dict[str, t.Any]] = list(map(lambda r: dict(r.items()), query_job))
+    rows: list[dict[str, t.Any]] = [r._asdict() for r in rows]
+    final_rows = []
+
+    final_flags: re.RegexFlag = re.RegexFlag.NOFLAG
+    if modifiers:
+        for modifier in modifiers:
+            final_flags |= getattr(re.RegexFlag, modifier)
+
+    total: Decimal = Decimal(0)
+
+    for row in rows:
+        new_row: dict[str, t.Any] = {}
+        new_row["row"] = row["row"]
+        new_row["id"] = row["id"][:7]
+        new_row["date"] = row["date"]
+        new_row["start"] = t.cast("datetime", row["start"]).strftime("%H:%M:%S")
+        if row["end"] is not None:
+            new_row["end"] = t.cast("datetime", row["end"]).strftime("%H:%M:%S")
+        else:
+            new_row["end"] = None
+        new_row["project"] = row["project"]
+        new_row["note"] = row["note"]
+        new_row["billable"] = row["billable"]
+        new_row["active"] = row["active"]
+        new_row["paused"] = row["paused"]
+
+        new_row["paused_hours"] = row["paused_hours"]
+
+        if row["paused"] is True:
+            _, new_row["paused_hours"] = (
+                dates.date_diff(  # TODO combine this with the first if case below
+                    date_start=t.cast("datetime", row["timestamp_paused"]),
+                    date_end=now,
+                    add_hours=row["paused_hours"],
+                )
+            )
+
+        if row["paused"] is True:
+            _, current_paused_hours = dates.date_diff(row["timestamp_paused"], now)
+            total_paused_hours = current_paused_hours + (row["paused_hours"] or 0)
+            _, hours = dates.date_diff(
+                row["timestamp_start"],
+                now,
+                total_paused_hours,
+            )
+        elif row["active"] is True:
+            _, hours = dates.date_diff(
+                row["timestamp_start"],
+                row["timestamp_end"] or now,
+                row["paused_hours"],
+            )
+        else:
+            hours = row["hours"]
+
+        new_row["hours"] = hours
+        total += hours
+        new_row["total"] = total
+
+        final_rows.append(new_row)
+
+    appdir.TIMER_LIST_CACHE.write_text(
+        dumps({idx: row.get("id") for idx, row in enumerate(final_rows)}),
+        encoding="utf-8",
+    )
 
     if console.width < 80:
         console.print_json(data=rows, default=str)
     else:
         table: Table = render.map_sequence_to_rich_table(
-            mappings=rows,
+            mappings=final_rows,
             exclude_fields=(
-                ["paused_hours", "note", "paused", "active"]
-                if console.width < 100
-                else None
+                ["paused_hours", "note", "paused", "active"] if console.width < 100 else None
             ),
         )
         if not table.row_count:
@@ -1535,11 +1561,6 @@ def list_(
             raise click.exceptions.Exit()
 
         console.print(table)
-
-    appdir.TIMER_LIST_CACHE.write_text(
-        dumps({idx: row.get("id") for idx, row in enumerate(rows)}),
-        encoding="utf-8",
-    )
 
 
 @click.group(
@@ -1717,20 +1738,21 @@ def pause(
     [b]See[/]:
         timer:run --help / -h
     """
-    ctx, parent = ctx_group
-    debug: bool = parent.params.get("debug", False)
+    ctx, _ = ctx_group
+    scheduler: SchedulerCallable = ctx.find_root().obj.get("get_scheduler")
 
     if not cache:
         console.print(markup.dimmed("There is no active time entry."))
         return
 
-    time_entry_id: str = cache.id
-    query_job: "QueryJob" = routine._pause_time_entry(time_entry_id, now, wait=debug)
-    cache.pause_entry(0, now)
+    scheduler().add_job(
+        func=routine._pause_time_entry,
+        trigger="date",
+        run_date=datetime.now(),
+        kwargs={"id": cache.id, "timestamp_paused": now},
+    )
 
-    if debug:
-        query_job.result()
-        console.log("[DEBUG]", f"paused entry {time_entry_id}")
+    cache.pause_entry(0, now)
 
 
 @click.command(
@@ -1783,11 +1805,12 @@ def resume(
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
+    scheduler: SchedulerCallable = ctx.find_root().obj.get("get_scheduler")
+
     if not cache.paused_entries:
         console.print(markup.dimmed("No paused time entries."))
         return
 
-    query_job: "QueryJob"
     matched_id: str
     if not entry:
         paused_entries = cache.get_updated_paused_entries(now)
@@ -1805,7 +1828,12 @@ def resume(
 
         matched_id = select
         cache.resume_entry(matched_id, now)
-        query_job = routine._resume_time_entry(matched_id, now)
+        scheduler().add_job(
+            func=routine._resume_time_entry,
+            trigger="date",
+            run_date=datetime.now(),
+            kwargs={"id": matched_id, "time_resume": now},
+        )
     else:
         if len(entry) < 40:
             matched_id = id_list.match_id(entry)
@@ -1816,11 +1844,12 @@ def resume(
             raise click.UsageError(message="This entry is not paused.", ctx=ctx)
 
         cache.resume_entry(matched_id, now)
-        query_job = routine._resume_time_entry(matched_id, now)
-
-    if debug:
-        query_job.result()
-        console.log("[DEBUG]", f"resumed entry {matched_id}")
+        scheduler().add_job(
+            func=routine._resume_time_entry,
+            trigger="date",
+            run_date=datetime.now(),
+            kwargs={"id": matched_id, "time_resume": now},
+        )
 
 
 @click.command(
@@ -2009,9 +2038,7 @@ def run(
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
-    if stop_active and cache:
-        routine._stop_time_entry(cache.id, now, wait=debug)
-        cache.clear_active()
+    scheduler: SchedulerCallable = ctx.find_root().obj.get("get_scheduler")
 
     if note == "None" and note_parts:
         note = " ".join(note_parts)
@@ -2043,18 +2070,33 @@ def run(
     start_local: datetime = start or now
     time_entry_id: str = sha1(f"{project}{note}{start_local}".encode()).hexdigest()
 
-    query_job: "QueryJob" = routine._start_time_entry(
-        time_entry_id, project, note, start_local, billable or project_default_billable
+    scheduler().add_job(
+        func=routine._start_time_entry,
+        trigger="date",
+        run_date=datetime.now(),
+        kwargs={
+            "time_entry_id": time_entry_id,
+            "project": project,
+            "note": note,
+            "start_time": start_local,
+            "billable": billable if billable in (True, False) else project_default_billable,
+        },
     )
 
     if pause_active:
         if cache:
             entry_to_pause: str = copy(cache.id)
             cache.pause_entry(0, start_local)
-            routine._pause_time_entry(entry_to_pause, start_local, wait=debug)
+            scheduler().add_job(
+                func=routine._pause_time_entry,
+                trigger="date",
+                run_date=datetime.now(),
+                kwargs={"id": entry_to_pause, "timestamp_paused": start_local},
+            )
         else:
             console.print("No active entry. --pause-active / -P ignored.")
-    elif cache:
+
+    if cache:
         cache.start_new_active_time_entry()
 
     with cache.rw() as cache:
@@ -2063,10 +2105,6 @@ def run(
         cache.note = note if note != "None" else None  # type: ignore[assignment]
         cache.billable = billable or project_default_billable
         cache.start = start_local
-
-    if debug:
-        query_job.result()
-        console.log("[DEBUG]", f"started entry {time_entry_id}")
 
     threads.spawn(
         ctx=ctx,
@@ -2174,37 +2212,49 @@ def stop(
     [b]See[/]:
         timer:run --help / -h
     """
-    ctx, parent = ctx_group
-    debug: bool = parent.params.get("debug", False)
+    ctx, _ = ctx_group
+
+    scheduler: SchedulerCallable = ctx.find_root().obj.get("get_scheduler")
 
     if not entry:
         if cache:
-            routine._stop_time_entry(cache.id, now, wait=debug)
+            scheduler().add_job(
+                func=routine._stop_time_entry,
+                trigger="date",
+                run_date=datetime.now(),
+                kwargs={"id": cache.id, "end": now},
+            )
             cache.clear_active()
             return
-        else:
-            paused_entries = cache.get_updated_paused_entries(now)
-            table: Table = render.map_sequence_to_rich_table(
-                mappings=[*cache.running_entries, *paused_entries],
-            )
-            if not table.row_count:
-                ctx.fail("No paused entries.")
 
-            console.print(table)
+        paused_entries = cache.get_updated_paused_entries(now)
+        table: Table = render.map_sequence_to_rich_table(
+            mappings=[*cache.running_entries, *paused_entries],
+        )
+        if not table.row_count:
+            ctx.fail("No paused entries.")
 
-            select: str = _questionary.select(
-                message="Select an entry to resume",
-                choices=list(map(_get._id, paused_entries)),
-            )
+        console.print(table)
 
-            entry = select
+        select: str = _questionary.select(
+            message="Select an entry to resume",
+            choices=list(map(_get._id, paused_entries)),
+        )
+
+        entry = select
 
     if not entry:
         rprint(markup.dimmed("Canceled."))
         return
 
     matched_id = id_list.match_id(entry)
-    routine._stop_time_entry(matched_id, now)
+    scheduler().add_job(
+        func=routine._stop_time_entry,
+        trigger="date",
+        run_date=datetime.now(),
+        kwargs={"id": matched_id, "end": now},
+    )
+
     cache.remove(key="id", sequence=[matched_id])
 
 
@@ -2218,10 +2268,7 @@ def stop(
         $ t s # interactive
 
         $ timer switch 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46
-        $ t s 36c9fe
-    
-        $ timer switch 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46 --continue
-        $ t s 36c9fe -c\
+        $ t s 36c9fe\
         """,
         lexer="fishshell",
         dedent=True,
@@ -2229,9 +2276,7 @@ def stop(
         background_color="#131310",
     ),
 )
-@utils.handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Did not switch.")),
-)
+@utils.handle_keyboard_interrupt()
 @click.argument(
     "entry",
     type=click.STRING,
@@ -2263,18 +2308,19 @@ def switch(
     """
     ctx, parent = ctx_group
 
+    scheduler: SchedulerCallable = ctx.find_root().obj.get("get_scheduler")
+
+    entries: list[dict[str, t.Any]] = cache.running_entries + cache.paused_entries
+
+    if len(entries) == 1:
+        console.print(markup.dimmed("No entries to switch to."))
+        raise click.exceptions.Exit()
+
     if not cache:
         ctx.fail("There is no active time entry. Use timer:resume instead.")
 
     debug: bool = parent.params.get("debug", False)
 
-    entries: list[dict[str, t.Any]] = cache.running_entries + cache.paused_entries
-
-    if len(entries) == 1:
-        console.print(markup.dimmed("Nothing to switch."))
-        raise click.exceptions.Exit()
-
-    select: str
     if not entry:
         table: Table = render.map_sequence_to_rich_table(entries)
         if not table.row_count:
@@ -2287,7 +2333,7 @@ def switch(
             filter(lambda i: not cache.id.startswith(i), map(_get._id, entries))
         )
 
-        select = _questionary.select(
+        select: str = _questionary.select(
             message="Select a time entry.",
             instruction="(active entry excluded)",
             choices=choices,
@@ -2295,14 +2341,26 @@ def switch(
     else:
         select = id_list.match_id(entry)
 
+    # pause active entry in db
+    scheduler().add_job(
+        func=routine._pause_time_entry,
+        trigger="date",
+        run_date=datetime.now(),
+        kwargs={"id": cache.id, "timestamp_paused": now},
+    )
+    debug and console.log("[DEBUG]", f"pausing entry {cache.id}")
+
+    # resume new active entry in db, if paused
     if cache.index(cache.paused_entries, "id", [select]):
-        routine._resume_time_entry(select, now, wait=debug)
+        scheduler().add_job(
+            func=routine._resume_time_entry,
+            trigger="date",
+            run_date=datetime.now(),
+            kwargs={"id": select, "time_resume": now},
+        )
         debug and console.log("[DEBUG]", f"resuming entry {select}")
 
-    if not continue_:
-        routine._pause_time_entry(cache.id, now, wait=debug)
-        debug and console.log("[DEBUG]", f"pausing entry {cache.id}")
-
+    # pause active entry local, switch active entry idx
     cache.switch_entry(select, now, pause=True)
 
 
@@ -2438,6 +2496,8 @@ def update(
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
+    scheduler: SchedulerCallable = ctx.find_root().obj.get("get_scheduler")
+
     if not cache:
         ctx.fail("There is no active time entry.")
 
@@ -2526,17 +2586,27 @@ def update(
         start_time = edits["start"].time()
         start_date = edits["start"].date()
 
-    query_job: "QueryJob" = routine._update_time_entries(
-        ids=[cache.id],
-        project=edits.get("project"),
-        note=edits.get("note"),
-        billable=edits.get("billable"),
-        date=start_date,
-        start_time=start_time,
+    scheduler().add_job(
+        func=routine._update_time_entries,
+        trigger="date",
+        run_date=datetime.now(),
+        kwargs={
+            "ids": [cache.id],
+            "project": edits.get("project"),
+            "note": edits.get("note"),
+            "billable": edits.get("billable"),
+            "date": start_date,
+            "start_time": start_time,
+        },
     )
 
     if stop_active:
-        routine._stop_time_entry(cache.id, now, wait=debug)
+        scheduler().add_job(
+            func=routine._stop_time_entry,
+            trigger="date",
+            run_date=datetime.now(),
+            kwargs={"id": cache.id, "end": now},
+        )
         cache.clear_active()
 
     threads.spawn(ctx=ctx, fn=appdata.sync, kwargs={"debug": debug})

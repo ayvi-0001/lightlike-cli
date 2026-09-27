@@ -468,7 +468,7 @@ def summary_table(
             flag=prompt_where, args=where, console=console, routine=routine
         )
 
-        query_job = routine._summary(
+        rows = routine._summary(
             where=where_clause,
             match_project=match_project,
             match_note=match_note,
@@ -504,23 +504,23 @@ def summary_table(
             flag=prompt_where, args=where, console=console, routine=routine
         )
 
-        query_job = routine._summary(
+        rows = routine._summary(
             start_date=date_params.start.date(),
             end_date=date_params.end.date(),
-            where=where_clause,
-            match_project=match_project,
-            match_note=match_note,
             exclude=exclude,
             include=include,
+            is_file=False,
+            match_note=match_note,
+            match_project=match_project,
             modifiers=modifiers,
             regex_engine=regex_engine,
             round_=round_,
             show_null_values=not show_null_values,
-            is_file=False,
+            where=where_clause,
         )
 
     table: Table = render.map_sequence_to_rich_table(
-        mappings=list(map(lambda r: dict(r.items()), query_job)),
+        mappings=rows,
         table_kwargs={"show_lines": show_lines},
     )
     if not table.row_count:
@@ -751,7 +751,7 @@ def summary_csv(
             flag=prompt_where, args=where, console=console, routine=routine
         )
 
-        query_job = routine._summary(
+        rows = routine._summary(
             where=where_clause,
             match_project=match_project,
             match_note=match_note,
@@ -787,7 +787,7 @@ def summary_csv(
             flag=prompt_where, args=where, console=console, routine=routine
         )
 
-        query_job = routine._summary(
+        rows = routine._summary(
             start_date=date_params.start.date(),
             end_date=date_params.end.date(),
             where=where_clause,
@@ -802,7 +802,7 @@ def summary_csv(
             is_file=True,
         )
 
-    df: "DataFrame" = query_job.result().to_dataframe()
+    df: DataFrame = pandas.DataFrame(rows)
 
     if output:
         dest = output.resolve()
@@ -1044,7 +1044,7 @@ def summary_json(
             flag=prompt_where, args=where, console=console, routine=routine
         )
 
-        query_job = routine._summary(
+        rows = routine._summary(
             where=where_clause,
             match_project=match_project,
             match_note=match_note,
@@ -1080,7 +1080,7 @@ def summary_json(
             flag=prompt_where, args=where, console=console, routine=routine
         )
 
-        query_job = routine._summary(
+        rows = routine._summary(
             start_date=date_params.start.date(),
             end_date=date_params.end.date(),
             where=where_clause,
@@ -1095,7 +1095,7 @@ def summary_json(
             is_file=True,
         )
 
-    df: "DataFrame" = query_job.result().to_dataframe()
+    df: DataFrame = pandas.DataFrame(rows)
 
     if output:
         dest = output.resolve()

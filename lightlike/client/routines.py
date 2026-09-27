@@ -2,18 +2,16 @@ from __future__ import annotations
 
 import re
 import typing as t
-from inspect import classify_class_attrs, cleandoc
-from operator import truth
+from datetime import date, datetime, time
+from decimal import Decimal
+from inspect import classify_class_attrs
 from time import sleep
 
 import click
+import sqlalchemy as sq
 from google.cloud.bigquery import QueryJob, QueryJobConfig
-from google.cloud.bigquery.query import (
-    ArrayQueryParameter,
-    ScalarQueryParameter,
-    SqlParameterScalarTypes,
-)
 from more_itertools import filter_map
+from pytz import timezone
 from rich.text import Text
 
 from lightlike.app.config import AppConfig
@@ -21,12 +19,8 @@ from lightlike.client.bigquery import get_client
 from lightlike.internal import markup
 
 if t.TYPE_CHECKING:
-    from datetime import date, datetime
-
     from google.cloud.bigquery import Client
     from google.cloud.bigquery.job import QueryJob
-    from rich.console import RenderableType
-    from rich.status import Status
 
 __all__: t.Sequence[str] = ("CliQueryRoutines",)
 
@@ -34,502 +28,261 @@ __all__: t.Sequence[str] = ("CliQueryRoutines",)
 P = t.ParamSpec("P")
 
 _MAPPING: dict[str, str] = AppConfig()["bigquery"]
-DATASET: str = _MAPPING["dataset"]
-TABLE_TIMESHEET: str = _MAPPING["timesheet"]
-TABLE_PROJECTS: str = _MAPPING["projects"]
-TIMESHEET_ID: str = f"{DATASET}.{TABLE_TIMESHEET}"
-PROJECTS_ID: str = f"{DATASET}.{TABLE_PROJECTS}"
+
+Rows: t.TypeAlias = t.Sequence[sq.Row[t.Any]]
 
 
 class CliQueryRoutines:
-    _client: t.Callable[..., "Client"] = get_client
-    dataset: str = DATASET
-    table_timesheet: str = TABLE_TIMESHEET
-    table_projects: str = TABLE_PROJECTS
-    timesheet_id: str = TIMESHEET_ID
-    projects_id: str = PROJECTS_ID
-    tz_name: str = AppConfig().tzname
+    dataset: str = _MAPPING["dataset"]
+    table_timesheet: str = _MAPPING["timesheet"]
+    table_projects: str = _MAPPING["projects"]
+    timesheet_id: str = f"{dataset}.{table_timesheet}"
+    projects_id: str = f"{dataset}.{table_projects}"
 
-    def _query_and_wait(
-        self,
-        query: str,
-        job_config: QueryJobConfig | None = None,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
+    client: t.Callable[..., Client] = get_client
+
+    engine = sq.create_engine(
+        url=f"bigquery://{client().project}?use_query_cache=false",
+        connect_args={"client": client()},
+    )
+
+    _table_timesheet = sq.Table(
+        table_timesheet,
+        sq.MetaData(),
+        sq.Column("id", sq.String()),
+        sq.Column("date", sq.DATE()),
+        sq.Column("project", sq.String()),
+        sq.Column("note", sq.String()),
+        sq.Column("timestamp_start", sq.types.TIMESTAMP(timezone=False)),
+        sq.Column("start", sq.types.DateTime(timezone=False)),
+        sq.Column("timestamp_end", sq.types.TIMESTAMP(timezone=False)),
+        sq.Column("end", sq.types.DateTime(timezone=False)),
+        sq.Column("active", sq.Boolean()),
+        sq.Column("billable", sq.Boolean()),
+        sq.Column("archived", sq.Boolean()),
+        sq.Column("paused", sq.Boolean()),
+        sq.Column("timestamp_paused", sq.types.TIMESTAMP(timezone=False)),
+        sq.Column("paused_counter", sq.Integer()),
+        sq.Column("paused_hours", sq.Numeric(precision=4)),
+        sq.Column("hours", sq.Numeric(precision=4)),
+        schema=dataset,
+        autoload_with=engine,
+    )
+    _table_projects = sq.Table(
+        table_projects,
+        sq.MetaData(),
+        schema=dataset,
+        autoload_with=engine,
+    )
+
+    def _query_and_wait(self, query: str, job_config: QueryJobConfig | None = None) -> QueryJob:
         query_is_active = 1
 
         def _completed(*args: P.args, **kwargs: P.kwargs) -> None:
             """
-            function is added as a callback to the query job so we have a non-blocking thread
+            Function is added as a callback to the query job so we have a non-blocking thread
             to wait for the query results without having to use consecutive GET requests.
             """
             nonlocal query_is_active
             query_is_active = 0
 
-        if render:
-            console = get_console()
-            status_message = status_renderable or markup.status_message("Running query")
-            start = perf_counter_ns()
-            query_job = self._client().query(query, job_config=job_config)
-            query_job.add_done_callback(_completed)  # type: ignore[no-untyped-call]
+        query_job = self.client().query(query, job_config=job_config)
+        query_job.add_done_callback(_completed)  # type: ignore[no-untyped-call]
 
-            if status:
-                try:
-                    while query_is_active:
-                        self._update_elapsed_time(
-                            query_job, status, status_message, start
-                        )
-                except (KeyboardInterrupt, EOFError):
-                    self._cancel_job(query_job)
-            else:
-                with console.status(status_message) as status:
-                    try:
-                        while query_is_active:
-                            self._update_elapsed_time(
-                                query_job, status, status_message, start
-                            )
-                    except (KeyboardInterrupt, EOFError):
-                        self._cancel_job(query_job)
+        while query_is_active:
+            sleep(0.01)
 
-            return query_job
-
-        else:
-            query_job = self._client().query(query, job_config=job_config)
-            query_job.add_done_callback(_completed)  # type: ignore[no-untyped-call]
-
-            while query_is_active:
-                sleep(0.0001)
-
-            return query_job
+        return query_job
 
     def _query(
         self,
         target: str,
         job_config: QueryJobConfig | None = None,
         wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
         suppress: bool | None = False,
-    ) -> "QueryJob":
-        if wait or render:
+    ) -> QueryJob:
+        if wait:
             query_job = self._query_and_wait(
                 target,
                 job_config=job_config,
-                render=render,
-                status=status,
-                status_renderable=status_renderable,
             )
             if query_job._exception and not suppress:
                 raise click.ClickException(
-                    message=self._format_error_message(query_job, target)
+                    message=self._format_error_message(query_job, target),
                 )
 
             return query_job
 
-        else:
-            query_job = self._client().query(target, job_config=job_config)
-            if query_job._exception and suppress is False:
-                raise click.ClickException(
-                    message=self._format_error_message(query_job, target)
-                )
+        query_job: QueryJob = self.client().query(target, job_config=job_config)
+        if query_job._exception and suppress is False:
+            raise click.ClickException(
+                message=self._format_error_message(query_job, target),
+            )
 
-            return query_job
+        return query_job
 
     def _start_time_entry(
         self,
-        id: str,
+        time_entry_id: str,
         project: str,
         note: str,
         start_time: datetime,
         billable: bool,
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            # fmt:off
-            query_parameters=[
-                ScalarQueryParameter("id", SqlParameterScalarTypes.STRING, id),
-                ScalarQueryParameter(
-                    "project", SqlParameterScalarTypes.STRING, project
-                ),
-                ScalarQueryParameter("note", SqlParameterScalarTypes.STRING, note),
-                ScalarQueryParameter(
-                    "start_time", SqlParameterScalarTypes.TIMESTAMP, start_time
-                ),
-                ScalarQueryParameter(
-                    "billable", SqlParameterScalarTypes.BOOL, billable
-                ),
-            ],
-            # fmt:on
+    ) -> Rows:
+        executable: sq.Executable = self._table_timesheet.insert().values(
+            id=time_entry_id,
+            date=sq.cast(start_time.date(), sq.DATE()),
+            project=project,
+            note=None if note == "None" else note,
+            timestamp_start=sq.cast(start_time.astimezone(None), sq.TIMESTAMP()),
+            start=sq.text(
+                f"datetime(timestamp('{start_time}'), '{AppConfig().tzname}')",
+            ),
+            active=sq.cast(True, sq.BOOLEAN()),
+            billable=sq.cast(billable, sq.BOOLEAN()),
+            archived=sq.cast(False, sq.BOOLEAN()),
+            paused=sq.cast(False, sq.BOOLEAN()),
         )
 
-        target: str = cleandoc(
-            f"""
-            INSERT INTO
-              {self.timesheet_id} (
-                id,
-                date,
-                project,
-                note,
-                timestamp_start,
-                start,
-                billable,
-                active,
-                archived,
-                paused
-              )
-            VALUES
-              (
-                @id,
-                EXTRACT(DATE FROM @start_time AT TIME ZONE "{self.tz_name}"),
-                @project,
-                NULLIF(@note, "None"),
-                @start_time,
-                EXTRACT(DATETIME FROM @start_time AT TIME ZONE "{self.tz_name}"),
-                @billable,
-                TRUE,
-                FALSE,
-                FALSE
-              );
-            """
-        )
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
 
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
-        )
+        return rows
 
     def _add_time_entry(
         self,
         id: str,
         project: str,
         note: str,
-        start_time: "datetime",
-        end_time: "datetime",
+        start_time: datetime,
+        end_time: datetime,
+        hours: Decimal,
         billable: bool,
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            # fmt: off
-            query_parameters=[
-                ScalarQueryParameter("id", SqlParameterScalarTypes.STRING, id),
-                ScalarQueryParameter(
-                    "project", SqlParameterScalarTypes.STRING, project
-                ),
-                ScalarQueryParameter("note", SqlParameterScalarTypes.STRING, note),
-                ScalarQueryParameter(
-                    "start_time", SqlParameterScalarTypes.TIMESTAMP, start_time
-                ),
-                ScalarQueryParameter(
-                    "end_time", SqlParameterScalarTypes.TIMESTAMP, end_time
-                ),
-                ScalarQueryParameter(
-                    "billable", SqlParameterScalarTypes.BOOL, billable
-                ),
-            ],
-            # fmt: on
+    ) -> Rows:
+        executable: sq.Executable = self._table_timesheet.insert().values(
+            id=id,
+            date=sq.cast(start_time.date(), sq.Date()),
+            project=project,
+            note=note if note != "None" else None,
+            timestamp_start=start_time.astimezone(timezone("UTC")),
+            start=sq.cast(start_time.replace(tzinfo=None), sq.DateTime(timezone=True)),
+            timestamp_end=end_time.astimezone(timezone("UTC")),
+            end=sq.cast(end_time.replace(tzinfo=None), sq.DateTime(timezone=True)),
+            active=False,
+            billable=billable,
+            archived=False,
+            paused=False,
+            hours=hours,
         )
 
-        target: str = cleandoc(
-            f"""
-            INSERT INTO
-              {self.timesheet_id} (
-                id,
-                date,
-                project,
-                note,
-                timestamp_start,
-                start,
-                timestamp_end,
-                `end`,
-                active,
-                billable,
-                archived,
-                paused,
-                hours
-              )
-            VALUES
-              (
-                @id,
-                DATE(@start_time),
-                @project,
-                NULLIF(@note, "None"),
-                @start_time,
-                DATETIME_TRUNC(EXTRACT(DATETIME FROM @start_time AT TIME ZONE "{self.tz_name}"), SECOND),
-                @end_time,
-                DATETIME_TRUNC(EXTRACT(DATETIME FROM @end_time AT TIME ZONE "{self.tz_name}"), SECOND),
-                FALSE,
-                @billable,
-                FALSE,
-                FALSE,
-                ROUND(CAST(SAFE_DIVIDE(TIMESTAMP_DIFF(@end_time, @start_time, SECOND), 3600) AS NUMERIC), 4)
-              );
-            """
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
+
+        return rows
+
+    def _delete_time_entries(self, ids: list[str]) -> Rows:
+        executable: sq.Executable = self._table_timesheet.delete().where(
+            self._table_timesheet.c.id.in_(ids),
         )
 
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
+
+        return rows
+
+    def _archive_project(self, name: str) -> Rows:
+        executable: sq.Executable = (
+            self._table_projects.update()
+            .values(archived=datetime.now(tz=AppConfig().tzinfo))
+            .where(self._table_projects.c.name == name)
         )
 
-    def _delete_time_entries(
-        self,
-        ids: list[str],
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                ArrayQueryParameter("ids", SqlParameterScalarTypes.STRING, ids),
-            ],
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
+
+        return rows
+
+    def _archive_time_entries(self, name: str) -> Rows:
+        executable: sq.Executable = (
+            self._table_timesheet.update()
+            .values(archived=True)
+            .where(self._table_timesheet.c.project == name)
         )
 
-        target: str = f"DELETE FROM {self.timesheet_id} WHERE id IN UNNEST(@ids)"
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
 
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
-        )
-
-    def _archive_project(
-        self,
-        name: str,
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                ScalarQueryParameter("name", SqlParameterScalarTypes.STRING, name),
-            ],
-        )
-
-        target: str = cleandoc(
-            f"""
-            UPDATE
-              {self.projects_id}
-            SET
-              archived = {self.dataset}.current_datetime()
-            WHERE
-              name = @name;
-            """
-        )
-
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
-        )
-
-    def _archive_time_entries(
-        self,
-        name: str,
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                ScalarQueryParameter("name", SqlParameterScalarTypes.STRING, name),
-            ],
-        )
-
-        target: str = cleandoc(
-            f"""
-            UPDATE
-              {self.timesheet_id}
-            SET
-              archived = TRUE
-            WHERE
-              project = @name;
-            """
-        )
-
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
-        )
+        return rows
 
     def _create_project(
         self,
         name: str,
         description: str,
         default_billable: bool,
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            # fmt: off
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                ScalarQueryParameter("name", SqlParameterScalarTypes.STRING, name),
-                ScalarQueryParameter(
-                    "description", SqlParameterScalarTypes.STRING, description
-                ),
-                ScalarQueryParameter(
-                    "default_billable", SqlParameterScalarTypes.BOOL, default_billable
-                ),
-            ],
-            # fmt: on
+    ) -> Rows:
+        executable: sq.Executable = self._table_projects.insert().values(
+            name=name,
+            description=description or None,
+            default_billable=default_billable,
+            created=datetime.now(tz=AppConfig().tzinfo),
         )
 
-        target: str = cleandoc(
-            f"""
-            INSERT INTO
-              {self.projects_id}(
-                name,
-                description,
-                default_billable,
-                created
-              )
-            VALUES
-              (
-                @name,
-                NULLIF(@description, ""),
-                @default_billable,
-                {self.dataset}.current_datetime()
-              );
-            """
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
+
+        return rows
+
+    def _delete_project(self, name: str) -> Rows:
+        executable: sq.Executable = self._table_projects.delete().where(
+            self._table_projects.c.name == name,
         )
 
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
+
+        return rows
+
+    def _delete_time_entries_by_project(self, project: str) -> QueryJob:
+        executable: sq.Executable = self._table_timesheet.delete().where(
+            self._table_timesheet.c.project == project,
         )
 
-    def _delete_project(
-        self,
-        name: str,
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                ScalarQueryParameter("name", SqlParameterScalarTypes.STRING, name),
-            ],
-        )
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
 
-        target: str = cleandoc(
-            f"""
-            DELETE FROM
-              {self.projects_id}
-            WHERE
-              name = @name;
-            """
-        )
-
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
-        )
-
-    def _delete_time_entries_by_project(
-        self,
-        project: str,
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                ScalarQueryParameter(
-                    "project", SqlParameterScalarTypes.STRING, project
-                ),
-            ],
-        )
-
-        target: str = cleandoc(
-            f"""
-            DELETE FROM
-              {self.timesheet_id}
-            WHERE
-              project = @project;
-            """
-        )
-
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
-        )
+        return rows
 
     def _update_time_entries(
         self,
@@ -537,768 +290,502 @@ class CliQueryRoutines:
         project: str | None = None,
         note: str | None = None,
         billable: bool | None = None,
-        start_time: "datetime | None" = None,
-        end_time: "datetime | None" = None,
-        date: "date | None" = None,
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                # fmt: off
-                ArrayQueryParameter("ids", SqlParameterScalarTypes.STRING, [*ids]),
-                ScalarQueryParameter(
-                    "project", SqlParameterScalarTypes.STRING, project
+        start_time: time | None = None,
+        end_time: time | None = None,
+        date: date | None = None,
+    ) -> Rows:
+        timesheet = self._table_timesheet
+        second = sq.literal_column("SECOND")
+        tzname: str = AppConfig().tzname
+
+        values: dict[str, t.Any] = {}
+        if project is not None:
+            values["project"] = project
+        if note is not None:
+            values["note"] = note
+        if billable is not None:
+            values["billable"] = billable
+        if date is not None:
+            values["date"] = date
+
+        date_param = sq.literal(date, sq.Date()) if date is not None else None
+
+        start: sq.ColumnElement[t.Any] = timesheet.c.start
+        if date is not None or start_time is not None:
+            start = sq.func.datetime(
+                date_param if date_param is not None else sq.func.date(timesheet.c.start),
+                sq.literal(start_time, sq.Time())
+                if start_time is not None
+                else sq.func.time(timesheet.c.start),
+            )
+            values["start"] = sq.func.datetime_trunc(start, second)
+            values["timestamp_start"] = sq.func.timestamp_trunc(
+                sq.func.timestamp(start, tzname),
+                second,
+            )
+
+        end: sq.ColumnElement[t.Any] = timesheet.c.end
+        if date is not None or end_time is not None:
+            end = sq.func.datetime(
+                date_param if date_param is not None else sq.func.date(timesheet.c.end),
+                sq.literal(end_time, sq.Time())
+                if end_time is not None
+                else sq.func.time(timesheet.c.end),
+            )
+            values["end"] = sq.func.datetime_trunc(end, second)
+            values["timestamp_end"] = sq.func.timestamp_trunc(
+                sq.func.timestamp(end, tzname),
+                second,
+            )
+
+        if "start" in values or "end" in values:
+            values["hours"] = sq.func.round(
+                sq.cast(
+                    sq.func.safe_divide(
+                        sq.func.datetime_diff(end, start, second),
+                        sq.literal_column("3600"),
+                    )
+                    - sq.func.coalesce(timesheet.c.paused_hours, sq.literal_column("0")),
+                    sq.Numeric(),
                 ),
-                ScalarQueryParameter("note", SqlParameterScalarTypes.STRING, note),
-                ScalarQueryParameter(
-                    "billable", SqlParameterScalarTypes.BOOL, billable
-                ),
-                ScalarQueryParameter(
-                    "start_time", SqlParameterScalarTypes.TIME, start_time
-                ),
-                ScalarQueryParameter(
-                    "end_time", SqlParameterScalarTypes.TIME, end_time
-                ),
-                ScalarQueryParameter("date", SqlParameterScalarTypes.DATE, date),
-                # fmt: on
-            ],
+                sq.literal_column("4"),
+            )
+
+        if not values:
+            return []
+
+        executable: sq.Executable = (
+            timesheet.update().values(**values).where(timesheet.c.id.in_([*ids]))
         )
 
-        target: str = cleandoc(
-            f"""
-            SET @@time_zone = "{self.tz_name}";
-            UPDATE
-              {self.timesheet_id}
-            SET
-              project = COALESCE(@project, project),
-              note = COALESCE(@note, note),
-              billable = COALESCE(@billable, billable),
-              timestamp_start = TIMESTAMP_TRUNC(TIMESTAMP(DATETIME(COALESCE(@date, EXTRACT(DATE from start)), COALESCE(@start_time, TIME(start)))), SECOND),
-              start = DATETIME_TRUNC(DATETIME(COALESCE(@date, EXTRACT(DATE from start)), COALESCE(@start_time, TIME(start))), SECOND),
-              timestamp_end = TIMESTAMP_TRUNC(TIMESTAMP(DATETIME(COALESCE(@date, EXTRACT(DATE from `end`)), COALESCE(@end_time, TIME(`end`)))), SECOND),
-              `end` = DATETIME_TRUNC(DATETIME(COALESCE(@date, EXTRACT(DATE from `end`)), COALESCE(@end_time, TIME(`end`))), SECOND),
-              date = COALESCE(@date, date),
-              hours = ROUND(
-                SAFE_CAST(
-                  SAFE_DIVIDE(
-                    TIMESTAMP_DIFF(
-                      DATETIME(COALESCE(@date, EXTRACT(DATE from `end`)), COALESCE(@end_time, TIME(`end`))),
-                      DATETIME(COALESCE(@date, EXTRACT(DATE from start)), COALESCE(@start_time, TIME(start))),
-                      SECOND
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
+
+        return rows
+
+    def _stop_time_entry(self, id: str, end: datetime) -> Rows:
+        timesheet = self._table_timesheet
+        second = sq.literal_column("SECOND")
+        timestamp_end = sq.bindparam(
+            "timestamp_end_param",
+            end.replace(microsecond=0),
+            type_=sq.TIMESTAMP(timezone=True),
+        )
+
+        paused_hours = sq.cast(
+            sq.case(
+                (
+                    timesheet.c.paused == True,
+                    sq.func.safe_divide(
+                        sq.func.timestamp_diff(
+                            timestamp_end,
+                            timesheet.c.timestamp_paused,
+                            second,
+                        ),
+                        sq.literal_column("3600"),
                     ),
-                    3600
-                  ) - IFNULL(paused_hours, 0)
-                  AS NUMERIC
                 ),
-                4
-              )
-            WHERE
-              id IN UNNEST(@ids);
-            """
+                else_=sq.literal_column("0"),
+            )
+            + sq.func.coalesce(timesheet.c.paused_hours, sq.literal_column("0")),
+            sq.Numeric(),
         )
-
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
-        )
-
-    def _stop_time_entry(
-        self,
-        id: str,
-        end: datetime,
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                ScalarQueryParameter("id", SqlParameterScalarTypes.STRING, id),
-                ScalarQueryParameter("end", SqlParameterScalarTypes.TIMESTAMP, end),
-            ],
-        )
-
-        target: str = cleandoc(
-            f"""
-            SET @@time_zone = "{self.tz_name}";
-            UPDATE
-              {self.timesheet_id}
-            SET
-              timestamp_end = TIMESTAMP_TRUNC(@end, SECOND),
-              `end` = DATETIME_TRUNC(EXTRACT(DATETIME FROM @end), SECOND),
-              hours = ROUND(
-                SAFE_CAST(SAFE_DIVIDE(TIMESTAMP_DIFF(IFNULL(@end, {self.dataset}.current_timestamp()), timestamp_start, SECOND), 3600) AS NUMERIC)
-                - SAFE_CAST(IF(paused = TRUE, SAFE_DIVIDE(TIMESTAMP_DIFF(@end, timestamp_paused, SECOND), 3600), 0) + IFNULL(paused_hours, 0) AS NUMERIC),
-                4
-              ),
-              paused_hours = ROUND(SAFE_CAST(IF(paused = TRUE, SAFE_DIVIDE(TIMESTAMP_DIFF(@end, timestamp_paused, SECOND), 3600), 0) + IFNULL(paused_hours, 0) AS NUMERIC), 4),
-              active = FALSE,
-              paused = FALSE,
-              timestamp_paused = NULL
-            WHERE
-              id = @id;
-            """
-        )
-
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
-        )
-
-    def _get_time_entries(
-        self,
-        ids: list[str],
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                ArrayQueryParameter(
-                    "ids", SqlParameterScalarTypes.STRING, [i for i in ids]
+        hours = (
+            sq.cast(
+                sq.func.safe_divide(
+                    sq.func.timestamp_diff(
+                        timestamp_end,
+                        timesheet.c.timestamp_start,
+                        second,
+                    ),
+                    sq.literal_column("3600"),
                 ),
-            ],
+                sq.Numeric(),
+            )
+            - paused_hours
         )
 
-        target: str = f"SELECT * FROM {self.timesheet_id} WHERE id IN UNNEST(@ids)"
-
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
-        )
-
-    def _resume_time_entry(
-        self,
-        id: str,
-        time_resume: "datetime",
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                ScalarQueryParameter("id", SqlParameterScalarTypes.STRING, id),
-                ScalarQueryParameter(
-                    "time_resume", SqlParameterScalarTypes.TIMESTAMP, time_resume
+        executable: sq.Executable = (
+            timesheet.update()
+            .values(
+                timestamp_end=timestamp_end,
+                end=end.astimezone(AppConfig().tzinfo).replace(
+                    tzinfo=None,
+                    microsecond=0,
                 ),
-            ],
+                hours=sq.func.round(hours, sq.literal_column("4")),
+                paused_hours=sq.func.round(paused_hours, sq.literal_column("4")),
+                active=False,
+                paused=False,
+                timestamp_paused=None,
+            )
+            .where(timesheet.c.id == id)
         )
 
-        target: str = cleandoc(
-            f"""
-            UPDATE
-              {self.timesheet_id}
-            SET
-              paused = FALSE,
-              active = TRUE,
-              paused_hours = ROUND(SAFE_CAST(SAFE_DIVIDE(TIMESTAMP_DIFF(@time_resume, timestamp_paused, SECOND), 3600) + IFNULL(paused_hours, 0) AS NUMERIC), 4),
-              timestamp_paused = NULL
-            WHERE
-              id = @id;
-            """
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
+
+        return rows
+
+    def _get_time_entries(self, ids: list[str]) -> Rows:
+        executable: sq.Executable = self._table_timesheet.select().where(
+            self._table_timesheet.c.id.in_(ids),
         )
 
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
+
+        return rows
+
+    def _resume_time_entry(self, id: str, time_resume: datetime) -> Rows:
+        timesheet = self._table_timesheet
+        second = sq.literal_column("SECOND")
+        time_resume_param = sq.bindparam(
+            "time_resume",
+            time_resume,
+            type_=sq.TIMESTAMP(timezone=True),
         )
 
-    def _unarchive_project(
-        self,
-        name: str,
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                ScalarQueryParameter("name", SqlParameterScalarTypes.STRING, name),
-            ],
-        )
-
-        target: str = cleandoc(
-            f"""
-            UPDATE
-              {self.projects_id}
-            SET
-              archived = NULL
-            WHERE
-              name = @name;
-            """
-        )
-
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
-        )
-
-    def _unarchive_time_entries(
-        self,
-        name: str,
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                ScalarQueryParameter("name", SqlParameterScalarTypes.STRING, name),
-            ],
-        )
-
-        target: str = cleandoc(
-            f"""
-            UPDATE
-              {self.timesheet_id}
-            SET
-              archived = FALSE
-            WHERE
-              project = @name;
-            """
-        )
-
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
-        )
-
-    def _update_notes(
-        self,
-        new_note: str,
-        old_note: str,
-        project: str,
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            # fmt: off
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                ScalarQueryParameter(
-                    "new_note", SqlParameterScalarTypes.STRING, new_note
+        paused_hours = sq.cast(
+            sq.func.safe_divide(
+                sq.func.timestamp_diff(
+                    time_resume_param,
+                    timesheet.c.timestamp_paused,
+                    second,
                 ),
-                ScalarQueryParameter(
-                    "old_note", SqlParameterScalarTypes.STRING, old_note
-                ),
-                ScalarQueryParameter(
-                    "project", SqlParameterScalarTypes.STRING, project
-                ),
-            ],
-            # fmt: on
+                sq.literal_column("3600"),
+            )
+            + sq.func.coalesce(timesheet.c.paused_hours, sq.literal_column("0")),
+            sq.Numeric(),
         )
 
-        target: str = cleandoc(
-            f"""
-            UPDATE
-              {self.timesheet_id}
-            SET
-              note = @new_note
-            WHERE
-              REGEXP_CONTAINS(note, @old_note)
-              AND project = @project;
-            """
+        executable: sq.Executable = (
+            timesheet.update()
+            .values(
+                paused=False,
+                active=True,
+                paused_hours=sq.func.round(paused_hours, sq.literal_column("4")),
+                timestamp_paused=None,
+            )
+            .where(timesheet.c.id == id)
         )
 
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
+
+        return rows
+
+    def _unarchive_project(self, name: str) -> Rows:
+        executable: sq.Executable = (
+            self._table_projects.update()
+            .values(archived=None)
+            .where(self._table_projects.c.name == name)
         )
+
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
+
+        return rows
+
+    def _unarchive_time_entries(self, name: str) -> Rows:
+        executable: sq.Executable = (
+            self._table_timesheet.update()
+            .values(archived=False)
+            .where(self._table_timesheet.c.name == name)
+        )
+
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
+
+        return rows
 
     def _update_project_default_billable(
         self,
         name: str,
         default_billable: bool,
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                # fmt:off
-                ScalarQueryParameter("name", SqlParameterScalarTypes.STRING, name),
-                ScalarQueryParameter(
-                    "default_billable", SqlParameterScalarTypes.BOOL, default_billable
+    ) -> Rows:
+        executable: sq.Executable = (
+            self._table_projects.update()
+            .values(default_billable=default_billable)
+            .where(self._table_projects.c.name == name)
+        )
+
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
+
+        return rows
+
+    def _update_project_description(self, name: str, description: str) -> Rows:
+        executable: sq.Executable = (
+            self._table_projects.update()
+            .values(description=description)
+            .where(self._table_projects.c.name == name)
+        )
+
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
+
+        return rows
+
+    def _update_project_name(self, old_name: str, new_name: str) -> Rows:
+        executable: sq.Executable = (
+            self._table_projects.update()
+            .values(name=new_name)
+            .where(self._table_projects.c.name == old_name)
+        )
+
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
+
+        return rows
+
+    def _update_time_entry_projects(self, old_name: str, new_name: str) -> Rows:
+        executable: sq.Executable = (
+            self._table_timesheet.update()
+            .values(project=new_name)
+            .where(self._table_timesheet.c.project == old_name)
+        )
+
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
+
+        return rows
+
+    def _pause_time_entry(self, id: str, timestamp_paused: datetime) -> Rows:
+        executable: sq.Executable = (
+            self._table_timesheet.update()
+            .values(
+                paused=True,
+                active=False,
+                timestamp_paused=sq.cast(
+                    timestamp_paused.replace(microsecond=0),
+                    sq.TIMESTAMP(timezone=False),
                 ),
-                # fmt:on
-            ],
+                paused_counter=sq.func.coalesce(
+                    self._table_timesheet.c.paused_counter,
+                    0,
+                )
+                + 1,
+            )
+            .where(self._table_timesheet.c.id == id)
         )
 
-        target: str = cleandoc(
-            f"""
-            UPDATE
-              {self.projects_id}
-            SET
-              default_billable = @default_billable
-            WHERE
-              name = @name;
-            """
-        )
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
 
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
-        )
-
-    def _update_project_description(
-        self,
-        name: str,
-        description: str,
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                ScalarQueryParameter("name", SqlParameterScalarTypes.STRING, name),
-                ScalarQueryParameter(
-                    "description", SqlParameterScalarTypes.STRING, description
-                ),
-            ],
-        )
-
-        target: str = cleandoc(
-            f"""
-            UPDATE
-              {self.projects_id}
-            SET
-              description = @description
-            WHERE
-              name = @name;
-            """
-        )
-
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
-        )
-
-    def _update_project_name(
-        self,
-        name: str,
-        new_name: str,
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            # fmt: off
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                ScalarQueryParameter("name", SqlParameterScalarTypes.STRING, name),
-                ScalarQueryParameter(
-                    "new_name", SqlParameterScalarTypes.STRING, new_name
-                ),
-            ],
-            # fmt: on
-        )
-
-        target: str = cleandoc(
-            f"""
-            UPDATE
-              {self.projects_id}
-            SET
-              name = @new_name
-            WHERE
-              name = @name;
-            """
-        )
-
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
-        )
-
-    def _update_time_entry_projects(
-        self,
-        name: str,
-        new_name: str,
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            # fmt: off
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                ScalarQueryParameter("name", SqlParameterScalarTypes.STRING, name),
-                ScalarQueryParameter(
-                    "new_name", SqlParameterScalarTypes.STRING, new_name
-                ),
-            ],
-            # fmt: on
-        )
-
-        target: str = cleandoc(
-            f"""
-            UPDATE
-              {self.timesheet_id}
-            SET
-              project = @new_name
-            WHERE
-              project = @name;
-            """
-        )
-
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
-        )
-
-    def _pause_time_entry(
-        self,
-        id: str,
-        timestamp_paused: "datetime",
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            # fmt: off
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-            query_parameters=[
-                ScalarQueryParameter("id", SqlParameterScalarTypes.STRING, id),
-                ScalarQueryParameter(
-                    "timestamp_paused",
-                    SqlParameterScalarTypes.TIMESTAMP,
-                    timestamp_paused,
-                ),
-            ],
-            # fmt: on
-        )
-
-        target: str = cleandoc(
-            f"""
-            UPDATE
-              {self.timesheet_id}
-            SET
-              paused = TRUE,
-              active = FALSE,
-              timestamp_paused = TIMESTAMP_TRUNC(@timestamp_paused, SECOND),
-              paused_counter = IFNULL(paused_counter, 0) + 1
-            WHERE
-              id = @id;
-            """
-        )
-
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
-        )
+        return rows
 
     def _list_timesheet(
         self,
-        date: "date | None" = None,
-        start_date: "date | None" = None,
-        end_date: "date | None" = None,
-        where: str | None = None,
+        date: date | None = None,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        include: t.Sequence[str] | None = None,
+        exclude: t.Sequence[str] | None = None,
         match_project: t.Sequence[str] | None = None,
         match_note: t.Sequence[str] | None = None,
-        exclude: t.Sequence[str] | None = None,
-        include: t.Sequence[str] | None = None,
-        modifiers: str | None = None,
-        regex_engine: t.Literal["ECMAScript", "re2"] | str | None = "ECMAScript",
+        modifiers: t.Sequence[str] | None = None,
         limit: int | None = None,
         offset: int | None = None,
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
+        where: str | None = None,
+    ) -> Rows:
+        timesheet = self._table_timesheet
+        row = (
+            sq.func.row_number()
+            .over(
+                order_by=[
+                    timesheet.c.timestamp_start,
+                    timesheet.c.timestamp_end,
+                    timesheet.c.paused,
+                    timesheet.c.timestamp_paused,
+                    timesheet.c.paused_counter,
+                    timesheet.c.paused_hours,
+                ],
+            )
+            .label("row")
         )
-
-        fmt_match_project: str = ""
-        if match_project:
-            project_expressions: list[str] = []
-            for pattern in match_project:
-                project_expressions.append(pattern)
-
-            project_expression: str = "|".join(project_expressions)
-            fmt_match_project = self._format_regular_expression(
-                fields="project",
-                expr=project_expression,
-                modifiers=modifiers,
-                regex_engine=regex_engine,
-                and_=True,
+        total = (
+            sq.func.sum(timesheet.c.hours)
+            .over(
+                order_by=[
+                    timesheet.c.timestamp_start,
+                    timesheet.c.timestamp_end,
+                    timesheet.c.paused,
+                    timesheet.c.timestamp_paused,
+                    timesheet.c.paused_counter,
+                    timesheet.c.paused_hours,
+                ],
             )
+            .label("total")
+        )
+        columns = [
+            row,
+            timesheet.c.id,
+            timesheet.c.date,
+            timesheet.c.project,
+            timesheet.c.note,
+            timesheet.c.timestamp_start,
+            timesheet.c.start,
+            timesheet.c.timestamp_end,
+            timesheet.c.end,
+            timesheet.c.active,
+            timesheet.c.billable,
+            timesheet.c.archived,
+            timesheet.c.paused,
+            timesheet.c.timestamp_paused,
+            timesheet.c.paused_counter,
+            timesheet.c.paused_hours,
+            timesheet.c.hours,
+            total,
+        ]
 
-        fmt_match_note: str = ""
-        if match_note:
-            note_expressions: list[str] = []
-            for pattern in match_note:
-                note_expressions.append(pattern)
+        executable = sq.select(*columns)
 
-            note_expression: str = "|".join(note_expressions)
-            fmt_match_note = self._format_regular_expression(
-                fields="note",
-                expr=note_expression,
-                modifiers=modifiers,
-                regex_engine=regex_engine,
-                and_=True,
+        if date:
+            executable = executable.where(timesheet.c.date == date)
+        if start_date and end_date:
+            executable = executable.where(
+                timesheet.c.date.between(start_date, end_date),
             )
+        if where:
+            executable = executable.where(sq.text(where))
 
-        fmt_exclude_expression: str = ""
-        if exclude:
-            exclude_expressions: list[str] = []
-            for pattern in exclude:
-                exclude_expressions.append(pattern)
+        case_insensitive_regexp_match: bool = False
+        if modifiers:
+            if "I" in modifiers:
+                case_insensitive_regexp_match = True
 
-            exclude_expression: str = "|".join(exclude_expressions)
-            fmt_exclude_expression = self._format_regular_expression(
-                fields=["project", "note"],
-                expr=exclude_expression,
-                modifiers=modifiers,
-                regex_engine=regex_engine,
-                and_=True,
-                not_=True,
-            )
-
-        fmt_include_expression: str = ""
+        # https://docs.sqlalchemy.org/en/14/core/sqlelement.html#sqlalchemy.sql.expression.ColumnOperators.regexp_match
         if include:
-            include_expressions: list[str] = []
+            include_clauses = []
             for pattern in include:
-                include_expressions.append(pattern)
-
-            include_expression: str = "|".join(include_expressions)
-            fmt_include_expression = self._format_regular_expression(
-                fields=["project", "note"],
-                expr=include_expression,
-                modifiers=modifiers,
-                regex_engine=regex_engine,
-                and_=True,
-                not_=False,
-            )
-
-        target: str = cleandoc(
-            f"""
-        SELECT
-          ROW_NUMBER() OVER(timer) AS `row`,
-          LEFT(id, 7) AS id,
-          date,
-          CAST(FORMAT_DATETIME("%%T", start) AS TIME) AS start,
-          CAST(FORMAT_DATETIME("%%T", `end`) AS TIME) AS `end`,
-          project,
-          note,
-          billable,
-          active,
-          paused,
-          ROUND(
-            SAFE_CAST(
-              IF(paused = TRUE, SAFE_DIVIDE(TIMESTAMP_DIFF({self.dataset}.current_timestamp(), timestamp_paused, SECOND), 3600), 0)
-              AS NUMERIC
-            )
-            + IFNULL(paused_hours, 0), 4
-          ) AS paused_hours,
-          CASE
-            WHEN paused THEN
-              ROUND(
-                SAFE_CAST(
-                  SAFE_DIVIDE(TIMESTAMP_DIFF(timestamp_paused, timestamp_start, SECOND), 3600)
-                  AS NUMERIC
-                )
-                - IFNULL(paused_hours, 0), 4
-              )
-            WHEN active THEN
-              ROUND(
-                SAFE_CAST(
-                  SAFE_DIVIDE(TIMESTAMP_DIFF(IFNULL(timestamp_end, {self.dataset}.current_timestamp()), timestamp_start, SECOND), 3600)
-                  AS NUMERIC
-                )
-                - IFNULL(paused_hours, 0), 4
-              )
-            ELSE hours
-          END AS hours,
-          ROUND(
-            SUM(
-              CASE
-                WHEN paused THEN
-                  ROUND(
-                    SAFE_CAST(
-                      SAFE_DIVIDE(TIMESTAMP_DIFF(timestamp_paused, timestamp_start, SECOND), 3600)
-                      AS NUMERIC
+                if not pattern:
+                    continue
+                if not case_insensitive_regexp_match:
+                    include_clauses.append(
+                        sq.or_(
+                            timesheet.c.project.regexp_match(pattern),
+                            timesheet.c.note.regexp_match(pattern),
+                        ),
                     )
-                    - IFNULL(paused_hours, 0), 4
-                  )
-                WHEN active THEN
-                  ROUND(
-                    SAFE_CAST(
-                      SAFE_DIVIDE(TIMESTAMP_DIFF(IFNULL(timestamp_end, {self.dataset}.current_timestamp()), timestamp_start, SECOND), 3600)
-                      AS NUMERIC
+                else:
+                    include_clauses.append(
+                        sq.or_(
+                            sq.func.lower(timesheet.c.project).regexp_match(
+                                pattern.lower(),
+                            ),
+                            sq.func.lower(timesheet.c.note).regexp_match(
+                                pattern.lower(),
+                            ),
+                        ),
                     )
-                    - IFNULL(paused_hours, 0), 4
-                  )
-                ELSE hours
-              END
-            ) OVER(timer),
-            4
-          ) AS total,
-        FROM
-          {self.timesheet_id}
-        WHERE
-          TRUE
-          /* date */ %s
-          /* date between */ %s
-          /* additional where clause */ %s
-          /* match project */ %s
-          /* match note */ %s
-          /* exclude regex */ %s
-          /* include regex */ %s
-        WINDOW
-          timer AS (
-            ORDER BY
-              timestamp_start,
-              timestamp_end,
-              paused,
-              timestamp_paused,
-              paused_counter,
-              paused_hours
-          )
-        ORDER BY
-          timestamp_start,
-          timestamp_end,
-          id
-        %s
-        %s
-        """
-            % (
-                # fmt: off
-                f'AND date = "{date}"' if date else "",
-                f'AND date BETWEEN "{start_date}" AND "{end_date}"'
-                if start_date and end_date
-                else "",
-                f"AND {where}" if where else "",
-                fmt_match_project,
-                fmt_match_note,
-                fmt_exclude_expression,
-                fmt_include_expression,
-                f"LIMIT {limit}" if limit else "",
-                f"OFFSET {offset}" if limit and offset else "",
-                # fmt: on
-            )
+
+            executable = executable.where(sq.or_(*include_clauses))
+        if exclude:
+            exclude_clauses = []
+            for pattern in exclude:
+                if not pattern:
+                    continue
+                exclude_clauses.append(
+                    sq.or_(
+                        sq.and_(
+                            sq.not_(timesheet.c.project.regexp_match(pattern)),
+                            sq.not_(timesheet.c.note.regexp_match(pattern)),
+                        ),
+                        # TODO add to other exclude/include filters
+                        sq.and_(
+                            sq.not_(timesheet.c.project.regexp_match(pattern)),
+                            timesheet.c.note == None,
+                        ),
+                    ),
+                )
+            executable = executable.where(sq.and_(*exclude_clauses))
+        if match_project:
+            match_project_clauses = []
+            for pattern in match_project:
+                if not pattern:
+                    continue
+                match_project_clauses.append(
+                    timesheet.c.project.regexp_match(pattern),
+                )
+            executable = executable.where(sq.or_(*match_project_clauses))
+        if match_note:
+            match_note_clauses = []
+            for pattern in match_note:
+                if not pattern:
+                    continue
+                match_note_clauses.append(
+                    timesheet.c.note.regexp_match(pattern),
+                )
+            executable = executable.where(sq.or_(*match_note_clauses))
+
+        if limit:
+            executable = executable.limit(limit)
+        if offset:
+            executable = executable.offset(offset)
+
+        executable = executable.order_by(
+            timesheet.c.timestamp_start,
+            timesheet.c.timestamp_end,
         )
 
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
-        )
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
+
+        return rows
 
     def _summary(
         self,
-        start_date: "date | None" = None,
-        end_date: "date | None" = None,
+        start_date: date | None = None,
+        end_date: date | None = None,
         where: str | None = None,
         round_: str | None = None,
         show_null_values: bool = True,
@@ -1308,82 +795,11 @@ class CliQueryRoutines:
         exclude: t.Sequence[str] | None = None,
         include: t.Sequence[str] | None = None,
         modifiers: str | None = None,
-        regex_engine: t.Literal["ECMAScript", "re2"] | str | None = "ECMAScript",
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
-        wait: bool | None = False,
-        render: bool | None = False,
-        status: "Status | None" = None,
-        status_renderable: "RenderableType | None" = None,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-        )
+        regex_engine: t.Literal["ECMAScript", "re2"] | str = "ECMAScript",
+    ) -> Rows:
+        timesheet = self._table_timesheet
 
-        fmt_match_project: str = ""
-        if match_project:
-            project_expressions: list[str] = []
-            for pattern in match_project:
-                project_expressions.append(pattern)
-
-            project_expression: str = "|".join(project_expressions)
-            fmt_match_project = self._format_regular_expression(
-                fields="project",
-                expr=project_expression,
-                modifiers=modifiers,
-                regex_engine=regex_engine,
-                and_=True,
-            )
-
-        fmt_match_note: str = ""
-        if match_note:
-            note_expressions: list[str] = []
-            for pattern in match_note:
-                note_expressions.append(pattern)
-
-            note_expression: str = "|".join(note_expressions)
-            fmt_match_note = self._format_regular_expression(
-                fields="note",
-                expr=note_expression,
-                modifiers=modifiers,
-                regex_engine=regex_engine,
-                and_=True,
-            )
-
-        fmt_exclude_expression: str = ""
-        if exclude:
-            exclude_expressions: list[str] = []
-            for pattern in exclude:
-                exclude_expressions.append(pattern)
-
-            exclude_expression: str = "|".join(exclude_expressions)
-            fmt_exclude_expression = self._format_regular_expression(
-                fields=["project", "note"],
-                expr=exclude_expression,
-                modifiers=modifiers,
-                regex_engine=regex_engine,
-                and_=True,
-                not_=True,
-            )
-
-        fmt_include_expression: str = ""
-        if include:
-            include_expressions: list[str] = []
-            for pattern in include:
-                include_expressions.append(pattern)
-
-            include_expression: str = "|".join(include_expressions)
-            fmt_include_expression = self._format_regular_expression(
-                fields=["project", "note"],
-                expr=include_expression,
-                modifiers=modifiers,
-                regex_engine=regex_engine,
-                and_=True,
-                not_=False,
-            )
-
-        round_factor: int | None = None
+        round_factor: int
         match round_:
             case ".05":
                 round_factor = 5
@@ -1395,113 +811,175 @@ class CliQueryRoutines:
                 round_factor = 50
             case "1":
                 round_factor = 100
+            case _:
+                round_factor = 1
 
-        target: str = cleandoc(
-            f"""
-        SELECT DISTINCT
-          ROUND(SUM(hours) OVER(ORDER BY date, project, billable), 4) AS total_summary,
-          ROUND(SUM(hours) OVER(PARTITION BY project ORDER BY date, project, billable), 4) AS total_project,
-          ROUND(SUM(hours) OVER(PARTITION BY date ORDER BY date, project, billable), 4) AS total_day,
-          date,
-          project,
-          billable,
-          ROUND(SUM(hours) OVER(PARTITION BY date, project, billable), 4) AS hours,
-          STRING_AGG(note || " - " || hours, "%s") OVER(PARTITION BY date, project, billable) AS notes,
-        FROM
-          (
-            SELECT
-              date,
-              project,
-              billable,
-              note,
-              CASE %s /* round */
-                WHEN TRUE THEN
-                  ROUND(SUM(hours) / %s, 2) * %s
-                ELSE
-                  SUM(hours)
-              END AS hours,
-            FROM
-              {self.timesheet_id}
-            WHERE
-              TRUE
-              AND NOT archived
-              AND NOT paused
-              /* date between */ %s
-              /* match project */ %s
-              /* match note */ %s
-              /* exclude regex */ %s
-              /* include regex */ %s
-              /* additional where clause */ %s
-            GROUP BY
-              project,
-              date,
-              billable,
-              note
-            %s
-          )
-        %s
-        ORDER BY
-          date,
-          project
-        """
-            % (
-                # fmt: off
-                ", " if is_file else "\\n",
-                truth(round_),
-                round_factor or 1,
-                round_factor or 1,
-                f'AND date BETWEEN "{start_date}" AND "{end_date}"'
-                if start_date and end_date
-                else "",
-                fmt_match_project,
-                fmt_match_note,
-                fmt_exclude_expression,
-                fmt_include_expression,
-                f"AND {where}" if where else "",
-                "HAVING hours != 0" if show_null_values else "",
-                "QUALIFY total_day != 0" if show_null_values else "",
-                # fmt: on
+        hours: sq.ColumnElement[t.Any] = sq.func.sum(timesheet.c.hours)
+        if round_:
+            hours = (
+                sq.func.round(
+                    hours / sq.literal_column(str(round_factor)),
+                    sq.literal_column("2"),
+                )
+                * sq.literal_column(str(round_factor))
+            )
+
+        grouped = (
+            sq.select(
+                timesheet.c.date,
+                timesheet.c.project,
+                timesheet.c.billable,
+                timesheet.c.note,
+                hours.label("hours"),
+            )
+            .where(
+                timesheet.c.archived == False,
+                timesheet.c.paused == False,
+            )
+            .group_by(
+                timesheet.c.project,
+                timesheet.c.date,
+                timesheet.c.billable,
+                timesheet.c.note,
             )
         )
 
-        return self._query(
-            target=target,
-            job_config=job_config,
-            wait=wait,
-            render=render,
-            status=status,
-            status_renderable=status_renderable,
-        )
+        if start_date and end_date:
+            grouped = grouped.where(timesheet.c.date.between(start_date, end_date))
+
+        def _regexp(column: sq.ColumnElement[t.Any], patterns: t.Sequence[str]) -> sq.ColumnElement[t.Any]:
+            return self._regexp_contains(
+                column=column,
+                pattern="|".join(filter(None, patterns)),
+                modifiers=modifiers,
+                regex_engine=regex_engine,
+            )
+
+        if match_project:
+            grouped = grouped.where(_regexp(timesheet.c.project, match_project))
+        if match_note:
+            grouped = grouped.where(_regexp(timesheet.c.note, match_note))
+        if exclude:
+            grouped = grouped.where(
+                sq.or_(
+                    sq.not_(
+                        sq.or_(
+                            _regexp(timesheet.c.project, exclude),
+                            _regexp(timesheet.c.note, exclude),
+                        ),
+                    ),
+                    sq.and_(
+                        sq.not_(_regexp(timesheet.c.project, exclude)),
+                        timesheet.c.note == None,
+                    ),
+                ),
+            )
+        if include:
+            grouped = grouped.where(
+                sq.or_(
+                    _regexp(timesheet.c.project, include),
+                    _regexp(timesheet.c.note, include),
+                ),
+            )
+        if where:
+            grouped = grouped.where(sq.text(where))
+
+        if show_null_values:
+            grouped = grouped.having(hours != sq.literal_column("0"))
+
+        grouped_cte = grouped.cte("grouped")
+
+        window_order: list[sq.ColumnElement[t.Any]] = [
+            grouped_cte.c.date,
+            grouped_cte.c.project,
+            grouped_cte.c.billable,
+        ]
+
+        sum_hours = sq.func.sum(grouped_cte.c.hours)
+        precision = sq.literal_column("4")
+
+        windowed = sq.select(
+            sq.func.round(sum_hours.over(order_by=window_order), precision).label(
+                "total_summary",
+            ),
+            sq.func.round(
+                sum_hours.over(partition_by=grouped_cte.c.project, order_by=window_order),
+                precision,
+            ).label("total_project"),
+            sq.func.round(
+                sum_hours.over(partition_by=grouped_cte.c.date, order_by=window_order),
+                precision,
+            ).label("total_day"),
+            grouped_cte.c.date,
+            grouped_cte.c.project,
+            grouped_cte.c.billable,
+            sq.func.round(sum_hours.over(partition_by=window_order), precision).label(
+                "hours",
+            ),
+            sq.func.string_agg(
+                sq.func.concat(grouped_cte.c.note, " - ", grouped_cte.c.hours),
+                ", " if is_file else "\n",
+            )
+            .over(partition_by=window_order)
+            .label("notes"),
+        ).cte("windowed")
+
+        executable = sq.select(windowed).distinct()
+
+        if show_null_values:
+            executable = executable.where(windowed.c.total_day != sq.literal_column("0"))
+
+        executable = executable.order_by(windowed.c.date, windowed.c.project)
+
+        try:
+            with self.engine.begin() as conn:
+                result = conn.execute(executable)
+                rows = result.fetchall()
+        except Exception as error:
+            raise click.get_current_context().fail(f"{error}")
+
+        return rows
+
+    def _regexp_contains(
+        self,
+        column: sq.ColumnElement[t.Any],
+        pattern: str,
+        modifiers: str | None = None,
+        regex_engine: t.Literal["ECMAScript", "re2"] | str = "ECMAScript",
+    ) -> sq.ColumnElement[t.Any]:
+        if regex_engine == "ECMAScript":
+            js_regex_contains = getattr(sq.func, self.dataset).js_regex_contains
+            return js_regex_contains(column, pattern, modifiers or "")
+
+        if regex_engine == "re2":
+            return column.regexp_match(pattern)
+
+        raise ValueError(f"Unknown regex engine: {regex_engine}")
 
     def _select(
         self,
         resource: str,
         fields: t.Sequence[str] = ["*"],
-        where: t.Optional[t.Sequence[str]] = None,
-        order: t.Optional[t.Sequence[str]] = None,
+        where: t.Sequence[str] | None = None,
+        order: t.Sequence[str] | None = None,
+        limit: int | None = None,
+        offset: int | None = None,
         distinct: bool | None = False,
-        use_query_cache: bool = True,
-        use_legacy_sql: bool | None = False,
         wait: bool | None = False,
-        render: bool | None = False,
-    ) -> "QueryJob":
-        job_config = QueryJobConfig(
-            use_query_cache=use_query_cache,
-            use_legacy_sql=use_legacy_sql,
-        )
+    ) -> QueryJob:
         query = "".join(
             [
                 f"SELECT {'DISTINCT ' if distinct else ''}",
                 f"{','.join(fields)} ",
                 f"FROM {resource} ",
-                f"WHERE {' AND '.join(where)} " if where else " ",
-                f"ORDER BY {','.join(order)}" if order else " ",
+                f"WHERE {' AND '.join(where)} " if where else "",
+                f"ORDER BY {','.join(order)} " if order else "",
+                f"LIMIT {limit} " if limit else "",
+                f"OFFSET {offset} " if offset else "",
                 ";",
-            ]
+            ],
         )
-        return self._query(
-            target=query, job_config=job_config, wait=wait, render=render
-        )
+        return self._query(target=query, wait=wait)
 
     def _format_regular_expression(
         self,

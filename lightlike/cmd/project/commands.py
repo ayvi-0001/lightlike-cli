@@ -5,7 +5,6 @@ from more_itertools import first
 from rich import print as rprint
 from rich.syntax import Syntax
 from rich.table import Table
-from rich.text import Text
 
 from lightlike.app import _get, _questionary, render, shell_complete, threads, validate
 from lightlike.app.autosuggest import threaded_autosuggest
@@ -15,7 +14,6 @@ from lightlike.cmd import _pass
 from lightlike.internal import markup, utils
 
 if t.TYPE_CHECKING:
-    from google.cloud.bigquery import QueryJob
     from rich.console import Console
 
     from lightlike.app.cache import TimeEntryAppData, TimeEntryCache
@@ -145,27 +143,8 @@ def archive(
                 fields=["count(*) as count_entries"],
                 where=[f'project = "{project}"'],
             )
-            routine._archive_project(
-                project,
-                wait=True,
-                render=True,
-                status=status,
-                status_renderable=Text.assemble(
-                    markup.status_message("Archiving project "),
-                    markup.code(project),
-                ),
-            )
-            routine._archive_time_entries(
-                project,
-                wait=True,
-                render=True,
-                status=status,
-                status_renderable=Text.assemble(
-                    markup.status_message("Archiving "),
-                    markup.code(project),
-                    markup.status_message(" time entries"),
-                ),
-            )
+            routine._archive_project(project)
+            routine._archive_time_entries(project)
 
             threads.spawn(ctx, appdata.sync, {"debug": debug})
             count_archived: int = _get.count_entries(first(query_job))
@@ -177,7 +156,7 @@ def archive(
                 markup.code(project),
                 "and",
                 count_archived,
-                "related time" "entry" if count_archived == 1 else "entries",
+                "related time {}".format("entry" if count_archived == 1 else "entries"),
             )
 
         if all_count_entries and max(all_count_entries) > 0:
@@ -293,13 +272,10 @@ def create(
         "[DEBUG]", "project default billable set to", default_billable
     )
 
-    query_job: "QueryJob" = routine._create_project(
+    routine._create_project(
         name=name,
-        description=description or "",
+        description=description,
         default_billable=default_billable,
-        wait=True,
-        render=True,
-        status_renderable=markup.status_message("Creating project"),
     )
 
     threads.spawn(ctx, appdata.sync, {"debug": debug})
@@ -392,36 +368,16 @@ def delete(
         ):
             return
 
-    with console.status(markup.status_message("Getting project info")) as status:
+    with console.status(markup.status_message("Getting project info")):
         for project in projects:
             count_query_job = routine._select(
                 resource=routine.timesheet_id,
                 fields=["count(*) as count_entries"],
                 where=[f'project = "{project}"'],
             )
-            routine._delete_project(
-                project,
-                wait=True,
-                render=True,
-                status=status,
-                status_renderable=Text.assemble(
-                    markup.status_message("Deleting "),
-                    markup.code(project),
-                    markup.status_message(" from projects"),
-                ),
-            )
+            routine._delete_project(project)
             threads.spawn(ctx, appdata.sync, {"debug": debug})
-            routine._delete_time_entries_by_project(
-                project,
-                wait=True,
-                render=True,
-                status=status,
-                status_renderable=Text.assemble(
-                    markup.status_message("Deleting "),
-                    markup.code(project),
-                    markup.status_message(" time entries"),
-                ),
-            )
+            routine._delete_time_entries_by_project(project)
 
             count_deleted: int = _get.count_entries(first(count_query_job))
             console.print(
@@ -724,23 +680,9 @@ def set_project_name(
         console.print(markup.dimmed("Current name, nothing happened."))
         raise click.exceptions.Exit()
 
-    with console.status(markup.status_message("Updating project")) as status:
-        routine._update_project_name(
-            name=project,
-            new_name=new_name,
-            wait=True,
-            render=True,
-            status=status,
-            status_renderable=markup.status_message("Updating project name"),
-        )
-        routine._update_time_entry_projects(
-            name=project,
-            new_name=new_name,
-            wait=True,
-            render=True,
-            status=status,
-            status_renderable=markup.status_message("Updating related time entries"),
-        )
+    with console.status(markup.status_message("Updating project")):
+        routine._update_project_name(old_name=project, new_name=new_name)
+        routine._update_time_entry_projects(old_name=project, new_name=new_name)
         cache.sync()
         console.print(
             "Renamed project",
@@ -840,13 +782,7 @@ def set_project_description(
         console.print(markup.dimmed("Current description, nothing happened."))
         return
 
-    routine._update_project_description(
-        name=project,
-        description=new_desc,
-        wait=True,
-        render=True,
-        status_renderable=markup.status_message("Updating project"),
-    )
+    routine._update_project_description(project, new_desc)
     threads.spawn(ctx, appdata.sync, {"debug": debug})
     console.print("Set description to", markup.repr_str(new_desc))
 
@@ -907,14 +843,7 @@ def set_project_default_billable(
     """Update a project's default billable setting."""
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
-
-    routine._update_project_default_billable(
-        name=project,
-        default_billable=billable,
-        wait=True,
-        render=True,
-        status_renderable=markup.status_message("Updating project"),
-    )
+    routine._update_project_default_billable(project, billable)
     threads.spawn(ctx, appdata.sync, {"debug": debug})
     console.print("Set project default billable to", billable)
 
@@ -974,7 +903,7 @@ def unarchive(
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
-    with console.status(markup.status_message("Getting project info")) as status:
+    with console.status(markup.status_message("Unarchiving project..")):
         all_count_entries = []
 
         for project in projects:
@@ -983,28 +912,9 @@ def unarchive(
                 fields=["count(*) as count_entries"],
                 where=[f'project = "{project}"'],
             )
-            routine._unarchive_project(
-                project,
-                wait=True,
-                render=True,
-                status=status,
-                status_renderable=Text.assemble(
-                    markup.status_message("Unarchiving project "),
-                    markup.code(project),
-                ),
-            )
+            routine._unarchive_project(project)
             threads.spawn(ctx, appdata.sync, {"debug": debug})
-            routine._unarchive_time_entries(
-                project,
-                wait=True,
-                render=True,
-                status=status,
-                status_renderable=Text.assemble(
-                    markup.status_message("Unarchiving "),
-                    markup.code(project),
-                    markup.status_message(" time entries"),
-                ),
-            )
+            routine._unarchive_time_entries(project)
             count_unarchived: int = _get.count_entries(first(query_job))
             all_count_entries.append(count_unarchived)
             console.print(
