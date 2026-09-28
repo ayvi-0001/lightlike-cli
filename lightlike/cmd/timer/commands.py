@@ -122,6 +122,10 @@ def default_timer_add(timer_add_min: int) -> str:
     shell_complete=None,
 )
 @click.option(
+    "--start-after-last",
+    is_flag=True,
+)
+@click.option(
     "-e",
     "--end",
     show_default=True,
@@ -129,6 +133,18 @@ def default_timer_add(timer_add_min: int) -> str:
     type=click.STRING,
     help=None,
     default="now",
+    callback=validate.callbacks.datetime_parsed,
+    metavar=None,
+    shell_complete=None,
+)
+@click.option(
+    "-d",
+    "--date",
+    show_default=True,
+    multiple=False,
+    type=click.STRING,
+    help="Override date.",
+    default=None,
     callback=validate.callbacks.datetime_parsed,
     metavar=None,
     shell_complete=None,
@@ -159,6 +175,12 @@ def default_timer_add(timer_add_min: int) -> str:
     metavar=None,
     shell_complete=shell_complete.Param("billable").bool,
 )
+@click.option(
+    "-x",
+    "--times-default",
+    show_default=True,
+    type=click.INT,
+)
 @click.argument(
     "note-parts",
     type=click.UNPROCESSED,
@@ -186,9 +208,12 @@ def add(
     routine: "CliQueryRoutines",
     project: str,
     start: datetime,
+    start_after_last: bool,
     end: datetime,
+    date: datetime | None,
     note: str,
     billable: bool,
+    times_default: int | None,
     note_parts: t.Sequence[str],
 ) -> None:
     """
@@ -235,17 +260,45 @@ def add(
     project = project or PromptFactory.prompt_project()
     start_param = one(filter(lambda p: p.name == "start", ctx.command.params))
     end_param = one(filter(lambda p: p.name == "end", ctx.command.params))
-    start_default = t.cast(float, start_param.get_default(ctx, call=True))
-    end_default = t.cast(str, end_param.get_default(ctx))
-    date_params = dates.parse_date_range_flags(
-        start=(
-            start
-            if f"{start}" != f"{start_default}"
-            else now - timedelta(minutes=-start_default)
-        ),
-        end=(end if f"{end}" != f"{end_default}" else now),
-    )
+    start_default = t.cast("float", start_param.get_default(ctx, call=True))
+    end_default = t.cast("str", end_param.get_default(ctx))
 
+    if start_after_last:
+        last_time_entry = routine._select(
+            resource=routine.timesheet_id,
+            fields=["`end`"],
+            order=["timestamp_start desc"],
+            limit=1,
+        )
+        rows = list(map(lambda r: dict(r.items()), last_time_entry))
+        if rows:
+            start = rows[0]["end"]
+
+    if times_default:
+        start_default = -6 * times_default
+        start = now - timedelta(minutes=-start_default)
+
+    end = end if f"{end}" != f"{end_default}" else now
+
+    if date is not None:
+        if debug:
+            console.log("[DEBUG]: override date", date)
+
+        _override_day = date.day
+        _override_month = date.month
+        _override_year = date.year
+        start = start.replace(
+            year=_override_year,
+            month=_override_month,
+            day=_override_day,
+        )
+        end = end.replace(
+            year=_override_year,
+            month=_override_month,
+            day=_override_day,
+        )
+
+    date_params = dates.parse_date_range_flags(start, end)
     end_local, start_local, total_seconds = (
         date_params.end,
         date_params.start,
