@@ -63,9 +63,8 @@ __all__: t.Sequence[str] = (
 SchedulerCallable: t.TypeAlias = t.Callable[[], BackgroundScheduler]
 
 
-def default_timer_add(config: AppConfig) -> str:
-    timer_add_min: int = config.get("settings", "timer-add-min", default=-6)
-    minutes = -timer_add_min if copysign(1, timer_add_min) != -1 else timer_add_min
+def default_timer_add(timer_add_min: int) -> str:
+    minutes = -abs(timer_add_min)
     return f"{minutes} minutes"
 
 
@@ -103,7 +102,6 @@ def default_timer_add(config: AppConfig) -> str:
     multiple=False,
     type=shell_complete.projects.ActiveProject,
     help=None,
-    required=True,
     default="no-project",
     callback=validate.active_project,
     metavar="TEXT",
@@ -116,8 +114,9 @@ def default_timer_add(config: AppConfig) -> str:
     multiple=False,
     type=click.STRING,
     help=None,
-    required=True,
-    default=lambda: default_timer_add(config=AppConfig()),
+    default=lambda: default_timer_add(
+        AppConfig().get("settings", "timer-add-min", default=-6),
+    ),
     callback=validate.callbacks.datetime_parsed,
     metavar=None,
     shell_complete=None,
@@ -129,7 +128,6 @@ def default_timer_add(config: AppConfig) -> str:
     multiple=False,
     type=click.STRING,
     help=None,
-    required=True,
     default="now",
     callback=validate.callbacks.datetime_parsed,
     metavar=None,
