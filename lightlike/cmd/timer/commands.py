@@ -1316,6 +1316,22 @@ def get(
     metavar=None,
     shell_complete=None,
 )
+@click.option(
+    "-j",
+    "--json",
+    "json_",
+    show_default=True,
+    is_flag=True,
+    flag_value=True,
+    multiple=False,
+    type=click.BOOL,
+    help=None,
+    required=False,
+    default=None,
+    callback=None,
+    metavar=None,
+    shell_complete=None,
+)
 @click.argument(
     "where",
     type=click.UNPROCESSED,
@@ -1353,6 +1369,7 @@ def list_(
     limit: int | None,
     offset: int | None,
     prompt_where: bool,
+    json_: bool,
     where: t.Sequence[str],
 ) -> None:
     """
@@ -1551,8 +1568,8 @@ def list_(
         encoding="utf-8",
     )
 
-    if console.width < 80:
-        console.print_json(data=rows, default=str)
+    if json_:
+        console.print_json(data=final_rows, default=str)
     else:
         table: Table = render.map_sequence_to_rich_table(
             mappings=final_rows,
