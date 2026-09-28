@@ -1,15 +1,15 @@
 import typing as t
-from enum import Enum
+from enum import Enum, StrEnum
 
 __all__: t.Sequence[str] = (
-    "CredentialsSource",
+    "ActiveCompleter",
     "ClientConfigOptions",
     "ClientInitOptions",
-    "ActiveCompleter",
+    "CredentialsSource",
 )
 
 
-class _ValueEnum(str, Enum):
+class _ValueEnum(StrEnum):
     def __get__(self, instance: t.Any, owner: t.Any) -> str:
         return str(self.value)
 

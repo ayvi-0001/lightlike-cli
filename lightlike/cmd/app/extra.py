@@ -22,17 +22,17 @@ __all__: t.Sequence[str] = ("tree",)
     name="tree",
     hidden=True,
     allow_name_alias=False,
-    context_settings=dict(
-        allow_extra_args=True,
-        ignore_unknown_options=True,
-        help_option_names=[],
-    ),
+    context_settings={
+        "allow_extra_args": True,
+        "ignore_unknown_options": True,
+        "help_option_names": [],
+    },
 )
 @utils.handle_keyboard_interrupt()
 @click.argument(
     "path",
     type=Path,
-    default=lambda: Path.cwd(),
+    default=Path.cwd,
     shell_complete=shell_complete.path,
 )
 @click.option(
@@ -47,7 +47,7 @@ def tree(path: Path, size: bool) -> None:
         with get_console().status(""):
             directory = (path or Path.cwd()).resolve()
             tree = Tree(
-                f"[repr.url][link={directory.as_uri()}]" f"{directory.name}",
+                f"[repr.url][link={directory.as_uri()}]{directory.name}",
                 highlight=True,
             )
 
@@ -56,24 +56,25 @@ def tree(path: Path, size: bool) -> None:
                     directory.iterdir(),
                     key=lambda path: (path.is_file(), path.name.lower()),
                 )
-                for _path in paths:
-                    if _path.is_dir():
-                        style = "dim " if _path.name.startswith("__") else ""
+                for path_ in paths:
+                    if path_.is_dir():
+                        style = "dim " if path_.name.startswith("__") else ""
                         style += "#729fcf"
                         branch = tree.add(
-                            f"[link={_path.resolve().as_uri()}]{escape(_path.name)}/",
+                            f"[link={path_.resolve().as_uri()}]{escape(path_.name)}/",
                             style=style,
                             guide_style=style,
                         )
-                        walk_directory(_path, branch)
+                        walk_directory(path_, branch)
                     else:
-                        text_filename = Text(_path.name, "#f0f0ff")
-                        if not _path.name.startswith("."):
+                        text_filename = Text(path_.name, "#f0f0ff")
+                        if not path_.name.startswith("."):
                             text_filename.highlight_regex(r"\..*$", "red")
-                        text_filename.stylize(f"link {_path.resolve().as_uri()}")
+                        text_filename.stylize(f"link {path_.resolve().as_uri()}")
                         if size:
                             text_filename.append(
-                                f" ({decimal(_path.stat().st_size)})", "blue"
+                                f" ({decimal(path_.stat().st_size)})",
+                                "blue",
                             )
                         tree.add(text_filename)
 

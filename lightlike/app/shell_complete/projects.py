@@ -16,13 +16,13 @@ if t.TYPE_CHECKING:
 
 __all__: t.Sequence[str] = (
     "Active",
-    "Archived",
-    "from_argument",
-    "from_option",
-    "from_chained_cmd",
     "ActiveProject",
-    "ArchivedProject",
     "AnyProject",
+    "Archived",
+    "ArchivedProject",
+    "from_argument",
+    "from_chained_cmd",
+    "from_option",
 )
 
 
@@ -39,11 +39,11 @@ class Projects(Completer):
 
     @property
     def names(self) -> list[str]:
-        return sorted(list(self.projects.keys()))
+        return sorted(self.projects.keys())
 
     @property
     def projects(self) -> dict[str, t.Any]:
-        return t.cast(dict[str, t.Any], self.data.get(self.list_, {}))
+        return t.cast("dict[str, t.Any]", self.data.get(self.list_, {}))
 
     @property
     def data(self) -> dict[str, t.Any]:
@@ -51,19 +51,20 @@ class Projects(Completer):
 
     @property
     def completion_items(self) -> list[CompletionItem]:
-        completion_items: list[CompletionItem] = []
-        for project in self.projects.values():
-            completion_items.append(
-                CompletionItem(
-                    value=project.get("name"),
-                    help=project.get("meta"),
-                    created=project.get("created"),
-                )
+        completion_items: list[CompletionItem] = [
+            CompletionItem(
+                value=project.get("name"),
+                help=project.get("meta"),
+                created=project.get("created"),
             )
+            for project in self.projects.values()
+        ]
         return completion_items
 
     def get_completions(
-        self, document: "Document", complete_event: "CompleteEvent"
+        self,
+        document: "Document",
+        complete_event: "CompleteEvent",
     ) -> t.Iterator[Completion]:
 
         matches: list[str] = fuzzyfinder(
@@ -112,13 +113,15 @@ def _item_not_in_parent_args(
 def _sorted_by_created(completions: list[CompletionItem]) -> list[CompletionItem]:
     return sorted(
         completions,
-        key=lambda c: getattr(c, "created"),
+        key=lambda c: c.created,
         reverse=True,
     )
 
 
 def from_argument(
-    ctx: click.Context, param: click.Parameter, incomplete: str
+    ctx: click.Context,
+    param: click.Parameter,
+    incomplete: str,
 ) -> list[CompletionItem]:
     assert isinstance(param, click.Argument)
     assert ctx.parent
@@ -133,8 +136,7 @@ def from_argument(
         completion_items = completer.completion_items
     else:
         completion_items = (
-            Projects(list_="ACTIVE").completion_items
-            + Projects(list_="ARCHIVED").completion_items
+            Projects(list_="ACTIVE").completion_items + Projects(list_="ARCHIVED").completion_items
         )
 
     if not completion_items:
@@ -143,28 +145,21 @@ def from_argument(
         )
         return completions
 
-    if param.nargs == -1:
+    if param.nargs == -1 or (not ctx.params.get("project") and not ctx.params.get("projects")):
         for item in completion_items:
             if not _matches_name_or_help(incomplete, item):
                 continue
             if _item_not_in_parent_args(item, ctx, param, True):
                 completions.append(item)
-        return _sorted_by_created(completions)
-
-    elif not ctx.params.get("project") and not ctx.params.get("projects"):
-        for item in completion_items:
-            if not _matches_name_or_help(incomplete, item):
-                continue
-            if _item_not_in_parent_args(item, ctx, param, True):
-                completions.append(item)
-
         return _sorted_by_created(completions)
 
     return completions
 
 
 def from_option(
-    ctx: click.Context, param: click.Parameter, incomplete: str
+    ctx: click.Context,
+    param: click.Parameter,
+    incomplete: str,
 ) -> list[CompletionItem]:
     assert isinstance(param, click.Option)
 
@@ -178,8 +173,7 @@ def from_option(
         completion_items = Projects(list_="ARCHIVED").completion_items
     else:
         completion_items = (
-            Projects(list_="ACTIVE").completion_items
-            + Projects(list_="ARCHIVED").completion_items
+            Projects(list_="ACTIVE").completion_items + Projects(list_="ARCHIVED").completion_items
         )
 
     if not completion_items:

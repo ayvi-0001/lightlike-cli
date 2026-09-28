@@ -12,7 +12,6 @@ from rich import print as rprint
 from rich.console import Console
 from rich.padding import Padding
 from rich.syntax import Syntax
-from rich.table import Table
 
 from lightlike import _console
 from lightlike.app import dates, render, shell_complete, validate
@@ -25,13 +24,14 @@ from lightlike.internal.constant import _CONSOLE_SVG_FORMAT
 
 if t.TYPE_CHECKING:
     from pandas import DataFrame
+    from rich.table import Table
 
     from lightlike.client import CliQueryRoutines
 
 __all__: t.Sequence[str] = (
-    "summary_table",
     "summary_csv",
     "summary_json",
+    "summary_table",
 )
 
 
@@ -309,11 +309,11 @@ open_in_editor = click.option(
         # summary of entries starting 7 days ago, until today. hours rounded to nearest .25
         $ timer summary table --start 7d --end now --round .25
         $ t su t -s7d -en -r.25
-    
+
         # case insensitive regex match - re2
         $ timer summary table --current-year --output timesheet_%Y-%m-%dT%H_%M_%S.svg --regex-engine re2 --match-note (?i)task.*
         $ t su t -cy -o timesheet_%Y-%m-%dT%H_%M_%S.svg -re re2 -I (?i)task.*
-        
+
         # case insensitive regex match - ECMAScript
         $ timer summary table --current-year --output timesheet_%Y-%m-%dT%H_%M_%S.svg --match-note task.* --modifiers ig
         $ t su t -cy -o timesheet_%Y-%m-%dT%H_%M_%S.svg -I task.* -Mig
@@ -460,7 +460,7 @@ def summary_table(
         re2 = google's regular expression library used by all bigquery regex functions.
         ECMAScript = javascript regex syntax.
 
-        example:
+    Example:
         re2 does not allow perl operator's such as negative lookaheads, while ECMAScript does.
         to run a case-insensitive regex match in re2, use the inline modifier [repr.str]"(?i)"[/repr.str],
         for ECMAScript, use the --modifiers / -M option with [repr.str]"i"[/repr.str]
@@ -476,6 +476,7 @@ def summary_table(
         all remaining arguments at the end of this command are
         joined together by a space to form the where clause.
         the word "WHERE" is stripped from the start of the string, if it exists.
+
     """
     ctx, _ = ctx_group
 
@@ -486,7 +487,10 @@ def summary_table(
 
     if all_:
         where_clause: str = shell_complete.where._parse_click_options(
-            flag=prompt_where, args=where, console=console, routine=routine
+            flag=prompt_where,
+            args=where,
+            console=console,
+            routine=routine,
         )
 
         rows = routine._summary(
@@ -510,7 +514,8 @@ def summary_table(
         )
         if current_week:
             date_params = dates.get_relative_week(
-                now, AppConfig().get("settings", "week-start", default=0)
+                now,
+                AppConfig().get("settings", "week-start", default=0),
             )
         elif current_month:
             date_params = dates.get_month_to_date(now)
@@ -523,7 +528,10 @@ def summary_table(
             )
 
         where_clause = shell_complete.where._parse_click_options(
-            flag=prompt_where, args=where, console=console, routine=routine
+            flag=prompt_where,
+            args=where,
+            console=console,
+            routine=routine,
         )
 
         rows = routine._summary(
@@ -548,15 +556,14 @@ def summary_table(
     )
     if not table.row_count:
         rprint(markup.dimmed("No results"))
-        raise click.exceptions.Exit()
+        raise click.exceptions.Exit
 
     if open_in_editor:
         tmpfile = Path(tempfile.mktemp(suffix="_timesheet"))
         tmpfile.touch()
 
-        with open(f"{tmpfile}", mode="w") as f:
-            with Console(file=f) as console:
-                console.print(table)
+        with Path(f"{tmpfile}").open(encoding="utf-8", mode="w") as f, Console(file=f) as console:
+            console.print(table)
 
         editor: str | None = AppConfig().editor
         if editor:
@@ -588,15 +595,15 @@ def summary_table(
         # summary of entries starting 7 days ago, until today. hours rounded to nearest .25
         $ timer summary csv --start 7d --end now --round .25 --print
         $ t su c -s7d -en -r.25 -p
-    
+
         # case insensitive regex match - re2
         $ timer summary csv --current-year --output timesheet_%Y-%m-%dT%H_%M_%S.csv --regex-engine re2 --match-note (?i)task.*
         $ t su c -cy -o timesheet_%Y-%m-%dT%H_%M_%S.csv -re re2 -I (?i)task.*
-        
+
         # case insensitive regex match - ECMAScript
         $ timer summary csv --current-year --output timesheet_%Y-%m-%dT%H_%M_%S.csv --match-note task.* --modifiers ig
         $ t su c -cy -o timesheet_%Y-%m-%dT%H_%M_%S.csv -I task.* -Mig
-        
+
         $ timer summary csv --start jan1 --end jul1 billable is true --print
         $ t su c -sjan1 -ejul1 billable is true -p\
         """,
@@ -742,7 +749,7 @@ def summary_csv(
         re2 = google's regular expression library used by all bigquery regex functions.
         ECMAScript = javascript regex syntax.
 
-        example:
+    Example:
         re2 does not allow perl operator's such as negative lookaheads, while ECMAScript does.
         to run a case-insensitive regex match in re2, use the inline modifier [repr.str]"(?i)"[/repr.str],
         for ECMAScript, use the --modifiers / -M option with [repr.str]"i"[/repr.str]
@@ -758,22 +765,26 @@ def summary_csv(
         all remaining arguments at the end of this command are
         joined together by a space to form the where clause.
         the word "WHERE" is stripped from the start of the string, if it exists.
+
     """
     try:
-        import pandas  # noqa: F401
+        import pandas as pd
     except Exception as error:
         console.print(
-            f"[b][red]Must have pandas installed to use this command: {error}."
+            f"[b][red]Must have pandas installed to use this command: {error}.",
         )
-        raise click.exceptions.Exit()
+        raise click.exceptions.Exit
 
-    ctx, parent = ctx_group
+    ctx, _parent = ctx_group
 
     validate.callbacks.print_or_output(output=truth(output), print_=print_)
 
     if all_:
         where_clause: str = shell_complete.where._parse_click_options(
-            flag=prompt_where, args=where, console=console, routine=routine
+            flag=prompt_where,
+            args=where,
+            console=console,
+            routine=routine,
         )
 
         rows = routine._summary(
@@ -797,7 +808,8 @@ def summary_csv(
         )
         if current_week:
             date_params = dates.get_relative_week(
-                now, AppConfig().get("settings", "week-start", default=0)
+                now,
+                AppConfig().get("settings", "week-start", default=0),
             )
         elif current_month:
             date_params = dates.get_month_to_date(now)
@@ -810,7 +822,10 @@ def summary_csv(
             )
 
         where_clause = shell_complete.where._parse_click_options(
-            flag=prompt_where, args=where, console=console, routine=routine
+            flag=prompt_where,
+            args=where,
+            console=console,
+            routine=routine,
         )
 
         rows = routine._summary(
@@ -829,7 +844,7 @@ def summary_csv(
             is_file=True,
         )
 
-    df: DataFrame = pandas.DataFrame(rows)
+    df: DataFrame = pd.DataFrame(rows)
 
     if output:
         dest = output.resolve()
@@ -848,16 +863,16 @@ def summary_csv(
     if print_:
         if not output:
             with tempfile.TemporaryDirectory() as temp_dir:
-                _summary = Path(temp_dir).joinpath(f"{uuid4()}.csv")
+                summary = Path(temp_dir).joinpath(f"{uuid4()}.csv")
                 df.to_csv(
-                    _summary,
+                    summary,
                     index=False,
                     quoting=getattr(csv, f"QUOTE_{quoting}"),
                     doublequote=True,
                     quotechar='"',
                     encoding="utf-8",
                 )
-                console.print(_summary.read_text())
+                console.print(summary.read_text())
         else:
             console.print(output.read_text())
 
@@ -872,18 +887,18 @@ def summary_csv(
         # summary of entries starting 7 days ago, until today. hours rounded to nearest .25
         $ timer summary json --start 7d --end now --round .25 --print
         $ t su j -s7d -en -r.25 -p
-    
+
         $ timer summary json --current-week --orient index billable is false
         $ t su j -cw --orient index -w\
-        
+
         # case insensitive regex match - re2
         $ timer summary json --current-year --output timesheet_%Y-%m-%dT%H_%M_%S.json --regex-engine re2 --match-note (?i)task.*
         $ t su j -cy -o timesheet_%Y-%m-%dT%H_%M_%S.json -re re2 -I (?i)task.*
-        
+
         # case insensitive regex match - ECMAScript
         $ timer summary json --current-year --output timesheet_%Y-%m-%dT%H_%M_%S.json --match-note task.* --modifiers ig
         $ t su j -cy -o timesheet_%Y-%m-%dT%H_%M_%S.json -I task.* -Mig\
-        
+
         $ timer summary json --start jan1 --end jul1 billable is true --print
         $ t su j -sjan1 -ejul1 billable is true -p\
         """,
@@ -1039,7 +1054,7 @@ def summary_json(
         re2 = google's regular expression library used by all bigquery regex functions.
         ECMAScript = javascript regex syntax.
 
-        example:
+    Example:
         re2 does not allow perl operator's such as negative lookaheads, while ECMAScript does.
         to run a case-insensitive regex match in re2, use the inline modifier [repr.str]"(?i)"[/repr.str],
         for ECMAScript, use the --modifiers / -M option with [repr.str]"i"[/repr.str]
@@ -1055,22 +1070,26 @@ def summary_json(
         all remaining arguments at the end of this command are
         joined together by a space to form the where clause.
         the word "WHERE" is stripped from the start of the string, if it exists.
+
     """
     try:
-        import pandas  # noqa: F401
+        import pandas as pd
     except Exception as error:
         console.print(
-            f"[b][red]Must have pandas installed to use this command: {error}."
+            f"[b][red]Must have pandas installed to use this command: {error}.",
         )
-        raise click.exceptions.Exit()
+        raise click.exceptions.Exit
 
-    ctx, parent = ctx_group
+    ctx, _parent = ctx_group
 
     validate.callbacks.print_or_output(output=truth(output), print_=print_)
 
     if all_:
         where_clause: str = shell_complete.where._parse_click_options(
-            flag=prompt_where, args=where, console=console, routine=routine
+            flag=prompt_where,
+            args=where,
+            console=console,
+            routine=routine,
         )
 
         rows = routine._summary(
@@ -1094,7 +1113,8 @@ def summary_json(
         )
         if current_week:
             date_params = dates.get_relative_week(
-                now, AppConfig().get("settings", "week-start", default=0)
+                now,
+                AppConfig().get("settings", "week-start", default=0),
             )
         elif current_month:
             date_params = dates.get_month_to_date(now)
@@ -1107,7 +1127,10 @@ def summary_json(
             )
 
         where_clause = shell_complete.where._parse_click_options(
-            flag=prompt_where, args=where, console=console, routine=routine
+            flag=prompt_where,
+            args=where,
+            console=console,
+            routine=routine,
         )
 
         rows = routine._summary(
@@ -1126,7 +1149,7 @@ def summary_json(
             is_file=True,
         )
 
-    df: DataFrame = pandas.DataFrame(rows)
+    df: DataFrame = pd.DataFrame(rows)
 
     if output:
         dest = output.resolve()
@@ -1143,13 +1166,13 @@ def summary_json(
     if print_:
         if not output:
             with tempfile.TemporaryDirectory() as temp_dir:
-                _summary = Path(temp_dir).joinpath(f"{uuid4()}.json")
+                summary = Path(temp_dir).joinpath(f"{uuid4()}.json")
                 df.to_json(  # type: ignore[call-overload]
-                    _summary.as_posix(),
+                    summary.as_posix(),
                     orient=orient,
                     date_format="iso",
                     indent=4,
                 )
-                console.print_json(_summary.read_text("utf-8"))
+                console.print_json(summary.read_text("utf-8"))
         else:
             console.print_json(dest.read_text())

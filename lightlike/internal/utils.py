@@ -4,7 +4,7 @@ import re
 import typing as t
 from contextlib import ContextDecorator, suppress
 from functools import partial, reduce, wraps
-from operator import getitem, truth
+from operator import eq, getitem, truth
 from pathlib import Path
 from time import perf_counter_ns
 from types import FunctionType
@@ -21,27 +21,27 @@ from rich.console import NewLine
 from lightlike.internal import markup
 
 __all__: t.Sequence[str] = (
+    "alter_str",
     "exit_cmd_on_interrupt",
+    "file_empty_or_not_exists",
+    "format_toml",
+    "get_local_timezone_string",
     "handle_keyboard_interrupt",
+    "identical_vectors",
+    "log_exception",
+    "match_str",
+    "merge_default_dict_into_current_dict",
     "nl",
     "nl_async",
     "nl_start",
-    "get_local_timezone_string",
-    "identical_vectors",
-    "pretty_print_exception",
-    "log_exception",
-    "prerun_autocomplete",
-    "regexp_replace",
-    "format_toml",
-    "reduce_keys",
-    "alter_str",
-    "split_and_alter_str",
-    "match_str",
     "ns_time_diff",
-    "update_dict",
+    "prerun_autocomplete",
+    "pretty_print_exception",
     "print_message_and_clear_buffer",
-    "file_empty_or_not_exists",
-    "merge_default_dict_into_current_dict",
+    "reduce_keys",
+    "regexp_replace",
+    "split_and_alter_str",
+    "update_dict",
 )
 
 
@@ -53,9 +53,9 @@ class exit_cmd_on_interrupt(ContextDecorator):
         try:
             return self
         except (KeyboardInterrupt, EOFError) as error:
-            raise click.exceptions.Exit() from error
+            raise click.exceptions.Exit from error
 
-    def __exit__(self, *exc: t.Any) -> None: ...
+    def __exit__(self, *exc: object) -> None: ...
 
 
 def handle_keyboard_interrupt(
@@ -69,12 +69,11 @@ def handle_keyboard_interrupt(
             except (KeyboardInterrupt, EOFError) as error:
                 if callback and callable(callback):
                     return callback()
-                else:
-                    if isinstance(error, KeyboardInterrupt):
-                        rprint(markup.dimmed("Command killed by keyboard interrupt."))
-                    elif isinstance(error, EOFError):
-                        rprint(markup.dimmed("End of file. No input."))
-                    return None
+                if isinstance(error, KeyboardInterrupt):
+                    rprint(markup.dimmed("Command killed by keyboard interrupt."))
+                elif isinstance(error, EOFError):
+                    rprint(markup.dimmed("End of file. No input."))
+                return None
 
         return inner
 
@@ -91,7 +90,8 @@ async def nl_async() -> None:
 
 
 def nl_start(
-    after: bool = False, before: bool = False
+    after: bool = False,
+    before: bool = False,
 ) -> t.Callable[..., t.Callable[..., t.Any]]:
     def decorator(fn: FunctionType) -> t.Callable[..., t.Any]:
         @wraps(fn)
@@ -130,7 +130,7 @@ def get_local_timezone_string(default: str | None = None) -> str | None:
 def identical_vectors(l1: list[t.Any], l2: list[t.Any]) -> bool:
     return reduce(
         lambda b1, b2: b1 and b2,
-        map(lambda e1, e2: e1 == e2, l1, l2),
+        map(eq, l1, l2),
         True,
     )
 
@@ -156,7 +156,7 @@ def log_exception(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
         try:
             return fn(*args, **kwargs)
         except Exception as error:
-            logging.error(f"{error}")
+            logging.exception("%s", error)
 
     return inner
 
@@ -171,9 +171,9 @@ def prerun_autocomplete() -> None:
 
 
 def regexp_replace(patterns: t.Mapping[str, str | None], text: str) -> str:
-    mapped: dict[str, str] = dict((re.escape(k), v or "") for k, v in patterns.items())
+    mapped: dict[str, str] = {re.escape(k): v or "" for k, v in patterns.items()}
     pattern: re.Pattern[str] = re.compile("|".join(mapped.keys()))
-    escape: t.Callable[..., str] = lambda m: mapped[re.escape(m.group(0))]  # noqa:E731
+    escape: t.Callable[..., str] = lambda m: mapped[re.escape(m.group(0))]  # ruff: ignore[lambda-assignment]
     replaced: str = pattern.sub(escape, text)
     return replaced
 
@@ -191,7 +191,9 @@ def format_toml(toml_obj: t.MutableMapping[str, t.Any]) -> str:
 
 
 def reduce_keys(
-    *keys: t.Sequence[str], sequence: t.Any, default: t.Optional[t.Any] = None
+    *keys: t.Sequence[str],
+    sequence: t.Any,
+    default: t.Any | None = None,
 ) -> t.Any:
     try:
         return reduce(getitem, [*keys], sequence)
@@ -255,8 +257,7 @@ def alter_str(
 
     if split:
         return string.split(split)
-    else:
-        return string
+    return string
 
 
 def split_and_alter_str(
@@ -266,9 +267,13 @@ def split_and_alter_str(
     lower: bool = False,
     strip_quotes: bool = True,
     filter_null_strings: bool = True,
-    filter_fns: list[t.Callable[..., t.Any]] = [],
-    map_fns: list[t.Callable[..., t.Any]] = [],
+    filter_fns: list[t.Callable[..., t.Any]] | None = None,
+    map_fns: list[t.Callable[..., t.Any]] | None = None,
 ) -> list[str]:
+    if map_fns is None:
+        map_fns = []
+    if filter_fns is None:
+        filter_fns = []
     string_args: list[str] = string.split(delimeter)
     iter_map_fn: list[t.Callable[..., t.Any]] = []
 
@@ -288,11 +293,9 @@ def split_and_alter_str(
         filter_fns.append(lambda s: s != "")
 
     if filter_fns:
-        filtered_args = reduce(lambda x, y: [*map(y, x)], filter_fns, mapped_args)
-        return filtered_args
+        return reduce(lambda x, y: [*map(y, x)], filter_fns, mapped_args)
 
-    else:
-        return mapped_args
+    return mapped_args
 
 
 def match_str(
@@ -328,13 +331,16 @@ def match_str(
         string_to_match = string_to_match.strip()
     if replace_patterns:
         if not isinstance(replace_patterns, dict):
-            raise TypeError("Patterns must be a mapping.")
+            msg = "Patterns must be a mapping."
+            raise TypeError(msg)
 
         string_to_check = regexp_replace(
-            patterns=replace_patterns, text=string_to_check
+            patterns=replace_patterns,
+            text=string_to_check,
         )
         string_to_match = regexp_replace(
-            patterns=replace_patterns, text=string_to_match
+            patterns=replace_patterns,
+            text=string_to_match,
         )
 
     match method:
@@ -349,7 +355,8 @@ def match_str(
         case "endswith":
             return string_to_match.endswith(string_to_check)
         case _:
-            raise ValueError("Invalid method for string match.")
+            msg = "Invalid method for string match."
+            raise ValueError(msg)
 
     return False
 
@@ -359,13 +366,14 @@ def ns_time_diff(ns: int) -> float:
 
 
 def update_dict(
-    original: dict[str, t.Any], updates: dict[str, t.Any]
+    original: dict[str, t.Any],
+    updates: dict[str, t.Any],
 ) -> dict[str, t.Any]:
-    for __key, __val in updates.items():
-        if isinstance(__val, dict):
-            original[__key] = update_dict(original.get(__key, {}), __val)
+    for key, val in updates.items():
+        if isinstance(val, dict):
+            original[key] = update_dict(original.get(key, {}), val)
         else:
-            original[__key] = __val
+            original[key] = val
     return original
 
 
@@ -379,7 +387,7 @@ def merge_default_dict_into_current_dict(
 ) -> dict[str, t.Any]:
     paths = paths or []
     for k, v in default.items():
-        current_path = "%s%s" % (f"{key_path}." if key_path else "", k)
+        current_path = "{}{}".format(f"{key_path}." if key_path else "", k)
         paths.append(current_path)
 
         if isinstance(v, dict):
@@ -416,4 +424,6 @@ def print_message_and_clear_buffer(message: str) -> None:
 
 
 def file_empty_or_not_exists(path: Path) -> bool:
-    return not path.exists() ^ (path.exists() and path.read_text().splitlines() == [""])
+    return not path.exists() ^ (
+        path.exists() and path.read_text(encoding="utf-8").splitlines() == [""]
+    )

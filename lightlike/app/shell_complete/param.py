@@ -11,7 +11,9 @@ __all__: t.Sequence[str] = ("Param",)
 
 class Param:
     def __init__(
-        self, param_name: str, completion_items: t.Sequence[t.Any] = []
+        self,
+        param_name: str,
+        completion_items: t.Sequence[t.Any] = [],
     ) -> None:
         self.param_name = param_name
         self.completion_items = completion_items
@@ -33,7 +35,7 @@ class Param:
             for k, v in bool_values.items():
                 if any(i.startswith(incomplete) for i in v):
                     completion_items.append(
-                        CompletionItem(value=k, help=f"[{', '.join(v)}]")
+                        CompletionItem(value=k, help=f"[{', '.join(v)}]"),
                     )
 
         return completion_items
@@ -49,9 +51,9 @@ class Param:
             ctx.params.get(self.param_name) is None
             or ctx.params.get(self.param_name) == param.default
         ):
-            for item in self.completion_items:
-                if utils.match_str(incomplete, item):
-                    completion_items.append(item)
+            completion_items.extend(
+                item for item in self.completion_items if utils.match_str(incomplete, item)
+            )
 
         return completion_items
 
@@ -71,13 +73,7 @@ class Param:
             CompletionItem(value="U", help="re.RegexFlag.UNICODE"),
         ]
 
-        completion_items = []
-
-        for item in flags:
-            if utils.match_str(incomplete, item.value):
-                completion_items.append(item)
-
-        return completion_items
+        return [item for item in flags if utils.match_str(incomplete, item.value)]
 
 
 class LiteralEvalOption(click.Option):

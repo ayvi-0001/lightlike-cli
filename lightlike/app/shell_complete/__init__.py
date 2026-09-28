@@ -1,4 +1,4 @@
-from typing import Sequence
+from collections.abc import Sequence
 
 from lightlike.app.shell_complete import entries, notes, projects, where
 from lightlike.app.shell_complete.dynamic import global_completer
@@ -10,12 +10,12 @@ from lightlike.app.shell_complete.types import CallableIntRange, DynamicHelpOpti
 __all__: Sequence[str] = (
     "CallableIntRange",
     "DynamicHelpOption",
-    "entries",
-    "global_completer",
     "LiteralEvalArg",
     "LiteralEvalOption",
-    "notes",
     "Param",
+    "entries",
+    "global_completer",
+    "notes",
     "path",
     "projects",
     "repl",

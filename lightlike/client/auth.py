@@ -22,7 +22,7 @@ from rich.console import NewLine
 
 from lightlike.internal import constant
 
-__all__: t.Sequence[str] = ("_Auth", "AuthPromptSession")
+__all__: t.Sequence[str] = ("AuthPromptSession", "_Auth")
 
 
 class _Auth:
@@ -64,16 +64,16 @@ class AuthPromptSession:
         saved_credentials_failed: t.Callable[[], None] | None = None,
     ) -> str:
         auth = _Auth()
-        _saved_password: str | None = (
+        saved_password_: str | None = (
             saved_password() if callable(saved_password) else saved_password
         )
-        _stay_logged_in: bool | None = (
+        stay_logged_in_: bool | None = (
             stay_logged_in() if callable(stay_logged_in) else stay_logged_in
         )
 
         password: str | None = None
-        if _saved_password is not None and _stay_logged_in is True:
-            password = _saved_password
+        if saved_password_ is not None and stay_logged_in_ is True:
+            password = saved_password_
         elif input_password:
             password = input_password.hexdigest()
         else:
@@ -81,12 +81,13 @@ class AuthPromptSession:
 
         try:
             decrypted_key = auth.decrypt(
-                auth._generate_key(password, bytes(salt)), bytes(encrypted_key)
+                auth._generate_key(password, bytes(salt)),
+                bytes(encrypted_key),
             )
         except Exception as error:
-            if _saved_password:
+            if saved_password_:
                 if saved_credentials_failed is not None and callable(
-                    saved_credentials_failed
+                    saved_credentials_failed,
                 ):
                     saved_credentials_failed()
                 rprint(
@@ -94,7 +95,7 @@ class AuthPromptSession:
                     "Password input required.",
                 )
             elif isinstance(error, InvalidToken):
-                if not _saved_password:
+                if not saved_password_:
                     rprint("[b][red]Incorrect password.")
             else:
                 rprint(f"[bright_white on dark_red]{error!r} {error!s}.")
@@ -109,9 +110,8 @@ class AuthPromptSession:
                     retry,
                     saved_credentials_failed,
                 )
-            else:
-                rprint("[b][red]Authentication failed.")
-                sys.exit(2)
+            rprint("[b][red]Authentication failed.")
+            sys.exit(2)
 
         return decrypted_key.decode()
 
@@ -122,9 +122,9 @@ class AuthPromptSession:
     ) -> sha3_256:
         add_newline_breaks and rprint(NewLine())
         try:
-            while 1:
+            while True:
                 password: sha3_256 = sha256(
-                    get_console().input(prompt=prompt, password=True).encode()
+                    get_console().input(prompt=prompt, password=True).encode(),
                 )
                 add_newline_breaks and rprint(NewLine())
                 return password
@@ -137,15 +137,15 @@ class AuthPromptSession:
         prompt: str = "(password) $ ",
         reprompt: str = "(re-enter password) $ ",
     ) -> tuple[sha3_256, bytes]:
-        while 1:
+        while True:
             password: sha3_256 = self.prompt_password(prompt)
             reenter_password: sha3_256 = self.prompt_password(
-                prompt=reprompt, add_newline_breaks=False
+                prompt=reprompt,
+                add_newline_breaks=False,
             )
             if compare_digest(password.digest(), reenter_password.digest()):
                 return password, urandom(32)
-            else:
-                rprint("[#888888]Password does not match, try again.")
+            rprint("[#888888]Password does not match, try again.")
 
     def prompt_secret(self, message: str, add_newline_breaks: bool = True) -> str:
         add_newline_breaks and rprint(NewLine())
@@ -159,7 +159,7 @@ class AuthPromptSession:
             key_bindings=AUTH_BINDINGS,
             is_password=Condition(lambda: AUTH_KEY_HIDDEN[0]),
             validator=Validator.from_callable(
-                lambda d: False if not d else True,
+                bool,
                 error_message="Input cannot be None.",
             ),
         )

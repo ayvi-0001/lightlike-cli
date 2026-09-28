@@ -18,7 +18,7 @@ if t.TYPE_CHECKING:
     from prompt_toolkit.completion import CompleteEvent
     from rich.console import Console
 
-__all__: t.Sequence[str] = ("completer", "_bottom_toolbar", "_parse_click_options")
+__all__: t.Sequence[str] = ("_bottom_toolbar", "_parse_click_options", "completer")
 
 
 def completer(schema: str, table: str) -> ThreadedCompleter:
@@ -61,7 +61,9 @@ class WhereClauseCompleter(WordCompleter):
         self.notes = shell_complete.notes.Notes().get_all()
 
     def get_completions(
-        self, document: Document, complete_event: "CompleteEvent"
+        self,
+        document: Document,
+        complete_event: "CompleteEvent",
     ) -> t.Iterable[Completion]:
         word_before_cursor: str = utils.alter_str(
             document.get_word_before_cursor(self.WORD),
@@ -82,7 +84,9 @@ class WhereClauseCompleter(WordCompleter):
                 )
 
     def _project_items(
-        self, document: Document, word_before_cursor: str
+        self,
+        document: Document,
+        word_before_cursor: str,
     ) -> t.Iterable[Completion]:
         for project in self.projects:
             if utils.match_str(
@@ -104,7 +108,9 @@ class WhereClauseCompleter(WordCompleter):
                 yield from self._note_items(project, word_before_cursor)
 
     def _note_items(
-        self, project: str, word_before_cursor: str
+        self,
+        project: str,
+        word_before_cursor: str,
     ) -> t.Iterable[Completion]:
         for note in self.notes[project]:
             if note.startswith(word_before_cursor):
@@ -119,9 +125,7 @@ class WhereClauseCompleter(WordCompleter):
 
 
 def _bottom_toolbar(console: "Console") -> t.Callable[..., list[tuple[str, str]]]:
-    bt_line1 = (
-        "Press esc + enter to submit. Press up for history. Press ctrl + Q to exit."
-    )
+    bt_line1 = "Press esc + enter to submit. Press up for history. Press ctrl + Q to exit."
     bt_line2 = (
         "If project field appears in document, "
         "project values from timesheets will add to autocomplete."
@@ -156,7 +160,8 @@ def _bottom_toolbar(console: "Console") -> t.Callable[..., list[tuple[str, str]]
 
 
 WHERE_CLAUSE: t.Final[re.Pattern[str]] = re.compile(
-    r"^(?:'|\"|)(?:.?where\s+|)(.*)(?:'|\"|)$", re.IGNORECASE
+    r"^(?:'|\"|)(?:.?where\s+|)(.*)(?:'|\"|)$",
+    re.IGNORECASE,
 )
 
 
@@ -174,7 +179,8 @@ def _parse_click_options(
 
             session = _build_query_session(
                 completer=shell_complete.where.completer(
-                    routine.dataset, routine.table_timesheet
+                    routine.dataset,
+                    routine.table_timesheet,
                 ),
             )
             clause = cleandoc(
@@ -182,7 +188,7 @@ def _parse_click_options(
                     default="WHERE ",
                     pre_run=utils.prerun_autocomplete,
                     bottom_toolbar=shell_complete.where._bottom_toolbar(console),
-                )
+                ),
             )
     else:
         clause = cleandoc(" ".join(args))
@@ -192,6 +198,6 @@ def _parse_click_options(
         if match:
             clause = match.group(1)
             if clause.lower().startswith("where"):
-                clause = re.sub("where", "", clause, flags=re.I)
+                clause = re.sub(r"where", "", clause, flags=re.IGNORECASE)
 
     return clause or ""

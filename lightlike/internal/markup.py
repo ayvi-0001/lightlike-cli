@@ -1,4 +1,4 @@
-# ruff: noqa: E731
+# ruff: file-ignore[lambda-assignment]
 import typing as t
 
 from rich import get_console
@@ -25,20 +25,19 @@ def __getattr__(_name: t.Any) -> t.Callable[..., t.Any]:
                         [
                             theme_stack.get(existing_style, Style.null()),
                             Style.parse(parsed_attr),
-                        ]
+                        ],
                     )
                 elif existing_style in DEFAULT_STYLES:
                     new_style = Style.combine(
-                        [DEFAULT_STYLES[existing_style], Style.parse(parsed_attr)]
+                        [DEFAULT_STYLES[existing_style], Style.parse(parsed_attr)],
                     )
                 else:
                     new_style = Style.combine(
-                        [Style.parse(existing_style), Style.parse(parsed_attr)]
+                        [Style.parse(existing_style), Style.parse(parsed_attr)],
                     )
             return Text(f"{text!s}", style=new_style)
 
-        else:
-            return Text(f"{text!s}", style=style)
+        return Text(f"{text!s}", style=style)
 
     return lambda t: inner(t, _name)
 
@@ -54,7 +53,7 @@ dimmed: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="#888888")
 code: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="bold #f08375")
 command: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="bold #3465a4")
 failure: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="failure")
-link: t.Callable[..., Text] = lambda t, l: Text(text=f"{t!s}", style=Style(link=l, underline=True, color="bright_blue", italic=False, bold=False)) # noqa: E741
+link: t.Callable[..., Text] = lambda t, l: Text(text=f"{t!s}", style=Style(link=l, underline=True, color="bright_blue", italic=False, bold=False))  # ruff: ignore[ambiguous-variable-name]
 log_error: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="log.error")
 pygments_keyword: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="#6b90f7")
 repr_attrib_equal: t.Callable[..., Text] = lambda: Text(text="=", style="repr_attrib_equal")

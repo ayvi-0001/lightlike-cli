@@ -31,7 +31,7 @@ class ExecutableCompleter(Completer):
 
     @cached_property
     def path(self) -> list[Path]:
-        return list(map(lambda p: Path(p), os.environ["PATH"].split(os.pathsep)))
+        return [Path(p) for p in os.environ["PATH"].split(os.pathsep)]
 
     @cached_property
     def executables(self) -> list[Path]:
@@ -40,14 +40,13 @@ class ExecutableCompleter(Completer):
         expressions: list[re.Pattern[str]]
         if self.ignore_patterns:
             expressions = list(
-                map(partial(re.compile, flags=re.I), self.ignore_patterns)  # type: ignore[arg-type, unused-ignore]
+                map(partial(re.compile, flags=re.IGNORECASE), self.ignore_patterns),
             )
         else:
             expressions = []
 
-        matches: t.Callable[[Path], bool] = lambda p: not any(  # noqa:E731
-            exp.match(p.as_posix()) for exp in expressions
-        )
+        def matches(p: Path) -> bool:
+            return not any(exp.match(p.as_posix()) for exp in expressions)
 
         for path in self.path:
             if not path.is_dir():
@@ -77,11 +76,13 @@ class ExecutableCompleter(Completer):
         return executables
 
     def get_completions(
-        self, document: "Document", complete_event: "CompleteEvent"
+        self,
+        document: "Document",
+        complete_event: "CompleteEvent",
     ) -> t.Iterator[Completion]:
         try:
             word_before_cursor = document.get_word_before_cursor(WORD=True)
-            match_word_before_cursor = lambda l: match_str(word_before_cursor, l.name)  # noqa:E731,E741
+            match_word_before_cursor = lambda l: match_str(word_before_cursor, l.name)  # ruff: ignore[lambda-assignment, ambiguous-variable-name]
             matches = list(filter(match_word_before_cursor, self.executables))
 
             for path in sorted(matches, key=lambda p: p.name):

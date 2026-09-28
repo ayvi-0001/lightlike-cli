@@ -1,13 +1,11 @@
 import getpass
 import socket
 import typing as t
-from datetime import datetime
 from pathlib import Path
 
 import rtoml
 from prompt_toolkit.formatted_text import fragment_list_width
 from rich import get_console
-from rich.console import Console
 
 from lightlike.__about__ import __appdir__, __appname_sc__
 from lightlike.app.cache import EntriesInMemory
@@ -16,18 +14,20 @@ from lightlike.app.dates import date_diff, now
 from lightlike.app.shell_complete.dynamic import global_completers
 
 if t.TYPE_CHECKING:
-    from datetime import _TzInfo
+    from datetime import _TzInfo, datetime
 
     from prompt_toolkit.mouse_events import MouseEvent
+    from rich.console import Console
 
     NotImplementedOrNone = object
 
 
-__all__: t.Sequence[str] = ("build", "bottom_toolbar", "rprompt")
+__all__: t.Sequence[str] = ("bottom_toolbar", "build", "rprompt")
 
 
 OneStyleAndTextTuple = t.Union[
-    tuple[str, str], tuple[str, str, t.Callable[["MouseEvent"], "NotImplementedOrNone"]]
+    tuple[str, str],
+    tuple[str, str, t.Callable[["MouseEvent"], "NotImplementedOrNone"]],
 ]
 
 StyleAndTextTuples = list[OneStyleAndTextTuple]
@@ -38,11 +38,15 @@ HOSTNAME: str = AppConfig().get("user", "host", default=socket.gethostname())
 GCP_PROJECT: str | None = AppConfig().get("client", "active-project")
 TIMEZONE: "_TzInfo" = AppConfig().tzinfo
 UPDATE_TERMINAL_TITLE: bool = AppConfig().get(
-    "settings", "update-terminal-title", default=True
+    "settings",
+    "update-terminal-title",
+    default=True,
 )
 TERMINAL_TITLE: str = ""
 RPROMPT_DATE_FORMAT: str = AppConfig().get(
-    "settings", "rprompt-date-format", default="[%H:%M:%S]"
+    "settings",
+    "rprompt-date-format",
+    default="[%H:%M:%S]",
 )
 
 GIT_INFO_PATH: t.Final[Path] = __appdir__ / ".gitinfo"
@@ -77,11 +81,9 @@ def build(message: str | None = None) -> t.Callable[[], StyleAndTextTuples]:
 
             cursor.extend([("class:prompt.timer", timer)])
 
-        else:
-            if UPDATE_TERMINAL_TITLE:
-                if TERMINAL_TITLE != __appname_sc__:
-                    console.set_window_title(__appname_sc__)
-                    TERMINAL_TITLE = __appname_sc__
+        elif UPDATE_TERMINAL_TITLE and __appname_sc__ != TERMINAL_TITLE:
+            console.set_window_title(__appname_sc__)
+            TERMINAL_TITLE = __appname_sc__
 
         cursor.extend([("class:cursor", "\n$ ")])
 
@@ -107,11 +109,9 @@ def build(message: str | None = None) -> t.Callable[[], StyleAndTextTuples]:
 
             cursor.extend([("class:prompt.timer", timer)])
 
-        else:
-            if UPDATE_TERMINAL_TITLE:
-                if TERMINAL_TITLE != __appname_sc__:
-                    console.set_window_title(__appname_sc__)
-                    TERMINAL_TITLE = __appname_sc__
+        elif UPDATE_TERMINAL_TITLE and __appname_sc__ != TERMINAL_TITLE:
+            console.set_window_title(__appname_sc__)
+            TERMINAL_TITLE = __appname_sc__
 
         cursor.extend([("class:cursor", f"\n{message} $ ")])
 
@@ -146,11 +146,11 @@ def bottom_toolbar() -> t.Callable[..., StyleAndTextTuples]:
 
     side_padding: str = " " * 3
     toolbar.extend(
-        [("class:bottom-toolbar.text", f"{side_padding}{rside_toolbar}{side_padding}")]
+        [("class:bottom-toolbar.text", f"{side_padding}{rside_toolbar}{side_padding}")],
     )
     active_completers = (
         f"{side_padding}["
-        + ",".join(map(lambda c: c._name_[:1], global_completers()))
+        + ",".join(c._name_[:1] for c in global_completers())
         + f"]{side_padding}"
     )
 
@@ -162,7 +162,7 @@ def bottom_toolbar() -> t.Callable[..., StyleAndTextTuples]:
     )
 
     toolbar.extend(
-        [("", center_padding), ("class:bottom-toolbar.text", active_completers)]
+        [("", center_padding), ("class:bottom-toolbar.text", active_completers)],
     )
 
     blank_line = (
@@ -188,27 +188,26 @@ def _extend_git_branch(cursor: StyleAndTextTuples, cwd: Path) -> None:
             GIT_INFO["branch"] = ""
             GIT_INFO["path"] = ""
             rtoml.dump(GIT_INFO, GIT_INFO_PATH)
-    else:
-        if (head_dir := cwd / ".git" / "HEAD").exists():
-            PATH = head_dir.parent.parent.resolve().as_posix()
-            BRANCH = head_dir.read_text().splitlines()[0].partition("refs/heads/")[2]
-            GIT_INFO["branch"] = BRANCH
-            GIT_INFO["path"] = PATH
-            rtoml.dump(GIT_INFO, GIT_INFO_PATH)
+    elif (head_dir := cwd / ".git" / "HEAD").exists():
+        PATH = head_dir.parent.parent.resolve().as_posix()
+        BRANCH = head_dir.read_text().splitlines()[0].partition("refs/heads/")[2]
+        GIT_INFO["branch"] = BRANCH
+        GIT_INFO["path"] = PATH
+        rtoml.dump(GIT_INFO, GIT_INFO_PATH)
 
     BRANCH and cursor.extend(
         [
             ("class:prompt.branch.parenthesis", "("),
             ("class:prompt.branch.name", BRANCH),
             ("class:prompt.branch.parenthesis", ") "),
-        ]
+        ],
     )
 
 
 def _timer(cache: EntriesInMemory) -> str:
     global TIMEZONE
     start: datetime = cache.start
-    duration, hours = date_diff(start, now(TIMEZONE), cache.paused_hours)
+    duration, _hours = date_diff(start, now(TIMEZONE), cache.paused_hours)
     return f" {duration} "
 
 
@@ -225,7 +224,8 @@ def _extend_base(cursor: StyleAndTextTuples, cwd: Path) -> None:
         drive = cwd_drive
 
     path_name: str = (
-        cwd.as_posix()
+        cwd
+        .as_posix()
         .removeprefix(f"{home.as_posix()}")
         .replace(drive, drive.lower().replace(":", ""))
     )
@@ -238,7 +238,7 @@ def _extend_base(cursor: StyleAndTextTuples, cwd: Path) -> None:
             ("class:prompt.host", HOSTNAME),
             ("class:prompt.path.prefix", path_prefix),
             ("class:prompt.path.name", path_name or "/"),
-        ]
+        ],
     )
 
 
@@ -250,7 +250,7 @@ def _extend_active_project(cursor: StyleAndTextTuples, project: str) -> None:
             ("class:prompt.project.parenthesis", " ("),
             ("class:prompt.project.name", project),
             ("class:prompt.project.parenthesis", ") "),
-        ]
+        ],
     )
 
 

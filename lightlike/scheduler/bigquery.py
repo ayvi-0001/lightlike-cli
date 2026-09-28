@@ -11,9 +11,11 @@ import typing as t
 from apscheduler.executors.pool import ProcessPoolExecutor, ThreadPoolExecutor
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from google.cloud import bigquery
-from google.oauth2 import service_account
 from sqlalchemy import Column, Float, LargeBinary, MetaData, Table, Unicode
 from sqlalchemy.engine import Engine, create_engine
+
+if t.TYPE_CHECKING:
+    from google.oauth2 import service_account
 
 __all__: t.Sequence[str] = ("build_bigquery_scheduler",)
 
@@ -42,21 +44,19 @@ def build_bigquery_scheduler(*args: P.args, **kwargs: P.kwargs) -> dict[str, t.A
         bigquery_description=bigquery_description,
     )
 
-    scheduler_kwargs = dict(
-        jobstores={
+    return {
+        "jobstores": {
             "bigquery": SQLAlchemyJobStore(
                 engine=engine,
                 tableschema=tableschema,
                 tablename=tablename,
             ),
         },
-        executors={
+        "executors": {
             "bigquery": ThreadPoolExecutor(20),
             "processpool": ProcessPoolExecutor(10),
         },
-    )
-
-    return scheduler_kwargs
+    }
 
 
 def _create_jobs_table_in_bigquery(

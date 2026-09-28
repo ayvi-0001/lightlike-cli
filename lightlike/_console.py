@@ -16,8 +16,8 @@ from lightlike.__about__ import __appdir__, __config__
 from lightlike.internal import appdir, constant
 
 __all__: t.Sequence[str] = (
-    "QUIET_START",
     "CONSOLE_CONFIG",
+    "QUIET_START",
     "Highlighter",
     "if_not_quiet_start",
     "reconfigure",
@@ -32,7 +32,7 @@ def _set_quiet_start(config_path: Path) -> None:
     try:
         if config_path.exists():
             config = rtoml.load(config_path)
-            quiet_start: bool = t.cast(bool, config["settings"].get("quiet-start"))
+            quiet_start: bool = t.cast("bool", config["settings"].get("quiet-start"))
 
             global QUIET_START
             if len(sys.argv) > 1:
@@ -61,7 +61,7 @@ class ConsoleConfig:
 
 CONSOLE_CONFIG = ConsoleConfig(rtoml.load(constant.CONSOLE))
 
-GROUP_COMMANDS = r"(?P<command>((%s)))" % "|".join(
+GROUP_COMMANDS = r"(?P<command>((%s)))" % "|".join(  # ruff: ignore[printf-string-formatting, static-join-to-f-string]
     [
         "timer:add",
         "timer:delete",
@@ -117,7 +117,7 @@ GROUP_COMMANDS = r"(?P<command>((%s)))" % "|".join(
         "app:config:set:query",
         "app:config:set",
         "app:config",
-    ]
+    ],
 )
 
 
@@ -162,4 +162,4 @@ def reconfigure(**kwargs: t.Any) -> None:
     get_console()._log_render.omit_repeated_times = False
 
     spinner = "simpleDotsScrolling"
-    setattr(get_console(), "status", partial(get_console().status, spinner=spinner))
+    get_console().status = partial(get_console().status, spinner=spinner)

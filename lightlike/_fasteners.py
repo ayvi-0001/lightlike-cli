@@ -21,7 +21,8 @@ P = t.ParamSpec("P")
 
 
 def interprocess_locked(
-    path: pathlib.Path | str, logger: logging.Logger | None = None
+    path: pathlib.Path | str,
+    logger: logging.Logger | None = None,
 ) -> t.Callable[..., _AnyCallable]:
     lock = InterProcessLock(path, logger=logger)
 
@@ -37,7 +38,8 @@ def interprocess_locked(
 
 
 def interprocess_read_locked(
-    path: pathlib.Path | str, logger: logging.Logger | None = None
+    path: pathlib.Path | str,
+    logger: logging.Logger | None = None,
 ) -> t.Callable[..., _AnyCallable]:
     lock = InterProcessReaderWriterLock(path, logger=logger)
 
@@ -53,7 +55,8 @@ def interprocess_read_locked(
 
 
 def interprocess_write_locked(
-    path: pathlib.Path | str, logger: logging.Logger | None = None
+    path: pathlib.Path | str,
+    logger: logging.Logger | None = None,
 ) -> t.Callable[..., _AnyCallable]:
     lock = InterProcessReaderWriterLock(path, logger=logger)
 

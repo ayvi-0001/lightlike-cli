@@ -3,13 +3,12 @@ from __future__ import annotations
 import re
 import typing as t
 from datetime import date, datetime, time
-from decimal import Decimal
 from inspect import classify_class_attrs
 from time import sleep
 
 import click
 import sqlalchemy as sq
-from google.cloud.bigquery import QueryJob, QueryJobConfig
+from google.cloud.bigquery import QueryJob
 from more_itertools import filter_map
 from pytz import timezone
 from rich.text import Text
@@ -19,7 +18,9 @@ from lightlike.client.bigquery import get_client
 from lightlike.internal import markup
 
 if t.TYPE_CHECKING:
-    from google.cloud.bigquery import Client
+    from decimal import Decimal
+
+    from google.cloud.bigquery import Client, QueryJobConfig
     from google.cloud.bigquery.job import QueryJob
 
 __all__: t.Sequence[str] = ("CliQueryRoutines",)
@@ -149,7 +150,8 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
@@ -184,7 +186,8 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
@@ -198,13 +201,15 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
     def _archive_project(self, name: str) -> Rows:
         executable: sq.Executable = (
-            self._table_projects.update()
+            self._table_projects
+            .update()
             .values(archived=datetime.now(tz=AppConfig().tzinfo))
             .where(self._table_projects.c.name == name)
         )
@@ -214,13 +219,15 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
     def _archive_time_entries(self, name: str) -> Rows:
         executable: sq.Executable = (
-            self._table_timesheet.update()
+            self._table_timesheet
+            .update()
             .values(archived=True)
             .where(self._table_timesheet.c.project == name)
         )
@@ -230,7 +237,8 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
@@ -252,7 +260,8 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
@@ -266,7 +275,8 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
@@ -280,7 +290,8 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
@@ -363,7 +374,8 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
@@ -379,7 +391,7 @@ class CliQueryRoutines:
         paused_hours = sq.cast(
             sq.case(
                 (
-                    timesheet.c.paused == True,
+                    timesheet.c.paused == True,  # ruff: ignore[true-false-comparison]
                     sq.func.safe_divide(
                         sq.func.timestamp_diff(
                             timestamp_end,
@@ -410,7 +422,8 @@ class CliQueryRoutines:
         )
 
         executable: sq.Executable = (
-            timesheet.update()
+            timesheet
+            .update()
             .values(
                 timestamp_end=timestamp_end,
                 end=end.astimezone(AppConfig().tzinfo).replace(
@@ -431,7 +444,8 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
@@ -445,7 +459,8 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
@@ -472,7 +487,8 @@ class CliQueryRoutines:
         )
 
         executable: sq.Executable = (
-            timesheet.update()
+            timesheet
+            .update()
             .values(
                 paused=False,
                 active=True,
@@ -487,13 +503,15 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
     def _unarchive_project(self, name: str) -> Rows:
         executable: sq.Executable = (
-            self._table_projects.update()
+            self._table_projects
+            .update()
             .values(archived=None)
             .where(self._table_projects.c.name == name)
         )
@@ -503,13 +521,15 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
     def _unarchive_time_entries(self, name: str) -> Rows:
         executable: sq.Executable = (
-            self._table_timesheet.update()
+            self._table_timesheet
+            .update()
             .values(archived=False)
             .where(self._table_timesheet.c.name == name)
         )
@@ -519,7 +539,8 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
@@ -529,7 +550,8 @@ class CliQueryRoutines:
         default_billable: bool,
     ) -> Rows:
         executable: sq.Executable = (
-            self._table_projects.update()
+            self._table_projects
+            .update()
             .values(default_billable=default_billable)
             .where(self._table_projects.c.name == name)
         )
@@ -539,13 +561,15 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
     def _update_project_description(self, name: str, description: str) -> Rows:
         executable: sq.Executable = (
-            self._table_projects.update()
+            self._table_projects
+            .update()
             .values(description=description)
             .where(self._table_projects.c.name == name)
         )
@@ -555,13 +579,15 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
     def _update_project_name(self, old_name: str, new_name: str) -> Rows:
         executable: sq.Executable = (
-            self._table_projects.update()
+            self._table_projects
+            .update()
             .values(name=new_name)
             .where(self._table_projects.c.name == old_name)
         )
@@ -571,13 +597,15 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
     def _update_time_entry_projects(self, old_name: str, new_name: str) -> Rows:
         executable: sq.Executable = (
-            self._table_timesheet.update()
+            self._table_timesheet
+            .update()
             .values(project=new_name)
             .where(self._table_timesheet.c.project == old_name)
         )
@@ -587,13 +615,15 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
     def _pause_time_entry(self, id: str, timestamp_paused: datetime) -> Rows:
         executable: sq.Executable = (
-            self._table_timesheet.update()
+            self._table_timesheet
+            .update()
             .values(
                 paused=True,
                 active=False,
@@ -615,7 +645,8 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
@@ -635,7 +666,8 @@ class CliQueryRoutines:
     ) -> Rows:
         timesheet = self._table_timesheet
         row = (
-            sq.func.row_number()
+            sq.func
+            .row_number()
             .over(
                 order_by=[
                     timesheet.c.timestamp_start,
@@ -649,7 +681,8 @@ class CliQueryRoutines:
             .label("row")
         )
         total = (
-            sq.func.sum(timesheet.c.hours)
+            sq.func
+            .sum(timesheet.c.hours)
             .over(
                 order_by=[
                     timesheet.c.timestamp_start,
@@ -695,9 +728,8 @@ class CliQueryRoutines:
             executable = executable.where(sq.text(where))
 
         case_insensitive_regexp_match: bool = False
-        if modifiers:
-            if "I" in modifiers:
-                case_insensitive_regexp_match = True
+        if modifiers and "I" in modifiers:
+            case_insensitive_regexp_match = True
 
         # https://docs.sqlalchemy.org/en/14/core/sqlelement.html#sqlalchemy.sql.expression.ColumnOperators.regexp_match
         if include:
@@ -739,7 +771,7 @@ class CliQueryRoutines:
                         # TODO add to other exclude/include filters
                         sq.and_(
                             sq.not_(timesheet.c.project.regexp_match(pattern)),
-                            timesheet.c.note == None,
+                            timesheet.c.note == None,  # ruff: ignore[none-comparison]
                         ),
                     ),
                 )
@@ -778,7 +810,8 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
@@ -817,16 +850,14 @@ class CliQueryRoutines:
 
         hours: sq.ColumnElement[t.Any] = sq.func.sum(timesheet.c.hours)
         if round_:
-            hours = (
-                sq.func.round(
-                    hours / sq.literal_column(str(round_factor)),
-                    sq.literal_column("2"),
-                )
-                * sq.literal_column(str(round_factor))
-            )
+            hours = sq.func.round(
+                hours / sq.literal_column(str(round_factor)),
+                sq.literal_column("2"),
+            ) * sq.literal_column(str(round_factor))
 
         grouped = (
-            sq.select(
+            sq
+            .select(
                 timesheet.c.date,
                 timesheet.c.project,
                 timesheet.c.billable,
@@ -834,8 +865,8 @@ class CliQueryRoutines:
                 hours.label("hours"),
             )
             .where(
-                timesheet.c.archived == False,
-                timesheet.c.paused == False,
+                timesheet.c.archived == False,  # ruff: ignore[true-false-comparison]
+                timesheet.c.paused == False,  # ruff: ignore[true-false-comparison]
             )
             .group_by(
                 timesheet.c.project,
@@ -848,7 +879,10 @@ class CliQueryRoutines:
         if start_date and end_date:
             grouped = grouped.where(timesheet.c.date.between(start_date, end_date))
 
-        def _regexp(column: sq.ColumnElement[t.Any], patterns: t.Sequence[str]) -> sq.ColumnElement[t.Any]:
+        def _regexp(
+            column: sq.ColumnElement[t.Any],
+            patterns: t.Sequence[str],
+        ) -> sq.ColumnElement[t.Any]:
             return self._regexp_contains(
                 column=column,
                 pattern="|".join(filter(None, patterns)),
@@ -871,7 +905,7 @@ class CliQueryRoutines:
                     ),
                     sq.and_(
                         sq.not_(_regexp(timesheet.c.project, exclude)),
-                        timesheet.c.note == None,
+                        timesheet.c.note == None,  # ruff: ignore[none-comparison]
                     ),
                 ),
             )
@@ -925,7 +959,8 @@ class CliQueryRoutines:
             sq.func.round(sum_hours.over(partition_by=window_order), precision).label(
                 "hours",
             ),
-            sq.func.string_agg(
+            sq.func
+            .string_agg(
                 sq.func.concat(grouped_cte.c.note, " - ", grouped_cte.c.hours),
                 ", " if is_file else "\n",
             )
@@ -948,7 +983,8 @@ class CliQueryRoutines:
                 result = conn.execute(executable)
                 rows = result.fetchall()
         except Exception as error:
-            raise click.get_current_context().fail(f"{error}")
+            msg = f"{error}"
+            raise click.get_current_context().fail(msg)
 
         return rows
 
@@ -966,7 +1002,8 @@ class CliQueryRoutines:
         if regex_engine == "re2":
             return column.regexp_match(pattern)
 
-        raise ValueError(f"Unknown regex engine: {regex_engine}")
+        msg = f"Unknown regex engine: {regex_engine}"
+        raise ValueError(msg)
 
     def _select(
         self,
@@ -1011,9 +1048,7 @@ class CliQueryRoutines:
             fn = f"{self.dataset}.js_regex_contains"
 
             if isinstance(fields, list):
-                filter_clauses = []
-                for field in fields:
-                    filter_clauses.append(f'{fn}({field},r"{expr}","{modifiers}")')
+                filter_clauses = [f'{fn}({field},r"{expr}","{modifiers}")' for field in fields]
                 expression = f"{conditionals}({' OR '.join(filter_clauses)})"
             else:
                 expression = f'{conditionals}{fn}({fields}, r"{expr}", "{modifiers}")'
@@ -1030,7 +1065,8 @@ class CliQueryRoutines:
                 expression = f'{conditionals}{fn}({fields}, r"{expr}")'
 
         else:
-            raise ValueError(f"Unknown regex engine: {regex_engine}")
+            msg = f"Unknown regex engine: {regex_engine}"
+            raise ValueError(msg)
 
         return expression
 
@@ -1043,18 +1079,16 @@ class CliQueryRoutines:
         ]
         procedures = list(
             filter_map(
-                lambda a: (
-                    a.name
-                    if a.kind == "method" and not a.name.startswith("_")
-                    else None
-                ),
+                lambda a: a.name if a.kind == "method" and not a.name.startswith("_") else None,
                 classify_class_attrs(type(self)),
-            )
+            ),
         )
         return procedures + functions
 
     def _format_error_message(
-        self, query_job: QueryJob, target: str | None = None
+        self,
+        query_job: QueryJob,
+        target: str | None = None,
     ) -> str:
         pattern = re.compile(r"\d{3}\s.+?(?=:)")
         error = pattern.findall(f"{query_job._exception}")
@@ -1062,5 +1096,4 @@ class CliQueryRoutines:
         if error:
             message = pattern.sub("", f"{query_job._exception}")
             return Text.assemble(query_string, markup.br(error[0]), message).markup
-        else:
-            return Text.assemble(query_string, markup.br(query_job._exception)).markup
+        return Text.assemble(query_string, markup.br(query_job._exception)).markup

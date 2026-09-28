@@ -28,9 +28,9 @@ class ReplCompleter(Completer):
     __slots__: t.Sequence[str] = (
         "cli",
         "ctx",
+        "ctx_command",
         "parsed_args",
         "parsed_ctx",
-        "ctx_command",
     )
 
     def __init__(
@@ -54,10 +54,11 @@ class ReplCompleter(Completer):
     ) -> list[Completion]:
         param_choices: list[Completion] = []
         autocompletions: list[CompletionItem] = param.shell_complete(
-            autocomplete_ctx, incomplete
+            autocomplete_ctx,
+            incomplete,
         )
 
-        document: "Document" = get_app().current_buffer.document
+        document: Document = get_app().current_buffer.document
         start_position: int = -len(document.get_word_before_cursor(WORD=True))
 
         for autocomplete in autocompletions:
@@ -90,7 +91,7 @@ class ReplCompleter(Completer):
         incomplete: str,
     ) -> list[Completion]:
         completions = []
-        if getattr(param, "shell_complete"):
+        if param.shell_complete:
             completions = self._complete_functions(
                 autocomplete_ctx=autocomplete_ctx,
                 param=param,
@@ -119,14 +120,14 @@ class ReplCompleter(Completer):
                         args=args,
                         param=param,
                         incomplete=incomplete,
-                    )
+                    ),
                 )
             elif isinstance(param, click.Option):
                 opts: list[str] = param.opts + param.secondary_opts
                 previous_args: list[str] = args[: param.nargs * -1]
                 current_args: list[str] = args[param.nargs * -1 :]
 
-                already_present: bool = any([opt in previous_args for opt in opts])
+                already_present: bool = any(opt in previous_args for opt in opts)
                 hide: bool = already_present and not param.multiple
 
                 if len(opts) == 2:
@@ -137,7 +138,8 @@ class ReplCompleter(Completer):
                             text=opts[1],
                             start_position=-len(incomplete),
                             display_meta=_display_meta(
-                                option=param, short_flag=opts[0]
+                                option=param,
+                                short_flag=opts[0],
                             ),
                         )
                         choices.append(completion)
@@ -169,13 +171,15 @@ class ReplCompleter(Completer):
                         args=args,
                         param=param,
                         incomplete=incomplete,
-                    )
+                    ),
                 )
 
         return choices
 
     def get_completions(
-        self, document: "Document", complete_event: "CompleteEvent"
+        self,
+        document: Document,
+        complete_event: CompleteEvent,
     ) -> t.Iterable[Completion]:
         try:
             text_before_cursor: str = document.text_before_cursor
@@ -205,7 +209,7 @@ class ReplCompleter(Completer):
                     incomplete=incomplete,
                     autocomplete_ctx=self.parsed_ctx,
                     args=args,
-                )
+                ),
             )
 
             if isinstance(self.ctx_command, click.Group):
@@ -217,7 +221,7 @@ class ReplCompleter(Completer):
                         [
                             not command,
                             getattr(command, "hidden", False),
-                        ]
+                        ],
                     ):
                         continue
 
@@ -293,10 +297,10 @@ def _resolve_context(args: list[str], ctx: click.Context) -> click.Context:
                 break
     except Exception as error:
         if "No such command" not in f"{error}":
-            logging.error(
+            logging.exception(
                 f"Failed to resolve context: {error}. "
                 f"ctx: {ctx.info_name} | "
-                f"args: {' '.join(map(str, args))}"
+                f"args: {' '.join(map(str, args))}",
             )
 
     return ctx

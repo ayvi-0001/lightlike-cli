@@ -17,7 +17,7 @@ if t.TYPE_CHECKING:
     from prompt_toolkit.completion import CompleteEvent
     from prompt_toolkit.document import Document
 
-__all__: t.Sequence[str] = ("from_cache", "from_chained_cmd", "from_param", "Notes")
+__all__: t.Sequence[str] = ("Notes", "from_cache", "from_chained_cmd", "from_param")
 
 
 class Notes(Completer):
@@ -40,14 +40,12 @@ class Notes(Completer):
 
     def get_all(self) -> dict[str, list[str]]:
         active_projects = self.data["active"]
-        notes = {
-            project: active_projects[project]["notes"]
-            for project in active_projects.keys()
-        }
-        return notes
+        return {project: active_projects[project]["notes"] for project in active_projects}
 
     def get_completions(
-        self, document: "Document", complete_event: "CompleteEvent"
+        self,
+        document: "Document",
+        complete_event: "CompleteEvent",
     ) -> t.Iterator[Completion]:
         completions: list[Completion] = []
 
@@ -57,7 +55,9 @@ class Notes(Completer):
         start_position: int = -len(document.text_before_cursor)
 
         matches: list[str] = fuzzyfinder(
-            document.text, self.get(self.project), sort_results=False
+            document.text,
+            self.get(self.project),
+            sort_results=False,
         )
         for match in matches:
             completion = Completion(text=match, start_position=start_position)
@@ -67,27 +67,31 @@ class Notes(Completer):
 
 
 def from_param(
-    ctx: click.Context, param: click.Parameter, incomplete: str
+    ctx: click.Context,
+    param: click.Parameter,
+    incomplete: str,
 ) -> list[CompletionItem]:
     completer = Notes()
     completions: list[CompletionItem] = []
 
     target_project: str | None = None
 
-    if project := first(ctx.params.get("projects", []), default=None):
+    if (project := first(ctx.params.get("projects", []), default=None)) or (
+        project := ctx.params.get("project")
+    ):
         target_project = project
-    elif project := ctx.params.get("project"):
-        target_project = project
-    elif any([option in ctx.protected_args for option in ("-p", "--project")]):
+    elif any(option in ctx.protected_args for option in ("-p", "--project")):
         opt_idx = 0
         for idx, opt in enumerate(ctx.protected_args):
-            if opt in ("-p", "--project"):
+            if opt in {"-p", "--project"}:
                 opt_idx = idx
         target_project = ctx.protected_args[opt_idx + 1]
 
     if target_project:
         matches: list[str] = fuzzyfinder(
-            incomplete, completer.get(target_project), sort_results=False
+            incomplete,
+            completer.get(target_project),
+            sort_results=False,
         )
         for note in matches:
             completion = CompletionItem(
@@ -105,7 +109,9 @@ def from_param(
 
 
 def from_cache(
-    ctx: click.Context, param: click.Parameter, incomplete: str
+    ctx: click.Context,
+    param: click.Parameter,
+    incomplete: str,
 ) -> list[CompletionItem]:
     completions: list[CompletionItem] = []
 
@@ -130,20 +136,25 @@ def from_cache(
 
 
 def from_chained_cmd(
-    ctx: click.Context, param: click.Parameter, incomplete: str
+    ctx: click.Context,
+    param: click.Parameter,
+    incomplete: str,
 ) -> list[CompletionItem]:
-    document: "Document" = get_app().current_buffer.document
+    document: Document = get_app().current_buffer.document
     completions: list[CompletionItem] = []
     project_location: int | None = first(document.find_all("project"), default=None)
     project: str | None = first(
-        document.text[project_location:].split(" "), default=None
+        document.text[project_location:].split(" "),
+        default=None,
     )
 
     if not (project_location and project):
         return completions
 
     matches: list[str] = fuzzyfinder(
-        incomplete, Notes().get(project), sort_results=False
+        incomplete,
+        Notes().get(project),
+        sort_results=False,
     )
     for note in matches:
         completion = CompletionItem(

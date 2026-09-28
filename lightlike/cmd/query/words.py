@@ -1,6 +1,7 @@
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
-__all__: Sequence[str] = ("SQL_KEYWORDS", "KEYWORD_META")
+__all__: Sequence[str] = ("KEYWORD_META", "SQL_KEYWORDS")
 
 
 SQL_KEYWORDS: dict[str, Any] = {

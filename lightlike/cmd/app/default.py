@@ -1,7 +1,7 @@
 import os
 import typing as t
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 import click
 from rich import print as rprint
@@ -12,7 +12,7 @@ from lightlike.app._repl import exit_repl
 from lightlike.app.core import FormattedCommand
 from lightlike.cmd import _pass
 
-__all__: t.Sequence[str] = ("help_", "exit_", "cd_")
+__all__: t.Sequence[str] = ("cd_", "exit_", "help_")
 
 
 P = t.ParamSpec("P")
@@ -23,11 +23,11 @@ P = t.ParamSpec("P")
     name="exit",
     hidden="true",
     short_help="Exit REPL.",
-    context_settings=dict(
-        allow_extra_args=True,
-        ignore_unknown_options=True,
-        help_option_names=[],
-    ),
+    context_settings={
+        "allow_extra_args": True,
+        "ignore_unknown_options": True,
+        "help_option_names": [],
+    },
 )
 def exit_() -> None:
     """Exit REPL."""
@@ -38,16 +38,16 @@ def exit_() -> None:
     cls=FormattedCommand,
     name="cd",
     hidden=True,
-    context_settings=dict(
-        allow_extra_args=True,
-        ignore_unknown_options=True,
-        help_option_names=[],
-    ),
+    context_settings={
+        "allow_extra_args": True,
+        "ignore_unknown_options": True,
+        "help_option_names": [],
+    },
 )
 @click.argument("path", type=Path, shell_complete=shell_complete.path)
 def cd_(path: Path) -> None:
     try:
-        if f"{path}" in ("~", "~/"):
+        if f"{path}" in {"~", "~/"}:
             os.chdir(path.home())
         else:
             os.chdir(path.resolve())
@@ -63,5 +63,5 @@ def cd_(path: Path) -> None:
 @_pass.console
 @_pass.ctx_group(parents=1)
 def help_(ctx_group: Sequence[click.Context], console: Console) -> None:
-    ctx, parent = ctx_group
+    _ctx, parent = ctx_group
     console.print(parent.get_help())

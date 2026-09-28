@@ -49,13 +49,13 @@ LIGHTLIKE_APP_DIR: Path = Path(
     getenv(
         "LIGHTLIKE_APP_DIR",
         default=get_app_dir("lightlike-cli", force_posix=True),
-    )
+    ),
 )
 LIGHTLIKE_CONFIG_DIR: Path = Path(
     getenv(
         "LIGHTLIKE_CONFIG_DIR",
         default=f"{Path.home().joinpath('.config').joinpath('lightlike-cli')}",
-    )
+    ),
 )
 
 # #################################################################################################
@@ -78,7 +78,7 @@ def get_appdir_path(env: str | None = None) -> Path:
         rich.print(
             "[b][red]EnvironmentVariableError[/]: "
             "[code]LIGHTLIKE_APP_DIR[/] must point to a directory: "
-            f"{LIGHTLIKE_APP_DIR}"
+            f"{LIGHTLIKE_APP_DIR}",
         )
         sys.exit(2)
 
@@ -95,7 +95,7 @@ def get_config_dir(env: str | None = None) -> Path:
         rich.print(
             "[b][red]EnvironmentVariableError[/]: "
             "[code]LIGHTLIKE_CONFIG_DIR[/] must point to a directory: "
-            f"{LIGHTLIKE_CONFIG_DIR}"
+            f"{LIGHTLIKE_CONFIG_DIR}",
         )
         sys.exit(2)
 

@@ -65,7 +65,7 @@ def edit(console: Console) -> None:
         code="""\
         $ app config list
         $ a c l
-    
+
         $ app config list --json
         $ a c l -j\
         """,
@@ -107,10 +107,7 @@ def edit(console: Console) -> None:
 @_pass.console
 def list_(console: Console, keys: t.Sequence[str], json_: bool) -> None:
     """Show current config file in terminal."""
-    if keys:
-        content = AppConfig().get(*keys)
-    else:
-        content = AppConfig().config
+    content = AppConfig().get(*keys) if keys else AppConfig().config
 
     if json_:
         console.print_json(data=content, default=str, indent=4)
@@ -187,9 +184,7 @@ class SettingsCommand:
     help: t.Callable[..., str] | str | None = None
     short_help: t.Callable[..., str] | str | None = None
     callback_fn: t.Callable[..., t.Any] | None = None
-    callback_threads: (
-        t.Sequence[tuple[t.Callable[[t.Any | None], t.Any], t.Any]] | None
-    ) = None
+    callback_threads: t.Sequence[tuple[t.Callable[[t.Any | None], t.Any], t.Any]] | None = None
     context_settings: dict[str, t.Any] | None = None
     syntax: "Syntax | None" = None
     no_args_is_help: bool = True
@@ -203,7 +198,8 @@ value_arg = click.argument(
 
 
 def create_settings_fn(
-    cmd: SettingsCommand, config_keys: t.Sequence[str]
+    cmd: SettingsCommand,
+    config_keys: t.Sequence[str],
 ) -> click.Command:
     @click.command(
         cls=FormattedCommand,
@@ -231,8 +227,8 @@ def create_settings_fn(
         if val == AppConfig().get(*config_keys, cmd.name):
             console.print(
                 markup.dimmed(
-                    f"`{cmd.name}` is already set to `{val}`, nothing happened."
-                )
+                    f"`{cmd.name}` is already set to `{val}`, nothing happened.",
+                ),
             )
             return
 
@@ -308,7 +304,7 @@ system_command_shell = SettingsCommand(
         code="""\
         # example setting config key.
         $ app config set general shell '["bash", "-c"]'
-        
+
         # login to shell and read rc file.
         $ app config set general shell '["bash", "--rcfile", "~/.bashrc", "-il", "-c"]'\
         """,
@@ -343,9 +339,7 @@ timezone = SettingsCommand(
         "timezone",
         type=click.STRING,
         callback=validate.callbacks._timezone,
-        shell_complete=lambda c, p, i: [
-            t for t in pytz.all_timezones if i in t.lower()
-        ],
+        shell_complete=lambda c, p, i: [t for t in pytz.all_timezones if i in t.lower()],
     ),
     help="""
     Timezone used for all date/time conversions.
@@ -413,7 +407,7 @@ editor = SettingsCommand(
 
 
 for cmd in t.cast(
-    list[SettingsCommand],
+    "list[SettingsCommand]",
     [
         note_history,
         timezone,
@@ -530,10 +524,7 @@ for cmd in [mouse_support, save_txt, save_query_info, save_svg, hide_table_rende
     update_query_settings.add_command(__cmd)
 
 
-if (
-    AppConfig().get("client", "credentials-source")
-    == CredentialsSource.from_service_account_key
-):
+if AppConfig().get("client", "credentials-source") == CredentialsSource.from_service_account_key:
 
     @update_general_settings.command(
         cls=FormattedCommand,
@@ -585,7 +576,8 @@ if (
                         ),
                     )
                     AppConfig()._update_user_credentials(
-                        password=input_password, stay_logged_in=value
+                        password=input_password,
+                        stay_logged_in=value,
                     )
                     rprint("Set", markup.scope_key("stay-logged-in"), "to", value)
 
@@ -601,6 +593,7 @@ if (
 
             else:
                 AppConfig()._update_user_credentials(
-                    password="null", stay_logged_in=False
+                    password="null",
+                    stay_logged_in=False,
                 )
                 rprint("Set", markup.scope_key("stay-logged-in"), "to", False)

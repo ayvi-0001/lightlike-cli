@@ -30,7 +30,6 @@ CompleterCallable: t.TypeAlias = t.Callable[
 
 
 def repl(
-    # fmt:off
     ctx: click.Context,
     prompt_kwargs: dict[str, t.Any],
     completer_callable: CompleterCallable,
@@ -40,7 +39,6 @@ def repl(
     uncaught_exceptions_callable: ExceptionCallable = None,
     scheduler: BackgroundScheduler | t.Callable[[], BackgroundScheduler] | None = None,
     default_jobs_callable: t.Callable[[], None] | None = None,
-    # fmt:on
 ) -> None:
     """
     :param prompt_kwargs: Dictionary containing keyword arguments passed to prompt_toolkit.PromptSession
@@ -62,7 +60,7 @@ def repl(
     ctx_command = ctx.command
 
     prompt_kwargs.update(
-        completer=completer_callable(ctx_command, ctx, uncaught_exceptions_callable)
+        completer=completer_callable(ctx_command, ctx, uncaught_exceptions_callable),
     )
 
     session: PromptSession[str] = PromptSession(**prompt_kwargs)
@@ -74,10 +72,10 @@ def repl(
                 default_jobs_callable()
             except AttributeError as error:
                 if "'NoneType' object has no attribute 'items'" not in f"{error}":
-                    raise error
+                    raise
 
     try:
-        while 1:
+        while True:
             try:
                 command = session.prompt(in_thread=True)
             except (KeyboardInterrupt, EOFError):
@@ -90,23 +88,23 @@ def repl(
             try:
                 ctx.protected_args = args
                 ctx_command.invoke(ctx)
-            except click.UsageError as error1:
-                if _is_unknown_command(error1) and pass_unknown_commands_to_shell:
+            except click.UsageError as exc1:
+                if _is_unknown_command(exc1) and pass_unknown_commands_to_shell:
                     try:
                         _execute_system_command(args, shell_cmd_callable)
-                    except Exception as error2:
-                        print(error2)
+                    except Exception as exc2:
+                        print(exc2)  # ruff: ignore[print]
                 else:
-                    _show_click_exception(error1, format_click_exceptions_callable)
-            except click.ClickException as error3:
-                _show_click_exception(error3, format_click_exceptions_callable)
+                    _show_click_exception(exc1, format_click_exceptions_callable)
+            except click.ClickException as exc3:
+                _show_click_exception(exc3, format_click_exceptions_callable)
             except (click.exceptions.Exit, SystemExit):
                 pass
             except ExitRepl:
                 break
-            except Exception as error4:
+            except Exception as exc4:
                 if uncaught_exceptions_callable:
-                    uncaught_exceptions_callable(error4)
+                    uncaught_exceptions_callable(exc4)
                 else:
                     continue
     finally:
@@ -115,15 +113,13 @@ def repl(
 
 
 def _show_click_exception(
-    error: click.ClickException,
-    format_click_exceptions_callable: (
-        t.Callable[[click.ClickException], object] | None
-    ) = None,
+    exc: click.ClickException,
+    format_click_exceptions_callable: (t.Callable[[click.ClickException], object] | None) = None,
 ) -> None:
     if format_click_exceptions_callable:
-        format_click_exceptions_callable(error)
+        format_click_exceptions_callable(exc)
     else:
-        error.show()
+        exc.show()
 
 
 def _is_unknown_command(error: click.UsageError) -> bool:
@@ -136,30 +132,31 @@ def _is_unknown_command(error: click.UsageError) -> bool:
 
 
 def _execute_system_command(
-    args: list[str], shell_cmd_callable: t.Callable[[], str] | None = None
+    args: list[str],
+    shell_cmd_callable: t.Callable[[], str] | None = None,
 ) -> None:
     if sys.platform.startswith("win"):
-        stdin_handle: win32console.PyConsoleScreenBufferType = (
-            win32console.GetStdHandle(win32console.STD_INPUT_HANDLE)
-        )
+        stdin_handle: win32console.PyConsoleScreenBufferType
+        stdout_handle: win32console.PyConsoleScreenBufferType
+
+        stdin_handle = win32console.GetStdHandle(win32console.STD_INPUT_HANDLE)
+        stdout_handle = win32console.GetStdHandle(win32console.STD_OUTPUT_HANDLE)
+
         original_stdin_mode: int = stdin_handle.GetConsoleMode()
-        stdout_handle: win32console.PyConsoleScreenBufferType = (
-            win32console.GetStdHandle(win32console.STD_OUTPUT_HANDLE)
-        )
         original_stdout_mode: int = stdout_handle.GetConsoleMode()
     else:
         original_attributes: list[t.Any] = termios.tcgetattr(sys.stdin)
 
     try:
-        _CMD: str = list2cmdline(args)
+        CMD: str = list2cmdline(args)
 
-        buffer: "Buffer" = get_app().current_buffer
+        buffer: Buffer = get_app().current_buffer
         buffer.append_to_history()
         buffer.reset(append_to_history=True)
-        buffer.delete_before_cursor(len(_CMD))
+        buffer.delete_before_cursor(len(CMD))
 
-        _CMD = _prepend_exec_to_cmd(_CMD, shell_cmd_callable)
-        run(_CMD, shell=True, env=os.environ)
+        CMD = _prepend_exec_to_cmd(CMD, shell_cmd_callable)
+        run(CMD, shell=True, env=os.environ)
 
     except KeyboardInterrupt:
         rprint("[#888888]Command killed by keyboard interrupt.")
@@ -174,7 +171,8 @@ def _execute_system_command(
 
 
 def _prepend_exec_to_cmd(
-    _cmd: str, shell_cmd_callable: t.Callable[[], str] | None = None
+    _cmd: str,
+    shell_cmd_callable: t.Callable[[], str] | None = None,
 ) -> str:
     if shell_cmd_callable and (shell := shell_cmd_callable()) is not None:
         if isinstance(shell, str):
@@ -184,7 +182,7 @@ def _prepend_exec_to_cmd(
         else:
             return _cmd
 
-        _cmd = '%s "%s"' % (cmd_exec, _cmd)
+        _cmd = f'{cmd_exec} "{_cmd}"'
 
     return _cmd
 
@@ -195,4 +193,4 @@ class ExitRepl(Exception):
 
 
 def exit_repl() -> t.NoReturn:
-    raise ExitRepl()
+    raise ExitRepl

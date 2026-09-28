@@ -39,7 +39,9 @@ class ListAutoSuggest(AutoSuggest):
         self.history = history
 
     def get_suggestion(
-        self, buffer: "Buffer", document: "Document"
+        self,
+        buffer: Buffer,
+        document: Document,
     ) -> Suggestion | None:
         text = document.text.rsplit("\n", 1)[-1]
 
@@ -55,11 +57,13 @@ class ThreadedAutoSuggest(AutoSuggest):
     def __init__(self, auto_suggest: AutoSuggest) -> None:
         self.auto_suggest = auto_suggest
 
-    def get_suggestion(self, buff: "Buffer", document: "Document") -> Suggestion | None:
+    def get_suggestion(self, buff: Buffer, document: Document) -> Suggestion | None:
         return self.auto_suggest.get_suggestion(buff, document)
 
     async def get_suggestion_async(
-        self, buff: "Buffer", document: "Document"
+        self,
+        buff: Buffer,
+        document: Document,
     ) -> Suggestion | None:
         def run_get_suggestion_thread() -> Suggestion | None:
             return self.get_suggestion(buff, document)

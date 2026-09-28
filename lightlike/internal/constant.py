@@ -6,13 +6,13 @@ import typing as t
 from lightlike.__about__ import __appname_sc__, __version__
 
 __all__: t.Sequence[str] = (
-    "_CONSOLE_SVG_FORMAT",
     "BQ_UPDATES_CONFIG",
     "CONSOLE",
     "DEFAULT_CONFIG",
     "DEFAULT_SCHEDULER_TOML",
     "LICENSE",
     "PROMPT_STYLE",
+    "_CONSOLE_SVG_FORMAT",
 )
 
 

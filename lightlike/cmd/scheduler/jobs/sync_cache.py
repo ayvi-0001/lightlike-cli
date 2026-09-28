@@ -8,7 +8,7 @@ from rich import get_console
 from lightlike.app.cache import TimeEntryAppData, TimeEntryCache
 from lightlike.cmd.scheduler.jobs.types import JobKwargs
 
-__all__: t.Sequence[str] = ("sync_cache", "default_job_sync_cache")
+__all__: t.Sequence[str] = ("default_job_sync_cache", "sync_cache")
 
 
 def sync_cache() -> None:
@@ -24,7 +24,7 @@ def sync_cache() -> None:
 
 
 def default_job_sync_cache() -> JobKwargs:
-    job_kwargs = JobKwargs(
+    return JobKwargs(
         func=sync_cache,
         id="sync_cache",
         name="sync_cache",
@@ -34,4 +34,3 @@ def default_job_sync_cache() -> JobKwargs:
         jobstore="sqlalchemy",
         executor="sqlalchemy",
     )
-    return job_kwargs

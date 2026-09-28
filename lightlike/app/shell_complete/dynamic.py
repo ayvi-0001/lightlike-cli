@@ -30,10 +30,10 @@ _COMPLETERS: t.MutableMapping[ActiveCompleter, Completer | None] = {
 
 
 def global_completer(
-    default_completer: t.Optional[Completer] = None,
+    default_completer: Completer | None = None,
 ) -> ThreadedCompleter:
     return ThreadedCompleter(
-        DynamicCompleter(lambda: _get_completer(default_completer))
+        DynamicCompleter(lambda: _get_completer(default_completer)),
     )
 
 
@@ -47,7 +47,7 @@ def global_completers() -> list[ActiveCompleter]:
 
 
 def _get_completer(
-    default_completer: t.Optional[Completer] = None,
+    default_completer: Completer | None = None,
 ) -> Completer:
     global _COMPLETERS
     for c in [
@@ -73,7 +73,8 @@ def _get_completer(
                             from .history import HistoryCompleter
 
                             HISTORY_COMPLETER = t.cast(
-                                Completer, ThreadedCompleter(HistoryCompleter())
+                                "Completer",
+                                ThreadedCompleter(HistoryCompleter()),
                             )
                         _COMPLETERS[ActiveCompleter.HISTORY] = HISTORY_COMPLETER
 
@@ -84,7 +85,8 @@ def _get_completer(
                             from .path import PathCompleter
 
                             PATH_COMPLETER = t.cast(
-                                Completer, ThreadedCompleter(PathCompleter())
+                                "Completer",
+                                ThreadedCompleter(PathCompleter()),
                             )
                         _COMPLETERS[ActiveCompleter.PATH] = PATH_COMPLETER
 
@@ -95,7 +97,8 @@ def _get_completer(
                             from .executable import ExecutableCompleter
 
                             EXEC_COMPLETER = t.cast(
-                                Completer, ThreadedCompleter(ExecutableCompleter())
+                                "Completer",
+                                ThreadedCompleter(ExecutableCompleter()),
                             )
                         _COMPLETERS[ActiveCompleter.EXEC] = EXEC_COMPLETER
 

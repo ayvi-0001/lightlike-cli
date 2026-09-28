@@ -21,14 +21,14 @@ from lightlike.internal import appdir
 
 __all__: t.Sequence[str] = (
     "_timezone",
-    "weekstart",
+    "current_time_period_flags",
     "datetime_parsed",
     "edit_params",
     "non_running_entry",
-    "summary_path",
     "print_or_output",
-    "current_time_period_flags",
+    "summary_path",
     "timer_list_cache_idx",
+    "weekstart",
 )
 
 
@@ -59,7 +59,9 @@ def weekstart(ctx: click.Context, param: click.Parameter, value: str) -> int:
 
 
 def datetime_parsed(
-    ctx: click.Context, param: click.Parameter, value: str
+    ctx: click.Context,
+    param: click.Parameter,
+    value: str,
 ) -> datetime | None:
     if not value and not ctx.resilient_parsing:
         return None
@@ -77,7 +79,9 @@ def edit_params(
     debug: bool,
 ) -> bool:
     debug and patch_stdout(raw=True)(get_console().log)(
-        "[DEBUG]", "Edit Params:", params
+        "[DEBUG]",
+        "Edit Params:",
+        params,
     )
 
     if ids_to_match:
@@ -90,10 +94,8 @@ def edit_params(
         click.UsageError(message="No ids provided.", ctx=ctx)
 
     if not any(
-        [
-            params.get(k) is not None
-            for k in ["project", "note", "billable", "start_time", "end_time", "date"]
-        ]
+        params.get(k) is not None
+        for k in ["project", "note", "billable", "start_time", "end_time", "date"]
     ):
         raise click.UsageError(message="No fields selected.", ctx=ctx)
 
@@ -101,8 +103,10 @@ def edit_params(
 
 
 def non_running_entry(
-    ctx: click.Context, param: click.Parameter, id_sequence: t.Sequence[str]
-) -> t.Sequence[str] | t.NoReturn:
+    ctx: click.Context,
+    param: click.Parameter,
+    id_sequence: t.Sequence[str],
+) -> t.Sequence[str]:
     cache = TimeEntryCache()
     if cache.exists(cache.running_entries, id_sequence):
         message = Text.assemble(
@@ -118,8 +122,8 @@ def non_running_entry(
                     - timer:resume -> timer:update
                     - timer:resume --end / -e -> timer:edit
                     - timer:resume -> timer:stop -> timer:edit
-                """
-            )
+                """,
+            ),
         )
         raise click.UsageError(message=message.markup, ctx=ctx)
 
@@ -136,25 +140,25 @@ def summary_path(ctx: click.Context, param: click.Parameter, value: str) -> Path
     path = Path(value or ".")
 
     if path.is_dir():
-        raise click.BadParameter("Cannot overwrite a directory.", ctx=ctx)
-    elif path.suffix and path.suffix != suffix:
-        raise click.BadParameter(f"Can only write to {suffix}.", ctx=ctx)
-    elif path.with_suffix(suffix).exists():
+        msg = "Cannot overwrite a directory."
+        raise click.BadParameter(msg, ctx=ctx)
+    if path.suffix and path.suffix != suffix:
+        msg = f"Can only write to {suffix}."
+        raise click.BadParameter(msg, ctx=ctx)
+    if path.with_suffix(suffix).exists():
         try:
             if _questionary.confirm(
                 message="File already exists, overwrite?",
                 auto_enter=True,
             ):
                 return path.with_suffix(suffix)
-            else:
-                raise click.exceptions.Exit()
+            raise click.exceptions.Exit
         except (KeyboardInterrupt, EOFError):
-            raise click.exceptions.Exit()
+            raise click.exceptions.Exit
+    elif not path.suffix:
+        return path.with_suffix(suffix)
     else:
-        if not path.suffix:
-            return path.with_suffix(suffix)
-        else:
-            return path
+        return path
 
 
 def print_or_output(
@@ -200,7 +204,8 @@ def timer_list_cache_idx(
         return None
 
     if not appdir.TIMER_LIST_CACHE.exists():
-        raise click.ClickException("Timer list cache does not exist.")
+        msg = "Timer list cache does not exist."
+        raise click.ClickException(msg)
 
     timer_list_cache = loads(appdir.TIMER_LIST_CACHE.read_text(encoding="utf-8"))
 
@@ -213,10 +218,7 @@ def timer_list_cache_idx(
 
         idxs = []
         for idx in value:
-            if copysign(1, idx) == -1:
-                adjusted_idx = keys[idx]
-            else:
-                adjusted_idx = f"{idx - 1}"
+            adjusted_idx = keys[idx] if copysign(1, idx) == -1 else f"{idx - 1}"
             idxs.append(adjusted_idx)
 
         entry_ids = list(map(partial(getitem, timer_list_cache), idxs))

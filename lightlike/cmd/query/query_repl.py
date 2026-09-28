@@ -31,9 +31,8 @@ if t.TYPE_CHECKING:
     from google.cloud.bigquery.table import RowIterator
     from prompt_toolkit.completion import Completer
 
-    from lightlike.client import CliQueryRoutines
 
-__all__: t.Sequence[str] = ("query_repl", "_build_query_session")
+__all__: t.Sequence[str] = ("_build_query_session", "query_repl")
 
 
 @click.group(
@@ -73,7 +72,7 @@ def _run_query_repl(console: Console) -> None:
         )
         routine = CliQueryRoutines()
 
-    while 1:
+    while True:
         try:
             query = query_session.prompt(cursor.build("(bigquery)"), in_thread=True)
         except KeyboardInterrupt:
@@ -95,14 +94,15 @@ def _run_query_repl(console: Console) -> None:
 
 
 def _build_query_session(
-    completer: "Completer", **prompt_kwargs: t.Any
+    completer: "Completer",
+    **prompt_kwargs: t.Any,
 ) -> PromptSession[t.Any]:
     session: PromptSession[str] = PromptSession(
         style=Style.from_dict(
             utils.update_dict(
                 rtoml.load(constant.PROMPT_STYLE),
                 AppConfig().get("prompt", "style", default={}),
-            )
+            ),
         ),
         refresh_interval=1,
         completer=completer,
@@ -144,14 +144,12 @@ def render_query(
             console.log(routine._format_error_message(query_job))
             return
 
-        resource = (
-            "{base_url}project={project_id}&j=bq:{region}:{job_id}&{end_point}".format(
-                base_url="https://console.cloud.google.com/bigquery?",
-                project_id=query_job.project,
-                region=query_job.location,
-                job_id=query_job.job_id,
-                end_point="page=queryresults",
-            )
+        resource = "{base_url}project={project_id}&j=bq:{region}:{job_id}&{end_point}".format(
+            base_url="https://console.cloud.google.com/bigquery?",
+            project_id=query_job.project,
+            region=query_job.location,
+            job_id=query_job.job_id,
+            end_point="page=queryresults",
         )
         console.log(f"resource_url: [link={resource}][repr.url]{resource}")
         elapsed_time = _elapsed_time(query_job)
@@ -161,7 +159,7 @@ def render_query(
             console.log(f"destination: {query_job.destination}")
         _log_statistics(console, query_job)
 
-        row_iterator: "RowIterator" = query_job.result()
+        row_iterator: RowIterator = query_job.result()
         total_rows: int | None = getattr(row_iterator, "total_rows", None)
 
         file_width: int = 0
@@ -205,7 +203,7 @@ def render_query(
 
                 row_lengths.append(row_length)
 
-            file_width = max(max(row_lengths), 165)  # Minimum width.
+            file_width = max(*row_lengths, 165)  # Minimum width.
 
             status.stop()
 
@@ -216,19 +214,19 @@ def render_query(
             status.start()
             status.update(markup.status_message("Saving to file"))
 
-            _file_console = Console(
+            file_console = Console(
                 style=CONSOLE_CONFIG.style,
                 theme=CONSOLE_CONFIG.theme,
                 record=True,
                 width=file_width or get_console().width,
             )
-            _file_console._log_render.omit_repeated_times = False
+            file_console._log_render.omit_repeated_times = False
 
             if save_query_info:
-                _file_console.begin_capture()
+                file_console.begin_capture()
 
-                _file_console.print("Query:")
-                _file_console.print(
+                file_console.print("Query:")
+                file_console.print(
                     Padding(
                         Syntax(
                             f"{query}\n",
@@ -239,59 +237,60 @@ def render_query(
                             dedent=True,
                         ),
                         (0, 0, 1, 0),
-                    )
+                    ),
                 )
-                _file_console.log(f"resource url = {resource}")
-                _file_console.log(f"elapsed_time = {elapsed_time}")
-                _file_console.log(f"cache hit = {True}")
-                _file_console.log(f"destination = {query_job.destination}")
+                file_console.log(f"resource url = {resource}")
+                file_console.log(f"elapsed_time = {elapsed_time}")
+                file_console.log(f"cache hit = {True}")
+                file_console.log(f"destination = {query_job.destination}")
 
-                _log_statistics(_file_console, query_job)
+                _log_statistics(file_console, query_job)
 
                 if total_rows:
-                    _file_console.log(
+                    file_console.log(
                         markup.repr_attrib_name("total_rows"),
                         markup.repr_attrib_equal(),
                         markup.repr_number(total_rows),
                         sep="",
                     )
 
-                _file_console.export_text(clear=True)
+                file_console.export_text(clear=True)
 
-            _file_console.begin_capture()
-            _file_console.print(table)
-            _file_console.end_capture()
+            file_console.begin_capture()
+            file_console.print(table)
+            file_console.end_capture()
 
-            _dest = appdir.QUERIES.joinpath(TS)
-            _query_dir = _dest.joinpath(f"{query_job.job_id}")
-            _query_dir.mkdir(exist_ok=True)
-            _query_path = _query_dir.joinpath(f"{query_job.job_id}")
+            dest = appdir.QUERIES.joinpath(TS)
+            query_dir = dest.joinpath(f"{query_job.job_id}")
+            query_dir.mkdir(exist_ok=True)
+            query_path = query_dir.joinpath(f"{query_job.job_id}")
 
             if save_txt:
                 status.update(markup.status_message("Saving as txt"))
 
-                _txt = _query_path.with_suffix(".txt").resolve()
-                console_text = _file_console.export_text(clear=False)
-                _txt.write_text(console_text, encoding="utf-8")
+                txt = query_path.with_suffix(".txt").resolve()
+                console_text = file_console.export_text(clear=False)
+                txt.write_text(console_text, encoding="utf-8")
                 not getenv("LIGHTLIKE_CLI_DEV") and console.log(
-                    markup.link(_txt.as_posix(), _txt.as_uri()),
+                    markup.link(txt.as_posix(), txt.as_uri()),
                     markup.bold(" ("),
-                    markup.repr_number(decimal(_txt.stat().st_size)),
+                    markup.repr_number(decimal(txt.stat().st_size)),
                     markup.bold(")"),
                     sep="",
                 )
 
             if save_svg:
                 status.update(markup.status_message("Saving as svg"))
-                _svg = _query_path.with_suffix(".svg").resolve()
-                console_svg = _file_console.export_svg(
-                    title="", code_format=_CONSOLE_SVG_FORMAT
+                svg = query_path.with_suffix(".svg").resolve()
+                console_svg = file_console.export_svg(
+                    title="",
+                    code_format=_CONSOLE_SVG_FORMAT,
                 )
-                _svg.write_text(console_svg, encoding="utf-8")
+                svg.write_text(console_svg, encoding="utf-8")
                 not getenv("LIGHTLIKE_CLI_DEV") and console.log(
-                    markup.link(_svg.as_posix(), _svg.as_uri()),
+                    markup.link(svg.as_posix(), svg.as_uri()),
                     markup.bold(" ("),
-                    markup.repr_number(decimal(_svg.stat().st_size)),
+                    markup.repr_number(decimal(svg.stat().st_size)),
                     markup.bold(")"),
                     sep="",
                 )
@@ -313,7 +312,7 @@ def _elapsed_time(query_job: "QueryJob", start: float | None = None) -> str:
 
 
 def _log_statistics(console: Console, query_job: "QueryJob") -> None:
-    statement_type = getattr(query_job, "statement_type")
+    statement_type = query_job.statement_type
     if statement_type:
         console.log(
             markup.scope_key("statement_type"),
@@ -322,7 +321,7 @@ def _log_statistics(console: Console, query_job: "QueryJob") -> None:
             sep="",
         )
 
-    slot_millis = getattr(query_job, "slot_millis")
+    slot_millis = query_job.slot_millis
     if slot_millis:
         console.log(
             markup.scope_key("slot_millis"),
@@ -331,22 +330,21 @@ def _log_statistics(console: Console, query_job: "QueryJob") -> None:
             sep="",
         )
 
-    total_bytes_processed = getattr(query_job, "total_bytes_processed")
+    total_bytes_processed = query_job.total_bytes_processed
     if total_bytes_processed:
         console.log(
             markup.scope_key("total_bytes_processed"),
             markup.repr_attrib_equal(),
-            markup.repr_number(getattr(query_job, "total_bytes_processed")),
+            markup.repr_number(query_job.total_bytes_processed),
             markup.scope_key(" | total_bytes_billed"),
             markup.repr_attrib_equal(),
-            markup.repr_number(getattr(query_job, "total_bytes_billed")),
+            markup.repr_number(query_job.total_bytes_billed),
             sep="",
         )
 
     if query_job.dml_stats:
         for execution in query_job.query_plan:
             console.log(
-                # fmt: off
                 execution.name,
                 " (",
                 markup.repr_number(execution.end - execution.start),
@@ -364,7 +362,6 @@ def _log_statistics(console: Console, query_job: "QueryJob") -> None:
                 markup.scope_key(", records_written"),
                 markup.bold(markup.scope_equals("=")),
                 markup.repr_number(execution.records_written),
-                # fmt: on
                 sep="",
             )
         console.log(query_job.dml_stats)

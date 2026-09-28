@@ -5,7 +5,6 @@ import typing as t
 from contextlib import contextmanager
 from functools import wraps
 from hashlib import sha3_256, sha256
-from pathlib import Path
 
 import rtoml
 from fasteners import ReaderWriterLock
@@ -16,6 +15,7 @@ from lightlike.internal import factory, utils
 
 if t.TYPE_CHECKING:
     from datetime import _TzInfo
+    from pathlib import Path
 
 
 __all__: t.Sequence[str] = ("AppConfig",)
@@ -70,7 +70,7 @@ class AppConfig(metaclass=factory._Singleton):
             return rtoml.load(self.path)
 
     @t.overload
-    def get(self, *keys: str, default: t.Literal[None] = None) -> t.Any | None: ...
+    def get(self, *keys: str, default: None = None) -> t.Any | None: ...
 
     @t.overload
     def get(self, *keys: str, default: dict[str, t.Any]) -> dict[str, t.Any]: ...
@@ -79,16 +79,16 @@ class AppConfig(metaclass=factory._Singleton):
     def get(self, *keys: str, default: T) -> T: ...
 
     def get(
-        self, *keys: str, default: T | dict[str, t.Any] | None = None
+        self,
+        *keys: str,
+        default: T | dict[str, t.Any] | None = None,
     ) -> t.Any | T | dict[str, t.Any] | None:
         return utils.reduce_keys(*keys, sequence=self.load, default=default)
 
     @property
     def saved_password(self) -> str | None:
         config_password: str | None = self.get("user", "password")
-        saved_password: str | None = (
-            config_password if config_password != "null" else None
-        )
+        saved_password: str | None = config_password if config_password != "null" else None
         return saved_password
 
     @property
@@ -99,7 +99,9 @@ class AppConfig(metaclass=factory._Singleton):
     @property
     def editor(self) -> str | None:
         editor: str | None = self.get(
-            "settings", "editor", default=os.environ.get("EDITOR")
+            "settings",
+            "editor",
+            default=os.environ.get("EDITOR"),
         )
         return editor
 
@@ -109,7 +111,7 @@ class AppConfig(metaclass=factory._Singleton):
         return self.get("settings", "timezone", default=default_tzinfo)
 
     @property
-    def tzinfo(self) -> "_TzInfo":
+    def tzinfo(self) -> _TzInfo:
         return timezone(self.tzname)
 
     def _update_user_credentials(

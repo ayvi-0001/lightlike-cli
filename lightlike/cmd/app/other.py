@@ -19,7 +19,7 @@ from lightlike.app.config import AppConfig
 from lightlike.app.core import FormattedCommand
 from lightlike.internal import constant, utils
 
-__all__: t.Sequence[str] = ("eval_", "calendar")
+__all__: t.Sequence[str] = ("calendar", "eval_")
 
 
 import decimal
@@ -185,7 +185,7 @@ def calendar(
         )
 
         for week_day in cal.iterweekdays():
-            header = "{:.3}".format(calendar.day_name[week_day])
+            header = f"{calendar.day_name[week_day]:.3}"
             table.add_column(header, justify="right", style="#f0f0ff")
 
         month_days = cal.monthdayscalendar(year, month)
@@ -193,7 +193,7 @@ def calendar(
             days = []
             for index, day in enumerate(weekdays):
                 day_label = Text(str(day or ""), style=color_weekdays)
-                if index in (5, 6) and color_weekends:
+                if index in {5, 6} and color_weekends:
                     day_label.stylize(color_weekends)
                 if day and (day, month, year) == today_tuple:
                     day_label.stylize(color_today)

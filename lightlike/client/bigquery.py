@@ -3,15 +3,12 @@ import typing as t
 from inspect import cleandoc
 from pathlib import Path
 
-import google.auth
-import google.auth.credentials
 import rtoml
 from google.auth.exceptions import DefaultCredentialsError
 from google.cloud import bigquery
 from more_itertools import flatten, interleave_longest
 from rich import get_console
 from rich import print as rprint
-from rich.console import Console
 from rich.markup import escape
 from rich.padding import Padding
 from rich.panel import Panel
@@ -22,6 +19,10 @@ from lightlike.app import _get, _questionary
 from lightlike.app.config import AppConfig
 from lightlike.client._credentials import _get_credentials_from_config
 from lightlike.internal import appdir, markup, utils
+
+if t.TYPE_CHECKING:
+    import google.auth.credentials
+    from rich.console import Console
 
 __all__: t.Sequence[str] = (
     "authorize_bigquery_client",
@@ -62,15 +63,16 @@ def authorize_bigquery_client() -> bigquery.Client:
         credentials = _get_credentials_from_config(appconfig)
 
         client = bigquery.Client(
-            project=credentials.quota_project_id, credentials=credentials
+            project=credentials.quota_project_id,
+            credentials=credentials,
         )
 
         with appconfig.rw() as config:
             config["client"].update(
                 {
                     "active-project": getattr(credentials, "quota_project_id", None)
-                    or getattr(credentials, "project_id", None)
-                }
+                    or getattr(credentials, "project_id", None),
+                },
             )
 
         _console.if_not_quiet_start(console.log)("bigquery.Client authenticated")
@@ -79,12 +81,11 @@ def authorize_bigquery_client() -> bigquery.Client:
 
         if not resources_provisioned:
             provision_bigquery_resources(client)
-        else:
-            if appdir.BQ_UPDATES.exists():
-                bq_updates: dict[str, dict[str, bool]] = rtoml.load(appdir.BQ_UPDATES)
-                versions: dict[str, bool] = bq_updates["versions"]
-                if versions and any([versions[k] is False for k in versions]):
-                    provision_bigquery_resources(client, updates=versions)
+        elif appdir.BQ_UPDATES.exists():
+            bq_updates: dict[str, dict[str, bool]] = rtoml.load(appdir.BQ_UPDATES)
+            versions: dict[str, bool] = bq_updates["versions"]
+            if versions and any(versions[k] is False for k in versions):
+                provision_bigquery_resources(client, updates=versions)
 
         # _update_cursor_global_project(locals())
         return client
@@ -132,7 +133,7 @@ def provision_bigquery_resources(
             Please run scripts. This prompt will continue until this version update is marked as confirmed.
 
             [b][red]![/red] [u]This cli may not work as expected if tables/procedures are not up to date[/u].\
-                """
+                """,
             ),
             border_style="bold green",
             title="Updates in BigQuery",
@@ -145,7 +146,7 @@ def provision_bigquery_resources(
     link = markup.link(escape(build.SCRIPTS.as_posix()), build.SCRIPTS.as_uri())
     confirm_panel = Panel.fit(
         f"Press {markup.code('y').markup} to run scripts in BigQuery.\n"
-        f"View scripts in {link.markup}"
+        f"View scripts in {link.markup}",
     )
 
     if not (force or yes):
@@ -158,7 +159,7 @@ def provision_bigquery_resources(
         if appdir.BQ_UPDATES.exists():
             bq_updates: dict[str, dict[str, bool]] = rtoml.load(appdir.BQ_UPDATES)
             versions: dict[str, bool] = bq_updates["versions"]
-            if versions and any([versions[k] is False for k in versions]):
+            if versions and any(versions[k] is False for k in versions):
                 for k in versions:
                     bq_updates["versions"][k] = True
                 rtoml.dump(bq_updates, appdir.BQ_UPDATES)
@@ -173,9 +174,8 @@ def provision_bigquery_resources(
     }
 
     if force:
-        if not yes:
-            if not _questionary.confirm(message="Run SQL scripts?", default=False):
-                return
+        if not yes and not _questionary.confirm(message="Run SQL scripts?", default=False):
+            return
 
         build.run(client=client, patterns=bq_patterns)
         update_routine_diff(client)
@@ -192,12 +192,12 @@ def provision_bigquery_resources(
                 if updates:
                     rprint(
                         "[b][red]![/] [b]"
-                        "This cli will not work as expected if tables or procedures are not up to date."
+                        "This cli will not work as expected if tables or procedures are not up to date.",
                     )
                 else:
                     rprint(
                         "[b][red]![/] [b]"
-                        "This cli will not work if the required tables/procedures do not exist."
+                        "This cli will not work if the required tables/procedures do not exist.",
                     )
                 if _questionary.confirm(
                     message="Are you sure you want to continue without running?",
@@ -243,17 +243,18 @@ def update_routine_diff(client: bigquery.Client) -> None:
                 console.log("Creating missing procedures")
 
                 bq_resources = Path(
-                    f"{__file__}/../../internal/bq_resources/sql"
+                    f"{__file__}/../../internal/bq_resources/sql",
                 ).resolve()
 
                 for path in flatten(
                     interleave_longest(
-                        list(map(lambda b: b.iterdir(), bq_resources.iterdir()))
-                    )
+                        [b.iterdir() for b in bq_resources.iterdir()],
+                    ),
                 ):
                     if path.stem in missing:
                         script = utils.regexp_replace(
-                            text=path.read_text(), patterns=bq_patterns
+                            text=path.read_text(),
+                            patterns=bq_patterns,
                         )
                         script = script.replace("${__name__}", path.stem)
                         client.query(script)

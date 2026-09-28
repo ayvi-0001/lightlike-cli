@@ -28,20 +28,20 @@ from lightlike.internal import constant, enums, markup, utils
 
 __all__: t.Sequence[str] = (
     "BQ_UPDATES",
-    "CACHE_LOCK",
     "CACHE",
-    "console_log_error",
+    "CACHE_LOCK",
     "ENTRY_APPDATA",
-    "log",
     "LOGS",
     "QUERIES",
     "REPL_FILE_HISTORY",
     "REPL_HISTORY",
-    "rmtree",
     "SCHEDULER_CONFIG",
     "SQL_FILE_HISTORY",
     "SQL_HISTORY",
     "TIMER_LIST_CACHE",
+    "console_log_error",
+    "log",
+    "rmtree",
 )
 
 
@@ -140,7 +140,7 @@ CONFIG_FORCE_UPDATE_PATHS: list[str] = [
 
 
 @_fasteners.interprocess_locked(__appdir__ / "config.lock", logger=log())
-def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
+def validate(__version__: str, __config__: Path, /) -> None:
     console = get_console()
     _console.if_not_quiet_start(console.log)("Validating app directory")
 
@@ -148,35 +148,34 @@ def validate(__version__: str, __config__: Path, /) -> None | t.NoReturn:
         console.log(f"{__config__} not found")
         console.log("Initializing app directory")
         return _initial_build()
-    else:
-        local_config: dict[str, t.Any] = rtoml.load(__config__)
+    local_config: dict[str, t.Any] = rtoml.load(__config__)
 
-        v_local: Version = Version(local_config["app"]["version"])
-        v_package: Version = Version(__version__)
+    v_local: Version = Version(local_config["app"]["version"])
+    v_package: Version = Version(__version__)
 
-        if v_local < v_package:
-            console.log(
-                "Updating version:",
-                f"[repr.number]{v_local}[/]",
-                "->",
-                f"[repr.number]{v_package}[/]",
-            )
-
-            # No live updates to check for yet.
-            # if not BQ_UPDATES.exists():
-            #     BQ_UPDATES.write_text(constant.BQ_UPDATES_CONFIG)
-
-        local_config = utils.merge_default_dict_into_current_dict(
-            local_config,
-            rtoml.load(constant.DEFAULT_CONFIG),
-            update_paths=CONFIG_UPDATE_PATHS,
-            force_update_paths=CONFIG_FORCE_UPDATE_PATHS,
+    if v_local < v_package:
+        console.log(
+            "Updating version:",
+            f"[repr.number]{v_local}[/]",
+            "->",
+            f"[repr.number]{v_package}[/]",
         )
 
-        __config__.write_text(
-            utils.format_toml(local_config),
-            encoding="utf-8",
-        )
+        # No live updates to check for yet.
+        # if not BQ_UPDATES.exists():
+        #     BQ_UPDATES.write_text(constant.BQ_UPDATES_CONFIG)
+
+    local_config = utils.merge_default_dict_into_current_dict(
+        local_config,
+        rtoml.load(constant.DEFAULT_CONFIG),
+        update_paths=CONFIG_UPDATE_PATHS,
+        force_update_paths=CONFIG_FORCE_UPDATE_PATHS,
+    )
+
+    __config__.write_text(
+        utils.format_toml(local_config),
+        encoding="utf-8",
+    )
 
     return None
 
@@ -211,7 +210,7 @@ def console_log_error(error: Exception, notify: bool, patch_stdout: bool) -> Non
             rprint(notice)
 
 
-def _initial_build() -> None | t.NoReturn:
+def _initial_build() -> None:
     try:
         import getpass
         import os
@@ -258,7 +257,9 @@ def _initial_build() -> None | t.NoReturn:
         )
 
         default_config["app"].update(
-            name=__appname_sc__, version=__version__, term=term
+            name=__appname_sc__,
+            version=__version__,
+            term=term,
         )
 
         user = getpass.getuser()
@@ -316,14 +317,14 @@ def _initial_build() -> None | t.NoReturn:
                           Let the client determine credentials from the current environment.
                           This will likely use Application Default Credentials.
                           If you have the Google Cloud SDK installed, try [code]gcloud init[/code] or [code]gcloud auth application-default login[/code].
-                        
+
                         ▸ [b][u]from-service-account-key[/b][/u]
                           Copy and paste a service-account key.
                           You will be prompted to provide a password, which will be used to encrypt the json file.
-                    """
+                    """,
                 ),
                 (1, 1, 0, 1),
-            )
+            ),
         )
 
         console.print(NewLine())
@@ -343,7 +344,7 @@ def _initial_build() -> None | t.NoReturn:
                     " in BigQuery.",
                 ),
                 (1, 0, 1, 1),
-            )
+            ),
         )
 
         if _questionary.confirm(message="Do you want to rename this?", auto_enter=True):
@@ -353,7 +354,7 @@ def _initial_build() -> None | t.NoReturn:
                 Padding(
                     Text.assemble("Enter ", markup.code("${NAME}")),
                     (1, 0, 1, 1),
-                )
+                ),
             )
             dataset_name = _questionary.text(message="$", validate=ResourceName())
         else:
@@ -369,7 +370,7 @@ def _initial_build() -> None | t.NoReturn:
 
         default_config["bigquery"].update(dataset=dataset_name)
         default_config["client"].update(
-            {"credentials-source": repr(client_credential_source)}
+            {"credentials-source": repr(client_credential_source)},
         )
 
         default_config["cli"].update({"add-to-path": [__appdir__.as_posix()]})
@@ -404,13 +405,13 @@ def _initial_build() -> None | t.NoReturn:
                 description = "default"
                 default_billable = false
                 notes = []
-                """
+                """,
             ),
             encoding="utf-8",
         )
         console.log("Directory build complete")
 
-        return None
+        return
     except (KeyboardInterrupt, EOFError):
         sys.exit(1)
     except Exception as error:

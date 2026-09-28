@@ -1,10 +1,8 @@
 import typing as t
 from contextlib import suppress
-from datetime import datetime
 from inspect import cleandoc
 
 from apscheduler.triggers.cron import CronTrigger
-from google.cloud.bigquery import Row
 from more_itertools import first
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import get_console
@@ -16,13 +14,15 @@ from lightlike.client import CliQueryRoutines
 from lightlike.cmd.scheduler.jobs.types import JobKwargs
 
 if t.TYPE_CHECKING:
-    from datetime import _TzInfo
+    from datetime import _TzInfo, datetime
+
+    from google.cloud.bigquery import Row
 
     from lightlike.app.dates import DateParams
 
 __all__: t.Sequence[str] = (
-    "print_daily_total_hours",
     "default_job_print_daily_total_hours",
+    "print_daily_total_hours",
 )
 
 
@@ -30,10 +30,11 @@ def print_daily_total_hours() -> None:
     with suppress(Exception):
         console: Console = get_console()
         routine: CliQueryRoutines = CliQueryRoutines()
-        tzinfo: "_TzInfo" = AppConfig().tzinfo
+        tzinfo: _TzInfo = AppConfig().tzinfo
         today: datetime = now(tzinfo)
-        date_params: "DateParams" = get_relative_week(
-            today, AppConfig().get("settings", "week-start", default=0)
+        date_params: DateParams = get_relative_week(
+            today,
+            AppConfig().get("settings", "week-start", default=0),
         )
 
         base_query: str = cleandoc(
@@ -74,7 +75,7 @@ def print_daily_total_hours() -> None:
               FORMAT("%%.*f", 4, CAST(SUM(billable_hours) + SUM(non_billable_hours) AS FLOAT64)) AS total_hours,
             FROM
               timesheet
-      """
+      """,
         )
 
         query_total_daily: str = base_query % (
@@ -90,8 +91,8 @@ def print_daily_total_hours() -> None:
             f'WHERE `date` BETWEEN "{date_params.start.date()}" AND "{date_params.end.date()}"',
         )
 
-        total_daily = t.cast(Row, first(routine._query(query_total_daily)))
-        total_weekly = t.cast(Row, first(routine._query(query_total_weekly)))
+        total_daily = t.cast("Row", first(routine._query(query_total_daily)))
+        total_weekly = t.cast("Row", first(routine._query(query_total_weekly)))
 
         daily_billable_hours = total_daily.billable_hours or 0
         daily_non_billable = total_daily.non_billable_hours or 0
@@ -106,18 +107,18 @@ def print_daily_total_hours() -> None:
             console.log(
                 f"Daily | Billable = {daily_billable_hours} "
                 f"Non-Billable {daily_non_billable} "
-                f"Total = {daily_total_hours}"
+                f"Total = {daily_total_hours}",
             )
             console.log(
                 f"Weekly | Billable = {weekly_billable_hours} "
                 f"Non-Billable {weekly_non_billable} "
-                f"Total = {weekly_total_hours}"
+                f"Total = {weekly_total_hours}",
             )
             console.log(f"Total hours logged this week: {total_weekly.hours or 0}")
 
 
 def default_job_print_daily_total_hours() -> JobKwargs:
-    job_kwargs = JobKwargs(
+    return JobKwargs(
         func=print_daily_total_hours,
         id="print_daily_total_hours",
         name="print_daily_total_hours",
@@ -129,4 +130,3 @@ def default_job_print_daily_total_hours() -> JobKwargs:
         executor="sqlalchemy",
         misfire_grace_time=10,
     )
-    return job_kwargs

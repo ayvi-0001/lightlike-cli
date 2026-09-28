@@ -11,15 +11,15 @@ from lightlike.app.dates import now as datetime_now
 from lightlike.client import CliQueryRoutines, get_client
 
 __all__: t.Sequence[str] = (
-    "routine",
-    "config",
-    "cache",
     "appdata",
-    "id_list",
+    "cache",
     "client",
+    "config",
     "console",
-    "now",
     "ctx_group",
+    "id_list",
+    "now",
+    "routine",
 )
 
 AnyCallable: t.TypeAlias = t.Callable[..., t.Any]

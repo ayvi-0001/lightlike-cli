@@ -2,9 +2,11 @@ import typing as t
 
 import click
 import rich
-from apscheduler.schedulers.background import BackgroundScheduler
 
 from lightlike.app.core import LazyAliasedGroup
+
+if t.TYPE_CHECKING:
+    from apscheduler.schedulers.background import BackgroundScheduler
 
 __all__: t.Sequence[str] = ("scheduler",)
 
@@ -36,7 +38,7 @@ STATE_STOPPED = 0
 @click.option("-d", "--debug", is_flag=True, hidden=True)
 @click.pass_context
 def scheduler(ctx: click.Context, debug: bool) -> None:
-    if ctx.invoked_subcommand in (
+    if ctx.invoked_subcommand in {
         "add-job",
         "get-job",
         "modify-job ",
@@ -46,11 +48,11 @@ def scheduler(ctx: click.Context, debug: bool) -> None:
         "reschedule-job",
         "resume-job",
         "system-command",
-    ):
+    }:
         scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
         if scheduler.state == STATE_STOPPED:
             rich.print(
                 "[dimmed]Scheduler is stopped.",
                 "Use scheduler:start before running command.",
             )
-            raise click.exceptions.Exit()
+            raise click.exceptions.Exit

@@ -12,14 +12,12 @@ from math import copysign
 from operator import truth
 
 import click
-import sqlalchemy as sq
 from apscheduler.schedulers.background import BackgroundScheduler
 from more_itertools import first, locate, one
 from rich import print as rprint
 from rich.console import Console
 from rich.markup import escape
 from rich.syntax import Syntax
-from rich.table import Table
 from rich.text import Text
 
 from lightlike.app import (
@@ -39,6 +37,9 @@ from lightlike.cmd import _pass
 from lightlike.internal import appdir, markup, utils
 
 if t.TYPE_CHECKING:
+    import sqlalchemy as sq
+    from rich.table import Table
+
     from lightlike.app.cache import TimeEntryAppData, TimeEntryIdList
     from lightlike.client import CliQueryRoutines
 
@@ -76,13 +77,13 @@ def default_timer_add(timer_add_min: int) -> str:
         code="""\
         $ timer add # defaults to adding an entry under `no-project`, that started 6 minutes ago, ending now.
         $ t a       # this can be later updated using timer:update
-        
+
         $ timer add --start 1h # started 1 hour ago, ends now
         $ t a -s1h
 
         $ timer add --project lightlike-cli --start 0900  --end 1130 # 9am -> 11:30am today
         $ t a -plightlike-cli -s0900 -e1130
-        
+
         $ timer add --project lightlike-cli --start jan1@9am --end jan1@1pm --note 'task description'
         $ t a -plightlike-cli -sjan1@9am -ejan1@1pm -n'task description'\
         """,
@@ -270,7 +271,7 @@ def add(
             order=["timestamp_start desc"],
             limit=1,
         )
-        rows = list(map(lambda r: dict(r.items()), last_time_entry))
+        rows = [dict(r.items()) for r in last_time_entry]
         if rows:
             start = rows[0]["end"]
 
@@ -284,18 +285,18 @@ def add(
         if debug:
             console.log("[DEBUG]: override date", date)
 
-        _override_day = date.day
-        _override_month = date.month
-        _override_year = date.year
+        override_day = date.day
+        override_month = date.month
+        override_year = date.year
         start = start.replace(
-            year=_override_year,
-            month=_override_month,
-            day=_override_day,
+            year=override_year,
+            month=override_month,
+            day=override_day,
         )
         end = end.replace(
-            year=_override_year,
-            month=_override_month,
-            day=_override_day,
+            year=override_year,
+            month=override_month,
+            day=override_day,
         )
 
     date_params = dates.parse_date_range_flags(start, end)
@@ -339,7 +340,7 @@ def add(
             "start_time": start_local,
             "end_time": end_local,
             "hours": hours,
-            "billable": billable if billable in (True, False) else project_default_billable,
+            "billable": billable if billable in {True, False} else project_default_billable,
         },
     )
 
@@ -358,7 +359,7 @@ def add(
             "start": start_local.time(),
             "end": end_local.time(),
             "note": note or "None",
-            "billable": billable if billable in (True, False) else project_default_billable,
+            "billable": billable if billable in {True, False} else project_default_billable,
             "hours": hours,
         },
     ]
@@ -388,10 +389,10 @@ def yank_flag_help() -> str:
         code="""\
         $ timer delete --id b95eb89 --id 22b0140 --id b5b8e24
         $ t d -ib95eb89 -i22b0140 -ib5b8e24
-        
+
         $ timer delete --yank 1
         $ t d -y1
-        
+
         $ timer delete --use-last-timer-list
         $ t d -u\
         """,
@@ -576,14 +577,18 @@ def _get_entry_edits(
         # individual time entries start and end times.
         case True, True, True:
             new_date, new_start, new_end = dates.combine_new_date_into_start_and_end(
-                in_datetime=date, in_start=start_time, in_end=end_time
+                in_datetime=date,
+                in_start=start_time,
+                in_end=end_time,
             )
             edits["start_time"] = new_start
             edits["end_time"] = new_end
             edits["date"] = new_date
         case True, True, False:
             new_date, new_start, new_end = dates.combine_new_date_into_start(
-                in_datetime=date, in_start=start_time, in_end=entry_row["end"]
+                in_datetime=date,
+                in_start=start_time,
+                in_end=entry_row["end"],
             )
             edits["start_time"] = new_start
             edits["date"] = new_date
@@ -596,7 +601,9 @@ def _get_entry_edits(
             edits["date"] = new_date
         case True, False, True:
             new_date, new_start, new_end = dates.combine_new_date_into_end(
-                in_datetime=date, in_start=entry_row["start"], in_end=end_time
+                in_datetime=date,
+                in_start=entry_row["start"],
+                in_end=end_time,
             )
             edits["end_time"] = new_end
             edits["date"] = new_date
@@ -630,7 +637,7 @@ def _get_entry_edits(
             dates.hours_to_seconds(paused_hours),
         )
 
-        duration = duration - timedelta(
+        duration -= timedelta(
             hours=paused_hours,
             minutes=paused_minutes,
             seconds=paused_seconds,
@@ -640,11 +647,11 @@ def _get_entry_edits(
         if total_seconds < 0 or copysign(1, duration.days) == -1:
             matched_ids.pop(matched_ids.index(entry_row["id"]))
 
-            _compare_start = (
+            compare_start = (
                 f"original start = {entry_row['start'].strftime('%Y-%m-%d %H:%M:%S')}"
                 f" | new start {new_start.strftime('%Y-%m-%d %H:%M:%S')}"
             )
-            _compare_end = (
+            compare_end = (
                 f"original end = {entry_row['end'].strftime('%Y-%m-%d %H:%M:%S')}"
                 f" | new end {new_end.strftime('%Y-%m-%d %H:%M:%S')}"
             )
@@ -652,8 +659,8 @@ def _get_entry_edits(
                 cleandoc(
                     f"""
             [code]{entry_row["id"]}[/code] updates failed: Negative Duration.
-            {_compare_start}
-            {_compare_end}
+            {compare_start}
+            {compare_end}
             paused_hours = [repr.number]{entry_row["paused_hours"]}[/repr.number]
             duration = {duration}
             Removed from edits.
@@ -676,14 +683,14 @@ def _match_ids(
 ) -> t.Sequence[list[str]]:
     def _match_id_predicate(s: str) -> bool:
         nonlocal ids_to_match
-        return any([s.startswith(m) for m in ids_to_match])
+        return any(s.startswith(m) for m in ids_to_match)
 
     matched_idxs: t.Iterator[int] = locate(id_list.ids, _match_id_predicate)
-    matched_ids: list[str] = list(map(lambda i: id_list.ids[i], matched_idxs))
+    matched_ids: list[str] = [id_list.ids[i] for i in matched_idxs]
 
     def _match_id_missing(s: str) -> bool:
         nonlocal matched_ids
-        return not any([m.startswith(s) for m in matched_ids])
+        return not any(m.startswith(s) for m in matched_ids)
 
     non_matched_ids: list[str] = list(filter(_match_id_missing, ids_to_match))
 
@@ -691,6 +698,7 @@ def _match_ids(
         ctx.fail("No matching ids.")
     else:
         return matched_ids, non_matched_ids
+    return None
 
 
 @click.command(
@@ -707,7 +715,7 @@ def _match_ids(
 
         $ timer edit --yank 1 --yank 2 --end now # edit both time entries to end now
         $ t e -y1 -y2 -en # `n` expands to `now`
-        
+
         $ timer edit --yank 1 --yank 2 --id 36c9fe5 --date 2d # set 3 entries to 2 days ago
         $ t e -y1 -y2 -i36c9fe5 -d2d\
         """,
@@ -939,25 +947,32 @@ def edit(
     validate.callbacks.edit_params(ctx, ctx.params, ids_to_match, debug)
 
     with console.status(
-        status=markup.status_message("Matching time entry ids")
+        status=markup.status_message("Matching time entry ids"),
     ) as status:
         matched_ids, non_matched_ids = _match_ids(
-            ctx=ctx, id_list=id_list, ids_to_match=ids_to_match
+            ctx=ctx,
+            id_list=id_list,
+            ids_to_match=ids_to_match,
         )
 
         console.print(markup.bg("Matched "), matched_ids, end="")
         non_matched_ids and console.print(
-            markup.red("Non-matched "), non_matched_ids, end=""
+            markup.red("Non-matched "),
+            non_matched_ids,
+            end="",
         )
 
         status.update(markup.status_message("Retrieving data"))
         try:
-            matched_entries: list[dict[str, t.Any]] = [r._asdict() for r in routine._get_time_entries(
-                ids=matched_ids,
-            )]
+            matched_entries: list[dict[str, t.Any]] = [
+                r._asdict()
+                for r in routine._get_time_entries(
+                    ids=matched_ids,
+                )
+            ]
         except Exception as error:
             console.print(markup.br("Error:"), error)
-            raise click.exceptions.Exit()
+            raise click.exceptions.Exit
 
         all_edits: list[dict[str, t.Any]] = []
         for row in matched_entries:
@@ -983,7 +998,7 @@ def edit(
             markup.status_message(
                 "Editing %s: " % ("entries" if len(matched_ids) > 1 else "entry"),
             ),
-            Text.join(Text(", "), [markup.code(_id[:7]) for _id in matched_ids]),
+            Text.join(Text(", "), [markup.code(id_[:7]) for id_ in matched_ids]),
         )
 
         if not all_edits:
@@ -1009,12 +1024,12 @@ def edit(
             "t.Sequence[tuple[sq.Row[t.Any], dict[str, t.Any]]]",
             zip(matched_entries, all_edits, strict=False),
         ):
-            _start_datetime = row.get("start")
-            _end_datetime = row.get("end")
+            start_datetime = row.get("start")
+            end_datetime = row.get("end")
 
             try:
-                _start_time = _start_datetime.time()
-                _end_time = _end_datetime.time()
+                start_time_ = start_datetime.time()
+                end_time_ = end_datetime.time()
             except Exception:
                 ctx.fail(
                     "Failed to retrieve start/end times. Possible there is "
@@ -1026,8 +1041,8 @@ def edit(
                 "id": row.get("id")[:7],
                 "project": row.get("project"),
                 "date": row.get("date"),
-                "start_time": _start_time,
-                "end_time": _end_time,
+                "start_time": start_time_,
+                "end_time": end_time_,
                 "note": row.get("note"),
                 "billable": row.get("billable"),
                 "paused_hours": row.get("paused_hours") or 0,
@@ -1036,7 +1051,7 @@ def edit(
             original_records.append(original_record)
 
             for k in edits:
-                if k in ("start_time", "end_time"):
+                if k in {"start_time", "end_time"}:
                     edits[k] = edits[k].time()
 
             new_records.append(edits)
@@ -1060,9 +1075,9 @@ def edit(
     syntax=Syntax(
         code="""\
         $ timer get 36c9fe5ebbea4e4bcbbec2ad3a25c03a7e655a46
-        
+
         $ timer get 36c9fe5
-        
+
         $ t g 36c9fe5\
         """,
         lexer="fishshell",
@@ -1129,7 +1144,7 @@ def get(
         $ timer list --date 2d --match-note task.* --modifiers ig
         $ t l -d2d -I task.* -Mig
 
-        # regex 
+        # regex
         $ t l -t -P ^(?!demo) # exclude projects beginning with 'demo'
 
         # list all entries this month from project 'myproject.example'
@@ -1146,10 +1161,10 @@ def get(
         line_numbers=True,
         background_color="#131310",
     ),
-    context_settings=dict(
-        allow_extra_args=True,
-        allow_interspersed_args=True,
-    ),
+    context_settings={
+        "allow_extra_args": True,
+        "allow_interspersed_args": True,
+    },
 )
 @utils.handle_keyboard_interrupt()
 @click.option(
@@ -1474,12 +1489,13 @@ def list_(
         all remaining arguments at the end of this command are
         joined together by a space to form the where clause.
         the word "WHERE" is stripped from the start of the string, if it exists.
+
     """
     ctx, _ = ctx_group
 
     if offset and not limit:
         console.print(
-            "--offset / -o does not do anything without also using --limit / -l"
+            "--offset / -o does not do anything without also using --limit / -l",
         )
 
     where_clause: str = shell_complete.where._parse_click_options(
@@ -1530,7 +1546,7 @@ def list_(
                 end or PromptFactory.prompt_date("(end-date)"),
             )
         else:
-            raise click.exceptions.Exit()
+            raise click.exceptions.Exit
 
         rows = routine._list_timesheet(
             start_date=date_params.start.date(),
@@ -1635,7 +1651,7 @@ def list_(
         )
         if not table.row_count:
             rprint(markup.dimmed("No results"))
-            raise click.exceptions.Exit()
+            raise click.exceptions.Exit
 
         console.print(table)
 
@@ -1743,7 +1759,7 @@ def update_notes(
 
     if not result:
         console.print(markup.dimmed("No edits made."))
-        raise click.exceptions.Exit()
+        raise click.exceptions.Exit
 
     replacements = {}
     for line in result.splitlines():
@@ -1754,7 +1770,7 @@ def update_notes(
 
     if not replacements:
         console.print(markup.dimmed("No edits made."))
-        raise click.exceptions.Exit()
+        raise click.exceptions.Exit
 
     case_statement: str = "CASE note "
     where_statement: str = ""
@@ -1771,7 +1787,7 @@ def update_notes(
             f"UPDATE {routine.timesheet_id}",
             f"SET note = {case_statement}",
             f'WHERE project = "{project}" AND note in ({where_statement})',
-        ]
+        ],
     )
 
     if dry_run:
@@ -1894,7 +1910,7 @@ def resume(
         table: Table = render.map_sequence_to_rich_table(paused_entries)
         if not table.row_count:
             rprint(markup.dimmed("No results"))
-            raise click.exceptions.Exit()
+            raise click.exceptions.Exit
 
         console.print(table)
 
@@ -1912,10 +1928,7 @@ def resume(
             kwargs={"id": matched_id, "time_resume": now},
         )
     else:
-        if len(entry) < 40:
-            matched_id = id_list.match_id(entry)
-        else:
-            matched_id = entry
+        matched_id = id_list.match_id(entry) if len(entry) < 40 else entry
 
         if not cache.exists(cache.paused_entries, [matched_id]):
             raise click.UsageError(message="This entry is not paused.", ctx=ctx)
@@ -1942,7 +1955,7 @@ def resume(
         # start entry with project and note
         $ timer run --project lightlike-cli --note readme
         $ t ru -plightlike-cli -nreadme\
-        
+
         # create a running entry starting 1 hour ago, and override billable to false
         $ timer run --project your-client --start 1h --billable False
         $ t ru -p your-client -s1h -b0\
@@ -2170,7 +2183,7 @@ def run(
             "project": project,
             "note": note,
             "start_time": start_local,
-            "billable": billable if billable in (True, False) else project_default_billable,
+            "billable": billable if billable in {True, False} else project_default_billable,
         }
 
     scheduler().add_job(
@@ -2411,7 +2424,7 @@ def switch(
 
     if len(entries) == 1:
         console.print(markup.dimmed("No entries to switch to."))
-        raise click.exceptions.Exit()
+        raise click.exceptions.Exit
 
     if not cache:
         ctx.fail("There is no active time entry. Use timer:resume instead.")
@@ -2422,12 +2435,12 @@ def switch(
         table: Table = render.map_sequence_to_rich_table(entries)
         if not table.row_count:
             rprint(markup.dimmed("No results"))
-            raise click.exceptions.Exit()
+            raise click.exceptions.Exit
 
         console.print(table)
 
         choices: list[str] = list(
-            filter(lambda i: not cache.id.startswith(i), map(_get._id, entries))
+            filter(lambda i: not cache.id.startswith(i), map(_get._id, entries)),
         )
 
         select: str = _questionary.select(
@@ -2507,13 +2520,13 @@ def focus(
 
     if len(entries) == 1:
         console.print(markup.dimmed("No time entries to select from."))
-        raise click.exceptions.Exit()
+        raise click.exceptions.Exit
 
     if not entry:
         table: Table = render.map_sequence_to_rich_table(entries)
         if not table.row_count:
             rprint(markup.dimmed("No results"))
-            raise click.exceptions.Exit()
+            raise click.exceptions.Exit
 
         console.print(table)
 
@@ -2551,7 +2564,7 @@ def focus(
         # update active entries project, and set start to 30 min ago
         $ timer update --project lightlike-cli --start 30m
         $ timer update -plightlike-cli -s30m
-    
+
         $ timer update --billable true --note "redefine task"
         $ t u -b1 -n"redefine task"\
         """,

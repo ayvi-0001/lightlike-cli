@@ -5,8 +5,8 @@ __all__: t.Sequence[str] = (
     "_id",
     "count_entries",
     "dataset_id",
-    "note",
     "name",
+    "note",
     "routine_id",
     "table_id",
 )

@@ -9,7 +9,7 @@ __all__: t.Sequence[str] = ("JobKwargs",)
 
 
 class JobKwargs(t.TypedDict):
-    """kwargs to pass to scheduler.add_job(...)"""
+    """kwargs to pass to scheduler.add_job(...)."""
 
     func: t.Callable[..., t.Any]
     jobstore: str

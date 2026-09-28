@@ -1,4 +1,4 @@
-from typing import Sequence
+from collections.abc import Sequence
 
 from lightlike.app.validate import callbacks
 from lightlike.app.validate.projects import (
@@ -12,12 +12,12 @@ from lightlike.app.validate.projects import (
 )
 
 __all__: Sequence[str] = (
-    "callbacks",
     "ExistingProject",
     "NewProject",
     "active_project",
     "active_project_list",
-    "new_project",
     "archived_project",
     "archived_project_list",
+    "callbacks",
+    "new_project",
 )

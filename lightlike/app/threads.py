@@ -33,7 +33,7 @@ def spawn(
                         characters="- ",
                         style="bold red",
                         align="left",
-                    )
+                    ),
                 )
                 thread_repr: str = f"{rich_repr(current_thread())}"  # type: ignore[call-overload]
                 thread_repr.replace("wrapper", f"{fn!r}")

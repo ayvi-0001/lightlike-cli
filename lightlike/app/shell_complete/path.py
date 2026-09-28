@@ -23,14 +23,15 @@ if t.TYPE_CHECKING:
     NotImplementedOrNone = object
 
 __all__: t.Sequence[str] = (
-    "path",
     "PathCompleter",
+    "path",
     "timestamp_file",
 )
 
 
 OneStyleAndTextTuple = t.Union[
-    tuple[str, str], tuple[str, str, t.Callable[["MouseEvent"], "NotImplementedOrNone"]]
+    tuple[str, str],
+    tuple[str, str, t.Callable[["MouseEvent"], "NotImplementedOrNone"]],
 ]
 
 StyleAndTextTuples = list[OneStyleAndTextTuple]
@@ -57,13 +58,15 @@ def _typed_dir_and_stem(
 
 
 def _stem_in_current_dir(
-    incomplete: str, iterator: t.Callable[..., t.Iterable[Path]]
+    incomplete: str,
+    iterator: t.Callable[..., t.Iterable[Path]],
 ) -> t.Iterator[Path]:
-    yield from filter(_match_stem(incomplete), iterator(Path(".")))
+    yield from filter(_match_stem(incomplete), iterator(Path()))
 
 
 def _paths_from_incomplete(
-    incomplete: str, iterator: t.Callable[..., t.Iterable[Path]]
+    incomplete: str,
+    iterator: t.Callable[..., t.Iterable[Path]],
 ) -> t.Iterator[Path]:
     typed_dir = TYPED_DIR.match(incomplete)
     typed_stem = TYPED_STEM.match(incomplete)
@@ -71,7 +74,7 @@ def _paths_from_incomplete(
 
     if not incomplete:
         with suppress(PermissionError, NotADirectoryError, FileNotFoundError):
-            yield from iterator(Path("."))
+            yield from iterator(Path())
     elif typed_path.exists():
         if typed_path.is_dir():
             yield from _typed_dir_and_stem(typed_dir, typed_stem, iterator)
@@ -90,7 +93,8 @@ def _yield_paths(incomplete: str, dir_only: bool = False) -> t.Iterator[Path]:
         yield from _paths_from_incomplete(incomplete, lambda p: p.iterdir())
     else:
         yield from _paths_from_incomplete(
-            incomplete, lambda p: filter(lambda p: p.is_dir(), p.iterdir())
+            incomplete,
+            lambda p: filter(lambda p: p.is_dir(), p.iterdir()),
         )
 
 
@@ -120,7 +124,9 @@ def _path_str_contents(path: Path) -> FormattedText:
 
 
 def path(
-    ctx: click.Context, param: click.Parameter, incomplete: str
+    ctx: click.Context,
+    param: click.Parameter,
+    incomplete: str,
 ) -> list[CompletionItem] | None:
     completions: list[CompletionItem] = []
     if not ctx.resilient_parsing:
@@ -133,10 +139,7 @@ def path(
     if ActiveCompleter.PATH in global_completers():
         return completions
 
-    if isinstance(ctx.obj, dict):
-        dir_only = ctx.obj.get("dir_only", False)
-    else:
-        dir_only = False
+    dir_only = ctx.obj.get("dir_only", False) if isinstance(ctx.obj, dict) else False
     for path in _yield_paths(alter_str(incomplete, strip_quotes=True), dir_only):
         value = path.expanduser().as_posix()
         if " " in value:
@@ -145,8 +148,8 @@ def path(
         completions.append(
             CompletionItem(
                 value=value,
-                help=t.cast(str, _path_str_contents(path)),
-            )
+                help=t.cast("str", _path_str_contents(path)),
+            ),
         )
 
     return completions
@@ -154,7 +157,9 @@ def path(
 
 class PathCompleter(Completer):
     def get_completions(
-        self, document: "Document", complete_event: "CompleteEvent"
+        self,
+        document: "Document",
+        complete_event: "CompleteEvent",
     ) -> t.Iterable[Completion]:
         console = get_console()
         console_width = console.width
@@ -164,7 +169,7 @@ class PathCompleter(Completer):
                 count = len(document.find_all("\\")) + 1
                 start_pos = document.find_previous_word_beginning(count, WORD=True)
                 current_path = document.text[start_pos:]
-                word_before_cursor = '"%s"' % current_path.replace("\\ ", " ")
+                word_before_cursor = '"{}"'.format(current_path.replace("\\ ", " "))
                 start_position = -len(word_before_cursor) + 1
             else:
                 word_before_cursor = document.get_word_before_cursor(WORD=True)
@@ -192,12 +197,12 @@ class PathCompleter(Completer):
         half_console_width = int(console_width / 3)
         if len(text) > half_console_width:
             return f"{text[:half_console_width]}..."
-        else:
-            return text
+        return text
 
 
 def timestamp_file(
-    prefix: str, suffix: str = ""
+    prefix: str,
+    suffix: str = "",
 ) -> t.Callable[..., t.Sequence[CompletionItem]]:
     completion_items: list[CompletionItem] = []
     date_format: str = "%Y-%m-%dT%H_%M_%S"
@@ -211,11 +216,10 @@ def timestamp_file(
         incomplete: str,
     ) -> t.Sequence[CompletionItem]:
         nonlocal completion_items
-        matches: list[CompletionItem] = []
 
-        for item in completion_items:
-            if item.value.startswith(incomplete):
-                matches.append(item)
+        matches: list[CompletionItem] = [
+            item for item in completion_items if item.value.startswith(incomplete)
+        ]
         return matches
 
     return inner

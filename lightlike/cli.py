@@ -1,3 +1,5 @@
+# ruff: file-ignore[module-import-not-at-top-of-file]
+
 # MIT License
 
 # Copyright (c) 2024 ayvi-0001
@@ -46,8 +48,8 @@ from pytz_deprecation_shim._exceptions import PytzUsageWarning
 from rich import get_console
 
 from lightlike.__about__ import (
-    __help__,
     __config__,
+    __help__,
     __lock__,
     __repo__,
     __version__,
@@ -134,50 +136,54 @@ def run_cli(name: str = "lightlike", locked: bool = True) -> None:
 
     _console.reconfigure(get_datetime=partial(dates.now, tzinfo=AppConfig().tzinfo))
 
-    repl_kwargs: dict[str, t.Any] = dict(
-        prompt_kwargs=dict(
-            message=cursor.build,
-            history=appdir.REPL_FILE_HISTORY(),
-            bottom_toolbar=cursor.bottom_toolbar,
-            rprompt=cursor.rprompt,
-            style=Style.from_dict(
+    repl_kwargs: dict[str, t.Any] = {
+        "prompt_kwargs": {
+            "message": cursor.build,
+            "history": appdir.REPL_FILE_HISTORY(),
+            "bottom_toolbar": cursor.bottom_toolbar,
+            "rprompt": cursor.rprompt,
+            "style": Style.from_dict(
                 utils.update_dict(
                     rtoml.load(constant.PROMPT_STYLE),
                     AppConfig().get("prompt", "style", default={}),
-                )
+                ),
             ),
-            cursor=CursorShape.BLOCK,
-            key_bindings=PROMPT_BINDINGS,
-            refresh_interval=1,
-            complete_in_thread=True,
-            complete_while_typing=True,
-            validate_while_typing=True,
-            enable_open_in_editor=True,
-            reserve_space_for_menu=AppConfig().get(
+            "cursor": CursorShape.BLOCK,
+            "key_bindings": PROMPT_BINDINGS,
+            "refresh_interval": 1,
+            "complete_in_thread": True,
+            "complete_while_typing": True,
+            "validate_while_typing": True,
+            "enable_open_in_editor": True,
+            "reserve_space_for_menu": AppConfig().get(
                 "settings",
                 "reserve-space-for-menu",
                 default=10,
             ),
-            complete_style=AppConfig().get(
-                "settings", "complete-style", default="COLUMN"
+            "complete_style": AppConfig().get(
+                "settings",
+                "complete-style",
+                default="COLUMN",
             ),
+        },
+        "completer_callable": lambda g, c, e: shell_complete.global_completer(
+            shell_complete.repl(g, c, e),
         ),
-        completer_callable=lambda g, c, e: shell_complete.global_completer(
-            shell_complete.repl(g, c, e)
+        "format_click_exceptions_callable": _format_click_exception,
+        "shell_cmd_callable": lambda: AppConfig().get("system-command", "shell"),
+        "pass_unknown_commands_to_shell": True,
+        "uncaught_exceptions_callable": partial(
+            appdir.console_log_error,
+            notify=True,
+            patch_stdout=True,
         ),
-        format_click_exceptions_callable=_format_click_exception,
-        shell_cmd_callable=lambda: AppConfig().get("system-command", "shell"),
-        pass_unknown_commands_to_shell=True,
-        uncaught_exceptions_callable=partial(
-            appdir.console_log_error, notify=True, patch_stdout=True
-        ),
-        scheduler=get_scheduler,
-        default_jobs_callable=partial(
+        "scheduler": get_scheduler,
+        "default_jobs_callable": partial(
             create_or_replace_default_jobs,
             path_to_jobs=appdir.SCHEDULER_CONFIG,
             keys=["jobs", "default"],
         ),
-    )
+    }
 
     _console.if_not_quiet_start(get_console().log)("Validating cache")
     TimeEntryCache().validate()
@@ -191,13 +197,13 @@ def run_cli(name: str = "lightlike", locked: bool = True) -> None:
         help=__help__,
         repl_kwargs=repl_kwargs,
         lazy_subcommands=_build_lazy_subcommands(
-            config=AppConfig().get("cli", "commands", default={})
+            config=AppConfig().get("cli", "commands", default={}),
         ),
-        context_settings=dict(
-            allow_extra_args=True,
-            ignore_unknown_options=True,
-            help_option_names=["-h", "--help"],
-        ),
+        context_settings={
+            "allow_extra_args": True,
+            "ignore_unknown_options": True,
+            "help_option_names": ["-h", "--help"],
+        },
         call_on_close=call_on_close,
         obj={"get_scheduler": get_scheduler},
     )
@@ -213,7 +219,7 @@ def run_cli(name: str = "lightlike", locked: bool = True) -> None:
         cli(prog_name=prog_name)
 
 
-def _check_lock(lock: InterProcessLock) -> None | t.NoReturn:
+def _check_lock(lock: InterProcessLock) -> None:
     with try_lock(lock) as locked:
         if not locked:
             with get_console() as console:
@@ -227,7 +233,6 @@ def _check_lock(lock: InterProcessLock) -> None | t.NoReturn:
                     "Please close it before attempting to run again.",
                 )
             sys.exit(1)
-    return None
 
 
 def _build_lazy_subcommands(config: dict[str, str] | None = None) -> dict[str, str]:

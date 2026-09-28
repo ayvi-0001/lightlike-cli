@@ -7,7 +7,6 @@ from prompt_toolkit.filters import Condition
 from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import get_console
-from rich.text import Text
 
 from lightlike.app.config import AppConfig
 from lightlike.app.shell_complete.dynamic import (
@@ -17,13 +16,16 @@ from lightlike.app.shell_complete.dynamic import (
 from lightlike.internal import markup, utils
 from lightlike.internal.enums import ActiveCompleter
 
+if t.TYPE_CHECKING:
+    from rich.text import Text
+
 __all__: t.Sequence[str] = (
-    "add_system_cmd_kb",
     "add_exit_kb",
     "add_global_completer_kb",
-    "is_complete_state",
+    "add_system_cmd_kb",
     "autocomplete_apply",
     "autocomplete_next",
+    "is_complete_state",
 )
 
 
@@ -57,8 +59,8 @@ def add_system_cmd_kb(keybinding: KeyBindings, binds: list[list[str]]) -> None:
         return _
 
     for idx, binding in enumerate(binds):
-        _kb = _build(name=f"kb_system_cmd_{idx}", keys=binding)
-        keybinding.add(*binding)(_kb)
+        kb = _build(name=f"kb_system_cmd_{idx}", keys=binding)
+        keybinding.add(*binding)(kb)
 
 
 def add_exit_kb(keybinding: KeyBindings, binds: list[list[str]]) -> None:
@@ -77,8 +79,8 @@ def add_exit_kb(keybinding: KeyBindings, binds: list[list[str]]) -> None:
         return _
 
     for idx, binding in enumerate(binds):
-        _kb = _build(name=f"kb_exit_{idx}", keys=binding)
-        keybinding.add(*binding)(_kb)
+        kb = _build(name=f"kb_exit_{idx}", keys=binding)
+        keybinding.add(*binding)(kb)
 
 
 def _log_completer_keypress(completer: ActiveCompleter) -> None:
@@ -92,7 +94,9 @@ def _log_completer_keypress(completer: ActiveCompleter) -> None:
 
 
 def add_global_completer_kb(
-    keybinding: KeyBindings, binds: list[list[str]], completer: ActiveCompleter
+    keybinding: KeyBindings,
+    binds: list[list[str]],
+    completer: ActiveCompleter,
 ) -> None:
     if not binds or binds == [[]]:
         return
@@ -107,8 +111,8 @@ def add_global_completer_kb(
         return _
 
     for idx, binding in enumerate(binds):
-        _kb = _build(name=f"kb_{completer}_{idx}", keys=binding)
-        keybinding.add(*binding)(_kb)
+        kb = _build(name=f"kb_{completer}_{idx}", keys=binding)
+        keybinding.add(*binding)(kb)
 
 
 @Condition

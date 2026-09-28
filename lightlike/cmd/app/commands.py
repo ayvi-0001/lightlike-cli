@@ -1,4 +1,3 @@
-import os
 import sys
 import typing as t
 from datetime import datetime
@@ -51,13 +50,13 @@ P = t.ParamSpec("P")
         code="""\
         $ app config edit
         $ a c e
-        
+
         $ app config open
         $ a c o
-    
+
         $ app config list
         $ a c l
-    
+
         $ app config set
         $ a c s\
         """,
@@ -109,28 +108,21 @@ def _start_command(url: str, wait: bool = False, locate: bool = False) -> str:
     elif WIN:
         if locate:
             url = _unquote_file(url.replace('"', ""))
-            args = f'explorer /select,"{url}"'
-            return args
-        else:
-            url = url.replace('"', "")
-            wait_str = "/WAIT" if wait else ""
-            args = f'start {wait_str} "" "{url}"'
-            return args
+            return f'explorer /select,"{url}"'
+        url = url.replace('"', "")
+        wait_str = "/WAIT" if wait else ""
+        return f'start {wait_str} "" "{url}"'
 
     elif CYGWIN:
         if locate:
-            url = os.path.dirname(_unquote_file(url).replace('"', ""))
+            url = Path(_unquote_file(url).replace('"', "")).parent
             args = f'cygstart "{url}"'
         else:
             url = url.replace('"', "")
             wait_str = "-w" if wait else ""
-            args = f'cygstart {wait_str} "{url}"'
-            return args
+            return f'cygstart {wait_str} "{url}"'
 
-    if locate:
-        url = os.path.dirname(_unquote_file(url)) or "."
-    else:
-        url = _unquote_file(url)
+    url = Path(_unquote_file(url)).parent or "." if locate else _unquote_file(url)
 
     return list2cmdline(["xdg-open", url])
 
@@ -143,7 +135,7 @@ def _start_command(url: str, wait: bool = False, locate: bool = False) -> str:
     syntax=Syntax(
         code="""\
         $ app dir
-    
+
         $ app dir --editor\
         """,
         lexer="fishshell",
@@ -205,7 +197,7 @@ def inspect_console(console: Console) -> None:
     """Inspect global console."""
     from rich._inspect import Inspect
 
-    _inspect = Inspect(
+    inspect = Inspect(
         console,
         help=False,
         methods=False,
@@ -218,7 +210,7 @@ def inspect_console(console: Console) -> None:
     )
 
     console.print(
-        _inspect,
+        inspect,
         width=console.width,
         justify="center",
         new_line_start=True,
@@ -322,11 +314,10 @@ def _reset(
     yes: bool,
 ) -> None:
     """Delete all timesheet/projects data."""
-    if not yes:
-        if not _questionary.confirm(
-            "This will delete all timesheet and project data. Are you sure?"
-        ):
-            return
+    if not yes and not _questionary.confirm(
+        "This will delete all timesheet and project data. Are you sure?",
+    ):
+        return
 
     console.print("truncating timesheet")
     routine._query(f"truncate table {routine.timesheet_id}", wait=True)
@@ -358,11 +349,11 @@ def _reset(
         2024-08-05 12:00:00-07:00
         $ app parse-date 1200 # or just HHMM
         2024-08-05 12:00:00-07:00
-        
+
         # or %b%d@%H%M (month abbreviated name, day of month 0-padded , @ char, hour, minute)
         $ app parse-date jan01@1200
         2024-01-01 12:00:00-08:00
-        # or 
+        # or
         $ app parse-date jan01@12pm
         2024-01-01 12:00:00-08:00
 

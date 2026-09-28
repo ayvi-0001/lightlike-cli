@@ -1,5 +1,6 @@
 import re
-from typing import TYPE_CHECKING, Sequence
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from prompt_toolkit.validation import ValidationError, Validator
 
@@ -26,13 +27,13 @@ class ResourceName(Validator):
                 cursor_position=0,
             )
 
-        elif not document.text:
+        if not document.text:
             raise ValidationError(
                 message="Input cannot be empty.",
                 cursor_position=0,
             )
 
-        elif document.text.startswith("_"):
+        if document.text.startswith("_"):
             raise ValidationError(
                 message="Invalid name. Leading underscores are used for hidden resources.",
                 cursor_position=0,

@@ -19,19 +19,19 @@ if t.TYPE_CHECKING:
 
 
 __all__: t.Sequence[str] = (
-    "now",
     "astimezone",
+    "calculate_duration",
+    "combine_new_date_into_end",
+    "combine_new_date_into_start",
+    "combine_new_date_into_start_and_end",
+    "date_diff",
+    "get_month_to_date",
+    "get_relative_week",
+    "get_year_to_date",
+    "now",
     "parse_date",
     "parse_date_range_flags",
-    "get_relative_week",
-    "get_month_to_date",
-    "get_year_to_date",
-    "combine_new_date_into_start_and_end",
-    "combine_new_date_into_start",
-    "combine_new_date_into_end",
     "seconds_to_time_parts",
-    "calculate_duration",
-    "date_diff",
 )
 
 
@@ -57,14 +57,15 @@ def now(tzinfo: "_TzInfo | None" = None) -> datetime:
 
 with AppConfig().rw() as config:
     dateparser_settings: dict[str, t.Any] = config.get(
-        "settings", "dateparser", default={}
+        "settings",
+        "dateparser",
+        default={},
     )
 
 DEFAULT_PARSER_SETTINGS: dict[str, t.Any] = {
-    # fmt: off
     "CACHE_SIZE_LIMIT": dateparser_settings.get("cache-size-limit"),
     "LANGUAGE_DETECTION_CONFIDENCE_THRESHOLD": dateparser_settings.get(
-        "language-detection-confidence-threshold"
+        "language-detection-confidence-threshold",
     ),
     "NORMALIZE": dateparser_settings.get("normalize"),
     "STRICT_PARSING": dateparser_settings.get("strict-parsing"),
@@ -85,7 +86,6 @@ DEFAULT_PARSER_SETTINGS: dict[str, t.Any] = {
         "custom-formats",
         "absolute-time",
     ],
-    # fmt: on
 }
 
 ADDITIONAL_DATE_FORMATS: list[str] = dateparser_settings.get(
@@ -107,21 +107,21 @@ def parse_date(
     if tzinfo is None:
         tzinfo = AppConfig().tzinfo
 
-    _settings = DEFAULT_PARSER_SETTINGS.copy()
-    _settings.update(
+    settings = DEFAULT_PARSER_SETTINGS.copy()
+    settings.update(
         RELATIVE_BASE=relative_base or now(tzinfo),
         TO_TIMEZONE=f"{tzinfo}",
         TIMEZONE=f"{tzinfo}",
     )
 
     if date.startswith("+"):
-        _settings.update(PREFER_DATES_FROM="future")
+        settings.update(PREFER_DATES_FROM="future")
     if date == "n":
         date = "now"
 
     parsed_date: datetime | None = dateparser.parse(
         date_string=date,
-        settings=t.cast("_Settings", _settings),
+        settings=t.cast("_Settings", settings),
         date_formats=ADDITIONAL_DATE_FORMATS,
     )
     if not parsed_date:
@@ -226,7 +226,9 @@ def get_year_to_date(now: datetime) -> DateParams:
 
 
 def combine_new_date_into_start_and_end(
-    in_datetime: datetime, in_start: datetime, in_end: datetime
+    in_datetime: datetime,
+    in_start: datetime,
+    in_end: datetime,
 ) -> tuple[date, datetime, datetime]:
     out_date = in_datetime.date()
     out_start = astimezone(datetime.combine(out_date, in_start.time()))
@@ -235,7 +237,9 @@ def combine_new_date_into_start_and_end(
 
 
 def combine_new_date_into_start(
-    in_datetime: datetime, in_start: datetime, in_end: datetime
+    in_datetime: datetime,
+    in_start: datetime,
+    in_end: datetime,
 ) -> tuple[date, datetime, datetime]:
     out_date = in_datetime.date()
     out_start = astimezone(datetime.combine(out_date, in_start.time()))
@@ -244,7 +248,9 @@ def combine_new_date_into_start(
 
 
 def combine_new_date_into_end(
-    in_datetime: datetime, in_start: datetime, in_end: datetime
+    in_datetime: datetime,
+    in_start: datetime,
+    in_end: datetime,
 ) -> tuple[date, datetime, datetime]:
     out_date = in_datetime.date()
     out_start = astimezone(in_start)
@@ -301,13 +307,14 @@ def calculate_duration(
             minutes=paused_minutes,
             seconds=paused_seconds,
         )
-        duration = duration - paused_delta
+        duration -= paused_delta
 
     if duration.total_seconds() < 0 or copysign(1, duration.days) == -1:
         if raise_if_negative:
             if exception:
                 raise exception
-            raise ValueError(f"Negative duration: {duration.total_seconds()}")
+            msg = f"Negative duration: {duration.total_seconds()}"
+            raise ValueError(msg)
 
     total_seconds: int = int(duration.total_seconds())
     hours: Decimal = round(Decimal(total_seconds) / Decimal(3600), 4)
@@ -327,7 +334,7 @@ def date_diff(
             hours_to_seconds(subtract_hours),
         )
         paused_hours, paused_minutes, paused_seconds = neg_time_parts
-        duration = duration - timedelta(
+        duration -= timedelta(
             hours=paused_hours,
             minutes=paused_minutes,
             seconds=paused_seconds,
@@ -337,7 +344,7 @@ def date_diff(
             hours_to_seconds(add_hours),
         )
         paused_hours, paused_minutes, paused_seconds = pos_time_parts
-        duration = duration + timedelta(
+        duration += timedelta(
             hours=paused_hours,
             minutes=paused_minutes,
             seconds=paused_seconds,

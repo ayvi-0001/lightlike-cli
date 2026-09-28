@@ -6,7 +6,6 @@ import google.auth
 import google.auth.credentials
 from rich import print as rprint
 from rich.syntax import Syntax
-from rich.table import Table
 
 from lightlike.app import _questionary, render
 from lightlike.app.config import AppConfig
@@ -20,6 +19,7 @@ from lightlike.internal.enums import ClientInitOptions, CredentialsSource
 if t.TYPE_CHECKING:
     from google.cloud.bigquery.client import Project
     from rich.console import Console
+    from rich.table import Table
 
 __all__: t.Sequence[str] = (
     "init",
@@ -71,9 +71,9 @@ def init(console: "Console") -> None:
             core:
               account: {account}
               project: {client.project}
-              
-            """
-        )
+
+            """,
+        ),
     )
 
     credentials_source: CredentialsSource = AppConfig().get(
@@ -107,7 +107,7 @@ def init(console: "Console") -> None:
             case CredentialsSource.from_environment:
                 with AppConfig().rw() as config:
                     config["client"].update(
-                        {"credentials-source": source, "active-project": None}
+                        {"credentials-source": source, "active-project": None},
                     )
 
     reconfigure()
@@ -127,7 +127,7 @@ def show(console: "Console") -> None:
     request = google.auth.transport.requests.Request()
     credentials.refresh(request)
 
-    _inspect = Inspect(
+    inspect = Inspect(
         credentials,
         help=True,
         methods=False,
@@ -140,7 +140,7 @@ def show(console: "Console") -> None:
     )
 
     console.print(
-        _inspect,
+        inspect,
         width=console.width,
         justify="center",
         new_line_start=True,
@@ -155,13 +155,13 @@ def show(console: "Console") -> None:
 @_pass.console
 def projects(console: "Console") -> None:
     """List available projects."""
-    projects: t.Sequence["Project"] = list(get_client().list_projects())
+    projects: t.Sequence[Project] = list(get_client().list_projects())
     table: Table = render.map_sequence_to_rich_table(
-        mappings=[vars(p) for p in projects]
+        mappings=[vars(p) for p in projects],
     )
     if not table.row_count:
         rprint(markup.dimmed("No results"))
-        raise click.exceptions.Exit()
+        raise click.exceptions.Exit
 
     console.print(table)
 
@@ -183,7 +183,7 @@ def reset(ctx: click.Context, console: "Console") -> bool:
     if ctx.invoked_subcommand is None:
         console.print(
             "This will remove any saved client settings and "
-            "you will be asked to reconfigure client auth."
+            "you will be asked to reconfigure client auth.",
         )
 
         if _questionary.confirm(message="Continue?", auto_enter=True):
@@ -193,14 +193,14 @@ def reset(ctx: click.Context, console: "Console") -> bool:
                         "password": "null",
                         "salt": [],
                         "stay_logged_in": False,
-                    }
+                    },
                 )
                 config["client"].update(
                     {
                         "active-project": "null",
                         "credentials-source": CredentialsSource.not_set,
                         "service-account-key": [],
-                    }
+                    },
                 )
 
             return True

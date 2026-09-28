@@ -19,8 +19,8 @@ from lightlike.__about__ import __config__
 from lightlike.internal import constant, utils
 
 __all__: t.Sequence[str] = (
-    "checkbox",
     "autocomplete",
+    "checkbox",
     "confirm",
     "press_any_key_to_continue",
     "select",
@@ -38,7 +38,7 @@ else:
         utils.update_dict(
             rtoml.load(constant.PROMPT_STYLE),
             AppConfig().get("prompt", "style", default={}),
-        )
+        ),
     )
 
 # Wrapping original functions with default arguments and to automatically call unsafe_ask method.
@@ -46,9 +46,9 @@ else:
 
 def checkbox(
     message: str,
-    choices: t.Sequence[t.Union[str, Choice, dict[str, t.Any]]],
+    choices: t.Sequence[str | Choice | dict[str, t.Any]],
     default: str | None = None,
-    validate: t.Callable[[list[str]], t.Union[bool, str]] = lambda a: True,
+    validate: t.Callable[[list[str]], bool | str] = lambda a: True,
     qmark: str = "?",
     pointer: str = "▸",
     style: Style | None = STYLE,
@@ -152,7 +152,7 @@ def press_any_key_to_continue(
 
 def select(
     message: str,
-    choices: t.Sequence[t.Union[str, Choice, dict[str, t.Any]]],
+    choices: t.Sequence[str | Choice | dict[str, t.Any]],
     default: str | Choice | dict[str, t.Any] | None = None,
     qmark: str = "?",
     pointer: str = "▸",

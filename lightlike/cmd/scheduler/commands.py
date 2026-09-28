@@ -7,7 +7,6 @@ import rtoml
 import six
 from apscheduler.job import Job
 from apscheduler.jobstores.base import JobLookupError
-from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.interval import IntervalTrigger
@@ -29,18 +28,20 @@ from lightlike.internal import appdir, constant, utils
 if t.TYPE_CHECKING:
     from datetime import _TzInfo
 
+    from apscheduler.schedulers.background import BackgroundScheduler
+
 __all__: t.Sequence[str] = (
     "add_job",
     "get_job",
     "modify_job",
-    "pause_job",
     "pause",
+    "pause_job",
     "print_jobs",
     "remove_all_jobs",
     "remove_job",
     "reschedule_job",
-    "resume_job",
     "resume",
+    "resume_job",
     "run",
     "shutdown",
     "start",
@@ -58,7 +59,9 @@ STATE_PAUSED = 2
 
 
 def available_functions(
-    ctx: click.Context, param: click.Parameter, incomplete: str
+    ctx: click.Context,
+    param: click.Parameter,
+    incomplete: str,
 ) -> list[CompletionItem]:
     completions = []
 
@@ -71,7 +74,9 @@ def available_functions(
 
 
 def available_jobstores(
-    ctx: click.Context, param: click.Parameter, incomplete: str
+    ctx: click.Context,
+    param: click.Parameter,
+    incomplete: str,
 ) -> list[CompletionItem]:
     completions = []
 
@@ -83,7 +88,9 @@ def available_jobstores(
 
 
 def available_executors(
-    ctx: click.Context, param: click.Parameter, incomplete: str
+    ctx: click.Context,
+    param: click.Parameter,
+    incomplete: str,
 ) -> list[CompletionItem]:
     completions = []
 
@@ -438,23 +445,23 @@ def print_jobs(ctx: click.Context) -> None:
         if scheduler.state == STATE_STOPPED:
             jobstore_table.add_row("[b]Pending jobs")
             if scheduler._pending_jobs:
-                for idx, (job, jobstore_alias, replace_existing) in enumerate(
-                    scheduler._pending_jobs
+                for idx, (job, jobstore_alias, _replace_existing) in enumerate(
+                    scheduler._pending_jobs,
                 ):
-                    if jobstore in (None, jobstore_alias):
-                        jobstore_table.add_row(f"\[{idx + 1}] {job.id}", "", f"{job!s}")
+                    if jobstore in {None, jobstore_alias}:
+                        jobstore_table.add_row(rf"\[{idx + 1}] {job.id}", "", f"{job!s}")
             else:
                 jobstore_table.add_row("[dimmed]No pending jobs")
         else:
             for alias, store in sorted(six.iteritems(scheduler._jobstores)):
-                if jobstore in (None, alias):
-                    jobstore_table.add_row("[b]Jobstore %s" % alias)
+                if jobstore in {None, alias}:
+                    jobstore_table.add_row(f"[b]Jobstore {alias}")
                     jobs: t.Sequence[Job] = store.get_all_jobs()
                     if not jobs:
                         jobstore_table.add_row("[dimmed]No scheduled jobs")
                         continue
                     for idx, (job) in enumerate(jobs):
-                        jobstore_table.add_row(f"\[{idx + 1}] {job.id}", "", f"{job!s}")
+                        jobstore_table.add_row(rf"\[{idx + 1}] {job.id}", "", f"{job!s}")
 
     rich.print(jobstore_table)
 
@@ -512,7 +519,9 @@ def modify_job(
         job_modify_kwargs["next_run_time"] = parse_date(next_run_time, tzinfo=tzinfo)
 
     job: Job = scheduler.modify_job(
-        job_id=job_id, jobstore=jobstore, **job_modify_kwargs
+        job_id=job_id,
+        jobstore=jobstore,
+        **job_modify_kwargs,
     )
     rich.print("Modified job:")
     rich.print(_job_info(job, show_jobstore=True))
@@ -622,7 +631,9 @@ def reschedule_job(
     # fmt: on
 
     job: Job = scheduler.reschedule_job(
-        job_id=job_id, jobstore=jobstore, trigger=trigger
+        job_id=job_id,
+        jobstore=jobstore,
+        trigger=trigger,
     )
     rich.print("Rescheduled job:")
     rich.print(_job_info(job, show_jobstore=True))
@@ -750,7 +761,7 @@ def run(*args: t.Any, **kwargs: t.Any) -> None:
 
     result = subprocess.run(*args, **kwargs)
 
-    message: str = "Completed Process: `%s` | returncode=%s" % (
+    message: str = "Completed Process: `{}` | returncode={}".format(
         r"\n".join(result.args.splitlines()),
         result.returncode,
     )
@@ -839,19 +850,21 @@ def system_command(
 
     if command_multiline:
         style: Style = Style.from_dict(rtoml.load(constant.PROMPT_STYLE))
-        _CMD = prompt(message="", multiline=True, style=style)
-        _name = _CMD
-        _CMD = _prepend_exec_to_cmd(
-            _CMD, lambda: AppConfig().get("system-command", "shell", default="")
+        CMD = prompt(message="", multiline=True, style=style)
+        name = CMD
+        CMD = _prepend_exec_to_cmd(
+            CMD,
+            lambda: AppConfig().get("system-command", "shell", default=""),
         )
     else:
-        _CMD = command
-        _name = command
-        _CMD = _prepend_exec_to_cmd(
-            _CMD, lambda: AppConfig().get("system-command", "shell", default="")
+        CMD = command
+        name = command
+        CMD = _prepend_exec_to_cmd(
+            CMD,
+            lambda: AppConfig().get("system-command", "shell", default=""),
         )
 
-    if not _CMD:
+    if not CMD:
         ctx.fail("Must specify command.")
 
     func = f"{__name__}:run"
@@ -859,7 +872,7 @@ def system_command(
     job_kwargs: dict[str, t.Any] = {}
 
     func_kwargs = {
-        "args": _CMD,
+        "args": CMD,
         "capture_output": True,
         "shell": True,
         "text": True,
@@ -869,7 +882,7 @@ def system_command(
     job_kwargs["args"] = args
     job_kwargs["kwargs"] = func_kwargs
     job_kwargs["func"] = func
-    job_kwargs["name"] = r"\n".join(_name.splitlines())
+    job_kwargs["name"] = r"\n".join(name.splitlines())
     job_kwargs["jobstore"] = jobstore
     # fmt: off
     job_kwargs["trigger"] = _match_trigger(
@@ -981,6 +994,7 @@ def _match_trigger(
             trigger = CronTrigger(**trigger_kwargs)
 
         case _:
-            raise click.BadOptionUsage("trigger", "unknown trigger type", ctx)
+            msg = "trigger"
+            raise click.BadOptionUsage(msg, "unknown trigger type", ctx)
 
     return trigger

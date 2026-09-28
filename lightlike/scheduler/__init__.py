@@ -5,6 +5,6 @@ from lightlike.scheduler.scheduler import SCHEDULER, get_scheduler
 
 __all__: t.Sequence[str] = (
     "SCHEDULER",
-    "get_scheduler",
     "create_or_replace_default_jobs",
+    "get_scheduler",
 )

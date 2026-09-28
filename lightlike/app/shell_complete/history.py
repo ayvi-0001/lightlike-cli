@@ -26,24 +26,26 @@ class HistoryCompleter(Completer):
         self.max_length_string = max_length_string
 
     def get_completions(
-        self, document: "Document", complete_event: "CompleteEvent"
+        self,
+        document: "Document",
+        complete_event: "CompleteEvent",
     ) -> t.Iterator[Completion]:
         try:
             text_before_cursor: str = document.text_before_cursor
             history_strings = self.file_history.load_history_strings()
-            history = unique_everseen(list(map(lambda s: s.strip(), history_strings)))
+            history = unique_everseen([s.strip() for s in history_strings])
             console_width = get_console().width
 
-            match_word_before_cursor = lambda l: match_str(  # noqa:E731,E741
-                text_before_cursor, l, method="startswith"
+            match_word_before_cursor = lambda l: match_str(  # ruff: ignore[lambda-assignment, ambiguous-variable-name]
+                text_before_cursor,
+                l,
+                method="startswith",
             )
             matches = list(filter(match_word_before_cursor, history))
             display_meta = f"history{' ' * int(((console_width / 3) * 2) - 20)}"
 
             if not self.max_length_string:
-                self.max_length_string = max(
-                    [len(self._display(m, console_width)) for m in matches]
-                )
+                self.max_length_string = max(len(self._display(m, console_width)) for m in matches)
 
             for match in matches:
                 yield Completion(
@@ -60,5 +62,4 @@ class HistoryCompleter(Completer):
         half_console_width = int(console_width / 3)
         if len(text) > half_console_width:
             return f"{text[:half_console_width]}..."
-        else:
-            return text
+        return text

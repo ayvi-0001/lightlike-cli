@@ -4,7 +4,6 @@ import click
 from more_itertools import first
 from rich import print as rprint
 from rich.syntax import Syntax
-from rich.table import Table
 
 from lightlike.app import _get, _questionary, render, shell_complete, threads, validate
 from lightlike.app.autosuggest import threaded_autosuggest
@@ -15,6 +14,7 @@ from lightlike.internal import markup, utils
 
 if t.TYPE_CHECKING:
     from rich.console import Console
+    from rich.table import Table
 
     from lightlike.app.cache import TimeEntryAppData, TimeEntryCache
     from lightlike.client import CliQueryRoutines
@@ -25,9 +25,9 @@ __all__: t.Sequence[str] = (
     "delete",
     "list_",
     "set_",
-    "set_project_name",
-    "set_project_description",
     "set_project_default_billable",
+    "set_project_description",
+    "set_project_name",
     "unarchive",
 )
 
@@ -41,7 +41,7 @@ __all__: t.Sequence[str] = (
         code="""\
         $ project archive example-project
         $ p a example-project
-    
+
         # archive multiple
         $ project archive example-project1 example-project2 example-project3\
         """,
@@ -173,7 +173,7 @@ def archive(
     syntax=Syntax(
         code="""\
         $ project create
-    
+
         $ project create --name lightlike-cli
         $ p c -nlightlike-cli
 
@@ -259,17 +259,23 @@ def create(
         # Only prompt for description and default billable if command was called with no flags.
         # Otherwise assume user ignored options.
         if not description and _questionary.confirm(
-            message="Description?", auto_enter=True, default=False
+            message="Description?",
+            auto_enter=True,
+            default=False,
         ):
             description = PromptFactory._prompt("(description)")
 
         if default_billable is False and _questionary.confirm(
-            message="Default billable?", auto_enter=True, default=False
+            message="Default billable?",
+            auto_enter=True,
+            default=False,
         ):
             default_billable = True
 
     debug and console.log(
-        "[DEBUG]", "project default billable set to", default_billable
+        "[DEBUG]",
+        "project default billable set to",
+        default_billable,
     )
 
     routine._create_project(
@@ -358,15 +364,14 @@ def delete(
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
-    if not yes:
-        if not _questionary.confirm(
-            message=(
-                "This will permanently delete %s and all related time entries. Continue? "
-                % ("this project" if len(projects) == 1 else "these projects")
-            ),
-            default=False,
-        ):
-            return
+    if not yes and not _questionary.confirm(
+        message=(
+            "This will permanently delete %s and all related time entries. Continue? "
+            % ("this project" if len(projects) == 1 else "these projects")
+        ),
+        default=False,
+    ):
+        return
 
     with console.status(markup.status_message("Getting project info")):
         for project in projects:
@@ -403,7 +408,7 @@ def delete(
         code="""\
         $ project list
         $ p l
-    
+
         $ project list --all
         $ p l -a\
         """,
@@ -531,10 +536,11 @@ def list_(
         re2 = google's regular expression library used by all bigquery regex functions.
         ECMAScript = javascript regex syntax.
 
-        example:
+    Example:
         re2 does not allow perl operator's such as negative lookaheads, while ECMAScript does.
         to run a case-insensitive regex match in re2, use the inline modifier [repr.str]"(?i)"[/repr.str],
         for ECMAScript, use the --modifiers / -M option with [repr.str]"i"[/repr.str]
+
     """
     fields: list[str] = [
         "name",
@@ -592,11 +598,11 @@ def list_(
     )
 
     table: Table = render.map_sequence_to_rich_table(
-        mappings=list(map(lambda r: dict(r.items()), query_job))
+        mappings=[dict(r.items()) for r in query_job],
     )
     if not table.row_count:
         rprint(markup.dimmed("No results"))
-        raise click.exceptions.Exit()
+        raise click.exceptions.Exit
 
     console.print(table)
 
@@ -608,7 +614,7 @@ def list_(
     syntax=Syntax(
         code="""\
         $ project set name lightlike-cli ...
-    
+
         $ project set description lightlike-cli ...
 
         $ project set default-billable lightlike-cli ...\
@@ -682,10 +688,10 @@ def set_project_name(
     project: str,
     name: str,
 ) -> None:
-    """
+    r"""
     Update a project's name.
 
-    Name must match regex [code]^\[a-zA-Z0-9-\\_\\.]{3,30}$[/code].
+    Name must match regex [code]^\\[a-zA-Z0-9-\\_\\.]{3,30}$[/code].
     The name [code]no-project[/code] is reserved for the default setting.
     """
     ctx, parent = ctx_group
@@ -695,7 +701,7 @@ def set_project_name(
 
     if project == new_name:
         console.print(markup.dimmed("Current name, nothing happened."))
-        raise click.exceptions.Exit()
+        raise click.exceptions.Exit
 
     with console.status(markup.status_message("Updating project")):
         routine._update_project_name(old_name=project, new_name=new_name)
@@ -779,9 +785,7 @@ def set_project_description(
 
     project_appdata: dict[str, t.Any] = active_projects[project]
     current_desc = (
-        project_appdata["description"]
-        if project_appdata["description"] != "null"
-        else None
+        project_appdata["description"] if project_appdata["description"] != "null" else None
     )
 
     default: str = current_desc or ""
@@ -793,7 +797,7 @@ def set_project_description(
     )
 
     if not new_desc:
-        raise click.exceptions.Exit()
+        raise click.exceptions.Exit
 
     if current_desc == new_desc:
         console.print(markup.dimmed("Current description, nothing happened."))

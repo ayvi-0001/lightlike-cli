@@ -52,11 +52,11 @@ def _get_credentials_from_config(
                         password="null",
                         stay_logged_in=False,
                     ),
-                )
+                ),
             )
 
             credentials = service_account.Credentials.from_service_account_info(
-                service_account_info
+                service_account_info,
             )
 
         case CredentialsSource.from_environment:
@@ -68,16 +68,15 @@ def _get_credentials_from_config(
 
             if quota_project_id is not None:
                 credentials, project_id = google.auth.default(
-                    quota_project_id=quota_project_id
+                    quota_project_id=quota_project_id,
                 )
             else:
                 credentials, project_id = google.auth.default()
-                if prompt_for_project:
-                    if not _questionary.confirm(
-                        message=f"Continue with project: {project_id}?",
-                        auto_enter=True,
-                    ):
-                        project_id = _select_project(credentials=credentials)
+                if prompt_for_project and not _questionary.confirm(
+                    message=f"Continue with project: {project_id}?",
+                    auto_enter=True,
+                ):
+                    project_id = _select_project(credentials=credentials)
 
             credentials = credentials.with_quota_project(project_id)
 
@@ -90,8 +89,8 @@ def _get_credentials_from_config(
                         "client",
                         "credentials-source",
                         default=CredentialsSource.not_set,
-                    )
-                )
+                    ),
+                ),
             }
 
             with appconfig.rw() as config:
@@ -124,7 +123,7 @@ def service_account_key_flow(appconfig: AppConfig) -> tuple[bytes, bytes]:
         rich.print(
             "Create a password. "
             "This will be used to encrypt your service-account key.\n"
-            "Type password (will not be echoed) and press [code]enter[/] to continue."
+            "Type password (will not be echoed) and press [code]enter[/] to continue.",
         )
 
         password, salt = AuthPromptSession().prompt_new_password()
@@ -158,8 +157,7 @@ def service_account_key_flow(appconfig: AppConfig) -> tuple[bytes, bytes]:
         del key_derivation
 
         return encrypted_key, salt
-    else:
-        return bytes(encrypted_key_from_config), bytes(salt_from_config)
+    return bytes(encrypted_key_from_config), bytes(salt_from_config)
 
 
 def prompt_service_account_key() -> str:
@@ -168,7 +166,7 @@ def prompt_service_account_key() -> str:
     try:
         while not service_account_key:
             response: str = AuthPromptSession().prompt_secret(
-                message="(service-account-key) $ "
+                message="(service-account-key) $ ",
             )
             try:
                 key = json.loads(response)
@@ -176,13 +174,13 @@ def prompt_service_account_key() -> str:
                 rich.print(markup.br("Invalid json."))
                 continue
             else:
-                if "client_email" not in key.keys():
+                if "client_email" not in key:
                     rich.print(
                         "Invalid service-account json. Missing required key",
                         markup.code("client_email"),
                     )
                     continue
-                if "token_uri" not in key.keys():
+                if "token_uri" not in key:
                     rich.print(
                         "Invalid service-account json. Missing required key",
                         markup.code("token_uri"),
@@ -198,7 +196,7 @@ def prompt_service_account_key() -> str:
 
 def _select_credential_source(
     current_setting: CredentialsSource | str,
-) -> str | None | t.NoReturn:
+) -> str | None:
     choices = [
         CredentialsSource.from_environment,
         CredentialsSource.from_service_account_key,
@@ -213,25 +211,18 @@ def _select_credential_source(
         if new_setting == current_setting:
             rich.print(markup.dimmed("Selected current source, nothing happened."))
             return None
-        else:
-            return new_setting
+        return new_setting
     except (KeyboardInterrupt, EOFError):
         sys.exit(1)
 
 
 def _select_project(credentials: google.auth.credentials.Credentials) -> str:
-    projects: t.Sequence["Project"] = list(
-        bigquery.Client(credentials=credentials).list_projects()
+    projects: t.Sequence[Project] = list(
+        bigquery.Client(credentials=credentials).list_projects(),
     )
 
-    project_display: t.Callable[["Project"], str]
-    project_display = lambda p: " | ".join(  # noqa:E731
-        [
-            p.friendly_name,
-            p.project_id,
-            p.numeric_id,
-        ]
-    )
+    project_display: t.Callable[[Project], str]
+    project_display = lambda p: f"{p.friendly_name} | {p.project_id} | {p.numeric_id}"
 
     select = _questionary.select(
         message="Select GCP project.",

@@ -7,7 +7,6 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from functools import cached_property, reduce
 from operator import truth, xor
-from pathlib import Path
 
 import click
 import rtoml
@@ -27,14 +26,15 @@ from lightlike.internal import appdir, factory, markup, utils
 
 if t.TYPE_CHECKING:
     from datetime import _TzInfo
+    from pathlib import Path
 
     from google.cloud.bigquery.table import Row
     from rich.console import Console, ConsoleOptions, RenderResult
 
 __all__: t.Sequence[str] = (
+    "TimeEntryAppData",
     "TimeEntryCache",
     "TimeEntryIdList",
-    "TimeEntryAppData",
 )
 
 
@@ -66,7 +66,7 @@ class _Entries:
                         "billable": None,
                         "paused": None,
                         "paused_hours": "0",
-                    }
+                    },
                 ],
             },
             "paused": {
@@ -89,7 +89,7 @@ class _Entries:
     @property
     def running_entries(self) -> list[dict[str, t.Any]]:
         return t.cast(
-            list[dict[str, t.Any]],
+            "list[dict[str, t.Any]]",
             self._entries["running"]["entries"],
         )
 
@@ -103,7 +103,7 @@ class _Entries:
 
     @property
     def paused_entries(self) -> list[dict[str, t.Any]]:
-        return t.cast(list[dict[str, t.Any]], self._entries["paused"]["entries"])
+        return t.cast("list[dict[str, t.Any]]", self._entries["paused"]["entries"])
 
     @paused_entries.setter
     def paused_entries(self, __val: T) -> None:
@@ -111,7 +111,7 @@ class _Entries:
 
     @property
     def project(self) -> str:
-        return t.cast(str, self._ifnull(self.active["project"]))
+        return t.cast("str", self._ifnull(self.active["project"]))
 
     @project.setter
     def project(self, __val: T) -> None:
@@ -119,7 +119,7 @@ class _Entries:
 
     @property
     def id(self) -> str:
-        return t.cast(str, self._ifnull(_get._id(self.active)))
+        return t.cast("str", self._ifnull(_get._id(self.active)))
 
     @id.setter
     def id(self, __val: T) -> None:
@@ -127,8 +127,7 @@ class _Entries:
 
     @property
     def start(self) -> datetime:
-        start = t.cast(datetime, self._ifnull(self.active["start"]))
-        return start
+        return t.cast("datetime", self._ifnull(self.active["start"]))
 
     @start.setter
     def start(self, __val: T) -> None:
@@ -136,7 +135,7 @@ class _Entries:
 
     @property
     def note(self) -> str:
-        return t.cast(str, self._ifnull(self.active["note"]))
+        return t.cast("str", self._ifnull(self.active["note"]))
 
     @note.setter
     def note(self, __val: T) -> None:
@@ -144,7 +143,7 @@ class _Entries:
 
     @property
     def billable(self) -> bool:
-        return t.cast(bool, self._ifnull(self.active["billable"]))
+        return t.cast("bool", self._ifnull(self.active["billable"]))
 
     @billable.setter
     def billable(self, __val: T) -> None:
@@ -152,10 +151,10 @@ class _Entries:
 
     @property
     def timestamp_paused(self) -> datetime:
-        timestamp_paused = t.cast(
-            datetime, self._ifnull(self.active["timestamp_paused"])
+        return t.cast(
+            "datetime",
+            self._ifnull(self.active["timestamp_paused"]),
         )
-        return timestamp_paused
 
     @timestamp_paused.setter
     def timestamp_paused(self, __val: T) -> None:
@@ -163,7 +162,7 @@ class _Entries:
 
     @property
     def paused(self) -> bool:
-        return t.cast(bool, self._ifnull(self.active["paused"]))
+        return t.cast("bool", self._ifnull(self.active["paused"]))
 
     @paused.setter
     def paused(self, __val: T) -> None:
@@ -200,8 +199,10 @@ class TimeEntryCache(_Entries):
         EntriesInMemory().update(self._entries)
 
     def __rich_console__(
-        self, console: "Console", options: "ConsoleOptions"
-    ) -> "RenderResult":
+        self,
+        console: Console,
+        options: ConsoleOptions,
+    ) -> RenderResult:
         now: datetime = dates.now(AppConfig().tzinfo)
 
         fields = [
@@ -230,9 +231,8 @@ class TimeEntryCache(_Entries):
                 )
                 entry["hours"] = hours
 
-                if hours > 24:
-                    if "days" not in fields:
-                        fields.extend(["days"])
+                if hours > 24 and "days" not in fields:
+                    fields.extend(["days"])
                 if "days" in fields:
                     entry["days"] = round(hours / 24, 2)
             else:
@@ -244,7 +244,9 @@ class TimeEntryCache(_Entries):
             entry.pop("paused")
 
             new_paused_hour = self._add_hours(
-                now, entry["timestamp_paused"], entry["paused_hours"]
+                now,
+                entry["timestamp_paused"],
+                entry["paused_hours"],
             )
             hours = dates.calculate_duration(
                 start_date=entry["start"],
@@ -304,7 +306,9 @@ class TimeEntryCache(_Entries):
         yield table
 
     def __rich_measure__(
-        self, console: Console, options: ConsoleOptions
+        self,
+        console: Console,
+        options: ConsoleOptions,
     ) -> Measurement:
         return Measurement(140, options.max_width)
 
@@ -356,7 +360,9 @@ class TimeEntryCache(_Entries):
             idx = one(self.index(self.paused_entries, "id", [_id]))
             entry = self.paused_entries[idx]
             paused_hours = self._add_hours(
-                now, entry["timestamp_paused"], entry["paused_hours"]
+                now,
+                entry["timestamp_paused"],
+                entry["paused_hours"],
             )
             entry["paused_hours"] = str(round(paused_hours, 4))
             entry["paused"] = False
@@ -413,7 +419,7 @@ class TimeEntryCache(_Entries):
     ) -> t.Iterable[int]:
         def _match_id_predicate(e: dict[str, t.Any]) -> bool:
             nonlocal sequence
-            return any([e[key].startswith(s) for s in sequence])
+            return any(e[key].startswith(s) for s in sequence)
 
         return list(locate(entries, _match_id_predicate))
 
@@ -452,13 +458,15 @@ class TimeEntryCache(_Entries):
                     entry_list.pop(idx)
 
     def _add_hours(
-        self, now: datetime, timestamp_paused: datetime, paused_hours: Decimal
+        self,
+        now: datetime,
+        timestamp_paused: datetime,
+        paused_hours: Decimal,
     ) -> Decimal:
         diff: timedelta = now - timestamp_paused
         prev_paused_sec: Decimal = dates.hours_to_seconds(paused_hours)
         new_paused_sec = Decimal(diff.total_seconds()) + prev_paused_sec
-        new_paused_hours = dates.seconds_to_hours(new_paused_sec)
-        return new_paused_hours
+        return dates.seconds_to_hours(new_paused_sec)
 
     def get_updated_paused_entries(self, now: datetime) -> list[dict[str, t.Any]]:
         updated_paused_entries = []
@@ -466,7 +474,9 @@ class TimeEntryCache(_Entries):
         for entry in self.paused_entries:
             copy = entry.copy()
             paused_hours = self._add_hours(
-                now, entry["timestamp_paused"], entry["paused_hours"]
+                now,
+                entry["timestamp_paused"],
+                entry["paused_hours"],
             )
             copy["paused_hours"] = str(round(paused_hours, 4))
             updated_paused_entries.append(copy)
@@ -474,14 +484,18 @@ class TimeEntryCache(_Entries):
         return updated_paused_entries
 
     def _to_help_str(
-        self, entry: dict[str, t.Any], now: datetime, sep: str = "|"
+        self,
+        entry: dict[str, t.Any],
+        now: datetime,
+        sep: str = "|",
     ) -> str:
         help_str = "'{project}'".format(project=entry.get("project"))
 
         note = self._ifnull(entry["note"])
         if note:
             help_str += " {sep} '{note}'".format(
-                sep=sep, note=f"{note[:50]}..." if len(note) > 50 else note
+                sep=sep,
+                note=f"{note[:50]}..." if len(note) > 50 else note,
             )
 
         start = entry.get("start")
@@ -540,9 +554,8 @@ class TimeEntryCache(_Entries):
         )
 
         running_entries: list[dict[str, t.Any]] = []
-        paused_entries: list[dict[str, t.Any]] = []
 
-        tzinfo: "_TzInfo" = AppConfig().tzinfo
+        tzinfo: _TzInfo = AppConfig().tzinfo
         active_index: str | None = self.active["id"] if self else None
 
         for row in list(running_entries_to_cache):
@@ -564,19 +577,19 @@ class TimeEntryCache(_Entries):
         if not running_entries:
             running_entries = self.default["running"]["entries"]
 
-        for row in list(paused_entries_to_cache):
-            paused_entries.append(
-                {
-                    "id": row.id,
-                    "start": dates.astimezone(row.timestamp_start, tzinfo),
-                    "timestamp_paused": dates.astimezone(row.timestamp_paused, tzinfo),
-                    "project": row.project,
-                    "note": row.note,
-                    "billable": row.billable,
-                    "paused": row.paused,
-                    "paused_hours": str(round(Decimal(row.paused_hours or 0), 4)),
-                }
-            )
+        paused_entries: list[dict[str, t.Any]] = [
+            {
+                "id": row.id,
+                "start": dates.astimezone(row.timestamp_start, tzinfo),
+                "timestamp_paused": dates.astimezone(row.timestamp_paused, tzinfo),
+                "project": row.project,
+                "note": row.note,
+                "billable": row.billable,
+                "paused": row.paused,
+                "paused_hours": str(round(Decimal(row.paused_hours or 0), 4)),
+            }
+            for row in list(paused_entries_to_cache)
+        ]
 
         # if AppConfig().get("settings", "update-terminal-title", default=True):
         #     get_console().set_window_title(__appname_sc__)
@@ -601,40 +614,40 @@ class TimeEntryCache(_Entries):
     def _map_row_style(self, row: dict[str, t.Any]) -> str:
         if row == self.running_entries[0]:
             return "italic"
-        elif self._ifnull(row["timestamp_paused"]):
+        if self._ifnull(row["timestamp_paused"]):
             return "#888888"
-        else:
-            return ""
+        return ""
 
     @staticmethod
     def _map_column_styles(
-        field: t.Sequence[t.Any], console_width: int
+        field: t.Sequence[t.Any],
+        console_width: int,
     ) -> dict[str, t.Any]:
-        _kwargs: dict[str, t.Any] = {"vertical": "top", "no_wrap": True}
+        kwargs: dict[str, t.Any] = {"vertical": "top", "no_wrap": True}
 
-        if field in ("project", "note"):
-            _kwargs |= {
+        if field in {"project", "note"}:
+            kwargs |= {
                 # "header_style": "green",
                 "overflow": "ellipsis",
             }
             if field == "project":
-                _kwargs |= {
+                kwargs |= {
                     "max_width": 30,
                 }
             elif field == "note":
-                _kwargs |= {
+                kwargs |= {
                     "overflow": "fold",
                     "no_wrap": False,
                 }
         elif field == "id":
-            _kwargs |= {
+            kwargs |= {
                 # "header_style": "green",
                 "overflow": "crop",
                 "min_width": 7,
                 "max_width": 7,
             }
-        elif field in ("start", "timestamp_paused"):
-            _kwargs |= {
+        elif field in {"start", "timestamp_paused"}:
+            kwargs |= {
                 # "header_style": "yellow",
                 "justify": "left",
                 "overflow": "crop",
@@ -642,31 +655,31 @@ class TimeEntryCache(_Entries):
                 "max_width": 25,
             }
             if console_width <= 90:
-                _kwargs |= {
+                kwargs |= {
                     "min_width": 10,
                     "max_width": 10,
                     "overflow": "fold",
                     "no_wrap": False,
                 }
-        elif field in ("billable", "paused"):
-            _kwargs |= {
+        elif field in {"billable", "paused"}:
+            kwargs |= {
                 # "header_style": "red",
                 "justify": "left",
             }
             if console_width < 150:
-                _kwargs |= {
+                kwargs |= {
                     "overflow": "ignore",
                     "min_width": 1,
                     "max_width": 1,
                 }
-        elif field in ("paused_hours", "hours"):
-            _kwargs |= {
+        elif field in {"paused_hours", "hours"}:
+            kwargs |= {
                 # "header_style": "cyan",
                 "justify": "right",
                 "overflow": "crop",
                 "max_width": 12,
             }
-        return _kwargs
+        return kwargs
 
 
 class TimeEntryIdList(metaclass=factory._Singleton):
@@ -691,25 +704,25 @@ class TimeEntryIdList(metaclass=factory._Singleton):
                     markup.repr_str(input_id),
                     " is not a valid id. Provided id must match regex ",
                     markup.code(r"^\w{,40}$"),
-                ).markup
+                ).markup,
             )
-        elif len(matching) >= 2:
+        if len(matching) >= 2:
             raise click.UsageError(
                 message=Text.assemble(
                     "Multiple possible entries starting with ",
                     markup.repr_str(input_id),
                     ". Use a longer string to match id.",
-                ).markup
+                ).markup,
             )
-        elif not matching:
+        if not matching:
             raise click.UsageError(
                 message=Text.assemble(
-                    "Cannot find entry id: ", markup.repr_str(input_id)
-                ).markup
+                    "Cannot find entry id: ",
+                    markup.repr_str(input_id),
+                ).markup,
             )
 
-        match = first(matching)
-        return match
+        return first(matching)
 
     def reset(self, debug: bool = False) -> None:
         try:
@@ -722,7 +735,8 @@ class TimeEntryIdList(metaclass=factory._Singleton):
     def add(self, entry_id: str, debug: bool = False) -> None:
         self.ids.extend([entry_id])
         debug and patch_stdout(raw=True)(get_console().log)(
-            "[DEBUG]", f"Added id {entry_id} to id list."
+            "[DEBUG]",
+            f"Added id {entry_id} to id list.",
         )
 
     def remove(self, entry_ids: list[str], debug: bool = False) -> None:
@@ -730,7 +744,7 @@ class TimeEntryIdList(metaclass=factory._Singleton):
             idx: int = self.ids.index(input_id)
             self.ids.pop(idx)
             debug and patch_stdout(raw=True)(get_console().log)(
-                f"Removed id {input_id} at index {idx} from id list."
+                f"Removed id {input_id} at index {idx} from id list.",
             )
 
 
@@ -742,7 +756,8 @@ class TimeEntryAppData:
         console = get_console()
 
         debug and patch_stdout(raw=True)(console.log)(
-            "[DEBUG]", "starting app data sync"
+            "[DEBUG]",
+            "starting app data sync",
         )
 
         routine = CliQueryRoutines()
@@ -774,7 +789,7 @@ class TimeEntryAppData:
         rows = list(notes_query)
 
         try:
-            projects = sorted(set(row.project for row in rows))
+            projects = sorted({row.project for row in rows})
         except TypeError:
             ctx = click.get_current_context()
             ctx.fail(
@@ -782,19 +797,19 @@ class TimeEntryAppData:
                     markup.br("**WARNING**"),
                     markup.red("Incomplete rows found in timesheet table."),
                     markup.red(
-                        "Remove these records before continuing to use this cli."
+                        "Remove these records before continuing to use this cli.",
                     ),
-                ).markup
+                ).markup,
             )
 
         def _map_notes(a: dict[str, t.Any], p: t.Any) -> dict[str, t.Any]:
             nonlocal appdata, rows
-            __key = "active" if p in appdata["active"] else "archived"
+            key = "active" if p in appdata["active"] else "archived"
             try:
-                appdata[__key][p].update({"notes": self._unique_notes(p, rows)})
+                appdata[key][p].update({"notes": self._unique_notes(p, rows)})
             except Exception as error:
                 appdir.log().error(
-                    f"Error attempting to map appdata notes - {error!r}: {error!s}"
+                    f"Error attempting to map appdata notes - {error!r}: {error!s}",
                 )
             return appdata
 
@@ -802,16 +817,17 @@ class TimeEntryAppData:
         self.path.write_text(rtoml.dumps(appdata, pretty=True), encoding="utf-8")
 
         debug and patch_stdout(raw=True)(console.log)(
-            "[DEBUG]", "entry appdata sync complete"
+            "[DEBUG]",
+            "entry appdata sync complete",
         )
 
-    def _unique_notes(self, project: str, rows: t.Sequence["Row"]) -> list["Row"]:
+    def _unique_notes(self, project: str, rows: t.Sequence[Row]) -> list[Row]:
         return list(unique_everseen(map(_get.note, self._filter_notes(project, rows))))
 
-    def _filter_notes(self, project: str, rows: t.Sequence["Row"]) -> list["Row"]:
+    def _filter_notes(self, project: str, rows: t.Sequence[Row]) -> list[Row]:
         return list(filter(lambda r: r.project == project and r.note, rows))
 
-    def _project_meta(self, row: "Row") -> str:
+    def _project_meta(self, row: Row) -> str:
         return "".join(
             [
                 "[",
@@ -819,7 +835,7 @@ class TimeEntryAppData:
                 escape(f', desc="{row.description}"') if row.description else "",
                 escape(f', archived="{row.archived.date()}"') if row.archived else "",
                 "]",
-            ]
+            ],
         )
 
     def load(self) -> dict[str, t.Any]:

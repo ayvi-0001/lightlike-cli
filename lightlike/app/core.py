@@ -1,3 +1,4 @@
+import contextlib
 import importlib
 import logging
 import re
@@ -7,7 +8,6 @@ from functools import singledispatch
 from inspect import cleandoc
 from operator import truth
 from os import getenv
-from types import ModuleType
 
 import click
 import rich.console
@@ -26,9 +26,12 @@ from rich.text import Text
 from lightlike._console import CONSOLE_CONFIG, GROUP_COMMANDS
 from lightlike.internal.constant import _CONSOLE_SVG_FORMAT
 
+if t.TYPE_CHECKING:
+    from types import ModuleType
+
 __all__: t.Sequence[str] = (
-    "FormattedCommand",
     "AliasedGroup",
+    "FormattedCommand",
     "LazyAliasedGroup",
     "_format_click_exception",
 )
@@ -53,7 +56,7 @@ def _get_maybe_callable(
     obj: t.Any,
     attr: str,
     cast: type[T],
-    default: t.Literal[None] = None,
+    default: None = None,
     apply: t.Sequence[t.Callable[..., T]] | None = None,
 ) -> T | None: ...
 
@@ -65,33 +68,28 @@ def _get_maybe_callable(
     default: T | None = None,
     apply: t.Sequence[t.Callable[..., T]] | None = None,
 ) -> T | None:
-    _attr: T | None = None
+    attr_: T | None = None
     source: T | None = getattr(obj, attr, None)
-    if callable(source):
-        _attr = source()
-    else:
-        _attr = source
+    attr_ = source() if callable(source) else source
 
-    if apply and _attr:
+    if apply and attr_:
         for fn in apply:
-            fn(_attr)
+            fn(attr_)
 
-    if _attr is not None:
-        return _attr
-    else:
-        if default is not None:
-            if isinstance(default, cast):
-                return default
-            else:
-                raise TypeError(f"Default is not of type T@{cast}")
-        else:
-            return _attr
+    if attr_ is not None:
+        return attr_
+    if default is not None:
+        if isinstance(default, cast):
+            return default
+        msg = f"Default is not of type T@{cast}"
+        raise TypeError(msg)
+    return attr_
 
 
 class FormattedCommand(click.Command):
     def __init__(
         self,
-        syntax: t.Optional[t.Callable[..., Syntax]] = None,
+        syntax: t.Callable[..., Syntax] | None = None,
         allow_name_alias: bool = True,
         *args: P.args,
         **kwargs: P.kwargs,
@@ -107,7 +105,7 @@ class FormattedCommand(click.Command):
 class AliasedGroup(click.Group):
     def __init__(
         self,
-        syntax: t.Optional[t.Callable[..., Syntax]] = None,
+        syntax: t.Callable[..., Syntax] | None = None,
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> None:
@@ -134,16 +132,18 @@ class AliasedGroup(click.Group):
 
         if not matches:
             return None
-        elif len(matches) == 1:
+        if len(matches) == 1:
             return first(matches)
-        else:
-            possible_names: list[str] = sorted(
-                map(lambda m: m.name or "", matches),
-            )
-            ctx.fail(f"Too many matches: {', '.join(possible_names)}")
+        possible_names: list[str] = sorted(
+            (m.name or "" for m in matches),
+        )
+        ctx.fail(f"Too many matches: {', '.join(possible_names)}")
+        return None
 
     def resolve_command(
-        self, ctx: click.Context, args: t.Any
+        self,
+        ctx: click.Context,
+        args: t.Any,
     ) -> tuple[str | t.Any | None, click.Command | None, t.Any]:
         # always return the full command name
         _, cmd, args = super().resolve_command(ctx, args)
@@ -159,7 +159,7 @@ class LazyAliasedGroup(AliasedGroup):
         lazy_subcommands: dict[str, str] | None = None,
         *args: P.args,
         **kwargs: P.kwargs,
-    ):
+    ) -> None:
         super().__init__(*args, **kwargs)
         #   {command-name} -> {module-name}:{command-object-name}
         self.lazy_subcommands = lazy_subcommands or {}
@@ -172,21 +172,15 @@ class LazyAliasedGroup(AliasedGroup):
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
         if cmd_name in self.lazy_subcommands:
             return self._lazy_load(cmd_name)
-        matches: list[str] = [
-            m for m in self.list_commands(ctx) if m.startswith(cmd_name)
-        ]
+        matches: list[str] = [m for m in self.list_commands(ctx) if m.startswith(cmd_name)]
         if not matches:
             return None
-        elif len(matches) == 1 and (match := first(matches)) in self.lazy_subcommands:
+        if len(matches) == 1 and (match := first(matches)) in self.lazy_subcommands:
             command = self._lazy_load(match)
-            if (
-                getattr(command, "allow_name_alias", None) is False
-                and cmd_name != match
-            ):
+            if getattr(command, "allow_name_alias", None) is False and cmd_name != match:
                 return None
             return command
-        else:
-            return super().get_command(ctx, cmd_name)
+        return super().get_command(ctx, cmd_name)
 
     def _lazy_load(self, cmd_name: str) -> click.Command | None:
         try:
@@ -200,21 +194,22 @@ class LazyAliasedGroup(AliasedGroup):
             # check the result to make debugging easier
             cmd_object_is_command: bool = isinstance(cmd_object, click.BaseCommand)
             if not cmd_object_is_command:
-                raise ValueError(
-                    f"Lazy loading of {import_path} failed by returning "
-                    "a non-command object"
-                )
+                msg = f"Lazy loading of {import_path} failed by returning a non-command object"
+                raise ValueError(msg)
             return cmd_object
         except Exception as e:
             self.lazy_subcommands.pop(cmd_name, None)
             error = f"{e}"
-            logging.error(
-                f"Failed to load subcommand: {cmd_name} from {import_path}. Error: {error}"
+            logging.exception(
+                "Failed to load subcommand: %s from %s. Error: %s",
+                cmd_name,
+                import_path,
+                error,
             )
             if "not enough values to unpack" in error:
-                logging.error(
+                logging.exception(
                     "The final part in the path must be separated by a semicolon (:). "
-                    "e.g `command-name-in-cli.module-name.file-name:command-object"
+                    "e.g `command-name-in-cli.module-name.file-name:command-object",
                 )
 
             return None
@@ -247,7 +242,7 @@ def _format_click_exception(exception: click.ClickException) -> None:
 
     with patch_stdout(raw=True):
         if hasattr(exception, "ctx"):
-            ctx = getattr(exception, "ctx")
+            ctx = exception.ctx
             if ctx:
                 console.print(_group_usage(ctx))
 
@@ -256,13 +251,13 @@ def _format_click_exception(exception: click.ClickException) -> None:
             help_option: str = ctx.help_option_names[0]
 
             console.print(
-                f"[dimmed]Try [magenta]{cmd_path} {help_option}[/magenta] for help"
+                f"[dimmed]Try [magenta]{cmd_path} {help_option}[/magenta] for help",
             )
 
         console.print(
             "[b][red]Error:",
             ReplHighlighter()(
-                render(exception.format_message(), style=CONSOLE_CONFIG.style)
+                render(exception.format_message(), style=CONSOLE_CONFIG.style),
             ),
         )
 
@@ -272,11 +267,11 @@ def format_help(
     ctx: click.Context,
     formatter: click.HelpFormatter,
 ) -> None:
-    _export_help = truth(getenv("LIGHTLIKE_CLI_DEV_EXPORT_HELP"))
+    export_help = truth(getenv("LIGHTLIKE_CLI_DEV_EXPORT_HELP"))
     console = get_console()
     console.width = 120
 
-    if _export_help:
+    if export_help:
         console.record = True
         console.export_text(clear=True)
 
@@ -288,7 +283,7 @@ def format_help(
     if isinstance(obj, click.Group):
         console.print(_group_commands(obj, ctx))
 
-    if _export_help:
+    if export_help:
         title = "lightlike-cli"
         command_path = ctx.command_path.replace("lightlike", "").strip()
         if not command_path:
@@ -298,7 +293,7 @@ def format_help(
             c if c.isalnum() or c == "-" else "_" for c in str(command_path)
         )
         unique_id = f"{title}-%s" % zlib.adler32(
-            invoked_subcommand.encode("utf-8", "ignore")
+            invoked_subcommand.encode("utf-8", "ignore"),
         )
         console.save_svg(
             path=f"./{invoked_subcommand}.svg",
@@ -319,7 +314,7 @@ def _group_usage(ctx: click.Context) -> t.Iterable[rich.console.RenderableType]:
             Text("Usage:", style="bold #f0f0ff"),
             Text(ctx.command_path, style="bold #3465a4 on default"),
             UsageHighlighter()(" ".join(ctx.command.collect_usage_pieces(ctx))),
-        ]
+        ],
     )
     yield rich.console.NewLine()
 
@@ -342,7 +337,7 @@ def _group_help(
     lines = help_text.split("\n")
     if lines != [""]:
         yield ReplHighlighter()(
-            render(cleandoc("\n".join(map(lambda l: l.replace("\n", " "), lines))))  # noqa: E741
+            render(cleandoc("\n".join(l.replace("\n", " ") for l in lines))),  # ruff: ignore[ambiguous-variable-name]
         )
 
 
@@ -366,7 +361,8 @@ def _group_syntax(
 
 @rich.console.group()
 def _group_commands(
-    obj: click.Group, ctx: click.Context
+    obj: click.Group,
+    ctx: click.Context,
 ) -> t.Iterable[rich.console.RenderableType]:
     table = Table(
         highlight=True,
@@ -405,7 +401,8 @@ class OptionGroups(t.TypedDict):
 
 @rich.console.group()
 def _group_options(
-    obj: click.Command, ctx: click.Context
+    obj: click.Command,
+    ctx: click.Context,
 ) -> t.Iterable[rich.console.RenderableType]:
     groups: list[OptionGroups] = [{"name": "Options:", "items": []}]
     arguments: list[str] = []
@@ -436,10 +433,8 @@ def _group_options(
             opt_short_strs = []
             for idx, opt in enumerate(param.opts):
                 opt_str = opt
-                try:
+                with contextlib.suppress(IndexError):
                     opt_str += "/" + param.secondary_opts[idx]
-                except IndexError:
-                    pass
 
                 if isinstance(param, click.Argument):
                     opt_long_strs.append(opt_str.upper())
@@ -464,10 +459,7 @@ def _group_options(
                 metavar.append(metavar_str)
 
             if (
-                (
-                    isinstance(param.type, _NumberRangeBase)
-                    or param.type.name.endswith("range")
-                )
+                (isinstance(param.type, _NumberRangeBase) or param.type.name.endswith("range"))
                 and isinstance(param, click.Option)
                 and not (
                     param.count and param.type.min == 0 and param.type.max is None  # type: ignore[attr-defined]
@@ -488,7 +480,7 @@ def _group_options(
                     ReplHighlighter()(ReplHighlighter()(",".join(opt_short_strs))),
                     MetavarHighlighter()(metavar),
                     _get_option_help(param, ctx),
-                ]
+                ],
             )
 
         if len(rows) > 0:
@@ -538,7 +530,8 @@ def _(param: click.Argument, ctx: click.Context) -> Columns:
         help_record = param.get_help_record(ctx)
         if help_record:
             default_str_match: re.Match[str] | None = re.search(
-                r"\[(?:.+; )?default: (.*)\]", last(help_record)
+                r"\[(?:.+; )?default: (.*)\]",
+                last(help_record),
             )
             if default_str_match:
                 default_str_group: str = default_str_match.group(1)
@@ -556,9 +549,8 @@ def _(param: click.Option, ctx: click.Context) -> Columns:
     items: list[rich.console.RenderableType] = []
     envvar = param.envvar
 
-    if not envvar:
-        if param.allow_from_autoenv and ctx.auto_envvar_prefix and param.name:
-            envvar = f"{ctx.auto_envvar_prefix}_{param.name.upper()}"
+    if not envvar and param.allow_from_autoenv and ctx.auto_envvar_prefix and param.name:
+        envvar = f"{ctx.auto_envvar_prefix}_{param.name.upper()}"
     if envvar:
         envvar = ", ".join(envvar) if isinstance(envvar, list) else envvar
 
@@ -581,7 +573,8 @@ def _(param: click.Option, ctx: click.Context) -> Columns:
         help_record = param.get_help_record(ctx)
         if help_record:
             default_str_match = re.search(
-                r"\[(?:.+; )?default: (.*)\]", last(help_record)
+                r"\[(?:.+; )?default: (.*)\]",
+                last(help_record),
             )
             if default_str_match:
                 default_str = default_str_match.group(1).replace("; required", "")

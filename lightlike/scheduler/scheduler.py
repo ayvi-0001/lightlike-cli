@@ -32,6 +32,4 @@ def _build_scheduler() -> BackgroundScheduler:
         config = rtoml.load(appdir.SCHEDULER_CONFIG)
         scheduler_config = config.get("scheduler", {})
 
-    SCHEDULER = BackgroundScheduler(scheduler_config)
-
-    return SCHEDULER
+    return BackgroundScheduler(scheduler_config)

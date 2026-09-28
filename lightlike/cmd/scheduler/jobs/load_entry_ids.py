@@ -6,7 +6,7 @@ from apscheduler.triggers.date import DateTrigger
 from lightlike.app.cache import TimeEntryIdList
 from lightlike.cmd.scheduler.jobs.types import JobKwargs
 
-__all__: t.Sequence[str] = ("load_entry_ids", "default_job_load_entry_ids")
+__all__: t.Sequence[str] = ("default_job_load_entry_ids", "load_entry_ids")
 
 
 def load_entry_ids() -> None:
@@ -14,7 +14,7 @@ def load_entry_ids() -> None:
 
 
 def default_job_load_entry_ids() -> JobKwargs:
-    job_kwargs = JobKwargs(
+    return JobKwargs(
         func=load_entry_ids,
         id="load_entry_ids",
         name="load_entry_ids",
@@ -26,4 +26,3 @@ def default_job_load_entry_ids() -> JobKwargs:
         executor="sqlalchemy",
         misfire_grace_time=10,
     )
-    return job_kwargs

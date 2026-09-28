@@ -1,5 +1,4 @@
 import typing as t
-from datetime import datetime
 
 import click
 from click.shell_completion import CompletionItem
@@ -9,11 +8,16 @@ from lightlike.app.cache import TimeEntryCache
 from lightlike.app.config import AppConfig
 from lightlike.internal.utils import match_str
 
-__all__: t.Sequence[str] = ("paused", "all_")
+if t.TYPE_CHECKING:
+    from datetime import datetime
+
+__all__: t.Sequence[str] = ("all_", "paused")
 
 
 def paused(
-    ctx: click.Context, param: click.Parameter, incomplete: str
+    ctx: click.Context,
+    param: click.Parameter,
+    incomplete: str,
 ) -> list[CompletionItem]:
     now: datetime = dates.now(AppConfig().tzinfo)
     cache = TimeEntryCache()
@@ -35,7 +39,9 @@ def paused(
 
 
 def all_(
-    ctx: click.Context, param: click.Parameter, incomplete: str
+    ctx: click.Context,
+    param: click.Parameter,
+    incomplete: str,
 ) -> list[CompletionItem]:
     now: datetime = dates.now(AppConfig().tzinfo)
     cache = TimeEntryCache()
@@ -56,7 +62,7 @@ def all_(
         for entry in cache.running_entries:
             entry_id = entry["id"]
 
-            if entry_id in (cache.id, "null"):
+            if entry_id in {cache.id, "null"}:
                 continue
 
             meta = cache._to_help_str(entry, now)
@@ -68,6 +74,4 @@ def all_(
 
 
 def _match_id_or_meta(incomplete: str, meta: str, entry_id: str) -> bool:
-    if match_str(incomplete, meta) or match_str(incomplete, entry_id):
-        return True
-    return False
+    return bool(match_str(incomplete, meta) or match_str(incomplete, entry_id))
