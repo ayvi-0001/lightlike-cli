@@ -10,8 +10,10 @@ requires-python = ">=3.11"
 dynamic = ["version"]
 dependencies = [
     # Dependencies with conditional "'android' not in platform_release" fail to build on termux.
-    "anyio>=4.3.0",
     "APScheduler>=3.10.4",
+    "Pygments>=2.17.2",
+    "SQLAlchemy==2.0.31",
+    "anyio>=4.3.0",
     "cachetools>=5.3.3",
     "certifi>=2024.7.4",
     "cffi>=1.16.0",
@@ -48,7 +50,6 @@ dependencies = [
     "pyasn1-modules>=0.3.0",
     "pyasn1>=0.5.1",
     "pycparser>=2.21",
-    "Pygments>=2.17.2",
     "python-dateutil>=2.9.0.post0",
     "pytz-deprecation-shim>=0.1.0.post0",
     "pytz>=2024.1",
@@ -62,7 +63,6 @@ dependencies = [
     "rtoml>=0.11.0",
     "six>=1.16.0",
     "sniffio>=1.3.1",
-    "SQLAlchemy==2.0.31",
     "typing_extensions>=4.12.2",
     "tzdata>=2024.1",
     "tzlocal<5,>=4",
@@ -81,26 +81,26 @@ sqlalchemy-bigquery = ["sqlalchemy-bigquery~=1.11.0"]
 dev = [
     "black>=24.3.0",
     "isort>=5.13.2",
-    "mypy>=1.8.0",
     "mypy-extensions>=1.0.0",
+    "mypy>=1.8.0",
     "pandas-stubs>=2.2.0.240218",
-    "pytest==8.2.2",
     "pytest-order==1.2.1",
     "pytest-xdist==3.6.1",
+    "pytest==8.2.2",
     "types-Pygments>=2.17.0.0",
-    "types-six>=1.16.21.20240513",
     "types-dateparser>=1.1.4.20240106",
     "types-pytz>=2023.3.1.1",
+    "types-six>=1.16.21.20240513",
 ]
 all = ["lightlike[sqlalchemy-bigquery, dev]"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["lightlike"]
-dependencies = ["rich", "click"]
+dependencies = ["click", "rich"]
 
 [tool.hatch.build.targets.sdist]
 packages = ["lightlike"]
-dependencies = ["rich", "click"]
+dependencies = ["click", "rich"]
 
 [tool.hatch.metadata]
 allow-direct-references = true

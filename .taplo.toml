@@ -1,19 +1,34 @@
 [formatting]
-align_comments = false
-align_entries = false
-allowed_blank_lines = 1
-array_auto_collapse = false
-array_auto_expand = true
-array_trailing_comma = true
-column_width = 200
-compact_arrays = true
-compact_entries = false
+align_comments        = true
+align_entries         = false
+allowed_blank_lines   = 1
+array_auto_collapse   = false
+array_auto_expand     = true
+array_trailing_comma  = true
+column_width          = 200
+compact_arrays        = true
+compact_entries       = false
 compact_inline_tables = false
-crlf = false
-indent_entries = false
-indent_string = "    "
-indent_tables = false
-inline_table_expand = true
+crlf                  = false
+indent_entries        = false
+indent_string         = "    "
+indent_tables         = false
+inline_table_expand   = true
+reorder_arrays        = true
 reorder_inline_tables = false
-reorder_keys = false
-trailing_newline = true
+reorder_keys          = false
+trailing_newline      = true
+
+[[rule]]
+include = ["*taplo.toml"]
+
+[rule.formatting]
+align_entries = true
+reorder_keys  = true
+
+[[rule]]
+include = ["pyproject.toml"]
+keys    = ["dependencies", "dev-dependencies", "optional-dependencies"]
+
+[rule.formatting]
+reorder_keys = true
