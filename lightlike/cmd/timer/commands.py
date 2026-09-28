@@ -1934,7 +1934,7 @@ def resume(
     type=click.STRING,
     help="Add a new/existing note.",
     required=False,
-    default="None",
+    default=None,
     callback=None,
     metavar=None,
     shell_complete=shell_complete.notes.from_param,
@@ -2061,7 +2061,7 @@ def run(
 
     scheduler: SchedulerCallable = ctx.find_root().obj.get("get_scheduler")
 
-    if note == "None" and note_parts:
+    if not note and note_parts:
         note = " ".join(note_parts)
 
     project_default_billable: bool = False
