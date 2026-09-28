@@ -2061,6 +2061,20 @@ def run(
 
     scheduler: SchedulerCallable = ctx.find_root().obj.get("get_scheduler")
 
+    if stop_active:
+        if cache:
+            scheduler().add_job(
+                func=routine._stop_time_entry,
+                trigger="date",
+                run_date=datetime.now(),
+                kwargs={"id": cache.id, "end": now},
+            )
+            cache.clear_active()
+            # if AppConfig().get("settings", "update-terminal-title", default=True):
+            #     console.set_window_title(__appname_sc__)
+        else:
+            console.print("No active entry. --stop-active / -S ignored.")
+
     if not note and note_parts:
         note = " ".join(note_parts)
 
