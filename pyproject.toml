@@ -129,27 +129,29 @@ unsafe-fixes = true
 preview = true
 select = ["ALL"]
 extend-ignore = [
-    "CPY",     # flake8-copyright
-    "D100",    # pydocstyle: undocumented-public-module
-    "D101",    # pydocstyle: undocumented-public-class
-    "D102",    # pydocstyle: undocumented-public-method
-    "D103",    # pydocstyle: undocumented-public-function
-    "D104",    # pydocstyle: undocumented-public-package
-    "D105",    # pydocstyle: undocumented-magic-method
-    "D107",    # pydocstyle: undocumented-public-init
-    "D203",    # pydocstyle: incorrect-blank-line-before-class
-    "D211",    # pydocstyle: blank-line-before-class
-    "D212",    # pydocstyle - multi-line-summary-first-line
-    "DOC201",  # pydoclint: docstring-missing-returns
-    "DOC501",  # pydoclint:  docstring-missing-exception
-    "EXE",     # flake8-executable
-    "F841",    # pyflakes: unused-variable
-    "FIX",     # flake8-fixme
-    "PLC0415", # pylint / convention: import-outside-top-level
-    "PLR0913", # pylint / refactor: too-many-arguments
-    "PLR0917", # pylint / refactor: too-many-positional-arguments
-    "RUF029",  # ruff-specific rules: unused-async
-    "TD003",   # flake8-todos: missing-todo-link
+    "blank-line-before-class",
+    "docstring-missing-exception",
+    "docstring-missing-returns",
+    "import-outside-top-level",
+    "incorrect-blank-line-before-class",
+    "line-contains-fixme",
+    "line-contains-hack",
+    "line-contains-todo",
+    "line-contains-xxx",
+    "missing-copyright-notice",
+    "missing-todo-link",
+    "multi-line-summary-first-line",
+    "too-many-arguments",
+    "too-many-positional-arguments",
+    "undocumented-magic-method",
+    "undocumented-public-class",
+    "undocumented-public-function",
+    "undocumented-public-init",
+    "undocumented-public-method",
+    "undocumented-public-module",
+    "undocumented-public-package",
+    "unused-async",
+    "unused-variable",
 ]
 extend-fixable = [
     "COM", # flake8-commas
