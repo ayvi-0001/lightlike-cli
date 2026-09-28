@@ -86,7 +86,7 @@ def authorize_bigquery_client() -> bigquery.Client:
                 if versions and any([versions[k] is False for k in versions]):
                     provision_bigquery_resources(client, updates=versions)
 
-        _update_cursor_global_project(locals())
+        # _update_cursor_global_project(locals())
         return client
 
     except KeyboardInterrupt:
@@ -105,12 +105,12 @@ def authorize_bigquery_client() -> bigquery.Client:
         return authorize_bigquery_client()
 
 
-def _update_cursor_global_project(local_params: dict[str, t.Any]) -> None:
-    client: bigquery.Client | None = local_params.get("client")
-    if client and isinstance(client, bigquery.Client):
-        import lightlike.app.cursor
+# def _update_cursor_global_project(local_params: dict[str, t.Any]) -> None:
+#     client: bigquery.Client | None = local_params.get("client")
+#     if client and isinstance(client, bigquery.Client):
+#         import lightlike.app.cursor
 
-        lightlike.app.cursor.GCP_PROJECT = client.project
+#         lightlike.app.cursor.GCP_PROJECT = client.project
 
 
 def provision_bigquery_resources(
@@ -128,7 +128,7 @@ def provision_bigquery_resources(
             App detected that this version either:
                 ▸ is currently updating to a version with breaking changes, and needs to run scripts in BigQuery.
                 ▸ has not ran scripts in BigQuery following an update with breaking changes.
-            
+
             Please run scripts. This prompt will continue until this version update is marked as confirmed.
 
             [b][red]![/red] [u]This cli may not work as expected if tables/procedures are not up to date[/u].\
