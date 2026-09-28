@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "uv-dynamic-versioning"]
 build-backend = "hatchling.build"
 
 [project]
@@ -99,11 +99,20 @@ dependencies = ["click", "rich"]
 packages = ["lightlike"]
 dependencies = ["click", "rich"]
 
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+format-jinja = """
+    {%- if distance == 0 -%}
+        {{ serialize_pep440(base, stage, revision) }}
+    {%- elif revision is not none -%}
+        {{ serialize_pep440(base, stage, revision + 1, dev=distance, metadata=[commit]) }}
+    {%- else -%}
+        {{ serialize_pep440(bump_version(base), stage, revision, dev=distance, metadata=[commit]) }}
+    {%- endif -%}
+"""
+
 [tool.hatch.metadata]
 allow-direct-references = true
-
-[tool.hatch.version]
-path = "lightlike/__about__.py"
-source = "code"
-search-paths = ["lightlike"]
-pattern = "__version__: Final[str] = \"'b(?P<version>[^']+)'\""

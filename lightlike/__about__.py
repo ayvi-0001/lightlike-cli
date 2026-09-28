@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import importlib.metadata
 import sys
 from collections.abc import Sequence
 from os import getenv
@@ -41,7 +42,7 @@ __all__: Sequence[str] = (
     "__version__",
 )
 
-__version__: Final[str] = "v0.13.0"
+__version__: Final[str] = importlib.metadata.version("lightlike")
 
 LIGHTLIKE_ENV: str | None = getenv("LIGHTLIKE_ENV")
 LIGHTLIKE_APP_DIR: Path = Path(
@@ -53,7 +54,7 @@ LIGHTLIKE_APP_DIR: Path = Path(
 LIGHTLIKE_CONFIG_DIR: Path = Path(
     getenv(
         "LIGHTLIKE_CONFIG_DIR",
-        default=f'{Path.home().joinpath(".config").joinpath("lightlike-cli")}',
+        default=f"{Path.home().joinpath('.config').joinpath('lightlike-cli')}",
     )
 )
 
@@ -71,7 +72,6 @@ LIGHTLIKE_CONFIG_DIR: Path = Path(
 
 
 def get_appdir_path(env: str | None = None) -> Path:
-    global LIGHTLIKE_APP_DIR
     appdir: Path = LIGHTLIKE_APP_DIR.resolve()
 
     if appdir.exists() and not appdir.is_dir():
@@ -89,7 +89,6 @@ def get_appdir_path(env: str | None = None) -> Path:
 
 
 def get_config_dir(env: str | None = None) -> Path:
-    global LIGHTLIKE_CONFIG_DIR
     config_dir: Path = LIGHTLIKE_CONFIG_DIR.resolve()
 
     if config_dir.exists() and not config_dir.is_dir():
@@ -123,14 +122,7 @@ __repo__: Final[str] = "https://github.com/ayvi-0001/lightlike-cli"
 __help__: str = f"""\
 [b]Completion[/b]: press [code]ctrl space[/code] or [code]tab[/code] to display.
             [code]:c{{1 | 2 | 3 | 4}}[/code] to add/remove completions from the global completer.
-            {", ".join(
-                [
-                    "[code]1[/code] = commands",
-                    "[code]2[/code] = history",
-                    "[code]3[/code] = path",
-                    "[code]4[/code] = executables",
-                ]
-            )}
+            [code]1[/code] = commands, [code]2[/code] = history, [code]3[/code] = path, [code]4[/code] = executables
             path autocompletion is automatic for [code]cd[/code].
 
 [b]Commands[/b]: commands are aliased, use the shortest unique string of the command path.
@@ -156,5 +148,4 @@ LIGHTLIKE_CONFIG_DIR = {LIGHTLIKE_CONFIG_DIR.as_posix()}
 """
 
 if LIGHTLIKE_ENV:
-    __help__ += "\n"
-    __help__ += "LIGHTLIKE_ENV: %s" % LIGHTLIKE_ENV
+    __help__ += f"\nLIGHTLIKE_ENV: {LIGHTLIKE_ENV}"
