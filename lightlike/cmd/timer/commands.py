@@ -325,6 +325,9 @@ def add(
 
     time_entry_id = sha1(f"{project}{note}{start_local}".encode()).hexdigest()
 
+    if time_entry_id in id_list.ids:
+        ctx.fail("This entry already exists.")
+
     scheduler().add_job(
         func=routine._add_time_entry,
         trigger="date",
@@ -2158,17 +2161,23 @@ def run(
     start_local: datetime = start or now
     time_entry_id: str = sha1(f"{project}{note}{start_local}".encode()).hexdigest()
 
-    scheduler().add_job(
-        func=routine._start_time_entry,
-        trigger="date",
-        run_date=datetime.now(),
-        kwargs={
+    if time_entry_id in id_list.ids:
+        ctx.fail("This entry already exists.")
+
+    else:
+        timer_run_kwargs = {
             "time_entry_id": time_entry_id,
             "project": project,
             "note": note,
             "start_time": start_local,
             "billable": billable if billable in (True, False) else project_default_billable,
-        },
+        }
+
+    scheduler().add_job(
+        func=routine._start_time_entry,
+        trigger="date",
+        run_date=datetime.now(),
+        kwargs=timer_run_kwargs,
     )
 
     if pause_active:
