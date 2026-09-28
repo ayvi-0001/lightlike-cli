@@ -6,11 +6,10 @@ from functools import partial
 from inspect import cleandoc
 from pathlib import Path
 
+import rich
 import rtoml
 from packaging.version import Version
 from prompt_toolkit.history import FileHistory, ThreadedHistory
-from rich import get_console
-from rich import print as rprint
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.text import Text
@@ -85,6 +84,8 @@ logging.basicConfig(
     datefmt="%m-%d %H:%M:%S",
 )
 
+LOGGER = logging.getLogger(__name__)
+
 
 def log() -> logging.Logger:
     return logging.getLogger(__appname_sc__)
@@ -141,13 +142,14 @@ CONFIG_FORCE_UPDATE_PATHS: list[str] = [
 
 @_fasteners.interprocess_locked(__appdir__ / "config.lock", logger=log())
 def validate(__version__: str, __config__: Path, /) -> None:
-    console = get_console()
+    console = rich.get_console()
     _console.if_not_quiet_start(console.log)("Validating app directory")
 
     if utils.file_empty_or_not_exists(__config__):
         console.log(f"{__config__} not found")
         console.log("Initializing app directory")
         return _initial_build()
+
     local_config: dict[str, t.Any] = rtoml.load(__config__)
 
     v_local: Version = Version(local_config["app"]["version"])
@@ -163,24 +165,24 @@ def validate(__version__: str, __config__: Path, /) -> None:
 
         # No live updates to check for yet.
         # if not BQ_UPDATES.exists():
-        #     BQ_UPDATES.write_text(constant.BQ_UPDATES_CONFIG)
+        #     BQ_UPDATES.write_text(constant.BQ_UPDATES_CONFIG)  # ruff: ignore[commented-out-code]
 
-    local_config = utils.merge_default_dict_into_current_dict(
-        local_config,
-        rtoml.load(constant.DEFAULT_CONFIG),
-        update_paths=CONFIG_UPDATE_PATHS,
-        force_update_paths=CONFIG_FORCE_UPDATE_PATHS,
-    )
+        local_config = utils.merge_default_dict_into_current_dict(
+            current=local_config,
+            default=rtoml.load(constant.DEFAULT_CONFIG),
+            update_paths=CONFIG_UPDATE_PATHS,
+            force_update_paths=CONFIG_FORCE_UPDATE_PATHS,
+        )
 
     __config__.write_text(
-        utils.format_toml(local_config),
+        data=utils.format_toml(local_config),
         encoding="utf-8",
     )
 
     return None
 
 
-def console_log_error(error: Exception, notify: bool, patch_stdout: bool) -> None:
+def console_log_error(error: Exception, *, notify: bool, patch_stdout: bool) -> None:
     error_logs: Path = LOGS / "errors"
     error_logs.mkdir(exist_ok=True)
     timestamp: str = datetime.now().strftime("%Y-%m-%dT%H_%M_%S")
@@ -205,9 +207,9 @@ def console_log_error(error: Exception, notify: bool, patch_stdout: bool) -> Non
             from prompt_toolkit.patch_stdout import patch_stdout as _patch_stdout
 
             with _patch_stdout(raw=True):
-                rprint(notice)
+                rich.print(notice)
         else:
-            rprint(notice)
+            rich.print(notice)
 
 
 def _initial_build() -> None:
@@ -223,13 +225,13 @@ def _initial_build() -> None:
 
         from lightlike.app import _questionary
 
-        console = get_console()
+        console = rich.get_console()
         default_config = rtoml.load(constant.DEFAULT_CONFIG)
-        license = Markdown(markup=cleandoc(constant.LICENSE), justify="left")
+        license_ = Markdown(markup=cleandoc(constant.LICENSE), justify="left")
 
         console.rule(style="#9146ff")
         _console.reconfigure(height=17)
-        console.print(Padding(license, (0, 0, 1, 1)))
+        console.print(Padding(license_, (0, 0, 1, 1)))
         _console.reconfigure(height=None)
         _questionary.press_any_key_to_continue(message="Press any key to continue.")
 
@@ -321,7 +323,7 @@ def _initial_build() -> None:
                         ▸ [b][u]from-service-account-key[/b][/u]
                           Copy and paste a service-account key.
                           You will be prompted to provide a password, which will be used to encrypt the json file.
-                    """,
+                    """,  # ruff: ignore[line-too-long]
                 ),
                 (1, 1, 0, 1),
             ),
@@ -411,10 +413,12 @@ def _initial_build() -> None:
         )
         console.log("Directory build complete")
 
-        return
     except (KeyboardInterrupt, EOFError):
         sys.exit(1)
     except Exception as error:
-        rprint(markup.failure("Failed build:"), error)
-        rprint(markup.failure("Deleting app directory."))
+        LOGGER.exception("Exception during initial build.")
+        rich.print(markup.failure("Failed build:"), error)
+        rich.print(markup.failure("Deleting app directory."))
         rmtree()
+    else:
+        return
