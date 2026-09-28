@@ -1,8 +1,8 @@
 import typing as t
 
 import click
+import rich
 from apscheduler.schedulers.background import BackgroundScheduler
-from rich import print
 
 from lightlike.app.core import LazyAliasedGroup
 
@@ -49,7 +49,7 @@ def scheduler(ctx: click.Context, debug: bool) -> None:
     ):
         scheduler: BackgroundScheduler = ctx.obj["get_scheduler"]()
         if scheduler.state == STATE_STOPPED:
-            print(
+            rich.print(
                 "[dimmed]Scheduler is stopped.",
                 "Use scheduler:start before running command.",
             )

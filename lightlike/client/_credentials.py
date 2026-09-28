@@ -5,9 +5,9 @@ from functools import partial
 
 import google.auth
 import google.auth.credentials
+import rich
 from google.cloud import bigquery
 from google.oauth2 import service_account
-from rich import get_console, print
 from rich.console import Console, NewLine
 
 from lightlike.app import _questionary
@@ -82,7 +82,7 @@ def _get_credentials_from_config(
             credentials = credentials.with_quota_project(project_id)
 
         case _:
-            print("credentials configuration not found")
+            rich.print("credentials configuration not found")
 
             new_credentials_source = {
                 "credentials-source": _select_credential_source(
@@ -103,7 +103,7 @@ def _get_credentials_from_config(
 
 
 def service_account_key_flow(appconfig: AppConfig) -> tuple[bytes, bytes]:
-    console: Console = get_console()
+    console: Console = rich.get_console()
 
     encrypted_key: bytes | None = None
     salt: bytes | None = None
@@ -120,8 +120,8 @@ def service_account_key_flow(appconfig: AppConfig) -> tuple[bytes, bytes]:
     if not (encrypted_key_from_config and salt_from_config):
         console.log("Initializing new service-account config")
 
-        print(NewLine())
-        print(
+        rich.print(NewLine())
+        rich.print(
             "Create a password. "
             "This will be used to encrypt your service-account key.\n"
             "Type password (will not be echoed) and press [code]enter[/] to continue."
@@ -130,14 +130,14 @@ def service_account_key_flow(appconfig: AppConfig) -> tuple[bytes, bytes]:
         password, salt = AuthPromptSession().prompt_new_password()
         key_derivation: bytes = _Auth()._generate_key(password.hexdigest(), salt)
 
-        print(NewLine())
+        rich.print(NewLine())
         if _questionary.confirm(message="Stay logged in?"):
             appconfig._update_user_credentials(
                 password=password.hexdigest(),
                 stay_logged_in=True,
             )
 
-        print(
+        rich.print(
             NewLine(),
             "Copy and paste service-account key.",
             "Press",
@@ -173,24 +173,24 @@ def prompt_service_account_key() -> str:
             try:
                 key = json.loads(response)
             except json.JSONDecodeError:
-                print(markup.br("Invalid json."))
+                rich.print(markup.br("Invalid json."))
                 continue
             else:
                 if "client_email" not in key.keys():
-                    print(
+                    rich.print(
                         "Invalid service-account json. Missing required key",
                         markup.code("client_email"),
                     )
                     continue
                 if "token_uri" not in key.keys():
-                    print(
+                    rich.print(
                         "Invalid service-account json. Missing required key",
                         markup.code("token_uri"),
                     )
                     continue
                 service_account_key = response
     except (KeyboardInterrupt, EOFError):
-        print("[b][red]Aborted")
+        rich.print("[b][red]Aborted")
         sys.exit(2)
 
     return service_account_key
@@ -211,7 +211,7 @@ def _select_credential_source(
             default=current_setting if current_setting in choices else None,
         )
         if new_setting == current_setting:
-            print(markup.dimmed("Selected current source, nothing happened."))
+            rich.print(markup.dimmed("Selected current source, nothing happened."))
             return None
         else:
             return new_setting

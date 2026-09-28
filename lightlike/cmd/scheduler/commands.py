@@ -2,6 +2,7 @@ import subprocess
 import typing as t
 
 import click
+import rich
 import rtoml
 import six
 from apscheduler.job import Job
@@ -15,7 +16,7 @@ from prompt_toolkit import prompt
 from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.styles import Style
 from pytz import timezone
-from rich import box, get_console, print
+from rich import box
 from rich.table import Table
 
 from lightlike.app import shell_complete
@@ -369,10 +370,10 @@ def add_job(
 
     try:
         job: Job = scheduler.add_job(**job_kwargs)
-        print("Added job:")
-        print(_job_info(job, show_jobstore=True))
+        rich.print("Added job:")
+        rich.print(_job_info(job, show_jobstore=True))
     except LookupError as error:
-        print(f"{error}")
+        rich.print(f"{error}")
 
 
 @click.command(cls=FormattedCommand)
@@ -389,9 +390,9 @@ def get_job(
     scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     job: Job | None = scheduler.get_job(job_id=job_id, jobstore=jobstore)
     if not job:
-        print("[dimmed]Job not found")
+        rich.print("[dimmed]Job not found")
         return
-    print(_job_info(job, show_jobstore=True))
+    rich.print(_job_info(job, show_jobstore=True))
 
 
 @click.command(cls=FormattedCommand)
@@ -455,7 +456,7 @@ def print_jobs(ctx: click.Context) -> None:
                     for idx, (job) in enumerate(jobs):
                         jobstore_table.add_row(f"\[{idx + 1}] {job.id}", "", f"{job!s}")
 
-    print(jobstore_table)
+    rich.print(jobstore_table)
 
 
 @click.command(cls=FormattedCommand)
@@ -513,8 +514,8 @@ def modify_job(
     job: Job = scheduler.modify_job(
         job_id=job_id, jobstore=jobstore, **job_modify_kwargs
     )
-    print("Modified job:")
-    print(_job_info(job, show_jobstore=True))
+    rich.print("Modified job:")
+    rich.print(_job_info(job, show_jobstore=True))
 
 
 @click.command(cls=FormattedCommand)
@@ -530,8 +531,8 @@ def pause_job(
 ) -> None:
     scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     job: Job = scheduler.pause_job(job_id=job_id, jobstore=jobstore)
-    print("Paused job:")
-    print(_job_info(job, show_jobstore=True))
+    rich.print("Paused job:")
+    rich.print(_job_info(job, show_jobstore=True))
 
 
 @click.command(cls=FormattedCommand)
@@ -542,7 +543,7 @@ def pause_job(
 def remove_all_jobs(ctx: click.Context, jobstore: str) -> None:
     scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     scheduler.remove_all_jobs(jobstore=jobstore)
-    print(f"Removed all jobs from jobstore `{jobstore}`")
+    rich.print(f"Removed all jobs from jobstore `{jobstore}`")
 
 
 @click.command(cls=FormattedCommand)
@@ -559,9 +560,9 @@ def remove_job(
     scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     try:
         scheduler.remove_job(job_id=job_id, jobstore=jobstore)
-        print(f"Removed job `{job_id}` from jobstore `{jobstore}`")
+        rich.print(f"Removed job `{job_id}` from jobstore `{jobstore}`")
     except JobLookupError as error:
-        print(f"{error}")
+        rich.print(f"{error}")
 
 
 @click.command(cls=FormattedCommand)
@@ -623,8 +624,8 @@ def reschedule_job(
     job: Job = scheduler.reschedule_job(
         job_id=job_id, jobstore=jobstore, trigger=trigger
     )
-    print("Rescheduled job:")
-    print(_job_info(job, show_jobstore=True))
+    rich.print("Rescheduled job:")
+    rich.print(_job_info(job, show_jobstore=True))
 
 
 @click.command(cls=FormattedCommand)
@@ -640,8 +641,8 @@ def resume_job(
 ) -> None:
     scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     job: Job = scheduler.resume_job(job_id=job_id, jobstore=jobstore)
-    print("Resumed job:")
-    print(_job_info(job, show_jobstore=True))
+    rich.print("Resumed job:")
+    rich.print(_job_info(job, show_jobstore=True))
 
 
 @click.command(cls=FormattedCommand)
@@ -651,7 +652,7 @@ def resume_job(
 def shutdown(ctx: click.Context) -> None:
     scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     if scheduler.state == STATE_STOPPED:
-        print("[dimmed]Scheduler already stopped")
+        rich.print("[dimmed]Scheduler already stopped")
     else:
         scheduler.shutdown()
 
@@ -663,7 +664,7 @@ def shutdown(ctx: click.Context) -> None:
 def start(ctx: click.Context) -> None:
     scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     if scheduler.state == STATE_RUNNING:
-        print("[dimmed]Scheduler already running")
+        rich.print("[dimmed]Scheduler already running")
     else:
         scheduler.start()
 
@@ -675,7 +676,7 @@ def start(ctx: click.Context) -> None:
 def pause(ctx: click.Context) -> None:
     scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     if scheduler.state == STATE_PAUSED:
-        print("[dimmed]Scheduler already paused")
+        rich.print("[dimmed]Scheduler already paused")
     else:
         scheduler.pause()
 
@@ -687,7 +688,7 @@ def pause(ctx: click.Context) -> None:
 def resume(ctx: click.Context) -> None:
     scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     if scheduler.state == STATE_RUNNING:
-        print("[dimmed]Scheduler already running")
+        rich.print("[dimmed]Scheduler already running")
     else:
         scheduler.resume()
 
@@ -699,9 +700,9 @@ def resume(ctx: click.Context) -> None:
 def status(ctx: click.Context) -> None:
     scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     if scheduler.state == STATE_RUNNING:
-        print("Scheduler is running.")
+        rich.print("Scheduler is running.")
     else:
-        print("Scheduler is shutdown.")
+        rich.print("Scheduler is shutdown.")
 
 
 def _job_info(job: Job, show_jobstore: bool = False) -> Table:
@@ -745,7 +746,7 @@ def _job_info(job: Job, show_jobstore: bool = False) -> Table:
 
 
 def run(*args: t.Any, **kwargs: t.Any) -> None:
-    console = get_console()
+    console = rich.get_console()
 
     result = subprocess.run(*args, **kwargs)
 
@@ -899,10 +900,10 @@ def system_command(
 
     try:
         job: Job = scheduler.add_job(**job_kwargs)
-        print("Added job:")
-        print(_job_info(job, show_jobstore=True))
+        rich.print("Added job:")
+        rich.print(_job_info(job, show_jobstore=True))
     except LookupError as error:
-        print(f"{error}")
+        rich.print(f"{error}")
 
 
 def _match_trigger(

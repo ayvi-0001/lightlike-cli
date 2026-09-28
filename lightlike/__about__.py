@@ -27,8 +27,8 @@ from os import getenv
 from pathlib import Path
 from typing import Final
 
+import rich
 from click import get_app_dir
-from rich import print
 
 __all__: Sequence[str] = (
     "__appdir__",
@@ -75,7 +75,7 @@ def get_appdir_path(env: str | None = None) -> Path:
     appdir: Path = LIGHTLIKE_APP_DIR.resolve()
 
     if appdir.exists() and not appdir.is_dir():
-        print(
+        rich.print(
             "[b][red]EnvironmentVariableError[/]: "
             "[code]LIGHTLIKE_APP_DIR[/] must point to a directory: "
             f"{LIGHTLIKE_APP_DIR}"
@@ -92,7 +92,7 @@ def get_config_dir(env: str | None = None) -> Path:
     config_dir: Path = LIGHTLIKE_CONFIG_DIR.resolve()
 
     if config_dir.exists() and not config_dir.is_dir():
-        print(
+        rich.print(
             "[b][red]EnvironmentVariableError[/]: "
             "[code]LIGHTLIKE_CONFIG_DIR[/] must point to a directory: "
             f"{LIGHTLIKE_CONFIG_DIR}"
