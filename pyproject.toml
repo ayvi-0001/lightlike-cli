@@ -107,7 +107,7 @@ source = "uv-dynamic-versioning"
 vcs = "git"
 format-jinja = """
     {%- if distance == 0 -%}
-        {{ serialize_pep440(base, stage, revision) }}
+        {{ serialize_pep440(base, stage, revision, metadata=[] if not dirty else ['dirty']) }}
     {%- elif revision is not none -%}
         {{ serialize_pep440(base, stage, revision + 1, dev=distance, metadata=[commit] if not dirty else [commit, 'dirty']) }}
     {%- else -%}
