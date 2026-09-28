@@ -551,7 +551,7 @@ def summary_table(
         )
 
     table: Table = render.map_sequence_to_rich_table(
-        mappings=rows,
+        mappings=[r._asdict() for r in rows],
         table_kwargs={"show_lines": show_lines},
     )
     if not table.row_count:
