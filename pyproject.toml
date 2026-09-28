@@ -116,3 +116,54 @@ format-jinja = """
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[tool.ruff]
+preview = true
+exclude = [".venv"]
+fix = true
+line-length = 99
+src = ["lightlike", "tests"]
+unsafe-fixes = true
+
+[tool.ruff.lint]
+preview = true
+select = ["ALL"]
+extend-ignore = [
+    "CPY",     # flake8-copyright
+    "D100",    # pydocstyle: undocumented-public-module
+    "D101",    # pydocstyle: undocumented-public-class
+    "D102",    # pydocstyle: undocumented-public-method
+    "D103",    # pydocstyle: undocumented-public-function
+    "D104",    # pydocstyle: undocumented-public-package
+    "D105",    # pydocstyle: undocumented-magic-method
+    "D107",    # pydocstyle: undocumented-public-init
+    "D203",    # pydocstyle: incorrect-blank-line-before-class
+    "D211",    # pydocstyle: blank-line-before-class
+    "D212",    # pydocstyle - multi-line-summary-first-line
+    "DOC201",  # pydoclint: docstring-missing-returns
+    "DOC501",  # pydoclint:  docstring-missing-exception
+    "EXE",     # flake8-executable
+    "F841",    # pyflakes: unused-variable
+    "FIX",     # flake8-fixme
+    "PLC0415", # pylint / convention: import-outside-top-level
+    "PLR0913", # pylint / refactor: too-many-arguments
+    "PLR0917", # pylint / refactor: too-many-positional-arguments
+    "RUF029",  # ruff-specific rules: unused-async
+    "TD003",   # flake8-todos: missing-todo-link
+]
+extend-fixable = [
+    "COM", # flake8-commas
+    "E",   # pycodestyle / error
+    "I",   # isort
+    "PYI", # flake8-pyi
+    "RSE", # flake8-raise
+    "RUF", # ruff-specific rules
+    "TC",  # flake8-type-checking
+    "UP",  # pyupgrade
+    "W",   # pycodestyle / warning
+]
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.format]
+preview = true
