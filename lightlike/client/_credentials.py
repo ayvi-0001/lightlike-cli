@@ -11,13 +11,14 @@ from google.oauth2 import service_account
 from rich.console import Console, NewLine
 
 from lightlike.app import _questionary
-from lightlike.app.config import AppConfig
 from lightlike.client.auth import AuthPromptSession, _Auth
 from lightlike.internal import markup
 from lightlike.internal.enums import CredentialsSource
 
 if t.TYPE_CHECKING:
     from google.cloud.bigquery.client import Project
+
+    from lightlike.app.config import AppConfig
 
 
 __all__: t.Sequence[str] = (
@@ -28,10 +29,11 @@ __all__: t.Sequence[str] = (
 
 def _get_credentials_from_config(
     appconfig: AppConfig,
+    *,
     prompt_for_project: bool = True,
 ) -> google.auth.credentials.Credentials:
     credentials: google.auth.credentials.Credentials
-    credentials_source: str = appconfig.get(
+    credentials_source: CredentialsSource | str = appconfig.get(
         "client",
         "credentials-source",
         default=CredentialsSource.not_set,
@@ -48,8 +50,8 @@ def _get_credentials_from_config(
                     saved_password=appconfig.saved_password,
                     stay_logged_in=appconfig.stay_logged_in,
                     saved_credentials_failed=partial(
-                        appconfig._update_user_credentials,
-                        password="null",
+                        appconfig.update_user_credentials,
+                        password="null",  # ruff: ignore[hardcoded-password-func-arg]
                         stay_logged_in=False,
                     ),
                 ),
@@ -96,16 +98,16 @@ def _get_credentials_from_config(
             with appconfig.rw() as config:
                 config["client"].update(**new_credentials_source)
 
-            return _get_credentials_from_config(appconfig, prompt_for_project)
+            return _get_credentials_from_config(
+                appconfig,
+                prompt_for_project=prompt_for_project,
+            )
 
     return credentials
 
 
 def service_account_key_flow(appconfig: AppConfig) -> tuple[bytes, bytes]:
     console: Console = rich.get_console()
-
-    encrypted_key: bytes | None = None
-    salt: bytes | None = None
 
     encrypted_key_from_config: bytearray | None = appconfig.get(
         "client",
@@ -131,7 +133,7 @@ def service_account_key_flow(appconfig: AppConfig) -> tuple[bytes, bytes]:
 
         rich.print(NewLine())
         if _questionary.confirm(message="Stay logged in?"):
-            appconfig._update_user_credentials(
+            appconfig.update_user_credentials(
                 password=password.hexdigest(),
                 stay_logged_in=True,
             )
@@ -149,7 +151,7 @@ def service_account_key_flow(appconfig: AppConfig) -> tuple[bytes, bytes]:
         service_account: str = prompt_service_account_key()
         encrypted_key = _Auth().encrypt(key_derivation, service_account)
 
-        appconfig._update_user_credentials(salt=salt)
+        appconfig.update_user_credentials(salt=salt)
         with appconfig.rw() as config:
             config["client"].update({"service-account-key": encrypted_key})
 
@@ -187,7 +189,7 @@ def prompt_service_account_key() -> str:
                     )
                     continue
                 service_account_key = response
-    except (KeyboardInterrupt, EOFError):
+    except KeyboardInterrupt, EOFError:
         rich.print("[b][red]Aborted")
         sys.exit(2)
 
@@ -211,18 +213,21 @@ def _select_credential_source(
         if new_setting == current_setting:
             rich.print(markup.dimmed("Selected current source, nothing happened."))
             return None
-        return new_setting
-    except (KeyboardInterrupt, EOFError):
+    except KeyboardInterrupt, EOFError:
         sys.exit(1)
+    else:
+        return new_setting
 
 
 def _select_project(credentials: google.auth.credentials.Credentials) -> str:
-    projects: t.Sequence[Project] = list(
+    projects: list[Project] = list(
         bigquery.Client(credentials=credentials).list_projects(),
     )
 
     project_display: t.Callable[[Project], str]
-    project_display = lambda p: f"{p.friendly_name} | {p.project_id} | {p.numeric_id}"
+
+    def project_display(p: Project) -> str:
+        return f"{p.friendly_name} | {p.project_id} | {p.numeric_id}"
 
     select = _questionary.select(
         message="Select GCP project.",

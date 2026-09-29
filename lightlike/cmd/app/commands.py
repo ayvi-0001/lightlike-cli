@@ -320,9 +320,9 @@ def _reset(
         return
 
     console.print("truncating timesheet")
-    routine._query(f"truncate table {routine.timesheet_id}", wait=True)
+    routine.query(f"truncate table {routine.timesheet_id}", wait=True)
     console.print("truncating projects")
-    routine._query(
+    routine.query(
         f'delete from {routine.projects_id} where name != "no-project"',
         wait=True,
     )

@@ -94,7 +94,7 @@ def _run_query_repl(console: Console) -> None:
 
 
 def _build_query_session(
-    completer: "Completer",
+    completer: Completer,
     **prompt_kwargs: t.Any,
 ) -> PromptSession[t.Any]:
     session: PromptSession[str] = PromptSession(
@@ -124,7 +124,7 @@ def _build_query_session(
 
 
 def render_query(
-    routine: "CliQueryRoutines",
+    routine: CliQueryRoutines,
     console: Console,
     query: str,
     save_txt: bool,
@@ -135,13 +135,13 @@ def render_query(
 ) -> None:
     with console.status(markup.status_message("Running Query")) as status:
         try:
-            query_job = routine._query(target=query, wait=True, suppress=True)
+            query_job = routine.query(target=query, wait=True, suppress=True)
         except click.UsageError as e:
             console.log(e.message)
             return
 
         if query_job._exception:
-            console.log(routine._format_error_message(query_job))
+            console.log(routine.format_error_message(query_job))
             return
 
         resource = "{base_url}project={project_id}&j=bq:{region}:{job_id}&{end_point}".format(
@@ -299,7 +299,7 @@ def render_query(
             console.log("[#ec8015]No rows returned")
 
 
-def _elapsed_time(query_job: "QueryJob", start: float | None = None) -> str:
+def _elapsed_time(query_job: QueryJob, start: float | None = None) -> str:
     if start:
         ns = (perf_counter_ns() - start) * 1.0e-9
     elif query_job.ended:
@@ -311,7 +311,7 @@ def _elapsed_time(query_job: "QueryJob", start: float | None = None) -> str:
     return f"{w}.{'0' * (4 - len(d)) + d}"
 
 
-def _log_statistics(console: Console, query_job: "QueryJob") -> None:
+def _log_statistics(console: Console, query_job: QueryJob) -> None:
     statement_type = query_job.statement_type
     if statement_type:
         console.log(

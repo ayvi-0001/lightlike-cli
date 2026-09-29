@@ -265,7 +265,7 @@ def add(
     end_default = t.cast("str", end_param.get_default(ctx))
 
     if start_after_last:
-        last_time_entry = routine._select(
+        last_time_entry = routine.select(
             resource=routine.timesheet_id,
             fields=["`end`"],
             order=["timestamp_start desc"],
@@ -330,11 +330,11 @@ def add(
         ctx.fail("This entry already exists.")
 
     scheduler().add_job(
-        func=routine._add_time_entry,
+        func=routine.add_time_entry,
         trigger="date",
         run_date=datetime.now(),
         kwargs={
-            "id": time_entry_id,
+            "id_": time_entry_id,
             "project": project,
             "note": note or "None",
             "start_time": start_local,
@@ -531,7 +531,7 @@ def delete(
                 cache.remove("id", [id_match], [cache.paused_entries])
 
         scheduler().add_job(
-            func=routine._delete_time_entries,
+            func=routine.delete_time_entries,
             trigger="date",
             run_date=datetime.now(),
             kwargs={"ids": matched_ids},
@@ -966,7 +966,7 @@ def edit(
         try:
             matched_entries: list[dict[str, t.Any]] = [
                 r._asdict()
-                for r in routine._get_time_entries(
+                for r in routine.get_time_entries(
                     ids=matched_ids,
                 )
             ]
@@ -1007,7 +1007,7 @@ def edit(
         edits = first(all_edits)
         status.update(status_renderable)
 
-        routine._update_time_entries(
+        routine.update_time_entries(
             ids=matched_ids,
             project=edits.get("project"),
             note=edits.get("note"),
@@ -1101,7 +1101,7 @@ def get(
     time_entry_id: str,
 ) -> None:
     """Retrieve a single time entry."""
-    rows: t.Sequence[sq.Row[t.Any]] = routine._get_time_entries(
+    rows: t.Sequence[sq.Row[t.Any]] = routine.get_time_entries(
         [id_list.match_id(time_entry_id)],
     )
     if not rows:
@@ -1511,7 +1511,7 @@ def list_(
             exclude = lightlike_list_exclude.split(",")
 
     if all_:
-        rows = routine._list_timesheet(
+        rows = routine.list_timesheet(
             exclude=exclude,
             include=include,
             limit=limit,
@@ -1548,7 +1548,7 @@ def list_(
         else:
             raise click.exceptions.Exit
 
-        rows = routine._list_timesheet(
+        rows = routine.list_timesheet(
             start_date=date_params.start.date(),
             end_date=date_params.end.date(),
             where=where_clause,
@@ -1563,7 +1563,7 @@ def list_(
 
     else:
         query_date = date or now
-        rows = routine._list_timesheet(
+        rows = routine.list_timesheet(
             date=query_date.date(),
             where=where_clause,
             include=include,
@@ -1729,7 +1729,7 @@ def update_notes(
     """
     ctx, _ = ctx_group
 
-    query_job = routine._select(
+    query_job = routine.select(
         resource=routine.timesheet_id,
         distinct=True,
         fields=["note"],
@@ -1796,7 +1796,7 @@ def update_notes(
         return
 
     with console.status("Updating notes"):
-        routine._query(query, wait=True)
+        routine.query(query, wait=True)
 
     threads.spawn(ctx=ctx, fn=appdata.sync, delay=2)
 
@@ -1839,10 +1839,10 @@ def pause(
         return
 
     scheduler().add_job(
-        func=routine._pause_time_entry,
+        func=routine.pause_time_entry,
         trigger="date",
         run_date=datetime.now(),
-        kwargs={"id": cache.id, "timestamp_paused": now},
+        kwargs={"id_": cache.id, "timestamp_paused": now},
     )
 
     cache.pause_entry(0, now)
@@ -1922,10 +1922,10 @@ def resume(
         matched_id = select
         cache.resume_entry(matched_id, now)
         scheduler().add_job(
-            func=routine._resume_time_entry,
+            func=routine.resume_time_entry,
             trigger="date",
             run_date=datetime.now(),
-            kwargs={"id": matched_id, "time_resume": now},
+            kwargs={"id_": matched_id, "time_resume": now},
         )
     else:
         matched_id = id_list.match_id(entry) if len(entry) < 40 else entry
@@ -1935,10 +1935,10 @@ def resume(
 
         cache.resume_entry(matched_id, now)
         scheduler().add_job(
-            func=routine._resume_time_entry,
+            func=routine.resume_time_entry,
             trigger="date",
             run_date=datetime.now(),
-            kwargs={"id": matched_id, "time_resume": now},
+            kwargs={"id_": matched_id, "time_resume": now},
         )
 
 
@@ -2133,10 +2133,10 @@ def run(
     if stop_active:
         if cache:
             scheduler().add_job(
-                func=routine._stop_time_entry,
+                func=routine.stop_time_entry,
                 trigger="date",
                 run_date=datetime.now(),
-                kwargs={"id": cache.id, "end": now},
+                kwargs={"id_": cache.id, "end": now},
             )
             cache.clear_active()
             # if AppConfig().get("settings", "update-terminal-title", default=True):
@@ -2187,7 +2187,7 @@ def run(
         }
 
     scheduler().add_job(
-        func=routine._start_time_entry,
+        func=routine.start_time_entry,
         trigger="date",
         run_date=datetime.now(),
         kwargs=timer_run_kwargs,
@@ -2198,10 +2198,10 @@ def run(
             entry_to_pause: str = copy(cache.id)
             cache.pause_entry(0, start_local)
             scheduler().add_job(
-                func=routine._pause_time_entry,
+                func=routine.pause_time_entry,
                 trigger="date",
                 run_date=datetime.now(),
-                kwargs={"id": entry_to_pause, "timestamp_paused": start_local},
+                kwargs={"id_": entry_to_pause, "timestamp_paused": start_local},
             )
         else:
             console.print("No active entry. --pause-active / -P ignored.")
@@ -2329,10 +2329,10 @@ def stop(
     if not entry:
         if cache:
             scheduler().add_job(
-                func=routine._stop_time_entry,
+                func=routine.stop_time_entry,
                 trigger="date",
                 run_date=datetime.now(),
-                kwargs={"id": cache.id, "end": now},
+                kwargs={"id_": cache.id, "end": now},
             )
             cache.clear_active()
             return
@@ -2359,10 +2359,10 @@ def stop(
 
     matched_id = id_list.match_id(entry)
     scheduler().add_job(
-        func=routine._stop_time_entry,
+        func=routine.stop_time_entry,
         trigger="date",
         run_date=datetime.now(),
-        kwargs={"id": matched_id, "end": now},
+        kwargs={"id_": matched_id, "end": now},
     )
 
     cache.remove(key="id", sequence=[matched_id])
@@ -2453,20 +2453,20 @@ def switch(
 
     # pause active entry in db
     scheduler().add_job(
-        func=routine._pause_time_entry,
+        func=routine.pause_time_entry,
         trigger="date",
         run_date=datetime.now(),
-        kwargs={"id": cache.id, "timestamp_paused": now},
+        kwargs={"id_": cache.id, "timestamp_paused": now},
     )
     debug and console.log("[DEBUG]", f"pausing entry {cache.id}")
 
     # resume new active entry in db, if paused
     if cache.index(cache.paused_entries, "id", [select]):
         scheduler().add_job(
-            func=routine._resume_time_entry,
+            func=routine.resume_time_entry,
             trigger="date",
             run_date=datetime.now(),
-            kwargs={"id": select, "time_resume": now},
+            kwargs={"id_": select, "time_resume": now},
         )
         debug and console.log("[DEBUG]", f"resuming entry {select}")
 
@@ -2544,10 +2544,10 @@ def focus(
 
     if cache.index(cache.paused_entries, "id", [select]):
         scheduler().add_job(
-            func=routine._resume_time_entry,
+            func=routine.resume_time_entry,
             trigger="date",
             run_date=datetime.now(),
-            kwargs={"id": select, "time_resume": now},
+            kwargs={"id_": select, "time_resume": now},
         )
 
         debug and console.log("[DEBUG]", f"resuming entry {select}")
@@ -2778,7 +2778,7 @@ def update(
         start_date = edits["start"].date()
 
     scheduler().add_job(
-        func=routine._update_time_entries,
+        func=routine.update_time_entries,
         trigger="date",
         run_date=datetime.now(),
         kwargs={
@@ -2793,10 +2793,10 @@ def update(
 
     if stop_active:
         scheduler().add_job(
-            func=routine._stop_time_entry,
+            func=routine.stop_time_entry,
             trigger="date",
             run_date=datetime.now(),
-            kwargs={"id": cache.id, "end": now},
+            kwargs={"id_": cache.id, "end": now},
         )
         cache.clear_active()
 

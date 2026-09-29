@@ -26,21 +26,20 @@ if t.TYPE_CHECKING:
 __all__: t.Sequence[str] = ("CliQueryRoutines",)
 
 
-P = t.ParamSpec("P")
-
 _MAPPING: dict[str, str] = AppConfig()["bigquery"]
+
 
 type Rows = t.Sequence[sq.Row[t.Any]]
 
 
-class CliQueryRoutines:
+class CliQueryRoutines:  # ruff: ignore[too-many-public-methods]
     dataset: str = _MAPPING["dataset"]
     table_timesheet: str = _MAPPING["timesheet"]
     table_projects: str = _MAPPING["projects"]
     timesheet_id: str = f"{dataset}.{table_timesheet}"
     projects_id: str = f"{dataset}.{table_projects}"
 
-    client: t.Callable[..., Client] = get_client
+    client: t.Callable[[], Client] = get_client
 
     engine = sq.create_engine(
         url=f"bigquery://{client().project}?use_query_cache=false",
@@ -79,26 +78,28 @@ class CliQueryRoutines:
     def _query_and_wait(self, query: str, job_config: QueryJobConfig | None = None) -> QueryJob:
         query_is_active = 1
 
-        def _completed(*args: P.args, **kwargs: P.kwargs) -> None:
+        def _completed(*_args: object, **_kwargs: object) -> None:
             """
-            Function is added as a callback to the query job so we have a non-blocking thread
-            to wait for the query results without having to use consecutive GET requests.
+            Query job callback for a non-blocking thread.
+
+            Function is used to wait for query results without needing consecutive GET requests.
             """
             nonlocal query_is_active
             query_is_active = 0
 
         query_job = self.client().query(query, job_config=job_config)
-        query_job.add_done_callback(_completed)  # type: ignore[no-untyped-call]
+        query_job.add_done_callback(_completed)
 
         while query_is_active:
             sleep(0.01)
 
         return query_job
 
-    def _query(
+    def query(
         self,
         target: str,
         job_config: QueryJobConfig | None = None,
+        *,
         wait: bool | None = False,
         suppress: bool | None = False,
     ) -> QueryJob:
@@ -107,27 +108,27 @@ class CliQueryRoutines:
                 target,
                 job_config=job_config,
             )
-            if query_job._exception and not suppress:
+            if query_job._exception and not suppress:  # ruff: ignore[private-member-access]
                 raise click.ClickException(
-                    message=self._format_error_message(query_job, target),
+                    message=self.format_error_message(query_job, target),
                 )
 
             return query_job
 
         query_job: QueryJob = self.client().query(target, job_config=job_config)
-        if query_job._exception and suppress is False:
-            raise click.ClickException(
-                message=self._format_error_message(query_job, target),
-            )
+        if query_job._exception and suppress is False:  # ruff: ignore[private-member-access]
+            msg = self.format_error_message(query_job, target)
+            raise click.ClickException(msg)
 
         return query_job
 
-    def _start_time_entry(
+    def start_time_entry(
         self,
         time_entry_id: str,
         project: str,
         note: str,
         start_time: datetime,
+        *,
         billable: bool,
     ) -> Rows:
         executable: sq.Executable = self._table_timesheet.insert().values(
@@ -139,34 +140,35 @@ class CliQueryRoutines:
             start=sq.text(
                 f"datetime(timestamp('{start_time}'), '{AppConfig().tzname}')",
             ),
-            active=sq.cast(True, sq.BOOLEAN()),
-            billable=sq.cast(billable, sq.BOOLEAN()),
-            archived=sq.cast(False, sq.BOOLEAN()),
-            paused=sq.cast(False, sq.BOOLEAN()),
+            active=sq.cast(expression=True, type_=sq.BOOLEAN()),
+            billable=sq.cast(expression=billable, type_=sq.BOOLEAN()),
+            archived=sq.cast(expression=False, type_=sq.BOOLEAN()),
+            paused=sq.cast(expression=False, type_=sq.BOOLEAN()),
         )
 
         try:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
-        return rows
-
-    def _add_time_entry(
+    def add_time_entry(
         self,
-        id: str,
+        id_: str,
         project: str,
         note: str,
         start_time: datetime,
         end_time: datetime,
         hours: Decimal,
+        *,
         billable: bool,
     ) -> Rows:
         executable: sq.Executable = self._table_timesheet.insert().values(
-            id=id,
+            id=id_,
             date=sq.cast(start_time.date(), sq.Date()),
             project=project,
             note=note if note != "None" else None,
@@ -185,13 +187,13 @@ class CliQueryRoutines:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
-        return rows
-
-    def _delete_time_entries(self, ids: list[str]) -> Rows:
+    def delete_time_entries(self, ids: list[str]) -> Rows:
         executable: sq.Executable = self._table_timesheet.delete().where(
             self._table_timesheet.c.id.in_(ids),
         )
@@ -200,13 +202,13 @@ class CliQueryRoutines:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
-        return rows
-
-    def _archive_project(self, name: str) -> Rows:
+    def archive_project(self, name: str) -> Rows:
         executable: sq.Executable = (
             self._table_projects
             .update()
@@ -218,13 +220,13 @@ class CliQueryRoutines:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
-        return rows
-
-    def _archive_time_entries(self, name: str) -> Rows:
+    def archive_time_entries(self, name: str) -> Rows:
         executable: sq.Executable = (
             self._table_timesheet
             .update()
@@ -236,16 +238,17 @@ class CliQueryRoutines:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
-        return rows
-
-    def _create_project(
+    def create_project(
         self,
         name: str,
         description: str,
+        *,
         default_billable: bool,
     ) -> Rows:
         executable: sq.Executable = self._table_projects.insert().values(
@@ -259,13 +262,13 @@ class CliQueryRoutines:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
-        return rows
-
-    def _delete_project(self, name: str) -> Rows:
+    def delete_project(self, name: str) -> Rows:
         executable: sq.Executable = self._table_projects.delete().where(
             self._table_projects.c.name == name,
         )
@@ -274,13 +277,13 @@ class CliQueryRoutines:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
-        return rows
-
-    def _delete_time_entries_by_project(self, project: str) -> QueryJob:
+    def delete_time_entries_by_project(self, project: str) -> Rows:
         executable: sq.Executable = self._table_timesheet.delete().where(
             self._table_timesheet.c.project == project,
         )
@@ -289,21 +292,22 @@ class CliQueryRoutines:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
-        return rows
-
-    def _update_time_entries(
+    def update_time_entries(
         self,
         ids: t.Sequence[str],
         project: str | None = None,
         note: str | None = None,
-        billable: bool | None = None,
         start_time: time | None = None,
         end_time: time | None = None,
         date: date | None = None,
+        *,
+        billable: bool | None = None,
     ) -> Rows:
         timesheet = self._table_timesheet
         second = sq.literal_column("SECOND")
@@ -373,13 +377,13 @@ class CliQueryRoutines:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
-        return rows
-
-    def _stop_time_entry(self, id: str, end: datetime) -> Rows:
+    def stop_time_entry(self, id_: str, end: datetime) -> Rows:
         timesheet = self._table_timesheet
         second = sq.literal_column("SECOND")
         timestamp_end = sq.bindparam(
@@ -436,20 +440,20 @@ class CliQueryRoutines:
                 paused=False,
                 timestamp_paused=None,
             )
-            .where(timesheet.c.id == id)
+            .where(timesheet.c.id == id_)
         )
 
         try:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
-        return rows
-
-    def _get_time_entries(self, ids: list[str]) -> Rows:
+    def get_time_entries(self, ids: list[str]) -> Rows:
         executable: sq.Executable = self._table_timesheet.select().where(
             self._table_timesheet.c.id.in_(ids),
         )
@@ -458,13 +462,13 @@ class CliQueryRoutines:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
-        return rows
-
-    def _resume_time_entry(self, id: str, time_resume: datetime) -> Rows:
+    def resume_time_entry(self, id_: str, time_resume: datetime) -> Rows:
         timesheet = self._table_timesheet
         second = sq.literal_column("SECOND")
         time_resume_param = sq.bindparam(
@@ -495,20 +499,20 @@ class CliQueryRoutines:
                 paused_hours=sq.func.round(paused_hours, sq.literal_column("4")),
                 timestamp_paused=None,
             )
-            .where(timesheet.c.id == id)
+            .where(timesheet.c.id == id_)
         )
 
         try:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
-        return rows
-
-    def _unarchive_project(self, name: str) -> Rows:
+    def unarchive_project(self, name: str) -> Rows:
         executable: sq.Executable = (
             self._table_projects
             .update()
@@ -520,13 +524,13 @@ class CliQueryRoutines:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
-        return rows
-
-    def _unarchive_time_entries(self, name: str) -> Rows:
+    def unarchive_time_entries(self, name: str) -> Rows:
         executable: sq.Executable = (
             self._table_timesheet
             .update()
@@ -538,15 +542,16 @@ class CliQueryRoutines:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
-        return rows
-
-    def _update_project_default_billable(
+    def update_project_default_billable(
         self,
         name: str,
+        *,
         default_billable: bool,
     ) -> Rows:
         executable: sq.Executable = (
@@ -560,13 +565,13 @@ class CliQueryRoutines:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
-        return rows
-
-    def _update_project_description(self, name: str, description: str) -> Rows:
+    def update_project_description(self, name: str, description: str) -> Rows:
         executable: sq.Executable = (
             self._table_projects
             .update()
@@ -578,13 +583,13 @@ class CliQueryRoutines:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
-        return rows
-
-    def _update_project_name(self, old_name: str, new_name: str) -> Rows:
+    def update_project_name(self, old_name: str, new_name: str) -> Rows:
         executable: sq.Executable = (
             self._table_projects
             .update()
@@ -596,13 +601,13 @@ class CliQueryRoutines:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
-        return rows
-
-    def _update_time_entry_projects(self, old_name: str, new_name: str) -> Rows:
+    def update_time_entry_projects(self, old_name: str, new_name: str) -> Rows:
         executable: sq.Executable = (
             self._table_timesheet
             .update()
@@ -614,13 +619,13 @@ class CliQueryRoutines:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
-        return rows
-
-    def _pause_time_entry(self, id: str, timestamp_paused: datetime) -> Rows:
+    def pause_time_entry(self, id_: str, timestamp_paused: datetime) -> Rows:
         executable: sq.Executable = (
             self._table_timesheet
             .update()
@@ -637,20 +642,20 @@ class CliQueryRoutines:
                 )
                 + 1,
             )
-            .where(self._table_timesheet.c.id == id)
+            .where(self._table_timesheet.c.id == id_)
         )
 
         try:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
-        return rows
-
-    def _list_timesheet(
+    def list_timesheet(
         self,
         date: date | None = None,
         start_date: date | None = None,
@@ -768,7 +773,7 @@ class CliQueryRoutines:
                             sq.not_(timesheet.c.project.regexp_match(pattern)),
                             sq.not_(timesheet.c.note.regexp_match(pattern)),
                         ),
-                        # TODO add to other exclude/include filters
+                        # TODO(ayvi): add to other exclude/include filters
                         sq.and_(
                             sq.not_(timesheet.c.project.regexp_match(pattern)),
                             timesheet.c.note == None,  # ruff: ignore[none-comparison]
@@ -809,11 +814,11 @@ class CliQueryRoutines:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
-
-        return rows
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
+        else:
+            return rows
 
     def summary(  # ruff: ignore[complex-structure, too-many-branches, too-many-statements]
         self,
@@ -986,8 +991,8 @@ class CliQueryRoutines:
         except Exception as exc:
             msg = f"{exc}"
             raise click.UsageError(msg, click.get_current_context()) from exc
-
-        return rows
+        else:
+            return rows
 
     def _regexp_contains(
         self,
@@ -1008,7 +1013,7 @@ class CliQueryRoutines:
                 msg = f"Unknown regex engine: {regex_engine}"
                 raise ValueError(msg)
 
-    def _select(
+    def select(
         self,
         resource: str,
         fields: t.Sequence[str] = ["*"],
@@ -1016,6 +1021,7 @@ class CliQueryRoutines:
         order: t.Sequence[str] | None = None,
         limit: int | None = None,
         offset: int | None = None,
+        *,
         distinct: bool | None = False,
         wait: bool | None = False,
     ) -> QueryJob:
@@ -1031,18 +1037,18 @@ class CliQueryRoutines:
                 ";",
             ],
         )
-        return self._query(target=query, wait=wait)
+        return self.query(target=query, wait=wait)
 
-    def _format_regular_expression(
+    def format_regular_expression(
         self,
         fields: str | list[str],
         expr: str,
         modifiers: str | None = None,
+        regex_engine: t.Literal["ECMAScript", "re2"] | None = "ECMAScript",
+        *,
         and_: bool = False,
         not_: bool = False,
-        regex_engine: t.Literal["ECMAScript", "re2"] | str = "ECMAScript",
     ) -> str:
-        expression = ""
         and_op = "AND " if and_ else ""
         not_op = "NOT " if not_ else ""
         conditionals = f"{and_op}{not_op}"
@@ -1074,7 +1080,7 @@ class CliQueryRoutines:
         return expression
 
     @property
-    def _all_routines_ids(self) -> list[str]:
+    def all_routines_ids(self) -> list[str]:
         functions = [
             "current_datetime",
             "current_timestamp",
@@ -1088,8 +1094,9 @@ class CliQueryRoutines:
         )
         return procedures + functions
 
-    def _format_error_message(
-        self,
+    # ruff: disable[private-member-access]
+    @staticmethod
+    def format_error_message(
         query_job: QueryJob,
         target: str | None = None,
     ) -> str:
@@ -1100,3 +1107,5 @@ class CliQueryRoutines:
             message = pattern.sub("", f"{query_job._exception}")
             return Text.assemble(query_string, markup.br(error[0]), message).markup
         return Text.assemble(query_string, markup.br(query_job._exception)).markup
+
+    # ruff: enable[private-member-access]

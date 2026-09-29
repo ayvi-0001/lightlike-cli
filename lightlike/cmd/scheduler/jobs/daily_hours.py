@@ -91,8 +91,8 @@ def print_daily_total_hours() -> None:
             f'WHERE `date` BETWEEN "{date_params.start.date()}" AND "{date_params.end.date()}"',
         )
 
-        total_daily = t.cast("Row", first(routine._query(query_total_daily)))
-        total_weekly = t.cast("Row", first(routine._query(query_total_weekly)))
+        total_daily = t.cast("Row", first(routine.query(query_total_daily)))
+        total_weekly = t.cast("Row", first(routine.query(query_total_weekly)))
 
         daily_billable_hours = total_daily.billable_hours or 0
         daily_non_billable = total_daily.non_billable_hours or 0

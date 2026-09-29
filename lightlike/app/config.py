@@ -114,7 +114,7 @@ class AppConfig(metaclass=factory._Singleton):
     def tzinfo(self) -> _TzInfo:
         return ZoneInfo(self.tzname)
 
-    def _update_user_credentials(
+    def update_user_credentials(
         self,
         password: str | sha3_256 | None = None,
         salt: bytes | None = None,

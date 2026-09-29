@@ -1,17 +1,13 @@
+import logging
 import sys
 import typing as t
 from inspect import cleandoc
 from pathlib import Path
 
+import rich
 import rtoml
 from google.auth.exceptions import DefaultCredentialsError
 from google.cloud import bigquery
-from more_itertools import flatten, interleave_longest
-from rich import get_console
-from rich import print as rprint
-from rich.markup import escape
-from rich.padding import Padding
-from rich.panel import Panel
 
 from lightlike import _console
 from lightlike.__about__ import __version__
@@ -21,7 +17,6 @@ from lightlike.client._credentials import _get_credentials_from_config
 from lightlike.internal import appdir, markup, utils
 
 if t.TYPE_CHECKING:
-    import google.auth.credentials
     from rich.console import Console
 
 __all__: t.Sequence[str] = (
@@ -31,32 +26,28 @@ __all__: t.Sequence[str] = (
     "reconfigure",
 )
 
-
-P = t.ParamSpec("P")
-
+LOGGER = logging.getLogger(__name__)
 
 BIGQUERY_CLIENT: bigquery.Client | None = None
 
 
-def get_client(*args: P.args, **kwargs: P.kwargs) -> bigquery.Client:
-    global BIGQUERY_CLIENT
+def get_client(*_args: t.Any, **_kwargs: t.Any) -> bigquery.Client:  # ruff: ignore[any-type]
+    global BIGQUERY_CLIENT  # ruff: ignore[global-statement]
     if BIGQUERY_CLIENT is None:
-        _console.if_not_quiet_start(get_console().log)("Authorizing bigquery.Client")
+        _console.if_not_quiet_start(rich.get_console().log)("Authorizing bigquery.Client")
         BIGQUERY_CLIENT = authorize_bigquery_client()
     return BIGQUERY_CLIENT
 
 
-def reconfigure(*args: P.args, **kwargs: P.kwargs) -> None:
-    NEW_CLIENT = authorize_bigquery_client()
-    global BIGQUERY_CLIENT
+def reconfigure(*_args: t.Any, **_kwargs: t.Any) -> None:  # ruff: ignore[any-type]
+    new_client = authorize_bigquery_client()
+    global BIGQUERY_CLIENT  # ruff: ignore[global-statement]
     BIGQUERY_CLIENT = get_client()
-    BIGQUERY_CLIENT = NEW_CLIENT
+    BIGQUERY_CLIENT = new_client
 
 
 def authorize_bigquery_client() -> bigquery.Client:
-    console: Console = get_console()
-    client: bigquery.Client | None = None
-    credentials: google.auth.credentials.Credentials | None = None
+    console: Console = rich.get_console()
     appconfig = AppConfig()
 
     try:
@@ -88,24 +79,25 @@ def authorize_bigquery_client() -> bigquery.Client:
                 provision_bigquery_resources(client, updates=versions)
 
         # _update_cursor_global_project(locals())
-        return client
 
     except KeyboardInterrupt:
         sys.exit(1)
-    except DefaultCredentialsError as error:
-        rprint(markup.failure(f"Auth failed: {error}"))
+    except DefaultCredentialsError as exc:
+        rich.print(markup.failure(f"Auth failed: {exc}"))
         sys.exit(2)
-
-    except Exception as error:
-        if "cannot access local variable 'service_account_key'" in f"{error}":
-            rprint(markup.failure("Auth Failed. Incorrect Pass."))
+    except Exception as exc:  # ruff: ignore[blind-except]
+        if "cannot access local variable 'service_account_key'" in f"{exc}":
+            rich.print(markup.failure("Auth Failed. Incorrect Pass."))
         else:
-            rprint(markup.failure(f"Auth failed: {error}"))
-            AppConfig()._update_user_credentials(password=None, stay_logged_in=False)
+            rich.print(markup.failure(f"Auth failed: {exc}"))
+            AppConfig().update_user_credentials(password=None, stay_logged_in=False)
 
         return authorize_bigquery_client()
+    else:
+        return client
 
 
+# ruff: ignore[commented-out-code]
 # def _update_cursor_global_project(local_params: dict[str, t.Any]) -> None:
 #     client: bigquery.Client | None = local_params.get("client")
 #     if client and isinstance(client, bigquery.Client):
@@ -116,10 +108,15 @@ def authorize_bigquery_client() -> bigquery.Client:
 
 def provision_bigquery_resources(
     client: bigquery.Client,
-    force: bool = False,
     updates: dict[str, bool] | None = None,
+    *,
+    force: bool = False,
     yes: bool = False,
 ) -> None:
+    from rich.markup import escape
+    from rich.padding import Padding
+    from rich.panel import Panel
+
     from lightlike.internal.bq_resources import build
 
     if updates:
@@ -133,7 +130,7 @@ def provision_bigquery_resources(
             Please run scripts. This prompt will continue until this version update is marked as confirmed.
 
             [b][red]![/red] [u]This cli may not work as expected if tables/procedures are not up to date[/u].\
-                """,
+                """,  # ruff: ignore[line-too-long]
             ),
             border_style="bold green",
             title="Updates in BigQuery",
@@ -141,7 +138,7 @@ def provision_bigquery_resources(
             subtitle_align="center",
             padding=(1, 1),
         )
-        rprint(Padding(update_panel, (1, 0, 1, 1)))
+        rich.print(Padding(update_panel, (1, 0, 1, 1)))
 
     link = markup.link(escape(build.SCRIPTS.as_posix()), build.SCRIPTS.as_uri())
     confirm_panel = Panel.fit(
@@ -150,7 +147,7 @@ def provision_bigquery_resources(
     )
 
     if not (force or yes):
-        rprint(Padding(confirm_panel, (1, 0, 1, 1)))
+        rich.print(Padding(confirm_panel, (1, 0, 1, 1)))
 
     def update_config() -> None:
         with AppConfig().rw() as config:
@@ -190,12 +187,12 @@ def provision_bigquery_resources(
                 build_state = False
             else:
                 if updates:
-                    rprint(
-                        "[b][red]![/] [b]"
-                        "This cli will not work as expected if tables or procedures are not up to date.",
+                    rich.print(
+                        "[b][red]![/] [b]This cli will not work as expected "
+                        "if tables or procedures are not up to date.",
                     )
                 else:
-                    rprint(
+                    rich.print(
                         "[b][red]![/] [b]"
                         "This cli will not work if the required tables/procedures do not exist.",
                     )
@@ -210,15 +207,15 @@ def update_routine_diff(client: bigquery.Client) -> None:
     try:
         from lightlike.client.routines import CliQueryRoutines
 
-        console = get_console()
+        console = rich.get_console()
         routine = CliQueryRoutines()
 
         mapping: dict[str, str] = AppConfig().get("bigquery", default={})
         dataset: str = mapping["dataset"]
         list_routines = client.list_routines(dataset=dataset)
         existing_routines = list(map(_get.routine_id, list_routines))
-        removed = set(existing_routines).difference(list(routine._all_routines_ids))
-        missing = set(routine._all_routines_ids).difference(existing_routines)
+        removed = set(existing_routines).difference(list(routine.all_routines_ids))
+        missing = set(routine.all_routines_ids).difference(existing_routines)
 
         if not any([removed, missing]):
             return
@@ -233,6 +230,8 @@ def update_routine_diff(client: bigquery.Client) -> None:
                     console.log(markup.bg("Dropped routine:"), routine)
 
             if missing:
+                from more_itertools import flatten, interleave_longest
+
                 bq_patterns = {
                     "${DATASET.NAME}": mapping["dataset"],
                     "${TABLES.PROJECTS}": mapping["projects"],
@@ -261,8 +260,10 @@ def update_routine_diff(client: bigquery.Client) -> None:
                         console.log(markup.bg("Created routine:"), path.stem)
 
     except Exception:
-        console.log(
-            markup.br("Failed to update BigQuery scripts."),
-            markup.br("Try running command bq:run-build"),
-            markup.br("or some functions may not work properly."),
+        msg = (
+            "Failed to update BigQuery scripts. "
+            "Try running command bq:run-build "
+            "or some functions may not work properly."
         )
+        console.log(markup.br(msg))
+        LOGGER.exception("Error updating BigQuery scripts.")

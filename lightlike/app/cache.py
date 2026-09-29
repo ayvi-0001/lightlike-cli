@@ -314,7 +314,7 @@ class TimeEntryCache(_Entries):
 
     @_fasteners.interprocess_locked(appdir.CACHE_LOCK, logger=appdir.log())
     @contextmanager
-    def rw(self) -> t.Generator[TimeEntryCache, t.Any, None]:
+    def rw(self) -> t.Generator[TimeEntryCache, t.Any]:
         try:
             yield self
         finally:
@@ -540,13 +540,13 @@ class TimeEntryCache(_Entries):
 
     def sync(self, debug: bool = False) -> None:
         routine = CliQueryRoutines()
-        running_entries_to_cache = routine._select(
+        running_entries_to_cache = routine.select(
             resource=routine.timesheet_id,
             fields=["*"],
             where=["active IS TRUE"],
             order=["timestamp_start"],
         )
-        paused_entries_to_cache = routine._select(
+        paused_entries_to_cache = routine.select(
             resource=routine.timesheet_id,
             fields=["*"],
             where=["paused IS TRUE"],
@@ -688,7 +688,7 @@ class TimeEntryIdList(metaclass=factory._Singleton):
     @cached_property
     def ids(self) -> list[str]:
         routine = CliQueryRoutines()
-        query_job = routine._select(
+        query_job = routine.select(
             resource=routine.timesheet_id,
             order=["timestamp_start DESC"],
             fields=["id"],
@@ -761,7 +761,7 @@ class TimeEntryAppData:
         )
 
         routine = CliQueryRoutines()
-        projects_query = routine._select(
+        projects_query = routine.select(
             resource=CliQueryRoutines().projects_id,
             fields=["*"],
         )
@@ -780,7 +780,7 @@ class TimeEntryAppData:
             else:
                 appdata["archived"].update({row.name: project})
 
-        notes_query = routine._select(
+        notes_query = routine.select(
             resource=CliQueryRoutines().timesheet_id,
             fields=["project", "note", "timestamp_start"],
             order=["project", "timestamp_start desc"],

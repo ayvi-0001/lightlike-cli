@@ -8,7 +8,6 @@ import click
 import rtoml
 from more_itertools import nth, one
 from rich import print as rprint
-from rich.console import Console
 from rich.syntax import Syntax
 
 from lightlike.__about__ import __config__
@@ -21,6 +20,9 @@ from lightlike.cmd.app.commands import _start_command
 from lightlike.internal import markup, utils
 from lightlike.internal.appdir import AVAILABLE_TIMEZONES
 from lightlike.internal.enums import CredentialsSource
+
+if t.TYPE_CHECKING:
+    from rich.console import Console
 
 __all__: t.Sequence[str] = ("edit", "list_", "open_", "set_")
 
@@ -571,12 +573,12 @@ if AppConfig().get("client", "credentials-source") == CredentialsSource.from_ser
                         input_password=input_password,
                         retry=False,
                         saved_credentials_failed=partial(
-                            AppConfig()._update_user_credentials,
+                            AppConfig().update_user_credentials,
                             password="null",
                             stay_logged_in=False,
                         ),
                     )
-                    AppConfig()._update_user_credentials(
+                    AppConfig().update_user_credentials(
                         password=input_password,
                         stay_logged_in=value,
                     )
@@ -593,7 +595,7 @@ if AppConfig().get("client", "credentials-source") == CredentialsSource.from_ser
                 rprint(markup.dimmed("Setting is already off."))
 
             else:
-                AppConfig()._update_user_credentials(
+                AppConfig().update_user_credentials(
                     password="null",
                     stay_logged_in=False,
                 )

@@ -89,10 +89,10 @@ __all__: t.Sequence[str] = (
 @_pass.ctx_group(parents=1)
 def archive(
     ctx_group: t.Sequence[click.Context],
-    console: "Console",
-    routine: "CliQueryRoutines",
-    appdata: "TimeEntryAppData",
-    cache: "TimeEntryCache",
+    console: Console,
+    routine: CliQueryRoutines,
+    appdata: TimeEntryAppData,
+    cache: TimeEntryCache,
     projects: t.Sequence[str],
     yes: bool,
 ) -> None:
@@ -138,13 +138,13 @@ def archive(
                 status.start()
                 continue
 
-            query_job = routine._select(
+            query_job = routine.select(
                 resource=routine.timesheet_id,
                 fields=["count(*) as count_entries"],
                 where=[f'project = "{project}"'],
             )
-            routine._archive_project(project)
-            routine._archive_time_entries(project)
+            routine.archive_project(project)
+            routine.archive_time_entries(project)
 
             threads.spawn(ctx, appdata.sync, {"debug": debug})
             count_archived: int = _get.count_entries(first(query_job))
@@ -234,9 +234,9 @@ def archive(
 @_pass.ctx_group(parents=1)
 def create(
     ctx_group: t.Sequence[click.Context],
-    console: "Console",
-    routine: "CliQueryRoutines",
-    appdata: "TimeEntryAppData",
+    console: Console,
+    routine: CliQueryRoutines,
+    appdata: TimeEntryAppData,
     name: str,
     description: str,
     default_billable: bool,
@@ -278,7 +278,7 @@ def create(
         default_billable,
     )
 
-    routine._create_project(
+    routine.create_project(
         name=name,
         description=description,
         default_billable=default_billable,
@@ -346,10 +346,10 @@ def create(
 @_pass.ctx_group(parents=1)
 def delete(
     ctx_group: t.Sequence[click.Context],
-    console: "Console",
-    routine: "CliQueryRoutines",
-    appdata: "TimeEntryAppData",
-    cache: "TimeEntryCache",
+    console: Console,
+    routine: CliQueryRoutines,
+    appdata: TimeEntryAppData,
+    cache: TimeEntryCache,
     projects: t.Sequence[str],
     yes: bool,
 ) -> None:
@@ -375,14 +375,14 @@ def delete(
 
     with console.status(markup.status_message("Getting project info")):
         for project in projects:
-            count_query_job = routine._select(
+            count_query_job = routine.select(
                 resource=routine.timesheet_id,
                 fields=["count(*) as count_entries"],
                 where=[f'project = "{project}"'],
             )
-            routine._delete_project(project)
+            routine.delete_project(project)
             threads.spawn(ctx, appdata.sync, {"debug": debug})
-            routine._delete_time_entries_by_project(project)
+            routine.delete_time_entries_by_project(project)
 
             count_deleted: int = _get.count_entries(first(count_query_job))
             console.print(
@@ -505,8 +505,8 @@ def delete(
 @_pass.routine
 @_pass.console
 def list_(
-    console: "Console",
-    routine: "CliQueryRoutines",
+    console: Console,
+    routine: CliQueryRoutines,
     all_: bool,
     exclude: t.Sequence[str],
     include: t.Sequence[str],
@@ -563,7 +563,7 @@ def list_(
             exclude_expressions.append(pattern)
 
         exclude_expression: str = "|".join(exclude_expressions)
-        fmt_exclude_expression = routine._format_regular_expression(
+        fmt_exclude_expression = routine.format_regular_expression(
             fields=["name", "description"],
             expr=exclude_expression,
             modifiers=modifiers,
@@ -580,7 +580,7 @@ def list_(
             include_expressions.append(pattern)
 
         include_expression: str = "|".join(include_expressions)
-        fmt_include_expression = routine._format_regular_expression(
+        fmt_include_expression = routine.format_regular_expression(
             fields=["name", "description"],
             expr=include_expression,
             modifiers=modifiers,
@@ -590,7 +590,7 @@ def list_(
 
         where.append(fmt_include_expression)
 
-    query_job = routine._select(
+    query_job = routine.select(
         resource=routine.projects_id,
         fields=fields,
         where=where,
@@ -681,10 +681,10 @@ def set_() -> None:
 @_pass.ctx_group(parents=1)
 def set_project_name(
     ctx_group: t.Sequence[click.Context],
-    console: "Console",
-    routine: "CliQueryRoutines",
-    appdata: "TimeEntryAppData",
-    cache: "TimeEntryCache",
+    console: Console,
+    routine: CliQueryRoutines,
+    appdata: TimeEntryAppData,
+    cache: TimeEntryCache,
     project: str,
     name: str,
 ) -> None:
@@ -704,8 +704,8 @@ def set_project_name(
         raise click.exceptions.Exit
 
     with console.status(markup.status_message("Updating project")):
-        routine._update_project_name(old_name=project, new_name=new_name)
-        routine._update_time_entry_projects(old_name=project, new_name=new_name)
+        routine.update_project_name(old_name=project, new_name=new_name)
+        routine.update_time_entry_projects(old_name=project, new_name=new_name)
         cache.sync()
         console.print(
             "Renamed project",
@@ -766,9 +766,9 @@ def set_project_name(
 @_pass.ctx_group(parents=1)
 def set_project_description(
     ctx_group: t.Sequence[click.Context],
-    console: "Console",
-    routine: "CliQueryRoutines",
-    appdata: "TimeEntryAppData",
+    console: Console,
+    routine: CliQueryRoutines,
+    appdata: TimeEntryAppData,
     project: str,
     desc: str,
 ) -> None:
@@ -803,7 +803,7 @@ def set_project_description(
         console.print(markup.dimmed("Current description, nothing happened."))
         return
 
-    routine._update_project_description(project, new_desc)
+    routine.update_project_description(project, new_desc)
     threads.spawn(ctx, appdata.sync, {"debug": debug})
     console.print("Set description to", markup.repr_str(new_desc))
 
@@ -855,16 +855,16 @@ def set_project_description(
 @_pass.ctx_group(parents=1)
 def set_project_default_billable(
     ctx_group: t.Sequence[click.Context],
-    console: "Console",
-    routine: "CliQueryRoutines",
-    appdata: "TimeEntryAppData",
+    console: Console,
+    routine: CliQueryRoutines,
+    appdata: TimeEntryAppData,
     project: str,
     billable: bool,
 ) -> None:
     """Update a project's default billable setting."""
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
-    routine._update_project_default_billable(project, billable)
+    routine.update_project_default_billable(project, default_billable=billable)
     threads.spawn(ctx, appdata.sync, {"debug": debug})
     console.print("Set project default billable to", billable)
 
@@ -910,9 +910,9 @@ def set_project_default_billable(
 @_pass.ctx_group(parents=1)
 def unarchive(
     ctx_group: t.Sequence[click.Context],
-    console: "Console",
-    routine: "CliQueryRoutines",
-    appdata: "TimeEntryAppData",
+    console: Console,
+    routine: CliQueryRoutines,
+    appdata: TimeEntryAppData,
     projects: t.Sequence[str],
 ) -> None:
     """
@@ -928,14 +928,14 @@ def unarchive(
         all_count_entries = []
 
         for project in projects:
-            query_job = routine._select(
+            query_job = routine.select(
                 resource=routine.timesheet_id,
                 fields=["count(*) as count_entries"],
                 where=[f'project = "{project}"'],
             )
-            routine._unarchive_project(project)
+            routine.unarchive_project(project)
             threads.spawn(ctx, appdata.sync, {"debug": debug})
-            routine._unarchive_time_entries(project)
+            routine.unarchive_time_entries(project)
             count_unarchived: int = _get.count_entries(first(query_job))
             all_count_entries.append(count_unarchived)
             console.print(

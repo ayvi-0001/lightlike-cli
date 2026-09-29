@@ -4,7 +4,6 @@ import typing as t
 from datetime import datetime
 from functools import partial
 from inspect import cleandoc
-from pathlib import Path
 from zoneinfo import available_timezones
 
 import rich
@@ -25,6 +24,9 @@ from lightlike.__about__ import (
     __version__,
 )
 from lightlike.internal import constant, enums, markup, utils
+
+if t.TYPE_CHECKING:
+    from pathlib import Path
 
 __all__: t.Sequence[str] = (
     "AVAILABLE_TIMEZONES",
