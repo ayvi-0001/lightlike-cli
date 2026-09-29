@@ -5,10 +5,10 @@ import typing as t
 from contextlib import contextmanager
 from functools import wraps
 from hashlib import sha3_256, sha256
+from zoneinfo import ZoneInfo
 
 import rtoml
 from fasteners import ReaderWriterLock
-from pytz import timezone
 
 from lightlike.__about__ import __config__
 from lightlike.internal import factory, utils
@@ -53,7 +53,7 @@ class AppConfig(metaclass=factory._Singleton):
 
     @ensure_config
     @contextmanager
-    def rw(self) -> t.Generator[AppConfig, t.Any, None]:
+    def rw(self) -> t.Generator[AppConfig, t.Any]:
         try:
             with self._rw_lock.read_lock():
                 yield self
@@ -112,7 +112,7 @@ class AppConfig(metaclass=factory._Singleton):
 
     @property
     def tzinfo(self) -> _TzInfo:
-        return timezone(self.tzname)
+        return ZoneInfo(self.tzname)
 
     def _update_user_credentials(
         self,

@@ -4,10 +4,10 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from inspect import cleandoc
 from math import copysign
+from zoneinfo import ZoneInfo
 
 import click
 import dateparser
-import pytz
 from rich.text import Text
 
 from lightlike.app.config import AppConfig
@@ -47,11 +47,11 @@ def is_tzaware(dt: datetime) -> bool:
     return not (dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None)
 
 
-def astimezone(dt: datetime, tzinfo: "_TzInfo | None" = None) -> datetime:
+def astimezone(dt: datetime, tzinfo: _TzInfo | None = None) -> datetime:
     return dt.astimezone(tzinfo).replace(microsecond=0)
 
 
-def now(tzinfo: "_TzInfo | None" = None) -> datetime:
+def now(tzinfo: _TzInfo | None = None) -> datetime:
     return astimezone(datetime.now(), tzinfo)
 
 
@@ -99,10 +99,10 @@ del dateparser_settings
 def parse_date(
     date: str,
     relative_base: datetime | None = None,
-    tzinfo: "_TzInfo | str | None" = None,
+    tzinfo: _TzInfo | str | None = None,
 ) -> datetime:
     if isinstance(tzinfo, str):
-        tzinfo = pytz.timezone(tzinfo)
+        tzinfo = ZoneInfo(tzinfo)
 
     if tzinfo is None:
         tzinfo = AppConfig().tzinfo

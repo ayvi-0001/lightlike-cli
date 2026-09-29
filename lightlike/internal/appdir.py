@@ -5,6 +5,7 @@ from datetime import datetime
 from functools import partial
 from inspect import cleandoc
 from pathlib import Path
+from zoneinfo import available_timezones
 
 import rich
 import rtoml
@@ -26,6 +27,7 @@ from lightlike.__about__ import (
 from lightlike.internal import constant, enums, markup, utils
 
 __all__: t.Sequence[str] = (
+    "AVAILABLE_TIMEZONES",
     "BQ_UPDATES",
     "CACHE",
     "CACHE_LOCK",
@@ -71,6 +73,7 @@ LOGS.mkdir(exist_ok=True)
 SCHEDULER_CONFIG: t.Final[Path] = __configdir__ / "scheduler.toml"
 BQ_UPDATES: t.Final[Path] = __config__ / ".bq_updates"
 
+AVAILABLE_TIMEZONES: t.Final[list[str]] = list(available_timezones())
 
 _TODAY: datetime = datetime.today()
 _DAILY_LOG_DIR: Path = LOGS / _TODAY.strftime("%Y.%m.%d")
@@ -219,7 +222,6 @@ def _initial_build() -> None:
         import socket
 
         from prompt_toolkit.validation import Validator
-        from pytz import all_timezones
         from rich.console import NewLine
         from rich.padding import Padding
 
@@ -291,10 +293,10 @@ def _initial_build() -> None:
         console.print(NewLine())
         timezone = _questionary.autocomplete(
             message="Enter timezone $",
-            choices=all_timezones,
+            choices=AVAILABLE_TIMEZONES,
             default=default_timezone,
             validate=Validator.from_callable(
-                lambda d: d in all_timezones,
+                validate_func=lambda d: d in AVAILABLE_TIMEZONES,
                 error_message="Invalid timezone.",
             ),
         )
@@ -413,7 +415,7 @@ def _initial_build() -> None:
         )
         console.log("Directory build complete")
 
-    except (KeyboardInterrupt, EOFError):
+    except KeyboardInterrupt, EOFError:
         sys.exit(1)
     except Exception as error:
         LOGGER.exception("Exception during initial build.")

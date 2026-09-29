@@ -2,9 +2,9 @@ import typing as t
 from contextlib import suppress
 from dataclasses import dataclass
 from functools import partial
+from zoneinfo import ZoneInfo
 
 import click
-import pytz
 import rtoml
 from more_itertools import nth, one
 from rich import print as rprint
@@ -19,6 +19,7 @@ from lightlike.app.core import AliasedGroup, FormattedCommand
 from lightlike.cmd import _pass
 from lightlike.cmd.app.commands import _start_command
 from lightlike.internal import markup, utils
+from lightlike.internal.appdir import AVAILABLE_TIMEZONES
 from lightlike.internal.enums import CredentialsSource
 
 __all__: t.Sequence[str] = ("edit", "list_", "open_", "set_")
@@ -186,7 +187,7 @@ class SettingsCommand:
     callback_fn: t.Callable[..., t.Any] | None = None
     callback_threads: t.Sequence[tuple[t.Callable[[t.Any | None], t.Any], t.Any]] | None = None
     context_settings: dict[str, t.Any] | None = None
-    syntax: "Syntax | None" = None
+    syntax: Syntax | None = None
     no_args_is_help: bool = True
 
 
@@ -321,7 +322,7 @@ system_command_shell = SettingsCommand(
 def timezone_setting_callback(_locals: dict[str, t.Any]) -> None:
     import lightlike.app.cursor
 
-    tz = pytz.timezone(_locals["kwargs"].get("timezone"))
+    tz = ZoneInfo(_locals["kwargs"].get("timezone"))
     lightlike.app.cursor.TIMEZONE = tz
 
     with AppConfig().rw() as config:
@@ -338,8 +339,8 @@ timezone = SettingsCommand(
     argument=click.argument(
         "timezone",
         type=click.STRING,
-        callback=validate.callbacks._timezone,
-        shell_complete=lambda c, p, i: [t for t in pytz.all_timezones if i in t.lower()],
+        callback=validate.callbacks.timezone,
+        shell_complete=lambda _c, _p, i: [tz for tz in AVAILABLE_TIMEZONES if i in tz.lower()],
     ),
     help="""
     Timezone used for all date/time conversions.

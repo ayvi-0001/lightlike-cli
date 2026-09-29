@@ -61,7 +61,7 @@ __all__: t.Sequence[str] = (
 )
 
 
-SchedulerCallable: t.TypeAlias = t.Callable[[], BackgroundScheduler]
+type SchedulerCallable = t.Callable[[], BackgroundScheduler]
 
 
 def default_timer_add(timer_add_min: int) -> str:
@@ -203,10 +203,10 @@ def default_timer_add(timer_add_min: int) -> str:
 def add(
     now: datetime,
     ctx_group: t.Sequence[click.Context],
-    id_list: "TimeEntryIdList",
-    appdata: "TimeEntryAppData",
+    id_list: TimeEntryIdList,
+    appdata: TimeEntryAppData,
     console: Console,
-    routine: "CliQueryRoutines",
+    routine: CliQueryRoutines,
     project: str,
     start: datetime,
     start_after_last: bool,
@@ -456,11 +456,11 @@ def yank_flag_help() -> str:
 @_pass.ctx_group(parents=1)
 def delete(
     ctx_group: t.Sequence[click.Context],
-    id_list: "TimeEntryIdList",
+    id_list: TimeEntryIdList,
     console: Console,
-    cache: "TimeEntryCache",
-    appdata: "TimeEntryAppData",
-    routine: "CliQueryRoutines",
+    cache: TimeEntryCache,
+    appdata: TimeEntryAppData,
+    routine: CliQueryRoutines,
     id_options: list[str],
     use_last_timer_list: list[str],
     yank: list[str],
@@ -678,7 +678,7 @@ def _get_entry_edits(
 
 def _match_ids(
     ctx: click.Context,
-    id_list: "TimeEntryIdList",
+    id_list: TimeEntryIdList,
     ids_to_match: list[str],
 ) -> t.Sequence[list[str]]:
     def _match_id_predicate(s: str) -> bool:
@@ -859,10 +859,10 @@ def _match_ids(
 @_pass.ctx_group(parents=1)
 def edit(
     ctx_group: t.Sequence[click.Context],
-    id_list: "TimeEntryIdList",
-    appdata: "TimeEntryAppData",
+    id_list: TimeEntryIdList,
+    appdata: TimeEntryAppData,
     console: Console,
-    routine: "CliQueryRoutines",
+    routine: CliQueryRoutines,
     id_options: list[str],
     use_last_timer_list: list[str],
     yank: list[str],
@@ -944,7 +944,7 @@ def edit(
         *(use_last_timer_list or []),
     ]
 
-    validate.callbacks.edit_params(ctx, ctx.params, ids_to_match, debug)
+    validate.callbacks.edit_params(ctx, ctx.params, ids_to_match, debug=debug)
 
     with console.status(
         status=markup.status_message("Matching time entry ids"),
@@ -1096,8 +1096,8 @@ def edit(
 @_pass.console
 def get(
     console: Console,
-    id_list: "TimeEntryIdList",
-    routine: "CliQueryRoutines",
+    id_list: TimeEntryIdList,
+    routine: CliQueryRoutines,
     time_entry_id: str,
 ) -> None:
     """Retrieve a single time entry."""
@@ -1422,7 +1422,7 @@ def get(
 def list_(
     now: datetime,
     ctx_group: t.Sequence[click.Context],
-    routine: "CliQueryRoutines",
+    routine: CliQueryRoutines,
     console: Console,
     date: datetime | None,
     start: datetime | None,
@@ -1713,8 +1713,8 @@ def notes() -> None: ...
 def update_notes(
     ctx_group: t.Sequence[click.Context],
     console: Console,
-    appdata: "TimeEntryAppData",
-    routine: "CliQueryRoutines",
+    appdata: TimeEntryAppData,
+    routine: CliQueryRoutines,
     project: str,
     dry_run: bool,
 ) -> None:
@@ -1821,9 +1821,9 @@ def update_notes(
 def pause(
     now: datetime,
     ctx_group: t.Sequence[click.Context],
-    cache: "TimeEntryCache",
+    cache: TimeEntryCache,
     console: Console,
-    routine: "CliQueryRoutines",
+    routine: CliQueryRoutines,
 ) -> None:
     """
     Pause the [b]active[/b] entry.
@@ -1881,10 +1881,10 @@ def pause(
 def resume(
     now: datetime,
     ctx_group: t.Sequence[click.Context],
-    id_list: "TimeEntryIdList",
+    id_list: TimeEntryIdList,
     console: Console,
-    cache: "TimeEntryCache",
-    routine: "CliQueryRoutines",
+    cache: TimeEntryCache,
+    routine: CliQueryRoutines,
     entry: str,
 ) -> None:
     """
@@ -2073,11 +2073,11 @@ def resume(
 def run(
     now: datetime,
     ctx_group: t.Sequence[click.Context],
-    id_list: "TimeEntryIdList",
-    appdata: "TimeEntryAppData",
+    id_list: TimeEntryIdList,
+    appdata: TimeEntryAppData,
     console: Console,
-    routine: "CliQueryRoutines",
-    cache: "TimeEntryCache",
+    routine: CliQueryRoutines,
+    cache: TimeEntryCache,
     billable: bool | None,
     project: str,
     start: datetime,
@@ -2260,7 +2260,7 @@ def run(
 )
 @_pass.cache
 @_pass.console
-def show(console: Console, cache: "TimeEntryCache", json_: bool) -> None:
+def show(console: Console, cache: TimeEntryCache, json_: bool) -> None:
     """
     Display a table of local running/paused time entries.
     Entries are sorted top-down from active -> running -> paused:
@@ -2308,10 +2308,10 @@ def show(console: Console, cache: "TimeEntryCache", json_: bool) -> None:
 def stop(
     now: datetime,
     ctx_group: t.Sequence[click.Context],
-    cache: "TimeEntryCache",
-    id_list: "TimeEntryIdList",
+    cache: TimeEntryCache,
+    id_list: TimeEntryIdList,
     console: Console,
-    routine: "CliQueryRoutines",
+    routine: CliQueryRoutines,
     entry: str,
 ) -> None:
     """
@@ -2402,9 +2402,9 @@ def stop(
 def switch(
     now: datetime,
     ctx_group: t.Sequence[click.Context],
-    cache: "TimeEntryCache",
-    routine: "CliQueryRoutines",
-    id_list: "TimeEntryIdList",
+    cache: TimeEntryCache,
+    routine: CliQueryRoutines,
+    id_list: TimeEntryIdList,
     console: Console,
     entry: str | None,
 ) -> None:
@@ -2505,9 +2505,9 @@ def switch(
 def focus(
     now: datetime,
     ctx_group: t.Sequence[click.Context],
-    cache: "TimeEntryCache",
-    routine: "CliQueryRoutines",
-    id_list: "TimeEntryIdList",
+    cache: TimeEntryCache,
+    routine: CliQueryRoutines,
+    id_list: TimeEntryIdList,
     console: Console,
     entry: str | None,
 ) -> None:
@@ -2663,10 +2663,10 @@ def focus(
 def update(
     now: datetime,
     ctx_group: t.Sequence[click.Context],
-    appdata: "TimeEntryAppData",
+    appdata: TimeEntryAppData,
     console: Console,
-    cache: "TimeEntryCache",
-    routine: "CliQueryRoutines",
+    cache: TimeEntryCache,
+    routine: CliQueryRoutines,
     billable: bool | None,
     project: str | None,
     start: datetime | None,

@@ -5,12 +5,12 @@ import typing as t
 from datetime import date, datetime, time
 from inspect import classify_class_attrs
 from time import sleep
+from zoneinfo import ZoneInfo
 
 import click
 import sqlalchemy as sq
 from google.cloud.bigquery import QueryJob
 from more_itertools import filter_map
-from pytz import timezone
 from rich.text import Text
 
 from lightlike.app.config import AppConfig
@@ -30,7 +30,7 @@ P = t.ParamSpec("P")
 
 _MAPPING: dict[str, str] = AppConfig()["bigquery"]
 
-Rows: t.TypeAlias = t.Sequence[sq.Row[t.Any]]
+type Rows = t.Sequence[sq.Row[t.Any]]
 
 
 class CliQueryRoutines:
@@ -170,9 +170,9 @@ class CliQueryRoutines:
             date=sq.cast(start_time.date(), sq.Date()),
             project=project,
             note=note if note != "None" else None,
-            timestamp_start=start_time.astimezone(timezone("UTC")),
+            timestamp_start=start_time.astimezone(ZoneInfo("UTC")),
             start=sq.cast(start_time.replace(tzinfo=None), sq.DateTime(timezone=True)),
-            timestamp_end=end_time.astimezone(timezone("UTC")),
+            timestamp_end=end_time.astimezone(ZoneInfo("UTC")),
             end=sq.cast(end_time.replace(tzinfo=None), sq.DateTime(timezone=True)),
             active=False,
             billable=billable,

@@ -44,7 +44,6 @@ import rtoml
 from fasteners import InterProcessLock, try_lock
 from prompt_toolkit.cursor_shapes import CursorShape
 from prompt_toolkit.styles import Style
-from pytz_deprecation_shim._exceptions import PytzUsageWarning
 from rich import get_console
 
 from lightlike.__about__ import (
@@ -61,7 +60,6 @@ from lightlike.internal import appdir, constant, utils
 __all__: t.Sequence[str] = ("main",)
 
 
-warnings.filterwarnings("ignore", category=PytzUsageWarning)
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 LOCK: InterProcessLock = InterProcessLock(__lock__, logger=appdir.log())

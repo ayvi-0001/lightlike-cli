@@ -652,8 +652,6 @@ dependencies = [
     { name = "pycparser" },
     { name = "pygments" },
     { name = "python-dateutil" },
-    { name = "pytz" },
-    { name = "pytz-deprecation-shim" },
     { name = "pywin32", marker = "sys_platform == 'win32'" },
     { name = "pywin32-ctypes", marker = "sys_platform == 'win32'" },
     { name = "questionary" },
@@ -667,7 +665,6 @@ dependencies = [
     { name = "sqlalchemy" },
     { name = "sqlalchemy-bigquery" },
     { name = "typing-extensions" },
-    { name = "tzdata" },
     { name = "tzlocal" },
     { name = "urllib3" },
     { name = "wcwidth" },
@@ -683,14 +680,13 @@ dev = [
     { name = "ty" },
     { name = "types-dateparser" },
     { name = "types-pygments" },
-    { name = "types-pytz" },
     { name = "types-six" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "anyio", specifier = ">=4.3.0" },
-    { name = "apscheduler", specifier = ">=3.10.4" },
+    { name = "apscheduler", specifier = ">=3.11.3" },
     { name = "cachetools", specifier = ">=5.3.3" },
     { name = "certifi", specifier = ">=2024.7.4" },
     { name = "cffi", specifier = ">=1.16.0" },
@@ -733,8 +729,6 @@ requires-dist = [
     { name = "pytest-order", marker = "extra == 'dev'", specifier = "==1.2.1" },
     { name = "pytest-xdist", marker = "extra == 'dev'", specifier = "==3.6.1" },
     { name = "python-dateutil", specifier = ">=2.9.0.post0" },
-    { name = "pytz", specifier = ">=2024.1" },
-    { name = "pytz-deprecation-shim", specifier = ">=0.1.0.post0" },
     { name = "pywin32", marker = "sys_platform == 'win32'", specifier = ">=306" },
     { name = "pywin32-ctypes", marker = "sys_platform == 'win32'", specifier = ">=0.2.2" },
     { name = "questionary", git = "https://github.com/tmbo/questionary?rev=caad2e5ce3694d53d1a0666751339262799bed9f" },
@@ -751,11 +745,9 @@ requires-dist = [
     { name = "ty", marker = "extra == 'dev'", specifier = ">=0.0.84" },
     { name = "types-dateparser", marker = "extra == 'dev'", specifier = ">=1.1.4.20240106" },
     { name = "types-pygments", marker = "extra == 'dev'", specifier = ">=2.17.0.0" },
-    { name = "types-pytz", marker = "extra == 'dev'", specifier = ">=2023.3.1.1" },
     { name = "types-six", marker = "extra == 'dev'", specifier = ">=1.16.21.20240513" },
     { name = "typing-extensions", specifier = ">=4.12.2" },
-    { name = "tzdata", specifier = ">=2024.1" },
-    { name = "tzlocal", specifier = ">=4,<5" },
+    { name = "tzlocal", specifier = ">=4" },
     { name = "urllib3", specifier = ">=2.2.2" },
     { name = "wcwidth", specifier = ">=0.2.13" },
 ]
@@ -1091,18 +1083,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pytz-deprecation-shim"
-version = "0.1.0.post0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "tzdata" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/94/f0/909f94fea74759654390a3e1a9e4e185b6cd9aa810e533e3586f39da3097/pytz_deprecation_shim-0.1.0.post0.tar.gz", hash = "sha256:af097bae1b616dde5c5744441e2ddc69e74dfdcb0c263129610d85b87445a59d", size = 60190, upload-time = "2020-06-17T16:16:30.062Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/eb/73/3eaab547ca809754e67e06871cff0fc962bafd4b604e15f31896a0f94431/pytz_deprecation_shim-0.1.0.post0-py2.py3-none-any.whl", hash = "sha256:8314c9692a636c8eb3bda879b9f119e350e93223ae83e70e80c31675a0fdc1a6", size = 15734, upload-time = "2020-06-17T16:16:28.849Z" },
-]
-
-[[package]]
 name = "pywin32"
 version = "312"
 source = { registry = "https://pypi.org/simple" }
@@ -1380,15 +1360,6 @@ wheels = [
 ]
 
 [[package]]
-name = "types-pytz"
-version = "2026.4.0.20260926"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/69/42/7edb292ada68a506f85adfc22f1e16a8efa6ef736abb11b557a47c8bc149/types_pytz-2026.4.0.20260926.tar.gz", hash = "sha256:2ad5cde113cd6a58dd59c34f3c93f1bce2d126c769bfac15207ca7d7efd65390", size = 11064, upload-time = "2026-09-26T06:45:48.674Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/44/db/e65769c124c55958b337069a02a0684259e7e0408cfd18d7ed2e2ea4092a/types_pytz-2026.4.0.20260926-py3-none-any.whl", hash = "sha256:0d0357ffa7680a4416811fb0e56e7a5c0d6efec3f299390d146ea2675b66c774", size = 10173, upload-time = "2026-09-26T06:45:47.615Z" },
-]
-
-[[package]]
 name = "types-six"
 version = "1.17.0.20260724"
 source = { registry = "https://pypi.org/simple" }
@@ -1417,15 +1388,14 @@ wheels = [
 
 [[package]]
 name = "tzlocal"
-version = "4.3.1"
+version = "5.4.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pytz-deprecation-shim" },
     { name = "tzdata", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d7/33/68fe21c4a3ecf5e093b5179ea23be777037b1e83722f5559a1e2223d2422/tzlocal-4.3.1.tar.gz", hash = "sha256:ee32ef8c20803c19a96ed366addd3d4a729ef6309cb5c7359a0cc2eeeb7fa46a", size = 31637, upload-time = "2023-06-21T14:07:47.771Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/81/5b/879b2f932adfa7a053c360d50bc896c977fa6426109185f7c12ebdd0cb9d/tzlocal-5.4.4.tar.gz", hash = "sha256:8dbb8660838688a7b6ba4fed31d18dedf842afb4d47ca050d6d891c2c15f3be4", size = 31170, upload-time = "2026-06-29T08:03:40.026Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/55/a6/a75af44665e5e77e52f6789eef4f8bc056c8e039d96c804b975806942580/tzlocal-4.3.1-py3-none-any.whl", hash = "sha256:67d7e7f4ce0a98e9dfde2e02474c60fe846ed032d78b555c554c2e9cba472d84", size = 20342, upload-time = "2023-06-21T14:07:45.649Z" },
+    { url = "https://files.pythonhosted.org/packages/9e/a4/017a7a6cbe387d961a688ec31364ae60a5c4e22c96ae9921b79a947c855d/tzlocal-5.4.4-py3-none-any.whl", hash = "sha256:aae09f0126a8a86fa736be266eb4a471380d26a0de3bc14844e7821fee3e2a15", size = 18115, upload-time = "2026-06-29T08:03:38.666Z" },
 ]
 
 [[package]]

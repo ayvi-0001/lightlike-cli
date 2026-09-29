@@ -14,7 +14,6 @@ from click.shell_completion import CompletionItem
 from prompt_toolkit import prompt
 from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.styles import Style
-from pytz import timezone
 from rich import box
 from rich.table import Table
 
@@ -938,7 +937,7 @@ def _match_trigger(
     second: str,
     start_date: str,
     end_date: str,
-    tzinfo: "_TzInfo",
+    tzinfo: _TzInfo,
 ) -> DateTrigger | IntervalTrigger | CronTrigger:
     trigger_kwargs: dict[str, t.Any] = {}
 
@@ -946,10 +945,10 @@ def _match_trigger(
         case "date":
             if run_date is not None:
                 trigger_kwargs["run_date"] = parse_date(run_date, tzinfo=tzinfo)
-            if timezone is not None:
+            if tzinfo is not None:
                 trigger_kwargs["timezone"] = tzinfo
 
-            trigger = DateTrigger(**trigger_kwargs)
+            return DateTrigger(**trigger_kwargs)
 
         case "interval":
             if weeks is not None:
@@ -963,7 +962,7 @@ def _match_trigger(
             if seconds is not None:
                 trigger_kwargs["seconds"] = seconds
 
-            trigger = IntervalTrigger(**trigger_kwargs)
+            return IntervalTrigger(**trigger_kwargs)
 
         case "cron":
             if year is not None:
@@ -988,13 +987,11 @@ def _match_trigger(
                 trigger_kwargs["start_date"] = parse_date(start_date, tzinfo=tzinfo)
             if end_date is not None:
                 trigger_kwargs["end_date"] = parse_date(end_date, tzinfo=tzinfo)
-            if timezone is not None:
+            if tzinfo is not None:
                 trigger_kwargs["timezone"] = tzinfo
 
-            trigger = CronTrigger(**trigger_kwargs)
+            return CronTrigger(**trigger_kwargs)
 
         case _:
             msg = "trigger"
             raise click.BadOptionUsage(msg, "unknown trigger type", ctx)
-
-    return trigger

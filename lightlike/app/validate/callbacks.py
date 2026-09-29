@@ -1,5 +1,4 @@
 import typing as t
-from datetime import datetime
 from functools import partial
 from inspect import cleandoc
 from json import loads
@@ -18,9 +17,12 @@ from lightlike.app.cache import TimeEntryCache
 from lightlike.app.config import AppConfig
 from lightlike.app.dates import parse_date
 from lightlike.internal import appdir
+from lightlike.internal.appdir import AVAILABLE_TIMEZONES
+
+if t.TYPE_CHECKING:
+    from datetime import datetime
 
 __all__: t.Sequence[str] = (
-    "_timezone",
     "current_time_period_flags",
     "datetime_parsed",
     "edit_params",
@@ -28,14 +30,13 @@ __all__: t.Sequence[str] = (
     "print_or_output",
     "summary_path",
     "timer_list_cache_idx",
+    "timezone",
     "weekstart",
 )
 
 
-def _timezone(ctx: click.Context, param: click.Parameter, value: str) -> str:
-    from pytz import all_timezones
-
-    if value not in all_timezones:
+def timezone(_ctx: click.Context, _param: click.Parameter, value: str) -> str:
+    if value not in AVAILABLE_TIMEZONES:
         raise click.UsageError(
             message="Unrecognized timezone.",
             ctx=click.get_current_context(silent=True),
@@ -43,7 +44,7 @@ def _timezone(ctx: click.Context, param: click.Parameter, value: str) -> str:
     return value
 
 
-def weekstart(ctx: click.Context, param: click.Parameter, value: str) -> int:
+def weekstart(_ctx: click.Context, _param: click.Parameter, value: str) -> int:
     match value:
         case "Sunday":
             isoweekday = 0
@@ -60,7 +61,7 @@ def weekstart(ctx: click.Context, param: click.Parameter, value: str) -> int:
 
 def datetime_parsed(
     ctx: click.Context,
-    param: click.Parameter,
+    _param: click.Parameter,
     value: str,
 ) -> datetime | None:
     if not value and not ctx.resilient_parsing:
@@ -76,6 +77,7 @@ def edit_params(
     ctx: click.Context,
     params: dict[str, t.Any],
     ids_to_match: list[str],
+    *,
     debug: bool,
 ) -> bool:
     debug and patch_stdout(raw=True)(get_console().log)(
@@ -104,7 +106,7 @@ def edit_params(
 
 def non_running_entry(
     ctx: click.Context,
-    param: click.Parameter,
+    _param: click.Parameter,
     id_sequence: t.Sequence[str],
 ) -> t.Sequence[str]:
     cache = TimeEntryCache()
@@ -153,8 +155,8 @@ def summary_path(ctx: click.Context, param: click.Parameter, value: str) -> Path
             ):
                 return path.with_suffix(suffix)
             raise click.exceptions.Exit
-        except (KeyboardInterrupt, EOFError):
-            raise click.exceptions.Exit
+        except (KeyboardInterrupt, EOFError) as exc:
+            raise click.exceptions.Exit from exc
     elif not path.suffix:
         return path.with_suffix(suffix)
     else:
@@ -162,6 +164,7 @@ def summary_path(ctx: click.Context, param: click.Parameter, value: str) -> Path
 
 
 def print_or_output(
+    *,
     output: bool = False,
     print_: bool = False,
     ctx: click.Context | None = None,
@@ -175,6 +178,7 @@ def print_or_output(
 
 
 def current_time_period_flags(
+    *,
     current_week: bool | None,
     current_month: bool | None,
     current_year: bool | None,
@@ -186,7 +190,7 @@ def current_time_period_flags(
         [current_week, current_month, current_year, previous_week],
     )
 
-    if sum(list(params)) > 1:  # type: ignore[arg-type]
+    if sum(int(x) for x in params if x is not None) > 1:
         raise click.UsageError(
             message="Provide only one of the following options: "
             "--current-week / -cw | --current-month / -cm | --current-year / -cy",
@@ -197,7 +201,8 @@ def current_time_period_flags(
 
 def timer_list_cache_idx(
     ctx: click.Context,
-    param: click.Parameter,
+    _param: click.Parameter,
+    *,
     value: t.Sequence[int] | bool,
 ) -> list[str] | None:
     if not value and not ctx.resilient_parsing:
@@ -210,9 +215,9 @@ def timer_list_cache_idx(
     timer_list_cache = loads(appdir.TIMER_LIST_CACHE.read_text(encoding="utf-8"))
 
     entry_ids: list[str] = []
-
-    if isinstance(value, bool) and value is True:
-        entry_ids = list(timer_list_cache.values())
+    if isinstance(value, bool):
+        if value is True:
+            entry_ids = list(timer_list_cache.values())
     else:
         keys = list(timer_list_cache.keys())
 
