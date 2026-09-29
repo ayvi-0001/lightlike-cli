@@ -15,7 +15,6 @@ import click
 from apscheduler.schedulers.background import BackgroundScheduler
 from more_itertools import first, locate, one
 from rich import print as rprint
-from rich.console import Console
 from rich.markup import escape
 from rich.syntax import Syntax
 from rich.text import Text
@@ -38,6 +37,7 @@ from lightlike.internal import appdir, markup, utils
 
 if t.TYPE_CHECKING:
     import sqlalchemy as sq
+    from rich.console import Console
     from rich.table import Table
 
     from lightlike.app.cache import TimeEntryAppData, TimeEntryIdList
@@ -1498,7 +1498,7 @@ def list_(
             "--offset / -o does not do anything without also using --limit / -l",
         )
 
-    where_clause: str = shell_complete.where._parse_click_options(
+    where_clause: str = shell_complete.where.parse_click_options(
         flag=prompt_where,
         args=where,
         console=console,

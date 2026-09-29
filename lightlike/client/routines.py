@@ -815,21 +815,22 @@ class CliQueryRoutines:
 
         return rows
 
-    def _summary(
+    def summary(  # ruff: ignore[complex-structure, too-many-branches, too-many-statements]
         self,
         start_date: date | None = None,
         end_date: date | None = None,
         where: str | None = None,
         round_: str | None = None,
-        show_null_values: bool = True,
-        is_file: bool | None = False,
         match_project: t.Sequence[str] | None = None,
         match_note: t.Sequence[str] | None = None,
         exclude: t.Sequence[str] | None = None,
         include: t.Sequence[str] | None = None,
-        modifiers: str | None = None,
-        regex_engine: t.Literal["ECMAScript", "re2"] | str = "ECMAScript",
-        order_by: t.Literal["date", "project"] | str = "date",
+        modifiers: t.Sequence[str] | None = None,
+        regex_engine: t.Literal["ECMAScript", "re2"] = "ECMAScript",
+        order_by: t.Literal["date", "project"] = "date",
+        *,
+        show_null_values: bool = True,
+        is_file: bool | None = False,
     ) -> Rows:
         timesheet = self._table_timesheet
 
@@ -982,9 +983,9 @@ class CliQueryRoutines:
             with self.engine.begin() as conn:
                 result = conn.execute(executable)
                 rows = result.fetchall()
-        except Exception as error:
-            msg = f"{error}"
-            raise click.get_current_context().fail(msg)
+        except Exception as exc:
+            msg = f"{exc}"
+            raise click.UsageError(msg, click.get_current_context()) from exc
 
         return rows
 
@@ -992,18 +993,20 @@ class CliQueryRoutines:
         self,
         column: sq.ColumnElement[t.Any],
         pattern: str,
-        modifiers: str | None = None,
-        regex_engine: t.Literal["ECMAScript", "re2"] | str = "ECMAScript",
+        modifiers: t.Sequence[str] | None = None,
+        regex_engine: t.Literal["ECMAScript", "re2"] | None = "ECMAScript",
     ) -> sq.ColumnElement[t.Any]:
-        if regex_engine == "ECMAScript":
-            js_regex_contains = getattr(sq.func, self.dataset).js_regex_contains
-            return js_regex_contains(column, pattern, modifiers or "")
-
-        if regex_engine == "re2":
-            return column.regexp_match(pattern)
-
-        msg = f"Unknown regex engine: {regex_engine}"
-        raise ValueError(msg)
+        match regex_engine:
+            case "ECMAScript":
+                js_regex_contains = getattr(sq.func, self.dataset).js_regex_contains
+                if modifiers:
+                    modifiers = "".join(map(str.lower, modifiers))
+                return js_regex_contains(column, pattern, modifiers or "")
+            case "re2":
+                return column.regexp_match(pattern)
+            case _:
+                msg = f"Unknown regex engine: {regex_engine}"
+                raise ValueError(msg)
 
     def _select(
         self,

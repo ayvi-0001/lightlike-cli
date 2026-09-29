@@ -8,7 +8,6 @@ from prompt_toolkit.completion import (
     WordCompleter,
     merge_completers,
 )
-from prompt_toolkit.document import Document
 
 from lightlike.app import shell_complete
 from lightlike.client import CliQueryRoutines
@@ -16,9 +15,15 @@ from lightlike.internal import utils
 
 if t.TYPE_CHECKING:
     from prompt_toolkit.completion import CompleteEvent
+    from prompt_toolkit.document import Document
+    from prompt_toolkit.formatted_text import StyleAndTextTuples
     from rich.console import Console
 
-__all__: t.Sequence[str] = ("_bottom_toolbar", "_parse_click_options", "completer")
+__all__: t.Sequence[str] = (
+    "bottom_toolbar",
+    "completer",
+    "parse_click_options",
+)
 
 
 def completer(schema: str, table: str) -> ThreadedCompleter:
@@ -35,7 +40,7 @@ def completer(schema: str, table: str) -> ThreadedCompleter:
 
 class WhereClauseCompleter(WordCompleter):
     __slots__ = ()
-    fields: list[str] = [
+    fields: t.ClassVar[list[str]] = [
         "id",
         "date",
         "project",
@@ -56,14 +61,14 @@ class WhereClauseCompleter(WordCompleter):
 
     def __init__(self, schema: str, table: str) -> None:
         super().__init__([], WORD=True)
-        self.resource_id = f"{CliQueryRoutines()._client().project}.{schema}.{table}"
+        self.resource_id = f"{CliQueryRoutines().client().project}.{schema}.{table}"
         self.projects = shell_complete.projects.Active().names
         self.notes = shell_complete.notes.Notes().get_all()
 
     def get_completions(
         self,
         document: Document,
-        complete_event: "CompleteEvent",
+        complete_event: CompleteEvent,  # ruff: ignore[unused-method-argument]
     ) -> t.Iterable[Completion]:
         word_before_cursor: str = utils.alter_str(
             document.get_word_before_cursor(self.WORD),
@@ -112,11 +117,14 @@ class WhereClauseCompleter(WordCompleter):
         project: str,
         word_before_cursor: str,
     ) -> t.Iterable[Completion]:
+        note_truncate_len = 45
         for note in self.notes[project]:
             if note.startswith(word_before_cursor):
                 yield Completion(
                     text=f"{note}",
-                    display=f"{note[:45]}..." if len(note) > 45 else f"{note}",
+                    display=f"{note[:note_truncate_len]}..."
+                    if len(note) > note_truncate_len
+                    else f"{note}",
                     start_position=-len(word_before_cursor),
                     display_meta=f"NOTE:{project}",
                     style="#239551",
@@ -124,7 +132,7 @@ class WhereClauseCompleter(WordCompleter):
                 )
 
 
-def _bottom_toolbar(console: "Console") -> t.Callable[..., list[tuple[str, str]]]:
+def bottom_toolbar(console: Console) -> t.Callable[..., StyleAndTextTuples]:
     bt_line1 = "Press esc + enter to submit. Press up for history. Press ctrl + Q to exit."
     bt_line2 = (
         "If project field appears in document, "
@@ -156,7 +164,7 @@ def _bottom_toolbar(console: "Console") -> t.Callable[..., list[tuple[str, str]]
         ),
     ]
 
-    return lambda: text
+    return lambda *_a, **_kw: t.cast("StyleAndTextTuples", text)
 
 
 WHERE_CLAUSE: t.Final[re.Pattern[str]] = re.compile(
@@ -165,11 +173,12 @@ WHERE_CLAUSE: t.Final[re.Pattern[str]] = re.compile(
 )
 
 
-def _parse_click_options(
-    flag: bool,
+def parse_click_options(
     args: t.Sequence[str] | None,
-    console: "Console",
+    console: Console,
     routine: CliQueryRoutines,
+    *,
+    flag: bool,
 ) -> str:
     clause: str | None = None
 
@@ -187,7 +196,7 @@ def _parse_click_options(
                 session.prompt(
                     default="WHERE ",
                     pre_run=utils.prerun_autocomplete,
-                    bottom_toolbar=shell_complete.where._bottom_toolbar(console),
+                    bottom_toolbar=shell_complete.where.bottom_toolbar(console),
                 ),
             )
     else:

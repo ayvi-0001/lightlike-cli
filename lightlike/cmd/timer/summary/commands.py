@@ -2,15 +2,12 @@ import csv
 import os
 import tempfile
 import typing as t
-from datetime import datetime
 from operator import truth
 from pathlib import Path
-from uuid import uuid4
 
 import click
-from rich import print as rprint
+import rich
 from rich.console import Console
-from rich.padding import Padding
 from rich.syntax import Syntax
 
 from lightlike import _console
@@ -20,10 +17,10 @@ from lightlike.app.core import FormattedCommand
 from lightlike.app.prompt import PromptFactory
 from lightlike.cmd import _pass
 from lightlike.internal import markup, utils
-from lightlike.internal.constant import _CONSOLE_SVG_FORMAT
 
 if t.TYPE_CHECKING:
-    from pandas import DataFrame
+    from datetime import datetime
+
     from rich.table import Table
 
     from lightlike.client import CliQueryRoutines
@@ -320,7 +317,7 @@ open_in_editor = click.option(
 
         $ timer summary table --start jan1 --end jul1 billable is true
         $ t su t -sjan1 -ejul1 billable is true\
-        """,
+        """,  # ruff: ignore[line-too-long]
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
@@ -378,31 +375,32 @@ open_in_editor = click.option(
 @_pass.console
 @_pass.ctx_group(parents=1)
 @_pass.now
-def summary_table(
+def summary_table(  # ruff: ignore[complex-structure, too-many-branches]
     now: datetime,
     ctx_group: t.Sequence[click.Context],
     console: Console,
-    routine: "CliQueryRoutines",
+    routine: CliQueryRoutines,
     start: datetime,
     end: datetime,
-    all_: bool,
-    current_month: bool,
-    current_week: bool,
-    current_year: bool,
     exclude: t.Sequence[str],
     include: t.Sequence[str],
     match_note: t.Sequence[str],
     match_project: t.Sequence[str],
     modifiers: t.Sequence[str],
-    open_in_editor: bool,
-    order_by: str,
     output: Path | None,
-    prompt_where: bool,
-    regex_engine: str,
+    order_by: t.Literal["date", "project"],
+    regex_engine: t.Literal["ECMAScript", "re2"],
     round_: str,
+    where: t.Sequence[str],
+    *,
+    all_: bool,
+    current_month: bool,
+    current_week: bool,
+    current_year: bool,
+    open_in_editor: bool,
+    prompt_where: bool,
     show_lines: bool,
     show_null_values: bool,
-    where: t.Sequence[str],
 ) -> None:
     """
     Create a summary and render a table in terminal. Optional svg download.
@@ -477,7 +475,7 @@ def summary_table(
         joined together by a space to form the where clause.
         the word "WHERE" is stripped from the start of the string, if it exists.
 
-    """
+    """  # ruff: ignore[line-too-long]
     ctx, _ = ctx_group
 
     if not exclude:
@@ -486,14 +484,14 @@ def summary_table(
             exclude = lightlike_list_exclude.split(",")
 
     if all_:
-        where_clause: str = shell_complete.where._parse_click_options(
+        where_clause: str = shell_complete.where.parse_click_options(
             flag=prompt_where,
             args=where,
             console=console,
             routine=routine,
         )
 
-        rows = routine._summary(
+        rows = routine.summary(
             where=where_clause,
             match_project=match_project,
             match_note=match_note,
@@ -527,14 +525,14 @@ def summary_table(
                 end or PromptFactory.prompt_date("(end-date)"),
             )
 
-        where_clause = shell_complete.where._parse_click_options(
+        where_clause = shell_complete.where.parse_click_options(
             flag=prompt_where,
             args=where,
             console=console,
             routine=routine,
         )
 
-        rows = routine._summary(
+        rows = routine.summary(
             start_date=date_params.start.date(),
             end_date=date_params.end.date(),
             exclude=exclude,
@@ -555,15 +553,19 @@ def summary_table(
         table_kwargs={"show_lines": show_lines},
     )
     if not table.row_count:
-        rprint(markup.dimmed("No results"))
+        rich.print(markup.dimmed("No results"))
         raise click.exceptions.Exit
 
     if open_in_editor:
-        tmpfile = Path(tempfile.mktemp(suffix="_timesheet"))
+        tmpfile_name: str = tempfile.mkstemp(suffix="_timesheet")[1]
+        tmpfile = Path(tmpfile_name)
         tmpfile.touch()
 
-        with Path(f"{tmpfile}").open(encoding="utf-8", mode="w") as f, Console(file=f) as console:
-            console.print(table)
+        with (
+            Path(f"{tmpfile}").open(encoding="utf-8", mode="w") as f,
+            Console(file=f) as file_console,
+        ):
+            file_console.print(table)
 
         editor: str | None = AppConfig().editor
         if editor:
@@ -572,12 +574,16 @@ def summary_table(
         tmpfile.unlink(missing_ok=True)
 
     else:
-        with Console(record=True, style=_console.CONSOLE_CONFIG.style) as console:
-            console.print(Padding(table, (1, 0, 0, 0)))
+        from rich.padding import Padding
+
+        with Console(record=True, style=_console.CONSOLE_CONFIG.style) as file_console:
+            file_console.print(Padding(table, (1, 0, 0, 0)))
 
             uri: str
             path: str
             if output is not None:
+                from lightlike.internal.constant import _CONSOLE_SVG_FORMAT
+
                 resolved: Path = output.resolve()
                 uri = resolved.as_uri()
                 path = resolved.as_posix()
@@ -606,7 +612,7 @@ def summary_table(
 
         $ timer summary csv --start jan1 --end jul1 billable is true --print
         $ t su c -sjan1 -ejul1 billable is true -p\
-        """,
+        """,  # ruff: ignore[line-too-long]
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
@@ -667,11 +673,7 @@ def summary_csv(
     now: datetime,
     ctx_group: t.Sequence[click.Context],
     console: Console,
-    routine: "CliQueryRoutines",
-    all_: bool,
-    current_month: bool,
-    current_week: bool,
-    current_year: bool,
+    routine: CliQueryRoutines,
     exclude: t.Sequence[str],
     include: t.Sequence[str],
     end: datetime,
@@ -679,15 +681,20 @@ def summary_csv(
     match_project: t.Sequence[str],
     modifiers: str,
     output: Path | None,
-    order_by: str,
-    print_: bool,
-    prompt_where: bool,
     quoting: str,
-    regex_engine: str,
+    order_by: t.Literal["date", "project"],
+    regex_engine: t.Literal["ECMAScript", "re2"],
     round_: str,
-    show_null_values: bool,
     start: datetime,
     where: t.Sequence[str],
+    *,
+    all_: bool,
+    current_month: bool,
+    current_week: bool,
+    current_year: bool,
+    print_: bool,
+    prompt_where: bool,
+    show_null_values: bool,
 ) -> None:
     """
     Create a summary and save to a csv file, or print to terminal.
@@ -766,28 +773,29 @@ def summary_csv(
         joined together by a space to form the where clause.
         the word "WHERE" is stripped from the start of the string, if it exists.
 
-    """
+    """  # ruff: ignore[line-too-long]
+    ctx, _parent = ctx_group
+
     try:
         import pandas as pd
-    except Exception as error:
-        console.print(
-            f"[b][red]Must have pandas installed to use this command: {error}.",
+    except Exception as exc:
+        msg = (
+            f"[b][red] {exc}: Must have pandas installed to use this command, "
+            r"or install with extra \[pandas]"
         )
-        raise click.exceptions.Exit
-
-    ctx, _parent = ctx_group
+        raise click.UsageError(msg, ctx) from exc
 
     validate.callbacks.print_or_output(output=truth(output), print_=print_)
 
     if all_:
-        where_clause: str = shell_complete.where._parse_click_options(
+        where_clause: str = shell_complete.where.parse_click_options(
             flag=prompt_where,
             args=where,
             console=console,
             routine=routine,
         )
 
-        rows = routine._summary(
+        rows = routine.summary(
             where=where_clause,
             match_project=match_project,
             match_note=match_note,
@@ -821,14 +829,14 @@ def summary_csv(
                 end or PromptFactory.prompt_date("(end-date)"),
             )
 
-        where_clause = shell_complete.where._parse_click_options(
+        where_clause = shell_complete.where.parse_click_options(
             flag=prompt_where,
             args=where,
             console=console,
             routine=routine,
         )
 
-        rows = routine._summary(
+        rows = routine.summary(
             start_date=date_params.start.date(),
             end_date=date_params.end.date(),
             where=where_clause,
@@ -844,7 +852,7 @@ def summary_csv(
             is_file=True,
         )
 
-    df: DataFrame = pd.DataFrame(rows)
+    df: pd.DataFrame = pd.DataFrame(rows)
 
     if output:
         dest = output.resolve()
@@ -862,6 +870,8 @@ def summary_csv(
 
     if print_:
         if not output:
+            from uuid import uuid4
+
             with tempfile.TemporaryDirectory() as temp_dir:
                 summary = Path(temp_dir).joinpath(f"{uuid4()}.csv")
                 df.to_csv(
@@ -901,7 +911,7 @@ def summary_csv(
 
         $ timer summary json --start jan1 --end jul1 billable is true --print
         $ t su j -sjan1 -ejul1 billable is true -p\
-        """,
+        """,  # ruff: ignore[line-too-long]
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
@@ -962,27 +972,28 @@ def summary_json(
     now: datetime,
     ctx_group: t.Sequence[click.Context],
     console: Console,
-    routine: "CliQueryRoutines",
-    all_: bool,
-    current_month: bool,
-    current_week: bool,
-    current_year: bool,
+    routine: CliQueryRoutines,
     exclude: t.Sequence[str],
     include: t.Sequence[str],
     end: datetime,
     match_note: t.Sequence[str],
     match_project: t.Sequence[str],
     modifiers: str,
-    order_by: str,
-    orient: str,
+    orient: t.Literal["split", "records", "index", "table", "columns", "values"],
     output: Path | None,
-    print_: bool,
-    prompt_where: bool,
-    regex_engine: str,
+    order_by: t.Literal["date", "project"],
+    regex_engine: t.Literal["ECMAScript", "re2"],
     round_: str,
-    show_null_values: bool,
     start: datetime,
     where: t.Sequence[str],
+    *,
+    all_: bool,
+    current_month: bool,
+    current_week: bool,
+    current_year: bool,
+    print_: bool,
+    prompt_where: bool,
+    show_null_values: bool,
 ) -> None:
     """
     Create a summary and save to a json file, or print to terminal.
@@ -1071,28 +1082,29 @@ def summary_json(
         joined together by a space to form the where clause.
         the word "WHERE" is stripped from the start of the string, if it exists.
 
-    """
+    """  # ruff: ignore[line-too-long]
+    ctx, _parent = ctx_group
+
     try:
         import pandas as pd
-    except Exception as error:
-        console.print(
-            f"[b][red]Must have pandas installed to use this command: {error}.",
+    except Exception as exc:
+        msg = (
+            f"[b][red] {exc}: Must have pandas installed to use this command, "
+            r"or install with extra \[pandas]"
         )
-        raise click.exceptions.Exit
-
-    ctx, _parent = ctx_group
+        raise click.UsageError(msg, ctx) from exc
 
     validate.callbacks.print_or_output(output=truth(output), print_=print_)
 
     if all_:
-        where_clause: str = shell_complete.where._parse_click_options(
+        where_clause: str = shell_complete.where.parse_click_options(
             flag=prompt_where,
             args=where,
             console=console,
             routine=routine,
         )
 
-        rows = routine._summary(
+        rows = routine.summary(
             where=where_clause,
             match_project=match_project,
             match_note=match_note,
@@ -1126,14 +1138,14 @@ def summary_json(
                 end or PromptFactory.prompt_date("(end-date)"),
             )
 
-        where_clause = shell_complete.where._parse_click_options(
+        where_clause = shell_complete.where.parse_click_options(
             flag=prompt_where,
             args=where,
             console=console,
             routine=routine,
         )
 
-        rows = routine._summary(
+        rows = routine.summary(
             start_date=date_params.start.date(),
             end_date=date_params.end.date(),
             where=where_clause,
@@ -1149,7 +1161,7 @@ def summary_json(
             is_file=True,
         )
 
-    df: DataFrame = pd.DataFrame(rows)
+    df: pd.DataFrame = pd.DataFrame(rows)
 
     if output:
         dest = output.resolve()
@@ -1165,6 +1177,8 @@ def summary_json(
 
     if print_:
         if not output:
+            from uuid import uuid4
+
             with tempfile.TemporaryDirectory() as temp_dir:
                 summary = Path(temp_dir).joinpath(f"{uuid4()}.json")
                 df.to_json(  # type: ignore[call-overload]

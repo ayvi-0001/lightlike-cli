@@ -17,7 +17,6 @@ dependencies = [
     "click==8.1.7",
     "cryptography>=42.0.7",
     "dateparser==1.2.0",
-    "db-dtypes>=1.2.0; platform_system != 'Android'",
     "fasteners==0.19",
     "fuzzyfinder>=2.2.0",
     "google-cloud-bigquery-storage>=2.26.0; platform_system != 'Android'",
@@ -26,7 +25,6 @@ dependencies = [
     "httpx>=0.27.0",
     "more-itertools>=10.2.0",
     "packaging>=23.2",
-    "pandas>=2.2.1; platform_system != 'Android'",
     "prompt-toolkit~=3.0.47",
     "pywin32-ctypes>=0.2.2; sys_platform == 'win32'",
     "pywin32>=306; sys_platform == 'win32'",
@@ -56,7 +54,11 @@ dev = [
     "types-dateparser>=1.1.4.20240106",
     "types-six>=1.16.21.20240513",
 ]
-# all = ["lightlike[sqlalchemy-bigquery, dev]"]
+pandas = [
+    "db-dtypes>=1.2.0; platform_system != 'Android'",
+    "pandas>=2.2.1; platform_system != 'Android'",
+]
+all = ["lightlike[dev, pandas]"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["lightlike"]
