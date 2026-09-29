@@ -2,16 +2,16 @@ import typing as t
 from operator import attrgetter, itemgetter
 
 __all__: t.Sequence[str] = (
-    "_id",
     "count_entries",
     "dataset_id",
+    "id_",
     "name",
     "note",
     "routine_id",
     "table_id",
 )
 
-_id = itemgetter("id")
+id_ = itemgetter("id")
 count_entries = attrgetter("count_entries")
 dataset_id = attrgetter("dataset_id")
 note = itemgetter("note")

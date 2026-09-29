@@ -5,7 +5,6 @@ import click
 import rich
 import rtoml
 import six
-from apscheduler.job import Job
 from apscheduler.jobstores.base import JobLookupError
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
@@ -27,6 +26,7 @@ from lightlike.internal import appdir, constant, utils
 if t.TYPE_CHECKING:
     from datetime import _TzInfo
 
+    from apscheduler.job import Job
     from apscheduler.schedulers.background import BackgroundScheduler
 
 __all__: t.Sequence[str] = (
@@ -356,7 +356,7 @@ def add_job(
         job_kwargs["id"] = job_id
     if name is not None:
         job_kwargs["name"] = name
-    if args != ():  # type: ignore[comparison-overlap]
+    if args != ():
         job_kwargs["args"] = args
     if kwargs != {}:
         job_kwargs["kwargs"] = kwargs
@@ -501,7 +501,7 @@ def modify_job(
         job_modify_kwargs["id"] = id_
     if name is not None:
         job_modify_kwargs["name"] = name
-    if args != ():  # type: ignore[comparison-overlap]
+    if args != ():
         job_modify_kwargs["args"] = args
     if kwargs != {}:
         job_modify_kwargs["kwargs"] = kwargs
@@ -892,7 +892,7 @@ def system_command(
     # fmt: on
     if job_id is not None:
         job_kwargs["id"] = job_id
-    if args != ():  # type: ignore[comparison-overlap]
+    if args != ():
         job_kwargs["args"] = args
     if kwargs != {}:
         job_kwargs["kwargs"] = kwargs

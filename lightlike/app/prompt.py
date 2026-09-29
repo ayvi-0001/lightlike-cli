@@ -128,5 +128,5 @@ class PromptFactory(PromptSession[t.Any]):
             "validator": validate.ExistingProject() if not new else validate.NewProject(),
         }
         session_pk.update(**prompt_kwargs)
-        project: str = session.prompt(**session_pk)  # type: ignore[arg-type]
+        project: str = session.prompt(**session_pk)
         return project

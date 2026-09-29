@@ -4,7 +4,7 @@ import os
 import typing as t
 from contextlib import contextmanager
 from functools import wraps
-from hashlib import sha3_256, sha256
+from hashlib import sha256
 from zoneinfo import ZoneInfo
 
 import rtoml
@@ -15,27 +15,23 @@ from lightlike.internal import factory, utils
 
 if t.TYPE_CHECKING:
     from datetime import _TzInfo
+    from hashlib import _Hash as HASH
     from pathlib import Path
-
 
 __all__: t.Sequence[str] = ("AppConfig",)
 
 
-_Hash = type(sha256(b"_Hash"))
-
-T = t.TypeVar("T")
-P = t.ParamSpec("P")
-
-
-class AppConfig(metaclass=factory._Singleton):
+class AppConfig(metaclass=factory.Singleton):
     _rw_lock: ReaderWriterLock = ReaderWriterLock()
 
     @staticmethod
-    def ensure_config(fn: t.Callable[..., T]) -> t.Callable[..., T]:
+    def ensure_config[**P, R](
+        fn: t.Callable[t.Concatenate[AppConfig, P], R],
+    ) -> t.Callable[t.Concatenate[AppConfig, P], R]:
         @wraps(fn)
-        def inner(self: t.Self, *args: P.args, **kwargs: P.kwargs) -> T:
+        def inner(self: AppConfig, *args: P.args, **kwargs: P.kwargs) -> R:
             self.config = self.load
-            r: T = fn(self, *args, **kwargs)
+            r = fn(self, *args, **kwargs)
             self.config = self.load
             return r
 
@@ -45,10 +41,10 @@ class AppConfig(metaclass=factory._Singleton):
         self.path = path
         self.config: dict[str, t.Any] = self.load
 
-    def __setitem__(self, __key: str, __val: t.Any) -> None:
+    def __setitem__(self, __key: str, __val: object, /) -> None:
         self.config[__key] = __val
 
-    def __getitem__(self, __key: str) -> t.Any:
+    def __getitem__[T](self, __key: str, /) -> T:
         return self.config[__key]
 
     @ensure_config
@@ -70,25 +66,23 @@ class AppConfig(metaclass=factory._Singleton):
             return rtoml.load(self.path)
 
     @t.overload
-    def get(self, *keys: str, default: None = None) -> t.Any | None: ...
-
+    def get[Q](self, *keys: str, default: None = None) -> Q | None: ...
     @t.overload
-    def get(self, *keys: str, default: dict[str, t.Any]) -> dict[str, t.Any]: ...
-
+    def get[Q](self, *keys: str, default: dict[str, Q]) -> dict[str, Q]: ...
     @t.overload
-    def get(self, *keys: str, default: T) -> T: ...
+    def get[Q](self, *keys: str, default: Q) -> Q: ...
 
-    def get(
+    def get[Q](
         self,
         *keys: str,
-        default: T | dict[str, t.Any] | None = None,
-    ) -> t.Any | T | dict[str, t.Any] | None:
+        default: Q | dict[str, Q] | None = None,
+    ) -> Q | dict[str, Q] | None:
         return utils.reduce_keys(*keys, sequence=self.load, default=default)
 
     @property
     def saved_password(self) -> str | None:
         config_password: str | None = self.get("user", "password")
-        saved_password: str | None = config_password if config_password != "null" else None
+        saved_password: str | None = config_password if config_password != "null" else None  # ruff: ignore[hardcoded-password-string]
         return saved_password
 
     @property
@@ -116,20 +110,21 @@ class AppConfig(metaclass=factory._Singleton):
 
     def update_user_credentials(
         self,
-        password: str | sha3_256 | None = None,
+        password: str | HASH | None = None,
         salt: bytes | None = None,
+        *,
         stay_logged_in: bool | None = None,
     ) -> None:
         with self.rw() as config:
             if password:
                 if isinstance(password, str):
                     config["user"].update(password=password)
-                elif isinstance(password, _Hash):
+                elif isinstance(password, type(sha256(b"_Hash"))):
                     config["user"].update(
                         password=password.hexdigest(),
                     )
 
-            if password == "null":
+            if password == "null":  # ruff: ignore[hardcoded-password-string]
                 config["user"].update(password="")
             if salt:
                 config["user"].update(salt=salt)

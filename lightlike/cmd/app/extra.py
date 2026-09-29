@@ -85,6 +85,7 @@ def tree(path: Path, size: bool) -> None:
         rprint(f"{error!r}; {str(path.resolve())!r}")
 
 
+# ruff: ignore[commented-out-code]
 # import os
 # from pathlib import Path
 # from lightlike.app import shell_complete
@@ -121,7 +122,7 @@ def tree(path: Path, size: bool) -> None:
 
 #         tables = []
 #         for _path in path.iterdir():
-#             table = Table(**table_kwargs)  # type: ignore
+#             table = Table(**table_kwargs)
 #             name = Text(_path.name)
 
 #             if " " in name:

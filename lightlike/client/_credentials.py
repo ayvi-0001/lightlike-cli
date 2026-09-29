@@ -129,7 +129,7 @@ def service_account_key_flow(appconfig: AppConfig) -> tuple[bytes, bytes]:
         )
 
         password, salt = AuthPromptSession().prompt_new_password()
-        key_derivation: bytes = _Auth()._generate_key(password.hexdigest(), salt)
+        key_derivation: bytes = _Auth.generate_key(password.hexdigest(), salt)
 
         rich.print(NewLine())
         if _questionary.confirm(message="Stay logged in?"):
@@ -149,7 +149,7 @@ def service_account_key_flow(appconfig: AppConfig) -> tuple[bytes, bytes]:
             "to toggle hidden input.",
         )
         service_account: str = prompt_service_account_key()
-        encrypted_key = _Auth().encrypt(key_derivation, service_account)
+        encrypted_key = _Auth.encrypt(key_derivation, service_account)
 
         appconfig.update_user_credentials(salt=salt)
         with appconfig.rw() as config:
@@ -167,7 +167,7 @@ def prompt_service_account_key() -> str:
 
     try:
         while not service_account_key:
-            response: str = AuthPromptSession().prompt_secret(
+            response: str = AuthPromptSession.prompt_secret(
                 message="(service-account-key) $ ",
             )
             try:

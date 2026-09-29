@@ -3,21 +3,22 @@ from __future__ import annotations
 import typing as t
 from threading import Lock
 
-__all__: t.Sequence[str] = ("_Singleton",)
+__all__: t.Sequence[str] = ("Singleton",)
 
 
-P = t.ParamSpec("P")
+class Singleton(type):
+    _instances: t.ClassVar[dict[type, object]] = {}
+    _locks: t.ClassVar[dict[type, Lock]] = {}
 
+    def __call__[T, **P](cls: type[T], *args: P.args, **kwargs: P.kwargs) -> T:
+        lock: Lock = Singleton._locks.setdefault(cls, Lock())
 
-class _Singleton(type):
-    _instances: dict[object, _Singleton] = {}
-    _locks: dict[str, Lock] = {}
+        with lock:
+            if cls not in Singleton._instances:
+                instance: T = super().__call__(  # ty: ignore[invalid-super-argument]
+                    *t.cast("t.Any", args),
+                    **t.cast("t.Any", kwargs),
+                )
+                Singleton._instances[cls] = instance
 
-    def __call__(cls, *args: P.args, **kwargs: P.kwargs) -> _Singleton:
-        if cls.__name__ not in cls._locks:
-            cls._locks[cls.__name__] = Lock()
-
-        with cls._locks[cls.__name__]:
-            if cls not in cls._instances:
-                cls._instances[cls] = super(type(cls), cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
+        return t.cast("T", Singleton._instances[cls])

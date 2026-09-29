@@ -42,7 +42,7 @@ P = t.ParamSpec("P")
 
 
 @t.overload
-def _get_maybe_callable(
+def _get_maybe_callable[T](
     obj: t.Any,
     attr: str,
     cast: type[T],
@@ -52,7 +52,7 @@ def _get_maybe_callable(
 
 
 @t.overload
-def _get_maybe_callable(
+def _get_maybe_callable[T](
     obj: t.Any,
     attr: str,
     cast: type[T],
@@ -61,7 +61,7 @@ def _get_maybe_callable(
 ) -> T | None: ...
 
 
-def _get_maybe_callable(
+def _get_maybe_callable[T](
     obj: t.Any,
     attr: str,
     cast: type[T],
@@ -94,7 +94,7 @@ class FormattedCommand(click.Command):
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> None:
-        super().__init__(*args, **kwargs)  # type: ignore[arg-type]
+        super().__init__(*args, **kwargs)
         self.syntax = syntax
         self.allow_name_alias = allow_name_alias
 
@@ -109,7 +109,7 @@ class AliasedGroup(click.Group):
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> None:
-        super().__init__(*args, **kwargs)  # type: ignore[arg-type]
+        super().__init__(*args, **kwargs)
         self.syntax = syntax
 
     def get_command(self, ctx: click.Context, cmd_name: str) -> click.Command | None:
@@ -303,7 +303,7 @@ def format_help(
             unique_id=unique_id,
         )
 
-    console.width = None  # type: ignore[assignment]
+    console.width = None
 
 
 @rich.console.group()
@@ -461,11 +461,9 @@ def _group_options(
             if (
                 (isinstance(param.type, _NumberRangeBase) or param.type.name.endswith("range"))
                 and isinstance(param, click.Option)
-                and not (
-                    param.count and param.type.min == 0 and param.type.max is None  # type: ignore[attr-defined]
-                )
+                and not (param.count and param.type.min == 0 and param.type.max is None)
             ):
-                range_str = param.type._describe_range()  # type: ignore[attr-defined]
+                range_str = param.type._describe_range()
                 if range_str:
                     metavar.append(f" [{range_str}]")
 
@@ -504,7 +502,7 @@ def _group_options(
 
 
 @singledispatch
-def _get_option_help(param: click.Parameter, ctx: click.Context) -> Columns: ...  # type: ignore[empty-body]
+def _get_option_help(param: click.Parameter, ctx: click.Context) -> Columns: ...
 
 
 @_get_option_help.register

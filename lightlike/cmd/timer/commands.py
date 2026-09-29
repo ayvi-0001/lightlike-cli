@@ -1916,7 +1916,7 @@ def resume(
 
         select: str = _questionary.select(
             message="Select an entry to resume",
-            choices=list(map(_get._id, paused_entries)),
+            choices=list(map(_get.id_, paused_entries)),
         )
 
         matched_id = select
@@ -2212,7 +2212,7 @@ def run(
     with cache.rw() as cache:
         cache.id = time_entry_id
         cache.project = project
-        cache.note = note if note != "None" else None  # type: ignore[assignment]
+        cache.note = note if note != "None" else None
         cache.billable = billable or project_default_billable
         cache.start = start_local
 
@@ -2348,7 +2348,7 @@ def stop(
 
         select: str = _questionary.select(
             message="Select an entry to resume",
-            choices=list(map(_get._id, paused_entries)),
+            choices=list(map(_get.id_, paused_entries)),
         )
 
         entry = select
@@ -2440,7 +2440,7 @@ def switch(
         console.print(table)
 
         choices: list[str] = list(
-            filter(lambda i: not cache.id.startswith(i), map(_get._id, entries)),
+            filter(lambda i: not cache.id.startswith(i), map(_get.id_, entries)),
         )
 
         select: str = _questionary.select(
@@ -2531,7 +2531,7 @@ def focus(
         console.print(table)
 
         choices: list[str] = list(
-            filter(lambda i: not cache.id.startswith(i), map(_get._id, entries)),
+            filter(lambda i: not cache.id.startswith(i), map(_get.id_, entries)),
         )
 
         select: str = _questionary.select(
@@ -2750,7 +2750,7 @@ def update(
             edits["billable"] = billable
 
     if project and project != cache.project:
-        validate.active_project(ctx, None, project)  # type: ignore[arg-type]
+        validate.active_project(ctx, None, project)
 
         with cache.rw() as cache:
             cache.project = project

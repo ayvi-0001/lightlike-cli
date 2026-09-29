@@ -1,6 +1,5 @@
 import typing as t
 
-import click
 from click.shell_completion import CompletionItem
 
 from lightlike.app import dates
@@ -10,6 +9,8 @@ from lightlike.internal.utils import match_str
 
 if t.TYPE_CHECKING:
     from datetime import datetime
+
+    import click
 
 __all__: t.Sequence[str] = ("all_", "paused")
 
@@ -30,7 +31,7 @@ def paused(
         paused_entries = cache.get_updated_paused_entries(now)
         for entry in paused_entries:
             entry_id: str = entry["id"]
-            meta: str = cache._to_help_str(entry, now)
+            meta: str = cache.to_help_str(entry, now)
 
             if _match_id_or_meta(incomplete, meta, entry_id):
                 completions.append(CompletionItem(value=entry_id[:7], help=meta))
@@ -54,7 +55,7 @@ def all_(
         paused_entries = cache.get_updated_paused_entries(now)
         for entry in paused_entries:
             entry_id: str = entry["id"]
-            meta: str = cache._to_help_str(entry, now)
+            meta: str = cache.to_help_str(entry, now)
 
             if _match_id_or_meta(incomplete, meta, entry_id):
                 completions.append(CompletionItem(value=entry_id[:7], help=meta))
@@ -65,7 +66,7 @@ def all_(
             if entry_id in {cache.id, "null"}:
                 continue
 
-            meta = cache._to_help_str(entry, now)
+            meta = cache.to_help_str(entry, now)
 
             if _match_id_or_meta(incomplete, meta, entry_id):
                 completions.append(CompletionItem(value=entry_id[:7], help=meta))

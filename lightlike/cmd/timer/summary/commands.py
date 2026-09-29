@@ -1167,7 +1167,7 @@ def summary_json(
         dest = output.resolve()
         uri = dest.as_uri()
         path = dest.as_posix()
-        df.to_json(  # type: ignore[call-overload]
+        df.to_json(
             path,
             orient=orient,
             date_format="iso",
@@ -1181,7 +1181,7 @@ def summary_json(
 
             with tempfile.TemporaryDirectory() as temp_dir:
                 summary = Path(temp_dir).joinpath(f"{uuid4()}.json")
-                df.to_json(  # type: ignore[call-overload]
+                df.to_json(
                     summary.as_posix(),
                     orient=orient,
                     date_format="iso",

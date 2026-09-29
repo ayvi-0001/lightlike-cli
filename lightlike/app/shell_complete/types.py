@@ -29,14 +29,8 @@ class _CallableNumberRangeBase(_NumberParamTypeBase):
         param: click.Parameter | None,
         ctx: click.Context | None,
     ) -> t.Any:
-        if self.min and callable(self.min):
-            min_ = self.min()
-        else:
-            min_ = self.min  # type: ignore[assignment]
-        if self.max and callable(self.max):
-            max_ = self.max()
-        else:
-            max_ = self.max  # type: ignore[assignment]
+        min_ = self.min() if self.min and callable(self.min) else self.min
+        max_ = self.max() if self.max and callable(self.max) else self.max
 
         import operator
 
@@ -52,10 +46,10 @@ class _CallableNumberRangeBase(_NumberParamTypeBase):
 
         if self.clamp:
             if lt_min:
-                return self._clamp(min_, 1, self.min_open)  # type: ignore
+                return self._clamp(min_, 1, self.min_open)
 
             if gt_max:
-                return self._clamp(max_, -1, self.max_open)  # type: ignore
+                return self._clamp(max_, -1, self.max_open)
 
         if lt_min or gt_max:
             self.fail(
@@ -70,14 +64,8 @@ class _CallableNumberRangeBase(_NumberParamTypeBase):
         return rv
 
     def _describe_range(self) -> str:
-        if self.min and callable(self.min):
-            min_ = self.min()
-        else:
-            min_ = self.min  # type: ignore[assignment]
-        if self.max and callable(self.max):
-            max_ = self.max()
-        else:
-            max_ = self.max  # type: ignore[assignment]
+        min_ = self.min() if self.min and callable(self.min) else self.min
+        max_ = self.max() if self.max and callable(self.max) else self.max
 
         """Describe the range for use in help text."""
         if min_ is None:

@@ -5,13 +5,11 @@ import typing as t
 from contextlib import ContextDecorator, suppress
 from functools import partial, reduce, wraps
 from operator import eq, getitem, truth
-from pathlib import Path
 from time import perf_counter_ns
-from types import FunctionType
 
 import click
 import rtoml
-from fuzzyfinder import fuzzyfinder
+from fuzzyfinder.main import fuzzyfinder
 from prompt_toolkit.application import get_app, in_terminal
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import get_console
@@ -19,6 +17,10 @@ from rich import print as rprint
 from rich.console import NewLine
 
 from lightlike.internal import markup
+
+if t.TYPE_CHECKING:
+    from pathlib import Path
+    from types import FunctionType
 
 __all__: t.Sequence[str] = (
     "alter_str",
@@ -45,25 +47,28 @@ __all__: t.Sequence[str] = (
 )
 
 
+LOGGER = logging.getLogger(__name__)
+
+
 P = t.ParamSpec("P")
 
 
-class exit_cmd_on_interrupt(ContextDecorator):
+class exit_cmd_on_interrupt(ContextDecorator):  # ruff: ignore[invalid-class-name]
     def __enter__(self) -> t.Self:
         try:
             return self
-        except (KeyboardInterrupt, EOFError) as error:
-            raise click.exceptions.Exit from error
+        except (KeyboardInterrupt, EOFError) as exc:
+            raise click.exceptions.Exit from exc
 
     def __exit__(self, *exc: object) -> None: ...
 
 
-def handle_keyboard_interrupt(
+def handle_keyboard_interrupt[**P, R](
     callback: t.Callable[..., t.Any] | None = None,
-) -> t.Callable[..., t.Callable[..., t.Any]]:
-    def decorator(fn: FunctionType) -> t.Callable[..., t.Any]:
+) -> t.Callable[..., t.Callable[P, R | None]]:
+    def decorator(fn: FunctionType) -> t.Callable[P, R | None]:
         @wraps(fn)
-        def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
+        def inner(*args: P.args, **kwargs: P.kwargs) -> R | None:
             try:
                 return fn(*args, **kwargs)
             except (KeyboardInterrupt, EOFError) as error:
@@ -90,12 +95,13 @@ async def nl_async() -> None:
 
 
 def nl_start(
+    *,
     after: bool = False,
     before: bool = False,
 ) -> t.Callable[..., t.Callable[..., t.Any]]:
-    def decorator(fn: FunctionType) -> t.Callable[..., t.Any]:
+    def decorator[**P, R](fn: FunctionType) -> t.Callable[P, R]:
         @wraps(fn)
-        def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
+        def inner(*args: P.args, **kwargs: P.kwargs) -> R:
             before and nl()
             r = fn(*args, **kwargs)
             after and nl()
@@ -120,7 +126,7 @@ def get_local_timezone_string(default: str | None = None) -> str | None:
 
         default_timezone = get_localzone_name()
     else:
-        from tzlocal.unix import _get_localzone_name
+        from tzlocal.unix import _get_localzone_name  # ruff: ignore[import-private-name]
 
         default_timezone = _get_localzone_name()
 
@@ -130,17 +136,17 @@ def get_local_timezone_string(default: str | None = None) -> str | None:
 def identical_vectors(l1: list[t.Any], l2: list[t.Any]) -> bool:
     return reduce(
         lambda b1, b2: b1 and b2,
-        map(eq, l1, l2),
-        True,
+        map(eq, l1, l2, strict=False),
+        initial=True,
     )
 
 
-def pretty_print_exception(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
+def pretty_print_exception[T, **P](fn: t.Callable[..., T]) -> t.Callable[..., T | None]:
     @wraps(fn)
-    def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
+    def inner(*args: P.args, **kwargs: P.kwargs) -> T | None:
         try:
             return fn(*args, **kwargs)
-        except Exception:
+        except Exception:  # ruff: ignore[blind-except]
             get_console().print_exception(
                 max_frames=1,
                 show_locals=True,
@@ -150,13 +156,13 @@ def pretty_print_exception(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]
     return inner
 
 
-def log_exception(fn: t.Callable[..., t.Any]) -> t.Callable[..., t.Any]:
+def log_exception[T, **P](fn: t.Callable[..., T]) -> t.Callable[..., T | None]:
     @wraps(fn)
-    def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
+    def inner(*args: P.args, **kwargs: P.kwargs) -> T | None:
         try:
             return fn(*args, **kwargs)
-        except Exception as error:
-            logging.exception("%s", error)
+        except Exception:
+            LOGGER.exception("Decorated function raised exception")
 
     return inner
 
@@ -190,11 +196,11 @@ def format_toml(toml_obj: t.MutableMapping[str, t.Any]) -> str:
     return regexp_replace(toml_patterns, rtoml.dumps(toml_obj))
 
 
-def reduce_keys(
+def reduce_keys[T](
     *keys: t.Sequence[str],
-    sequence: t.Any,
-    default: t.Any | None = None,
-) -> t.Any:
+    sequence: dict[str, T],
+    default: T | None = None,
+) -> dict[str, T] | T | None:
     try:
         return reduce(getitem, [*keys], sequence)
     except KeyError:
@@ -206,9 +212,10 @@ RE_PARENTHESIS: re.Pattern[str] = re.compile(r"(\(|\))")
 
 
 @t.overload
-def alter_str(
-    string: t.Any,
+def alter_str[T](
+    string: str | T,
     split: str,
+    *,
     strip: bool = False,
     lower: bool = False,
     strip_quotes: bool = False,
@@ -218,9 +225,10 @@ def alter_str(
 
 
 @t.overload
-def alter_str(
-    string: t.Any,
+def alter_str[T](
+    string: str | T,
     split: None = None,
+    *,
     strip: bool = False,
     lower: bool = False,
     strip_quotes: bool = False,
@@ -229,9 +237,10 @@ def alter_str(
 ) -> str: ...
 
 
-def alter_str(
-    string: t.Any,
+def alter_str[T](
+    string: str | T,
     split: str | None = None,
+    *,
     strip: bool = False,
     lower: bool = False,
     strip_quotes: bool = False,
@@ -263,12 +272,13 @@ def alter_str(
 def split_and_alter_str(
     string: str,
     delimeter: str = " ",
+    filter_fns: list[t.Callable[..., t.Any]] | None = None,
+    map_fns: list[t.Callable[..., t.Any]] | None = None,
+    *,
     strip: bool = False,
     lower: bool = False,
     strip_quotes: bool = True,
     filter_null_strings: bool = True,
-    filter_fns: list[t.Callable[..., t.Any]] | None = None,
-    map_fns: list[t.Callable[..., t.Any]] | None = None,
 ) -> list[str]:
     if map_fns is None:
         map_fns = []
@@ -284,13 +294,12 @@ def split_and_alter_str(
     if strip_quotes:
         iter_map_fn.append(lambda s: RE_QUOTE.sub("", s))
     if map_fns:
-        for fn in map_fns:
-            iter_map_fn.append(fn)
+        iter_map_fn.extend(map_fns)
 
     mapped_args = reduce(lambda s, fn: [*map(fn, s)], iter_map_fn, string_args)
 
     if filter_null_strings:
-        filter_fns.append(lambda s: s != "")
+        filter_fns.append(truth)
 
     if filter_fns:
         return reduce(lambda x, y: [*map(y, x)], filter_fns, mapped_args)
@@ -298,14 +307,15 @@ def split_and_alter_str(
     return mapped_args
 
 
-def match_str(
-    string_to_check: t.Any,
-    string_to_match: t.Any,
+def match_str[T](  # ruff: ignore[complex-structure, too-many-branches]
+    string_to_check: str | T,
+    string_to_match: str | T,
+    *,
     strip_quotes: bool = False,
     strip_parenthesis: bool = False,
     strip: bool = False,
     case_sensitive: bool = False,
-    method: t.Literal["in", "fuzzy", "re", "startswith", "endswith"] = "in",
+    method: t.Literal["in", "fuzzy", "re", "startswith", "endswith"] | None = "in",
     replace_patterns: t.Mapping[str, str] | None = None,
 ) -> bool:
     if not isinstance(string_to_check, str):
@@ -357,8 +367,6 @@ def match_str(
         case _:
             msg = "Invalid method for string match."
             raise ValueError(msg)
-
-    return False
 
 
 def ns_time_diff(ns: int) -> float:

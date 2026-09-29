@@ -552,7 +552,7 @@ if AppConfig().get("client", "credentials-source") == CredentialsSource.from_ser
         callback=lambda: rprint(markup.dimmed("Did not change settings.")),
     )
     @value_arg
-    def stay_logged_in(value: bool) -> None:
+    def stay_logged_in(*, value: bool) -> None:
         from lightlike.client import AuthPromptSession
         from lightlike.client._credentials import service_account_key_flow
 
@@ -561,7 +561,7 @@ if AppConfig().get("client", "credentials-source") == CredentialsSource.from_ser
 
             if not stay_logged_in:
                 rprint("Enter current password.")
-                input_password = AuthPromptSession().prompt_password()
+                input_password = AuthPromptSession.prompt_password()
                 encrypted_key, salt = service_account_key_flow(AppConfig())
 
                 with suppress(UnboundLocalError):
@@ -571,12 +571,12 @@ if AppConfig().get("client", "credentials-source") == CredentialsSource.from_ser
                         saved_password=AppConfig().saved_password,
                         stay_logged_in=AppConfig().stay_logged_in,
                         input_password=input_password,
-                        retry=False,
                         saved_credentials_failed=partial(
                             AppConfig().update_user_credentials,
-                            password="null",
+                            password="null",  # ruff: ignore[hardcoded-password-func-arg]
                             stay_logged_in=False,
                         ),
+                        retry=False,
                     )
                     AppConfig().update_user_credentials(
                         password=input_password,

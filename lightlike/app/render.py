@@ -109,7 +109,7 @@ def map_sequence_to_rich_table(
         "show_edge": True,
     }
     default.update(table_kwargs or {})
-    table: Table = Table(**default)  # type: ignore[arg-type]
+    table: Table = Table(**default)
     console_width: int = get_console().width
 
     if exclude_fields:
@@ -153,7 +153,7 @@ def map_sequence_to_rich_table(
     return table
 
 
-def map_cell_style(values: "dict_values[str, t.Any]") -> "map[str]":
+def map_cell_style(values: dict_values[str, t.Any]) -> map[str]:
     display_values: list[t.Any] = []
     for value in values:
         if not value or value in {"null", "None"}:

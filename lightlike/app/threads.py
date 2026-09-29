@@ -2,13 +2,15 @@ import typing as t
 from threading import Thread, current_thread
 from time import sleep
 
-import click
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import print as rprint
 from rich.repr import rich_repr
 from rich.rule import Rule
 
 from lightlike.internal.appdir import console_log_error
+
+if t.TYPE_CHECKING:
+    import click
 
 __all__: t.Sequence[str] = ("spawn",)
 
@@ -35,7 +37,7 @@ def spawn(
                         align="left",
                     ),
                 )
-                thread_repr: str = f"{rich_repr(current_thread())}"  # type: ignore[call-overload]
+                thread_repr: str = f"{rich_repr(current_thread())}"
                 thread_repr.replace("wrapper", f"{fn!r}")
                 rprint(thread_repr)
                 console_log_error(error, notify=True, patch_stdout=False)

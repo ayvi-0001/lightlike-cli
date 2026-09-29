@@ -1,3 +1,5 @@
+# ruff: file-ignore[magic-value-comparison]
+
 from __future__ import annotations
 
 import re
@@ -94,7 +96,7 @@ class _Entries:
         )
 
     @running_entries.setter
-    def running_entries(self, __val: T) -> None:
+    def running_entries(self, __val: T, /) -> None:
         self._entries["running"]["entries"] = __val
 
     @property
@@ -106,7 +108,7 @@ class _Entries:
         return t.cast("list[dict[str, t.Any]]", self._entries["paused"]["entries"])
 
     @paused_entries.setter
-    def paused_entries(self, __val: T) -> None:
+    def paused_entries(self, __val: T, /) -> None:
         self._entries["paused"]["entries"] = __val
 
     @property
@@ -114,15 +116,15 @@ class _Entries:
         return t.cast("str", self._ifnull(self.active["project"]))
 
     @project.setter
-    def project(self, __val: T) -> None:
+    def project(self, __val: T, /) -> None:
         self.active["project"] = __val
 
     @property
     def id(self) -> str:
-        return t.cast("str", self._ifnull(_get._id(self.active)))
+        return t.cast("str", self._ifnull(_get.id_(self.active)))
 
-    @id.setter
-    def id(self, __val: T) -> None:
+    @id.setter  # ruff: ignore[builtin-attribute-shadowing]
+    def id(self, __val: T, /) -> None:
         self.active["id"] = __val
 
     @property
@@ -130,7 +132,7 @@ class _Entries:
         return t.cast("datetime", self._ifnull(self.active["start"]))
 
     @start.setter
-    def start(self, __val: T) -> None:
+    def start(self, __val: T, /) -> None:
         self.active["start"] = __val
 
     @property
@@ -138,7 +140,7 @@ class _Entries:
         return t.cast("str", self._ifnull(self.active["note"]))
 
     @note.setter
-    def note(self, __val: T) -> None:
+    def note(self, __val: T, /) -> None:
         self.active["note"] = __val
 
     @property
@@ -146,7 +148,7 @@ class _Entries:
         return t.cast("bool", self._ifnull(self.active["billable"]))
 
     @billable.setter
-    def billable(self, __val: T) -> None:
+    def billable(self, __val: T, /) -> None:
         self.active["billable"] = __val
 
     @property
@@ -157,7 +159,7 @@ class _Entries:
         )
 
     @timestamp_paused.setter
-    def timestamp_paused(self, __val: T) -> None:
+    def timestamp_paused(self, __val: T, /) -> None:
         self.active["timestamp_paused"] = __val
 
     @property
@@ -165,7 +167,7 @@ class _Entries:
         return t.cast("bool", self._ifnull(self.active["paused"]))
 
     @paused.setter
-    def paused(self, __val: T) -> None:
+    def paused(self, __val: T, /) -> None:
         self.active["paused"] = __val
 
     @property
@@ -173,16 +175,16 @@ class _Entries:
         return Decimal(self._ifnull(self.active["paused_hours"]) or 0)
 
     @paused_hours.setter
-    def paused_hours(self, __val: T) -> None:
+    def paused_hours(self, __val: T, /) -> None:
         self.active["paused_hours"] = f"{__val}"
 
 
-class EntriesInMemory(_Entries, metaclass=factory._Singleton):
+class EntriesInMemory(_Entries, metaclass=factory.Singleton):
     def __init__(self) -> None:
-        self._entries
+        self._entries  # ruff: ignore[useless-expression]
 
     @cached_property
-    def _entries(self) -> dict[str, t.Any]:  # type: ignore[override]
+    def _entries(self) -> dict[str, t.Any]:
         return rtoml.load(appdir.CACHE)
 
     def update(self, _entries: dict[str, t.Any]) -> None:
@@ -198,7 +200,7 @@ class TimeEntryCache(_Entries):
         self._entries = rtoml.load(self._path)
         EntriesInMemory().update(self._entries)
 
-    def __rich_console__(
+    def __rich_console__(  # ruff: ignore[bad-dunder-method-name, complex-structure, too-many-branches]
         self,
         console: Console,
         options: ConsoleOptions,
@@ -292,11 +294,10 @@ class TimeEntryCache(_Entries):
             for key, value in entry.items():
                 if console.width <= 120 and key in exclude_columns:
                     continue
-
                 if isinstance(value, datetime):
-                    value = value.strftime("%Y-%m-%d %H:%M:%S")
-
-                values.append(value)
+                    values.append(value.strftime("%Y-%m-%d %H:%M:%S"))
+                else:
+                    values.append(value)
 
             table.add_row(
                 *render.map_cell_style(values),
@@ -305,7 +306,7 @@ class TimeEntryCache(_Entries):
 
         yield table
 
-    def __rich_measure__(
+    def __rich_measure__(  # ruff: ignore[bad-dunder-method-name]
         self,
         console: Console,
         options: ConsoleOptions,
@@ -342,8 +343,8 @@ class TimeEntryCache(_Entries):
                 },
             )
 
-    def switch_entry(self, entry_id: str, now: datetime, pause: bool = False) -> None:
-        idx: t.Iterable[int] = self.index(self.running_entries, "id", [entry_id])
+    def switch_entry(self, entry_id: str, now: datetime, *, pause: bool = False) -> None:
+        idx: list[int] = self.index(self.running_entries, "id", [entry_id])
 
         if idx:
             with self.rw():
@@ -411,12 +412,12 @@ class TimeEntryCache(_Entries):
             else:
                 self.running_entries.pop(0)
 
+    @staticmethod
     def index(
-        self,
         entries: list[dict[str, t.Any]],
         key: str,
         sequence: t.Sequence[str],
-    ) -> t.Iterable[int]:
+    ) -> list[int]:
         def _match_id_predicate(e: dict[str, t.Any]) -> bool:
             nonlocal sequence
             return any(e[key].startswith(s) for s in sequence)
@@ -450,15 +451,15 @@ class TimeEntryCache(_Entries):
             entries = [self.running_entries, self.paused_entries]
 
         for entry_list in entries:
-            idxs: t.Iterable[int] = self.index(entry_list, key, sequence)
+            idxs: list[int] = self.index(entry_list, key, sequence)
             if not idxs:
                 continue
             with self.rw():
                 for idx in idxs:
                     entry_list.pop(idx)
 
+    @staticmethod
     def _add_hours(
-        self,
         now: datetime,
         timestamp_paused: datetime,
         paused_hours: Decimal,
@@ -483,7 +484,7 @@ class TimeEntryCache(_Entries):
 
         return updated_paused_entries
 
-    def _to_help_str(
+    def to_help_str(
         self,
         entry: dict[str, t.Any],
         now: datetime,
@@ -516,7 +517,7 @@ class TimeEntryCache(_Entries):
 
         return help_str
 
-    def _reset(self) -> None:
+    def reset(self) -> None:
         with self.rw():
             self._entries = self.default
 
@@ -524,21 +525,21 @@ class TimeEntryCache(_Entries):
         try:
             if self._path.exists():
                 if xor(
-                    self._path.read_text() == "",
+                    not self._path.read_text(),
                     not utils.identical_vectors(
                         list(self.active.keys()),
                         list(self.default_entry.keys()),
                     ),
                 ):
-                    self._reset()
+                    self.reset()
             else:
                 self._path.touch(exist_ok=True)
-                self._reset()
+                self.reset()
         except Exception:
             # If any exception occurs, hard reset cache.
-            self._reset()
+            self.reset()
 
-    def sync(self, debug: bool = False) -> None:
+    def sync(self) -> None:
         routine = CliQueryRoutines()
         running_entries_to_cache = routine.select(
             resource=routine.timesheet_id,
@@ -608,7 +609,7 @@ class TimeEntryCache(_Entries):
         return paused_entries
 
     @paused_entries.setter
-    def paused_entries(self, __val: T) -> None:
+    def paused_entries(self, __val: T, /) -> None:
         self._entries["paused"]["entries"] = __val
 
     def _map_row_style(self, row: dict[str, t.Any]) -> str:
@@ -625,6 +626,7 @@ class TimeEntryCache(_Entries):
     ) -> dict[str, t.Any]:
         kwargs: dict[str, t.Any] = {"vertical": "top", "no_wrap": True}
 
+        # ruff: disable[commented-out-code]
         if field in {"project", "note"}:
             kwargs |= {
                 # "header_style": "green",
@@ -680,9 +682,10 @@ class TimeEntryCache(_Entries):
                 "max_width": 12,
             }
         return kwargs
+        # ruff: enable[commented-out-code]
 
 
-class TimeEntryIdList(metaclass=factory._Singleton):
+class TimeEntryIdList(metaclass=factory.Singleton):
     id_pattern: re.Pattern[str] = re.compile(r"^\w{,40}$")
 
     @cached_property
@@ -693,7 +696,7 @@ class TimeEntryIdList(metaclass=factory._Singleton):
             order=["timestamp_start DESC"],
             fields=["id"],
         )
-        return list(map(_get._id, query_job))
+        return list(map(_get.id_, query_job))
 
     def match_id(self, input_id: str) -> str:
         matching = list(filter(lambda i: i.startswith(input_id), self.ids))
@@ -724,22 +727,23 @@ class TimeEntryIdList(metaclass=factory._Singleton):
 
         return first(matching)
 
-    def reset(self, debug: bool = False) -> None:
+    def reset(self) -> None:
         try:
             del self.__dict__["ids"]
-        except Exception as error:
-            appdir.log().error(f"Error resetting session ids: {error}")
+        except Exception:
+            logger = appdir.log()
+            logger.exception("Error resetting session ids")
 
-        self.ids
+        self.ids  # ruff: ignore[useless-expression]
 
-    def add(self, entry_id: str, debug: bool = False) -> None:
+    def add(self, entry_id: str, *, debug: bool = False) -> None:
         self.ids.extend([entry_id])
         debug and patch_stdout(raw=True)(get_console().log)(
             "[DEBUG]",
             f"Added id {entry_id} to id list.",
         )
 
-    def remove(self, entry_ids: list[str], debug: bool = False) -> None:
+    def remove(self, entry_ids: list[str], *, debug: bool = False) -> None:
         for input_id in entry_ids:
             idx: int = self.ids.index(input_id)
             self.ids.pop(idx)
@@ -752,7 +756,7 @@ class TimeEntryAppData:
     def __init__(self, path: Path = appdir.ENTRY_APPDATA) -> None:
         self.path = path
 
-    def sync(self, debug: bool = False) -> None:
+    def sync(self, *, debug: bool = False) -> None:
         console = get_console()
 
         debug and patch_stdout(raw=True)(console.log)(
@@ -780,13 +784,13 @@ class TimeEntryAppData:
             else:
                 appdata["archived"].update({row.name: project})
 
-        notes_query = routine.select(
+        query_job = routine.select(
             resource=CliQueryRoutines().timesheet_id,
             fields=["project", "note", "timestamp_start"],
             order=["project", "timestamp_start desc"],
         )
 
-        rows = list(notes_query)
+        rows = list(query_job)
 
         try:
             projects = sorted({row.project for row in rows})
@@ -802,7 +806,7 @@ class TimeEntryAppData:
                 ).markup,
             )
 
-        def _map_notes(a: dict[str, t.Any], p: t.Any) -> dict[str, t.Any]:
+        def _map_notes(_a: dict[str, t.Any], p: t.Any) -> dict[str, t.Any]:
             nonlocal appdata, rows
             key = "active" if p in appdata["active"] else "archived"
             try:
@@ -824,10 +828,12 @@ class TimeEntryAppData:
     def _unique_notes(self, project: str, rows: t.Sequence[Row]) -> list[Row]:
         return list(unique_everseen(map(_get.note, self._filter_notes(project, rows))))
 
-    def _filter_notes(self, project: str, rows: t.Sequence[Row]) -> list[Row]:
+    @staticmethod
+    def _filter_notes(project: str, rows: t.Sequence[Row]) -> list[Row]:
         return list(filter(lambda r: r.project == project and r.note, rows))
 
-    def _project_meta(self, row: Row) -> str:
+    @staticmethod
+    def _project_meta(row: Row) -> str:
         return "".join(
             [
                 "[",

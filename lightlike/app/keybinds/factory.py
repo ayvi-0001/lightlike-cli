@@ -1,10 +1,10 @@
 import typing as t
 from operator import truth
+from pathlib import Path
 from subprocess import list2cmdline
 
 from prompt_toolkit.application import get_app
 from prompt_toolkit.filters import Condition
-from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import get_console
 
@@ -14,10 +14,12 @@ from lightlike.app.shell_complete.dynamic import (
     reconfigure_completer,
 )
 from lightlike.internal import markup, utils
-from lightlike.internal.enums import ActiveCompleter
 
 if t.TYPE_CHECKING:
+    from prompt_toolkit.key_binding import KeyBindings, KeyPressEvent
     from rich.text import Text
+
+    from lightlike.internal.enums import ActiveCompleter
 
 __all__: t.Sequence[str] = (
     "add_exit_kb",
@@ -33,13 +35,13 @@ def add_system_cmd_kb(keybinding: KeyBindings, binds: list[list[str]]) -> None:
     if not binds or binds == [[]]:
         return
 
-    def _build(name: str, keys: list[str]) -> t.Callable[..., t.Any]:
+    def _build(name: str) -> t.Callable[..., t.Any]:
         @utils.nl_start(before=True)
         async def _(event: KeyPressEvent) -> None:
             buffer = event.app.current_buffer
             cmd = buffer.document.text
 
-            shell = AppConfig().get("system-command", "shell")
+            shell: str | list[str] | None = AppConfig(path=Path()).get("system-command", "shell")
             if shell:
                 if isinstance(shell, str):
                     cmd = f'{shell} "{cmd}"'
@@ -59,7 +61,7 @@ def add_system_cmd_kb(keybinding: KeyBindings, binds: list[list[str]]) -> None:
         return _
 
     for idx, binding in enumerate(binds):
-        kb = _build(name=f"kb_system_cmd_{idx}", keys=binding)
+        kb = _build(name=f"kb_system_cmd_{idx}")
         keybinding.add(*binding)(kb)
 
 
@@ -67,9 +69,9 @@ def add_exit_kb(keybinding: KeyBindings, binds: list[list[str]]) -> None:
     if not binds or binds == [[]]:
         return
 
-    def _build(name: str, keys: list[str]) -> t.Callable[..., t.Any]:
+    def _build(name: str) -> t.Callable[..., t.Any]:
         @utils.nl_start(before=True)
-        def _(event: KeyPressEvent) -> None:
+        def _(_event: KeyPressEvent) -> None:
             from lightlike.app import call_on_close
 
             call_on_close()
@@ -79,7 +81,7 @@ def add_exit_kb(keybinding: KeyBindings, binds: list[list[str]]) -> None:
         return _
 
     for idx, binding in enumerate(binds):
-        kb = _build(name=f"kb_exit_{idx}", keys=binding)
+        kb = _build(name=f"kb_exit_{idx}")
         keybinding.add(*binding)(kb)
 
 
@@ -101,8 +103,8 @@ def add_global_completer_kb(
     if not binds or binds == [[]]:
         return
 
-    def _build(name: str, keys: list[str]) -> t.Callable[..., t.Any]:
-        def _(event: KeyPressEvent) -> None:
+    def _build(name: str) -> t.Callable[..., t.Any]:
+        def _(_event: KeyPressEvent) -> None:
             reconfigure_completer(completer=completer)
             _log_completer_keypress(completer)
 
@@ -111,7 +113,7 @@ def add_global_completer_kb(
         return _
 
     for idx, binding in enumerate(binds):
-        kb = _build(name=f"kb_{completer}_{idx}", keys=binding)
+        kb = _build(name=f"kb_{completer}_{idx}")
         keybinding.add(*binding)(kb)
 
 

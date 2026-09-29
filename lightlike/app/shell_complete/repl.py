@@ -276,7 +276,7 @@ def _display_meta(option: click.Option, short_flag: str | None = None) -> str:
         else ""
     )
 
-    help_: str = option.help() if callable(option.help) else option.help  # type: ignore
+    help_: str = option.help() if callable(option.help) else option.help
     ws: str = " " if any([flag, required, default]) else ""
     display_meta: str = "".join([flag, multiple, required, default, ws, help_ or ""]) or ""
     # fmt: on

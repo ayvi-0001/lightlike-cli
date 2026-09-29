@@ -15,11 +15,8 @@ logging.getLogger("apscheduler").setLevel(logging.DEBUG)
 SCHEDULER: BackgroundScheduler | None = None
 
 
-P = t.ParamSpec("P")
-
-
-def get_scheduler(*args: P.args, **kwargs: P.kwargs) -> BackgroundScheduler:
-    global SCHEDULER
+def get_scheduler(*_args: t.Any, **_kwargs: t.Any) -> BackgroundScheduler:
+    global SCHEDULER  # ruff: ignore[global-statement]
     if SCHEDULER is None:
         SCHEDULER = _build_scheduler()
     return SCHEDULER

@@ -1,22 +1,26 @@
 import sys
 import typing as t
-from datetime import datetime
 from pathlib import Path
-from subprocess import list2cmdline
+from subprocess import list2cmdline  # ruff: ignore[suspicious-subprocess-import]
 
 import click
 from rich import print as rprint
-from rich.console import Console
 from rich.syntax import Syntax
 
 from lightlike.__about__ import __appdir__
 from lightlike.app import _questionary, validate
-from lightlike.app.cache import TimeEntryAppData, TimeEntryCache, TimeEntryIdList
 from lightlike.app.config import AppConfig
 from lightlike.app.core import FormattedCommand, LazyAliasedGroup
-from lightlike.client import CliQueryRoutines
 from lightlike.cmd import _pass
 from lightlike.internal import markup, utils
+
+if t.TYPE_CHECKING:
+    from datetime import datetime
+
+    from rich.console import Console
+
+    from lightlike.app.cache import TimeEntryAppData, TimeEntryCache, TimeEntryIdList
+    from lightlike.client import CliQueryRoutines
 
 __all__: t.Sequence[str] = (
     "_reset",
@@ -88,7 +92,7 @@ def config() -> None:
 
 
 # This is a copy of click._termui_impl:open_url, except it only returns the args.
-def _start_command(url: str, wait: bool = False, locate: bool = False) -> str:
+def _start_command(url: str, *, wait: bool = False, locate: bool = False) -> str:
     def _unquote_file(url: str) -> str:
         from urllib.parse import unquote
 
@@ -159,9 +163,10 @@ def _start_command(url: str, wait: bool = False, locate: bool = False) -> str:
     shell_complete=None,
 )
 @_pass.console
-def dir_(console: Console, start: bool) -> None:
+def dir_(console: Console, *, start: bool) -> None:
     """
     Open app directory.
+
         --start / -s:
             default option.
             open app directory with the system command [code]start[/code].
@@ -169,6 +174,7 @@ def dir_(console: Console, start: bool) -> None:
         --editor / -e:
             open the app directory using the configured text-editor.
             configure text-editor with app:config:set:general:editor.
+
     """
     path: str = __appdir__.resolve().as_posix()
 
@@ -195,7 +201,7 @@ def dir_(console: Console, start: bool) -> None:
 @_pass.console
 def inspect_console(console: Console) -> None:
     """Inspect global console."""
-    from rich._inspect import Inspect
+    from rich._inspect import Inspect  # ruff: ignore[import-private-name]
 
     inspect = Inspect(
         console,
@@ -251,12 +257,13 @@ def sync(
     _id_list: TimeEntryIdList,
     _cache: TimeEntryCache,
     _appdata: TimeEntryAppData,
+    *,
     appdata: bool,
     cache: bool,
     quiet: bool,
 ) -> None:
     """
-    Syncs local files for time entry data, projects, and cache.
+    Sync local files for time entry data, projects, and cache.
 
     These can be found in the app directory using the app:dir command.
 
@@ -311,6 +318,7 @@ def _reset(
     routine: CliQueryRoutines,
     cache: TimeEntryCache,
     appdata: TimeEntryAppData,
+    *,
     yes: bool,
 ) -> None:
     """Delete all timesheet/projects data."""
@@ -327,7 +335,7 @@ def _reset(
         wait=True,
     )
     console.print("clearing cache")
-    cache._reset()
+    cache.reset()
     console.print("syncing local appdata")
     appdata.sync()
     console.print("[b][green]done")
@@ -366,7 +374,7 @@ def _reset(
 
         $ app parse-date +15m
         2024-08-05 07:15:00-07:00
-        """,
+        """,  # ruff: ignore[line-too-long]
         lexer="fishshell",
         dedent=True,
         line_numbers=True,

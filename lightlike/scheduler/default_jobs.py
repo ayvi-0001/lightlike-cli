@@ -1,17 +1,15 @@
 import importlib
 import typing as t
-from pathlib import Path
 
 import rtoml
 
 from lightlike.internal import appdir, utils
 
 if t.TYPE_CHECKING:
+    from pathlib import Path
     from types import ModuleType
 
     from apscheduler.schedulers.background import BackgroundScheduler
-
-# from importlib._bootstrap import _DeadlockError
 
 
 __all__: t.Sequence[str] = ("create_or_replace_default_jobs",)
@@ -35,7 +33,7 @@ def create_or_replace_default_jobs(
 
     scheduler: BackgroundScheduler = get_scheduler()
 
-    for job_object_name, import_path in job_config.items():
+    for import_path in job_config.values():
         try:
             modname, job_object_name = import_path.rsplit(":", 1)
             mod: ModuleType | None = importlib.import_module(modname)
@@ -46,7 +44,6 @@ def create_or_replace_default_jobs(
 
             scheduler.add_job(**job_kwargs())
 
-        except Exception as error:
-            appdir.log().error(
-                f"Failed to load default job: {job_object_name}: {error}",
-            )
+        except Exception:
+            logger = appdir.log()
+            logger.exception("Failed to load default job: %s", job_object_name)
