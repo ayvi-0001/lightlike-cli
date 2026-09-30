@@ -8,12 +8,12 @@ from operator import eq, getitem, truth
 from time import perf_counter_ns
 
 import click
+import rich
 import rtoml
 from fuzzyfinder.main import fuzzyfinder
 from prompt_toolkit.application import get_app, in_terminal
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import get_console
-from rich import print as rprint
 from rich.console import NewLine
 
 from lightlike.internal import markup
@@ -75,9 +75,9 @@ def handle_keyboard_interrupt[**P, R](
                 if callback and callable(callback):
                     return callback()
                 if isinstance(error, KeyboardInterrupt):
-                    rprint(markup.dimmed("Command killed by keyboard interrupt."))
+                    rich.print(markup.dimmed("Command killed by keyboard interrupt."))
                 elif isinstance(error, EOFError):
-                    rprint(markup.dimmed("End of file. No input."))
+                    rich.print(markup.dimmed("End of file. No input."))
                 return None
 
         return inner
@@ -85,7 +85,7 @@ def handle_keyboard_interrupt[**P, R](
     return decorator
 
 
-nl: t.Callable[..., None] = partial(rprint, NewLine())
+nl: t.Callable[..., None] = partial(rich.print, NewLine())
 
 
 async def nl_async() -> None:
@@ -427,7 +427,7 @@ def merge_default_dict_into_current_dict(
 
 def print_message_and_clear_buffer(message: str) -> None:
     with patch_stdout(raw=True):
-        rprint(markup.dimmed(f"{message}."))
+        rich.print(markup.dimmed(f"{message}."))
         get_app().current_buffer.text = ""
 
 

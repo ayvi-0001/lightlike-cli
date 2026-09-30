@@ -1,6 +1,5 @@
 import typing as t
 from functools import wraps
-from types import FunctionType
 
 import click
 from rich import get_console
@@ -9,6 +8,9 @@ from lightlike.app.cache import TimeEntryAppData, TimeEntryCache, TimeEntryIdLis
 from lightlike.app.config import AppConfig
 from lightlike.app.dates import now as datetime_now
 from lightlike.client import CliQueryRoutines, get_client
+
+if t.TYPE_CHECKING:
+    from types import FunctionType
 
 __all__: t.Sequence[str] = (
     "appdata",
@@ -22,7 +24,7 @@ __all__: t.Sequence[str] = (
     "routine",
 )
 
-AnyCallable: t.TypeAlias = t.Callable[..., t.Any]
+type AnyCallable = t.Callable[..., t.Any]
 
 P = t.ParamSpec("P")
 

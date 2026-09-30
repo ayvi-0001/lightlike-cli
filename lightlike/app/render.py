@@ -4,9 +4,9 @@ from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from functools import partial, reduce
 
+import rich
 from more_itertools import one
 from rich import box, get_console
-from rich import print as rprint
 from rich.table import Table
 from rich.text import Text
 
@@ -78,12 +78,12 @@ def query_start_render(
         table.add_column(justify="center", ratio=2)
 
     table.add_row(*general, *query)
-    rprint(table)
+    rich.print(table)
 
     if print_output_path:
         output_path = appdir.QUERIES.joinpath(timestamp).resolve()
         output_path.mkdir(exist_ok=True, parents=True)
-        rprint(
+        rich.print(
             f" Queries saved to: [repr.url][link={output_path.as_uri()}]{output_path.as_posix()}",
         )
 

@@ -6,7 +6,6 @@ import rtoml
 from prompt_toolkit import prompt
 from prompt_toolkit.styles import Style
 from rich import box
-from rich import print as rprint
 from rich.align import Align
 from rich.columns import Columns
 from rich.padding import Padding
@@ -47,7 +46,7 @@ def _eval_help(ctx: click.Context, param: click.Parameter, value: str) -> None:
     if not value or ctx.resilient_parsing:
         return
 
-    rprint(
+    rich.print(
         "This command simply runs the args passed to it through eval(). "
         "Some additional modules are imported to locals.",
         "For multiline prompt, press escape enter to submit.",
@@ -107,7 +106,7 @@ def eval_(args: list[str], multiline_prompt: bool) -> None:
         global EVAL_GLOBALS, EVAL_LOCALS
         try:
             retval = eval(eval_args, EVAL_GLOBALS, EVAL_LOCALS)
-            rprint(retval)
+            rich.print(retval)
         except SyntaxError:
             exec(eval_args, EVAL_GLOBALS, EVAL_LOCALS)
         finally:
@@ -202,4 +201,4 @@ def calendar(
 
         tables.append(Align.center(table))
 
-    rprint(Padding(Columns(tables, equal=True), (1, 0, 0, 0)))
+    rich.print(Padding(Columns(tables, equal=True), (1, 0, 0, 0)))

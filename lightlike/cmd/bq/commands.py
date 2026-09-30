@@ -4,7 +4,6 @@ from inspect import cleandoc
 import click
 import google.auth
 import google.auth.credentials
-from rich import print as rprint
 from rich.syntax import Syntax
 
 from lightlike.app import _questionary, render
@@ -37,7 +36,7 @@ __all__: t.Sequence[str] = (
     short_help="Start an interactive BQ shell.",
 )
 @_pass.console
-def query(console: "Console") -> None:
+def query(console: Console) -> None:
     """Start an interactive BQ shell."""
     from lightlike.cmd.query import query_repl
 
@@ -50,10 +49,10 @@ def query(console: "Console") -> None:
     short_help="Change active project or credentials source.",
 )
 @utils.handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Did not change configuration.")),
+    callback=lambda: rich.print(markup.dimmed("Did not change configuration.")),
 )
 @_pass.console
-def init(console: "Console") -> None:
+def init(console: Console) -> None:
     """Change active project or credentials source."""
     client = get_client()
     credentials = client._credentials
@@ -119,7 +118,7 @@ def init(console: "Console") -> None:
     short_help="Show the current credentials object.",
 )
 @_pass.console
-def show(console: "Console") -> None:
+def show(console: Console) -> None:
     """Show the current credentials object."""
     from rich._inspect import Inspect
 
@@ -153,14 +152,14 @@ def show(console: "Console") -> None:
     short_help="List available projects.",
 )
 @_pass.console
-def projects(console: "Console") -> None:
+def projects(console: Console) -> None:
     """List available projects."""
     projects: t.Sequence[Project] = list(get_client().list_projects())
     table: Table = render.map_sequence_to_rich_table(
         mappings=[vars(p) for p in projects],
     )
     if not table.row_count:
-        rprint(markup.dimmed("No results"))
+        rich.print(markup.dimmed("No results"))
         raise click.exceptions.Exit
 
     console.print(table)
@@ -174,11 +173,11 @@ def projects(console: "Console") -> None:
     short_help="Reset auth and all client settings.",
 )
 @utils.handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Did not change configuration.")),
+    callback=lambda: rich.print(markup.dimmed("Did not change configuration.")),
 )
 @_pass.console
 @click.pass_context
-def reset(ctx: click.Context, console: "Console") -> bool:
+def reset(ctx: click.Context, console: Console) -> bool:
     """Reset auth and all client settings."""
     if ctx.invoked_subcommand is None:
         console.print(

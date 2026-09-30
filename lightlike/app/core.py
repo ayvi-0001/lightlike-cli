@@ -37,10 +37,6 @@ __all__: t.Sequence[str] = (
 )
 
 
-T = t.TypeVar("T")
-P = t.ParamSpec("P")
-
-
 @t.overload
 def _get_maybe_callable[T](
     obj: t.Any,
@@ -91,8 +87,8 @@ class FormattedCommand(click.Command):
         self,
         syntax: t.Callable[..., Syntax] | None = None,
         allow_name_alias: bool = True,
-        *args: P.args,
-        **kwargs: P.kwargs,
+        *args: t.Any,
+        **kwargs: t.Any,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.syntax = syntax
@@ -106,8 +102,8 @@ class AliasedGroup(click.Group):
     def __init__(
         self,
         syntax: t.Callable[..., Syntax] | None = None,
-        *args: P.args,
-        **kwargs: P.kwargs,
+        *args: t.Any,
+        **kwargs: t.Any,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.syntax = syntax
@@ -157,8 +153,8 @@ class LazyAliasedGroup(AliasedGroup):
     def __init__(
         self,
         lazy_subcommands: dict[str, str] | None = None,
-        *args: P.args,
-        **kwargs: P.kwargs,
+        *args: t.Any,
+        **kwargs: t.Any,
     ) -> None:
         super().__init__(*args, **kwargs)
         #   {command-name} -> {module-name}:{command-object-name}
@@ -242,7 +238,7 @@ def _format_click_exception(exception: click.ClickException) -> None:
 
     with patch_stdout(raw=True):
         if hasattr(exception, "ctx"):
-            ctx = exception.ctx
+            ctx: click.Context | None = exception.ctx
             if ctx:
                 console.print(_group_usage(ctx))
 

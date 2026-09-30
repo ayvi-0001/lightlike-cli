@@ -1,10 +1,12 @@
+# ruff: file-ignore[global-statement]
+
 import getpass
 import socket
 import typing as t
 from pathlib import Path
 
 import rtoml
-from prompt_toolkit.formatted_text import fragment_list_width
+from prompt_toolkit.formatted_text import StyleAndTextTuples, fragment_list_width
 from rich import get_console
 
 from lightlike.__about__ import __appdir__, __appname_sc__
@@ -16,7 +18,6 @@ from lightlike.app.shell_complete.dynamic import global_completers
 if t.TYPE_CHECKING:
     from datetime import _TzInfo, datetime
 
-    from prompt_toolkit.mouse_events import MouseEvent
     from rich.console import Console
 
     NotImplementedOrNone = object
@@ -25,18 +26,10 @@ if t.TYPE_CHECKING:
 __all__: t.Sequence[str] = ("bottom_toolbar", "build", "rprompt")
 
 
-OneStyleAndTextTuple = t.Union[
-    tuple[str, str],
-    tuple[str, str, t.Callable[["MouseEvent"], "NotImplementedOrNone"]],
-]
-
-StyleAndTextTuples = list[OneStyleAndTextTuple]
-
-
 USERNAME: str = AppConfig().get("user", "name", default=getpass.getuser())
 HOSTNAME: str = AppConfig().get("user", "host", default=socket.gethostname())
 GCP_PROJECT: str | None = AppConfig().get("client", "active-project")
-TIMEZONE: "_TzInfo" = AppConfig().tzinfo
+TIMEZONE: _TzInfo = AppConfig().tzinfo
 UPDATE_TERMINAL_TITLE: bool = AppConfig().get(
     "settings",
     "update-terminal-title",
@@ -175,13 +168,12 @@ def bottom_toolbar() -> t.Callable[..., StyleAndTextTuples]:
 
 
 def rprompt() -> t.Callable[..., StyleAndTextTuples]:
-    global TIMEZONE
     timestamp: str = now(TIMEZONE).strftime(RPROMPT_DATE_FORMAT)
     return lambda: [("", "\n"), ("class:rprompt.clock", timestamp)]
 
 
 def _extend_git_branch(cursor: StyleAndTextTuples, cwd: Path) -> None:
-    global BRANCH, PATH, GIT_INFO
+    global BRANCH, PATH
     if BRANCH and PATH:
         if not cwd.is_relative_to(PATH):
             PATH, BRANCH = "", ""
@@ -205,7 +197,6 @@ def _extend_git_branch(cursor: StyleAndTextTuples, cwd: Path) -> None:
 
 
 def _timer(cache: EntriesInMemory) -> str:
-    global TIMEZONE
     start: datetime = cache.start
     duration, _hours = date_diff(start, now(TIMEZONE), cache.paused_hours)
     return f" {duration} "
@@ -242,7 +233,7 @@ def _extend_base(cursor: StyleAndTextTuples, cwd: Path) -> None:
     )
 
 
-def _extend_active_project(cursor: StyleAndTextTuples, project: str) -> None:
+def _extend_active_project(cursor: StyleAndTextTuples, project: str | None) -> None:
     if not project:
         return
     cursor.extend(
@@ -253,6 +244,8 @@ def _extend_active_project(cursor: StyleAndTextTuples, project: str) -> None:
         ],
     )
 
+
+# ruff: ignore[commented-out-code]
 
 # CONSOLE_WIDTH: int = get_console().width
 

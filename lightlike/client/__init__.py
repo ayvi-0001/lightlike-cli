@@ -1,4 +1,5 @@
-from collections.abc import Sequence
+
+from typing import TYPE_CHECKING
 
 from lightlike.client._credentials import (
     _get_credentials_from_config,
@@ -11,6 +12,9 @@ from lightlike.client.bigquery import (
     reconfigure,
 )
 from lightlike.client.routines import CliQueryRoutines
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 __all__: Sequence[str] = (
     "AuthPromptSession",

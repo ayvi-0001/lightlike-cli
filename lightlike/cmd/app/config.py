@@ -5,9 +5,9 @@ from functools import partial
 from zoneinfo import ZoneInfo
 
 import click
+import rich
 import rtoml
 from more_itertools import nth, one
-from rich import print as rprint
 from rich.syntax import Syntax
 
 from lightlike.__about__ import __config__
@@ -25,9 +25,6 @@ if t.TYPE_CHECKING:
     from rich.console import Console
 
 __all__: t.Sequence[str] = ("edit", "list_", "open_", "set_")
-
-
-P = t.ParamSpec("P")
 
 
 @click.command(
@@ -108,7 +105,7 @@ def edit(console: Console) -> None:
     shell_complete=None,
 )
 @_pass.console
-def list_(console: Console, keys: t.Sequence[str], json_: bool) -> None:
+def list_(console: Console, keys: t.Sequence[str], *, json_: bool) -> None:
     """Show current config file in terminal."""
     content = AppConfig().get(*keys) if keys else AppConfig().config
 
@@ -214,11 +211,11 @@ def create_settings_fn(
         syntax=cmd.syntax,
     )
     @utils.handle_keyboard_interrupt(
-        callback=lambda: rprint(markup.dimmed(f"Did not update {cmd.name}.")),
+        callback=lambda: rich.print(markup.dimmed(f"Did not update {cmd.name}.")),
     )
     @_pass.console
     @click.pass_context
-    def __cmd(
+    def __cmd[**P](
         ctx: click.Context,
         /,
         console: Console,
@@ -239,7 +236,7 @@ def create_settings_fn(
             c = utils.reduce_keys(*config_keys, sequence=config)
             c["".join(c if c.isalnum() else "_" for c in cmd.name)] = val
 
-        rprint("Set", markup.scope_key(cmd.name), "to", val)
+        rich.print("Set", markup.scope_key(cmd.name), "to", val)
 
         if cmd.callback_fn:
             cmd.callback_fn(locals())
@@ -259,7 +256,7 @@ note_history = SettingsCommand(
     This settings affects how many days to store notes used by option --note / -n for autocompletions.
     e.g. If days = 30, any notes older than 30 days won't appear in autocompletions.
     Default is set to 90 days.
-    """,
+    """,  # ruff: ignore[line-too-long]
     short_help="Days to store note history.",
     syntax=Syntax(
         code="$ app config set general note-history 365",
@@ -330,7 +327,7 @@ def timezone_setting_callback(_locals: dict[str, t.Any]) -> None:
     with AppConfig().rw() as config:
         config["settings"].update(timezone=tz)
 
-    rprint(
+    rich.print(
         "[b]You will also need to run bq:run-build to",
         "rebuild procedures using this new timezone.",
     )
@@ -348,7 +345,7 @@ timezone = SettingsCommand(
     Timezone used for all date/time conversions.
 
     If this value is updated, run bq:run-build to rebuild procedures in BigQuery using the new timezone.
-    """,
+    """,  # ruff: ignore[line-too-long]
     short_help="Timezone used for all date/time conversions.",
     syntax=Syntax(
         code="$ app config set general timezone UTC",
@@ -392,8 +389,13 @@ timer_add_min = SettingsCommand(
 editor = SettingsCommand(
     name="editor",
     argument=click.argument("executable", type=click.STRING),
-    help="Editor should be the full path to the executable, but the regular operating system search path is used for finding the executable.",
-    short_help=f"Default text editor. Current: {AppConfig().get('settings', 'editor', default='not-set')}",
+    help=(
+        "Editor should be the full path to the executable, "
+        "but the regular operating system search path is used for finding the executable."
+    ),
+    short_help=(
+        f"Default text editor. Current: {AppConfig().get('settings', 'editor', default='not-set')}"
+    ),
     syntax=Syntax(
         code="""\
         $ app config set general editor code # vscode
@@ -409,18 +411,15 @@ editor = SettingsCommand(
 )
 
 
-for cmd in t.cast(
-    "list[SettingsCommand]",
-    [
-        note_history,
-        timezone,
-        editor,
-        week_start,
-        quiet_start,
-        timer_add_min,
-        system_command_shell,
-    ],
-):
+for cmd in [
+    note_history,
+    timezone,
+    editor,
+    week_start,
+    quiet_start,
+    timer_add_min,
+    system_command_shell,
+]:
     __cmd = create_settings_fn(cmd=cmd, config_keys=cmd.config_keys)
     update_general_settings.add_command(__cmd)
 
@@ -444,7 +443,10 @@ mouse_support = SettingsCommand(
 save_txt = SettingsCommand(
     name="save-txt",
     argument=value_arg,
-    help="Queries using bq:query will save the rendered result to a [code].txt[/code] file in the app directory.",
+    help=(
+        "Queries using bq:query will save the rendered result to a [code].txt[/code] "
+        "file in the app directory."
+    ),
     short_help="Queries using bq:query save the rendered table to a .txt in appdir.",
     syntax=Syntax(
         code="$ app config set query save-txt true",
@@ -489,7 +491,10 @@ save_query_info = SettingsCommand(
 save_svg = SettingsCommand(
     name="save-svg",
     argument=value_arg,
-    help="Queries using bq:query will save the rendered result to an [code].svg[/code] file in the app directory.",
+    help=(
+        "Queries using bq:query will save the rendered result to an [code].svg[/code] file "
+        "in the app directory."
+    ),
     short_help="Queries using bq:query save the rendered table to an svg in appdir.",
     syntax=Syntax(
         code="$ app config set query save-svg true",
@@ -538,7 +543,7 @@ if AppConfig().get("client", "credentials-source") == CredentialsSource.from_ser
 
         This setting is only visible if the client is authenticated using a service-account key.
         It's not recommended to leave this setting on, as the password and encryped key are stored in the same place.
-        """,
+        """,  # ruff: ignore[line-too-long]
         short_help="Save login password.",
         syntax=Syntax(
             code="$ app config set general stay-logged-in true",
@@ -549,7 +554,7 @@ if AppConfig().get("client", "credentials-source") == CredentialsSource.from_ser
         ),
     )
     @utils.handle_keyboard_interrupt(
-        callback=lambda: rprint(markup.dimmed("Did not change settings.")),
+        callback=lambda: rich.print(markup.dimmed("Did not change settings.")),
     )
     @value_arg
     def stay_logged_in(*, value: bool) -> None:
@@ -560,7 +565,7 @@ if AppConfig().get("client", "credentials-source") == CredentialsSource.from_ser
             stay_logged_in = AppConfig().stay_logged_in
 
             if not stay_logged_in:
-                rprint("Enter current password.")
+                rich.print("Enter current password.")
                 input_password = AuthPromptSession.prompt_password()
                 encrypted_key, salt = service_account_key_flow(AppConfig())
 
@@ -582,21 +587,21 @@ if AppConfig().get("client", "credentials-source") == CredentialsSource.from_ser
                         password=input_password,
                         stay_logged_in=value,
                     )
-                    rprint("Set", markup.scope_key("stay-logged-in"), "to", value)
+                    rich.print("Set", markup.scope_key("stay-logged-in"), "to", value)
 
             else:
-                rprint(
+                rich.print(
                     markup.dimmed(f"`stay-logged-in` is already set to `{value}`,"),
                     markup.dimmed("nothing happened."),
                 )
 
         elif value is False:
             if not AppConfig().stay_logged_in:
-                rprint(markup.dimmed("Setting is already off."))
+                rich.print(markup.dimmed("Setting is already off."))
 
             else:
                 AppConfig().update_user_credentials(
-                    password="null",
+                    password="null",  # ruff: ignore[hardcoded-password-func-arg]
                     stay_logged_in=False,
                 )
-                rprint("Set", markup.scope_key("stay-logged-in"), "to", False)
+                rich.print("Set", markup.scope_key("stay-logged-in"), "to", False)  # ruff: ignore[boolean-positional-value-in-call]

@@ -153,7 +153,7 @@ default_job_print_daily_total_hours = "lightlike.cmd.scheduler.jobs:default_job_
 default_job_load_entry_ids = "lightlike.cmd.scheduler.jobs:default_job_load_entry_ids"
 default_job_sync_cache = "lightlike.cmd.scheduler.jobs:default_job_sync_cache"
 default_job_check_latest_release = "lightlike.cmd.scheduler.jobs:default_job_check_latest_release"
-"""
+"""  # ruff: ignore[line-too-long]
 
 
 CONSOLE: str = """\
@@ -363,4 +363,4 @@ _CONSOLE_SVG_FORMAT = """\
     {matrix}
     </g>
 </svg>
-"""
+"""  # ruff: ignore[line-too-long]

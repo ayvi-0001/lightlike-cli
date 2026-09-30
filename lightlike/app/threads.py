@@ -2,8 +2,8 @@ import typing as t
 from threading import Thread, current_thread
 from time import sleep
 
+import rich
 from prompt_toolkit.patch_stdout import patch_stdout
-from rich import print as rprint
 from rich.repr import rich_repr
 from rich.rule import Rule
 
@@ -29,7 +29,7 @@ def spawn(
                 return fn(**kwargs) if kwargs else fn()
         except Exception as error:
             with patch_stdout(raw=True):
-                rprint(
+                rich.print(
                     Rule(
                         title="[b][red]Error occured in another thread",
                         characters="- ",
@@ -39,7 +39,7 @@ def spawn(
                 )
                 thread_repr: str = f"{rich_repr(current_thread())}"
                 thread_repr.replace("wrapper", f"{fn!r}")
-                rprint(thread_repr)
+                rich.print(thread_repr)
                 console_log_error(error, notify=True, patch_stdout=False)
 
     thread: Thread = Thread(target=wrapper, kwargs=kwargs)

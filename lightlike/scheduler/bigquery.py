@@ -19,18 +19,15 @@ if t.TYPE_CHECKING:
 
 __all__: t.Sequence[str] = ("build_bigquery_scheduler",)
 
-P = t.ParamSpec("P")
 
-
-def build_bigquery_scheduler(*args: P.args, **kwargs: P.kwargs) -> dict[str, t.Any]:
-    # Can create a client with new credentials here, or import get_client() from lightlike.app.client and use that.
+def build_bigquery_scheduler[**P](*args: P.args, **kwargs: P.kwargs) -> dict[str, t.Any]:
+    # Can create a client with new credentials here,
+    # or import get_client() from lightlike.app.client and use that.
     credentials: service_account.Credentials = ...
     client = bigquery.Client(credentials=credentials)
 
-    # from lightlike.app.client import get_client
-    # client = get_client()
-
-    # We can exclude project id from the url and let it use the default project based on the credentials.
+    # We can exclude project id from the url and
+    # let it use the default project based on the credentials.
     engine: Engine = create_engine(url="bigquery://", connect_args={"client": client})
 
     tablename = str(kwargs.get("tablename", "jobs"))
@@ -79,4 +76,4 @@ def _create_jobs_table_in_bigquery(
         schema=tableschema,
         bigquery_description=bigquery_description,
     )
-    table.create(engine, True)
+    table.create(engine, checkfirst=True)

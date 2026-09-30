@@ -1,4 +1,5 @@
-from collections.abc import Sequence
+
+from typing import TYPE_CHECKING
 
 from lightlike.app.validate import callbacks
 from lightlike.app.validate.projects import (
@@ -10,6 +11,9 @@ from lightlike.app.validate.projects import (
     archived_project_list,
     new_project,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 __all__: Sequence[str] = (
     "ExistingProject",

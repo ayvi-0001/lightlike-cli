@@ -5,7 +5,6 @@ from threading import Thread
 
 from google.api_core.exceptions import BadRequest
 from more_itertools import zip_equal
-from rich import print as rprint
 from rich.console import Group
 from rich.padding import Padding
 from rich.panel import Panel
@@ -51,7 +50,7 @@ for idx, _path in enumerate(SCRIPTS.iterdir()):
 
 
 def _run_script(
-    client: "Client",
+    client: Client,
     path: Path,
     patterns: dict[str, str],
     step_progress: Progress,
@@ -66,12 +65,12 @@ def _run_script(
         client.query(script).result()
         step_progress.update(task_id, advance=1)
     except BadRequest as error:
-        rprint(markup.br("Error in script:"), markup.repr_url(path.name))
-        rprint(markup.red(error))
+        rich.print(markup.br("Error in script:"), markup.repr_url(path.name))
+        rich.print(markup.red(error))
 
 
 def _run_build_scripts(
-    client: "Client",
+    client: Client,
     build: Build,
     patterns: dict[str, str],
     app_steps_task_id: TaskID,
@@ -110,7 +109,7 @@ def _run_build_scripts(
         build_steps_progress.update(app_steps_task_id, advance=1)
 
 
-def run(client: "Client", patterns: dict[str, str]) -> bool:
+def run(client: Client, patterns: dict[str, str]) -> bool:
     from rich.live import Live
     from rich.progress import BarColumn, SpinnerColumn, TextColumn, TimeElapsedColumn
 

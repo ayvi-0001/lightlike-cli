@@ -1,5 +1,7 @@
-from collections.abc import Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 __all__: Sequence[str] = ("KEYWORD_META", "SQL_KEYWORDS")
 
@@ -260,7 +262,7 @@ SQL_KEYWORDS: dict[str, Any] = {
     "EXTERNAL TABLE": None,
     "EXTRACT": None,
     "FALSE": None,
-    "FARM_FINGERPRINT": None,
+    "FARM_FINGErich.print": None,
     "FETCH": None,
     "FIRST_VALUE": None,
     "FLOAT64": None,
@@ -637,7 +639,7 @@ KEYWORD_META: dict[str, str] = {
     "EUCLIDEAN_DISTANCE": "Computes the Euclidean distance between two vectors.",
     "EXP": "Computes e to the power of X.",
     "EXTRACT": "Extracts part of an INTERVAL value.",
-    "FARM_FINGERPRINT": "Computes the fingerprint of a STRING or BYTES value, using the FarmHash Fingerprint64 algorithm.",
+    "FARM_FINGErich.print": "Computes the fingerich.print of a STRING or BYTES value, using the FarmHash Fingerich.print64 algorithm.",
     "FIRST_VALUE": "Gets a value for the first row in the current window frame.",
     "FLOAT64": "Converts a JSON number to a SQL FLOAT64 value.",
     "FLOOR": "Gets the largest integral value that is not greater than X.",

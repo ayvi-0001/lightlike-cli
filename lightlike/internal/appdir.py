@@ -54,30 +54,39 @@ CACHE: t.Final[Path] = __appdir__ / ".local_entries"
 CACHE.touch(exist_ok=True)
 CACHE_LOCK: t.Final[Path] = __appdir__ / "cache.lock"
 CACHE_LOCK.touch(exist_ok=True)
+
 ENTRY_APPDATA: t.Final[Path] = __appdir__ / ".entry_appdata"
 ENTRY_APPDATA.touch(exist_ok=True)
+
 SQL_HISTORY: t.Final[Path] = __appdir__ / ".sql_history"
 SQL_HISTORY.touch(exist_ok=True)
 SQL_FILE_HISTORY: t.Final[partial[ThreadedHistory]] = partial(
     ThreadedHistory,
     history=FileHistory(f"{SQL_HISTORY}"),
 )
+
 REPL_HISTORY: t.Final[Path] = __appdir__ / ".repl_history"
 REPL_HISTORY.touch(exist_ok=True)
 REPL_FILE_HISTORY: t.Final[partial[ThreadedHistory]] = partial(
     ThreadedHistory,
     history=FileHistory(f"{REPL_HISTORY}"),
 )
+
 QUERIES: t.Final[Path] = __appdir__ / "queries"
+
 TIMER_LIST_CACHE: t.Final[Path] = __appdir__ / ".tl_ids_latest.json"
+
 LOGS: t.Final[Path] = __appdir__ / "logs"
 LOGS.mkdir(exist_ok=True)
+
 SCHEDULER_CONFIG: t.Final[Path] = __configdir__ / "scheduler.toml"
+
 BQ_UPDATES: t.Final[Path] = __config__ / ".bq_updates"
 
 AVAILABLE_TIMEZONES: t.Final[list[str]] = list(available_timezones())
 
 _TODAY: datetime = datetime.today()
+
 _DAILY_LOG_DIR: Path = LOGS / _TODAY.strftime("%Y.%m.%d")
 _DAILY_LOG_DIR.mkdir(exist_ok=True)
 
@@ -96,13 +105,12 @@ def log() -> logging.Logger:
     return logging.getLogger(__appname_sc__)
 
 
-def rmtree(appdata: Path = __appdir__) -> t.NoReturn:
+def rmtree(appdata: Path = __appdir__) -> None:
     import logging
     import shutil
 
     logging.shutdown()
     shutil.rmtree(appdata, ignore_errors=True)
-    sys.exit(1)
 
 
 CONFIG_UPDATE_PATHS: list[str] = [
@@ -424,5 +432,6 @@ def _initial_build() -> None:
         rich.print(markup.failure("Failed build:"), error)
         rich.print(markup.failure("Deleting app directory."))
         rmtree()
+        sys.exit(1)
     else:
         return

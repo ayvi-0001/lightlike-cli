@@ -4,7 +4,7 @@ from pathlib import Path
 from subprocess import list2cmdline  # ruff: ignore[suspicious-subprocess-import]
 
 import click
-from rich import print as rprint
+import rich
 from rich.syntax import Syntax
 
 from lightlike.__about__ import __appdir__
@@ -298,7 +298,7 @@ def sync(
                 status.update(markup.status_message("Syncing cache"))
                 _cache.sync()
                 _id_list.reset()
-        rprint("[b][green]Sync complete")
+        rich.print("[b][green]Sync complete")
 
 
 @click.command(
@@ -455,4 +455,4 @@ def date_diff(
     allow_name_alias=False,
 )
 def source_dir() -> None:
-    rprint(Path(__file__).parents[2].resolve().as_uri())
+    rich.print(Path(__file__).parents[2].resolve().as_uri())

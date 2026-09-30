@@ -1,5 +1,3 @@
-# ruff: file-ignore[module-import-not-at-top-of-file]
-
 # MIT License
 
 # Copyright (c) 2024 ayvi-0001
@@ -22,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+# ruff: file-ignore[module-import-not-at-top-of-file]
+
 # install rich traceback and reconfigure console before other imports.
 
 import click
@@ -29,11 +29,9 @@ from rich.traceback import install
 
 install(suppress=[click])
 
-
 from lightlike import _console
 
 _console.reconfigure()
-
 
 import sys
 import typing as t
@@ -59,13 +57,12 @@ from lightlike.internal import appdir, constant, utils
 
 __all__: t.Sequence[str] = ("main",)
 
-
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 LOCK: InterProcessLock = InterProcessLock(__lock__, logger=appdir.log())
 
 
-def main(disable_lock: bool = False) -> None:
+def main(*, disable_lock: bool = False) -> None:
     _check_lock(LOCK)
     _console.if_not_quiet_start(cli_info)()
 
@@ -77,14 +74,14 @@ def main(disable_lock: bool = False) -> None:
 
     try:
         appdir.validate(__version__, __config__)
-    except Exception as error:
-        log_error(error)
+    except Exception as exc:  # ruff: ignore[blind-except]
+        log_error(exc)
         sys.exit(2)
 
     try:
         run_cli(locked=disable_lock)
-    except Exception as error:
-        log_error(error)
+    except Exception as exc:  # ruff: ignore[blind-except]
+        log_error(exc)
     finally:
         if len(sys.argv) > 1:
             from lightlike.cmd.scheduler.jobs import check_latest_release
@@ -95,7 +92,7 @@ def main(disable_lock: bool = False) -> None:
 def build_cli(
     name: str,
     repl_kwargs: dict[str, t.Any],
-    help: str | None = None,
+    help_: str | None = None,
     lazy_subcommands: dict[str, t.Any] | None = None,
     context_settings: dict[str, t.Any] | None = None,
     call_on_close: t.Callable[[click.Context | None], t.Never] | None = None,
@@ -104,7 +101,7 @@ def build_cli(
     @click.group(
         cls=LazyAliasedGroup,
         name=name,
-        help=help,
+        help=help_,
         lazy_subcommands=lazy_subcommands,
         invoke_without_command=True,
         context_settings=context_settings,
@@ -123,7 +120,7 @@ def build_cli(
     return cli
 
 
-def run_cli(name: str = "lightlike", locked: bool = True) -> None:
+def run_cli(name: str = "lightlike", *, locked: bool = True) -> None:
     from lightlike.app.config import AppConfig  # isort: split
     from lightlike.app import call_on_close, cursor, dates, shell_complete
     from lightlike.app.cache import TimeEntryCache
@@ -192,7 +189,7 @@ def run_cli(name: str = "lightlike", locked: bool = True) -> None:
 
     cli: LazyAliasedGroup = build_cli(
         name=name,
-        help=__help__,
+        help_=__help__,
         repl_kwargs=repl_kwargs,
         lazy_subcommands=_build_lazy_subcommands(
             config=AppConfig().get("cli", "commands", default={}),
@@ -258,5 +255,6 @@ def _add_to_path(paths: list[str] | None) -> None:
         try:
             sys.path.append(path)
             appdir.log().debug(f"{path} added to path")
-        except Exception as error:
-            appdir.log().error(error)
+        except Exception:
+            logger = appdir.log()
+            logger.exception("Error adding to path")

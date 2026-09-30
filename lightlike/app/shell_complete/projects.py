@@ -1,5 +1,4 @@
 import typing as t
-from pathlib import Path
 
 import click
 import rtoml
@@ -11,6 +10,8 @@ from lightlike.internal import appdir
 from lightlike.internal.utils import match_str, print_message_and_clear_buffer
 
 if t.TYPE_CHECKING:
+    from pathlib import Path
+
     from prompt_toolkit.completion import CompleteEvent
     from prompt_toolkit.document import Document
 
@@ -63,8 +64,8 @@ class Projects(Completer):
 
     def get_completions(
         self,
-        document: "Document",
-        complete_event: "CompleteEvent",
+        document: Document,
+        complete_event: CompleteEvent,
     ) -> t.Iterator[Completion]:
 
         matches: list[str] = fuzzyfinder(

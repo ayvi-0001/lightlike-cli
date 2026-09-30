@@ -22,13 +22,15 @@
 
 import importlib.metadata
 import sys
-from collections.abc import Sequence
 from os import getenv
 from pathlib import Path
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 import rich
 from click import get_app_dir
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 __all__: Sequence[str] = (
     "__appdir__",
@@ -66,7 +68,7 @@ LIGHTLIKE_CONFIG_DIR: Path = Path(
 # LIGHTLIKE_CONFIG_DIR:           Directory for config. Must be absolute path.
 # LIGHTLIKE_APP_DIR:              Directory for app data. Must be absolute path.
 # LIGHTLIKE_CLI_DEV:              Enables dev features.
-# LIGHTLIKE_CLI_DEV_EXPORT_HELP:  Output of help commands are saved to an svg in the current directory.
+# LIGHTLIKE_CLI_DEV_EXPORT_HELP:  Output of help commands are saved to an svg in the current directory.  # ruff: ignore[line-too-long]
 #                                 svg's are saved as the name of the command.
 # #################################################################################################
 
@@ -145,7 +147,7 @@ __help__: str = f"""\
 VERSION = {__version__}
 LIGHTLIKE_APP_DIR = {LIGHTLIKE_APP_DIR.as_posix()}
 LIGHTLIKE_CONFIG_DIR = {LIGHTLIKE_CONFIG_DIR.as_posix()}
-"""
+"""  # ruff: ignore[line-too-long]
 
 if LIGHTLIKE_ENV:
     __help__ += f"\nLIGHTLIKE_ENV: {LIGHTLIKE_ENV}"

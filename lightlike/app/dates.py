@@ -15,7 +15,7 @@ from lightlike.app.config import AppConfig
 if t.TYPE_CHECKING:
     from datetime import _TzInfo
 
-    from dateparser import _Settings
+    from dateparser.conf import Settings
 
 
 __all__: t.Sequence[str] = (
@@ -121,7 +121,7 @@ def parse_date(
 
     parsed_date: datetime | None = dateparser.parse(
         date_string=date,
-        settings=t.cast("_Settings", settings),
+        settings=t.cast("Settings", settings),
         date_formats=ADDITIONAL_DATE_FORMATS,
     )
     if not parsed_date:
@@ -291,8 +291,9 @@ def calculate_duration(
     start_date: datetime,
     end_date: datetime,
     paused_hours: Decimal | float | None = None,
-    raise_if_negative: bool = False,
     exception: Exception | None = None,
+    *,
+    raise_if_negative: bool = False,
 ) -> Decimal:
     duration: timedelta = end_date - start_date
 
@@ -309,12 +310,11 @@ def calculate_duration(
         )
         duration -= paused_delta
 
-    if duration.total_seconds() < 0 or copysign(1, duration.days) == -1:
-        if raise_if_negative:
-            if exception:
-                raise exception
-            msg = f"Negative duration: {duration.total_seconds()}"
-            raise ValueError(msg)
+    if (duration.total_seconds() < 0 or copysign(1, duration.days) == -1) and raise_if_negative:
+        if exception:
+            raise exception
+        msg = f"Negative duration: {duration.total_seconds()}"
+        raise ValueError(msg)
 
     total_seconds: int = int(duration.total_seconds())
     hours: Decimal = round(Decimal(total_seconds) / Decimal(3600), 4)

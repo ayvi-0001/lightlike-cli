@@ -2,10 +2,11 @@ import logging
 import sys
 import typing as t
 
-import click
+if t.TYPE_CHECKING:
+    import click
 
 
-def call_on_close(ctx: click.Context | None = None) -> t.NoReturn:
+def call_on_close(_ctx: click.Context | None = None, /) -> t.NoReturn:  # ruff: ignore[non-empty-init-module]
     from lightlike.client import get_client
     from lightlike.internal import appdir
     from lightlike.scheduler import get_scheduler

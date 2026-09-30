@@ -12,9 +12,9 @@ from math import copysign
 from operator import truth
 
 import click
+import rich
 from apscheduler.schedulers.background import BackgroundScheduler
 from more_itertools import first, locate, one
-from rich import print as rprint
 from rich.markup import escape
 from rich.syntax import Syntax
 from rich.text import Text
@@ -86,7 +86,7 @@ def default_timer_add(timer_add_min: int) -> str:
 
         $ timer add --project lightlike-cli --start jan1@9am --end jan1@1pm --note 'task description'
         $ t a -plightlike-cli -sjan1@9am -ejan1@1pm -n'task description'\
-        """,
+        """,  # ruff: ignore[line-too-long]
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
@@ -94,7 +94,7 @@ def default_timer_add(timer_add_min: int) -> str:
     ),
 )
 @utils.handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Did not add time entry.")),
+    callback=lambda: rich.print(markup.dimmed("Did not add time entry.")),
 )
 @click.option(
     "-p",
@@ -209,13 +209,14 @@ def add(
     routine: CliQueryRoutines,
     project: str,
     start: datetime,
-    start_after_last: bool,
     end: datetime,
     date: datetime | None,
     note: str,
-    billable: bool,
     times_default: int | None,
     note_parts: t.Sequence[str],
+    *,
+    start_after_last: bool,
+    billable: bool,
 ) -> None:
     """
     Add a completed time entry.
@@ -262,6 +263,7 @@ def add(
     start_param = one(filter(lambda p: p.name == "start", ctx.command.params))
     end_param = one(filter(lambda p: p.name == "end", ctx.command.params))
     start_default = t.cast("float", start_param.get_default(ctx, call=True))
+
     end_default = t.cast("str", end_param.get_default(ctx))
 
     if start_after_last:
@@ -557,10 +559,11 @@ def _get_entry_edits(
     console: Console,
     project: str,
     note: str,
-    billable: bool,
     start_time: datetime,
     end_time: datetime,
     date: datetime,
+    *,
+    billable: bool,
 ) -> dict[str, t.Any] | None:
     edits: dict[str, t.Any] = {}
 
@@ -726,7 +729,7 @@ def _match_ids(
     ),
 )
 @utils.handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Did not edit entries.")),
+    callback=lambda: rich.print(markup.dimmed("Did not edit entries.")),
 )
 @click.option(
     "-i",
@@ -868,10 +871,11 @@ def edit(
     yank: list[str],
     project: str,
     note: str,
-    billable: bool,
     start_time: datetime,
     end_time: datetime,
     date: datetime,
+    *,
+    billable: bool,
 ) -> None:
     """
     Edit completed time entries.
@@ -1155,7 +1159,7 @@ def get(
         # list entries today before 12:00:00
         $ timer list --today time(start) >= \\"12:00:00\\"
         $ t l -t time(start) >= \\"12:00:00\\"\
-        """,
+        """,  # ruff: ignore[line-too-long]
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
@@ -1427,11 +1431,6 @@ def list_(
     date: datetime | None,
     start: datetime | None,
     end: datetime | None,
-    current_week: bool,
-    previous_week: bool,
-    current_month: bool,
-    current_year: bool,
-    all_: bool,
     match_project: t.Sequence[str],
     match_note: t.Sequence[str],
     exclude: t.Sequence[str],
@@ -1439,9 +1438,15 @@ def list_(
     modifiers: t.Sequence[str],
     limit: int | None,
     offset: int | None,
+    where: t.Sequence[str],
+    *,
+    all_: bool,
+    current_week: bool,
+    previous_week: bool,
+    current_month: bool,
+    current_year: bool,
     prompt_where: bool,
     json_: bool,
-    where: t.Sequence[str],
 ) -> None:
     """
     List time entries.
@@ -1490,7 +1495,7 @@ def list_(
         joined together by a space to form the where clause.
         the word "WHERE" is stripped from the start of the string, if it exists.
 
-    """
+    """  # ruff: ignore[line-too-long]
     ctx, _ = ctx_group
 
     if offset and not limit:
@@ -1605,7 +1610,7 @@ def list_(
 
         if row["paused"] is True:
             _, new_row["paused_hours"] = (
-                dates.date_diff(  # TODO combine this with the first if case below
+                dates.date_diff(  # TODO(ayvi): combine this with the first if case below
                     date_start=t.cast("datetime", row["timestamp_paused"]),
                     date_end=now,
                     add_hours=row["paused_hours"],
@@ -1650,7 +1655,7 @@ def list_(
             ),
         )
         if not table.row_count:
-            rprint(markup.dimmed("No results"))
+            rich.print(markup.dimmed("No results"))
             raise click.exceptions.Exit
 
         console.print(table)
@@ -1716,6 +1721,7 @@ def update_notes(
     appdata: TimeEntryAppData,
     routine: CliQueryRoutines,
     project: str,
+    *,
     dry_run: bool,
 ) -> None:
     """
@@ -1726,7 +1732,7 @@ def update_notes(
     timesheet entries matching the original note on the left.
     If the file is closed without saving, no edits will be applied.
     Use option `--dry-run` / `-d` to see the query without making any changes.
-    """
+    """  # ruff: ignore[line-too-long]
     ctx, _ = ctx_group
 
     query_job = routine.select(
@@ -1864,7 +1870,7 @@ def pause(
     ),
 )
 @utils.handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Did not resume time entry.")),
+    callback=lambda: rich.print(markup.dimmed("Did not resume time entry.")),
 )
 @click.argument(
     "entry",
@@ -1909,7 +1915,7 @@ def resume(
         paused_entries = cache.get_updated_paused_entries(now)
         table: Table = render.map_sequence_to_rich_table(paused_entries)
         if not table.row_count:
-            rprint(markup.dimmed("No results"))
+            rich.print(markup.dimmed("No results"))
             raise click.exceptions.Exit
 
         console.print(table)
@@ -1967,7 +1973,7 @@ def resume(
     ),
 )
 @utils.handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Did not start time entry.")),
+    callback=lambda: rich.print(markup.dimmed("Did not start time entry.")),
 )
 @click.option(
     "-p",
@@ -2078,13 +2084,14 @@ def run(
     console: Console,
     routine: CliQueryRoutines,
     cache: TimeEntryCache,
-    billable: bool | None,
     project: str,
     start: datetime,
     note: str,
+    note_parts: t.Sequence[str],
+    *,
+    billable: bool | None,
     pause_active: bool,
     stop_active: bool,
-    note_parts: t.Sequence[str],
 ) -> None:
     """
     Start a new time entry.
@@ -2124,7 +2131,7 @@ def run(
         timer:pause - pause the [b]active[/b] entry.
         timer:resume - continue a paused entry, this paused entry becomes the [b]active[/b] entry.
         timer:switch - pause and switch the [b]active[/b] entry.
-    """
+    """  # ruff: ignore[line-too-long]
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
@@ -2260,16 +2267,17 @@ def run(
 )
 @_pass.cache
 @_pass.console
-def show(console: Console, cache: TimeEntryCache, json_: bool) -> None:
+def show(console: Console, cache: TimeEntryCache, *, json_: bool) -> None:
     """
     Display a table of local running/paused time entries.
+
     Entries are sorted top-down from active -> running -> paused:
         The active entry is bolded in the first row.
         Running entries are not bolded.
         Paused entries are dimmed.
     """
     if json_:
-        console.print_json(data=cache._entries, default=str, indent=4)
+        console.print_json(data=cache._entries, default=str, indent=4)  # ruff: ignore[private-member-access]
     else:
         console.print(cache)
 
@@ -2354,7 +2362,7 @@ def stop(
         entry = select
 
     if not entry:
-        rprint(markup.dimmed("Canceled."))
+        rich.print(markup.dimmed("Canceled."))
         return
 
     matched_id = id_list.match_id(entry)
@@ -2434,7 +2442,7 @@ def switch(
     if not entry:
         table: Table = render.map_sequence_to_rich_table(entries)
         if not table.row_count:
-            rprint(markup.dimmed("No results"))
+            rich.print(markup.dimmed("No results"))
             raise click.exceptions.Exit
 
         console.print(table)
@@ -2525,7 +2533,7 @@ def focus(
     if not entry:
         table: Table = render.map_sequence_to_rich_table(entries)
         if not table.row_count:
-            rprint(markup.dimmed("No results"))
+            rich.print(markup.dimmed("No results"))
             raise click.exceptions.Exit
 
         console.print(table)
@@ -2667,12 +2675,13 @@ def update(
     console: Console,
     cache: TimeEntryCache,
     routine: CliQueryRoutines,
-    billable: bool | None,
     project: str | None,
     start: datetime | None,
     note: str | None,
-    stop_active: bool,
     note_parts: t.Sequence[str],
+    *,
+    billable: bool | None,
+    stop_active: bool,
 ) -> None:
     """
     Update the [b]active[/b] time entry.
@@ -2726,7 +2735,8 @@ def update(
                 paused_hours=cache.paused_hours or 0,
                 raise_if_negative=True,
                 exception=click.BadArgumentUsage(
-                    message="Invalid value for args [START] | [END]. New duration cannot be negative. "
+                    message="Invalid value for args [START] | [END]. "
+                    "New duration cannot be negative. "
                     f"Existing paused hours = {cache.paused_hours}",
                     ctx=ctx,
                 ),

@@ -4,7 +4,6 @@ import typing as t
 from contextlib import suppress
 from pathlib import Path
 
-import click
 from click.shell_completion import CompletionItem
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.formatted_text import FormattedText
@@ -16,6 +15,7 @@ from lightlike.internal.enums import ActiveCompleter
 from lightlike.internal.utils import alter_str
 
 if t.TYPE_CHECKING:
+    import click
     from prompt_toolkit.completion import CompleteEvent
     from prompt_toolkit.document import Document
     from prompt_toolkit.mouse_events import MouseEvent
@@ -158,8 +158,8 @@ def path(
 class PathCompleter(Completer):
     def get_completions(
         self,
-        document: "Document",
-        complete_event: "CompleteEvent",
+        document: Document,
+        complete_event: CompleteEvent,
     ) -> t.Iterable[Completion]:
         console = get_console()
         console_width = console.width

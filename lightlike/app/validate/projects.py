@@ -1,11 +1,14 @@
 import re
-from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 import click
 from prompt_toolkit.document import Document
 from prompt_toolkit.validation import ValidationError, Validator
 
 from lightlike.app.shell_complete import projects
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 __all__: Sequence[str] = (
     "ExistingProject",
@@ -22,7 +25,7 @@ DEFAULT_PROJECT: str = "no-project"
 
 
 class ExistingProject(Validator):
-    def validate(self, document: "Document") -> None:
+    def validate(self, document: Document) -> None:  # ruff: ignore[no-self-use]
         if not document.text:
             raise ValidationError(
                 cursor_position=0,
@@ -49,7 +52,7 @@ class NewProject(Validator):
     def callback(self, name: str) -> None:
         return self.validate(Document(text=name))
 
-    def validate(self, document: "Document") -> None:
+    def validate(self, document: Document) -> None:
         if not document.text:
             raise ValidationError(
                 cursor_position=0,
@@ -89,7 +92,7 @@ class NewProject(Validator):
 
 def active_project(
     ctx: click.Context,
-    param: click.Parameter,
+    _param: click.Parameter | None,
     value: str,
 ) -> str | None:
     if ctx.info_name and ctx.parent and ctx.parent.info_name:
@@ -155,9 +158,10 @@ def new_project(ctx: click.Context, param: click.Parameter, value: str) -> str:
     if value:
         try:
             NewProject().callback(value)
+        except ValidationError as exc:
+            raise click.ClickException(message=f"{exc}") from exc
+        else:
             return value
-        except ValidationError as e:
-            raise click.ClickException(message=f"{e}")
 
     return value
 

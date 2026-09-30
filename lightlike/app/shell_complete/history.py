@@ -3,7 +3,6 @@ import typing as t
 from more_itertools import unique_everseen
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.formatted_text import FormattedText
-from prompt_toolkit.history import ThreadedHistory
 from rich import get_console
 
 from lightlike.internal import appdir
@@ -12,6 +11,7 @@ from lightlike.internal.utils import match_str
 if t.TYPE_CHECKING:
     from prompt_toolkit.completion import CompleteEvent
     from prompt_toolkit.document import Document
+    from prompt_toolkit.history import ThreadedHistory
 
 
 __all__: t.Sequence[str] = ("HistoryCompleter",)
@@ -27,8 +27,8 @@ class HistoryCompleter(Completer):
 
     def get_completions(
         self,
-        document: "Document",
-        complete_event: "CompleteEvent",
+        document: Document,
+        complete_event: CompleteEvent,
     ) -> t.Iterator[Completion]:
         try:
             text_before_cursor: str = document.text_before_cursor

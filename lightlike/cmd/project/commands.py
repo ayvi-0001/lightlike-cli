@@ -1,8 +1,8 @@
 import typing as t
 
 import click
+import rich
 from more_itertools import first
-from rich import print as rprint
 from rich.syntax import Syntax
 
 from lightlike.app import _get, _questionary, render, shell_complete, threads, validate
@@ -52,7 +52,7 @@ __all__: t.Sequence[str] = (
     ),
 )
 @utils.handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Did not archive projects.")),
+    callback=lambda: rich.print(markup.dimmed("Did not archive projects.")),
 )
 @click.argument(
     "projects",
@@ -187,7 +187,7 @@ def archive(
     ),
 )
 @utils.handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Did not create project.")),
+    callback=lambda: rich.print(markup.dimmed("Did not create project.")),
 )
 @click.option(
     "-n",
@@ -309,7 +309,7 @@ def create(
     ),
 )
 @utils.handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Did not delete projects.")),
+    callback=lambda: rich.print(markup.dimmed("Did not delete projects.")),
 )
 @click.argument(
     "projects",
@@ -601,7 +601,7 @@ def list_(
         mappings=[dict(r.items()) for r in query_job],
     )
     if not table.row_count:
-        rprint(markup.dimmed("No results"))
+        rich.print(markup.dimmed("No results"))
         raise click.exceptions.Exit
 
     console.print(table)
@@ -648,7 +648,7 @@ def set_() -> None:
     ),
 )
 @utils.handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Did not update project.")),
+    callback=lambda: rich.print(markup.dimmed("Did not update project.")),
 )
 @click.argument(
     "project",
@@ -734,7 +734,7 @@ def set_project_name(
     ),
 )
 @utils.handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Did not update project.")),
+    callback=lambda: rich.print(markup.dimmed("Did not update project.")),
 )
 @click.argument(
     "project",
@@ -823,7 +823,7 @@ def set_project_description(
     ),
 )
 @utils.handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Did not update project.")),
+    callback=lambda: rich.print(markup.dimmed("Did not update project.")),
 )
 @click.argument(
     "project",
@@ -890,7 +890,7 @@ def set_project_default_billable(
     ),
 )
 @utils.handle_keyboard_interrupt(
-    callback=lambda: rprint(markup.dimmed("Did not unarchive project.")),
+    callback=lambda: rich.print(markup.dimmed("Did not unarchive project.")),
 )
 @click.argument(
     "projects",

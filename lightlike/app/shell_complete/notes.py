@@ -1,7 +1,5 @@
 import typing as t
-from pathlib import Path
 
-import click
 import rtoml
 from click.shell_completion import CompletionItem
 from fuzzyfinder import fuzzyfinder
@@ -14,6 +12,9 @@ from lightlike.internal import appdir
 from lightlike.internal.utils import alter_str
 
 if t.TYPE_CHECKING:
+    from pathlib import Path
+
+    import click
     from prompt_toolkit.completion import CompleteEvent
     from prompt_toolkit.document import Document
 
@@ -44,8 +45,8 @@ class Notes(Completer):
 
     def get_completions(
         self,
-        document: "Document",
-        complete_event: "CompleteEvent",
+        document: Document,
+        complete_event: CompleteEvent,
     ) -> t.Iterator[Completion]:
         completions: list[Completion] = []
 

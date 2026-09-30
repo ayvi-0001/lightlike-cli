@@ -1,16 +1,18 @@
 import os
 import typing as t
-from collections.abc import Sequence
 from pathlib import Path
 
 import click
-from rich import print as rprint
-from rich.console import Console
 
 from lightlike.app import shell_complete
 from lightlike.app._repl import exit_repl
 from lightlike.app.core import FormattedCommand
 from lightlike.cmd import _pass
+
+if t.TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from rich.console import Console
 
 __all__: t.Sequence[str] = ("cd_", "exit_", "help_")
 
@@ -52,7 +54,7 @@ def cd_(path: Path) -> None:
         else:
             os.chdir(path.resolve())
     except Exception as error:
-        rprint(f"{error!r}; {path.resolve()}")
+        rich.print(f"{error!r}; {path.resolve()}")
 
 
 @click.command(

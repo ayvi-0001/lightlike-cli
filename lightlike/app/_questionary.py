@@ -1,9 +1,7 @@
 import typing as t
 
 import rtoml
-from prompt_toolkit.completion import Completer
 from prompt_toolkit.cursor_shapes import CursorShape
-from prompt_toolkit.lexers import Lexer
 from prompt_toolkit.shortcuts.prompt import CompleteStyle
 from prompt_toolkit.styles import Style
 from questionary import Question
@@ -13,10 +11,14 @@ from questionary import confirm as _confirm
 from questionary import press_any_key_to_continue as _press_any_key_to_continue
 from questionary import select as _select
 from questionary import text as _text
-from questionary.prompts.common import Choice
 
 from lightlike.__about__ import __config__
 from lightlike.internal import constant, utils
+
+if t.TYPE_CHECKING:
+    from prompt_toolkit.completion import Completer
+    from prompt_toolkit.lexers import Lexer
+    from questionary.prompts.common import Choice
 
 __all__: t.Sequence[str] = (
     "autocomplete",

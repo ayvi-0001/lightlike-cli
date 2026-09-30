@@ -13,7 +13,7 @@ class JobKwargs(t.TypedDict):
 
     func: t.Callable[..., t.Any]
     jobstore: str
-    trigger: "BaseTrigger | str"
+    trigger: BaseTrigger | str
     id: t.NotRequired[str]
     name: t.NotRequired[str]
     args: t.NotRequired[tuple[t.Any] | list[t.Any]]
@@ -22,9 +22,9 @@ class JobKwargs(t.TypedDict):
     executor: t.NotRequired[str]
     misfire_grace_time: t.NotRequired[int]
     max_instances: t.NotRequired[int]
-    next_run_time: t.NotRequired["datetime"]
+    next_run_time: t.NotRequired[datetime]
     replace_existing: t.NotRequired[bool]
-    run_date: t.NotRequired["str | datetime"]
+    run_date: t.NotRequired[str | datetime]
     weeks: t.NotRequired[int]
     days: t.NotRequired[int]
     hours: t.NotRequired[int]
@@ -38,5 +38,5 @@ class JobKwargs(t.TypedDict):
     hour: t.NotRequired[int]
     minute: t.NotRequired[int]
     second: t.NotRequired[int]
-    start_date: t.NotRequired["str | datetime"]
-    end_date: t.NotRequired["str | datetime"]
+    start_date: t.NotRequired[str | datetime]
+    end_date: t.NotRequired[str | datetime]

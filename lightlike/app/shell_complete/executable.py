@@ -77,8 +77,8 @@ class ExecutableCompleter(Completer):
 
     def get_completions(
         self,
-        document: "Document",
-        complete_event: "CompleteEvent",
+        document: Document,
+        complete_event: CompleteEvent,
     ) -> t.Iterator[Completion]:
         try:
             word_before_cursor = document.get_word_before_cursor(WORD=True)

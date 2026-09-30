@@ -2,8 +2,8 @@ import typing as t
 from pathlib import Path
 
 import click
+import rich
 from rich import get_console
-from rich import print as rprint
 from rich.filesize import decimal
 from rich.markup import escape
 from rich.padding import Padding
@@ -79,10 +79,10 @@ def tree(path: Path, size: bool) -> None:
                         tree.add(text_filename)
 
             walk_directory(directory, tree)
-            rprint(Padding(tree, (1, 0, 1, 0)))
+            rich.print(Padding(tree, (1, 0, 1, 0)))
 
     except Exception as error:
-        rprint(f"{error!r}; {str(path.resolve())!r}")
+        rich.print(f"{error!r}; {str(path.resolve())!r}")
 
 
 # ruff: ignore[commented-out-code]
@@ -161,6 +161,6 @@ def tree(path: Path, size: bool) -> None:
 #             table.add_row(name)
 #             tables.append(table)
 
-#         rprint(Columns(tables, equal=True))
+#         rich.print(Columns(tables, equal=True))
 #     except Exception as error:
-#         rprint(f"{error!r}; {str(path.resolve())!r}")
+#         rich.print(f"{error!r}; {str(path.resolve())!r}")

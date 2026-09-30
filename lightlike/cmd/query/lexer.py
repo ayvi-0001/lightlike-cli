@@ -1,5 +1,5 @@
 import re
-from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from pygments.lexer import RegexLexer, words
 from pygments.token import (
@@ -12,6 +12,9 @@ from pygments.token import (
     String,
     Whitespace,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 __all__: Sequence[str] = ("BqSqlLexer",)
 
@@ -170,7 +173,7 @@ class BqSqlLexer(RegexLexer):
                         "EXTERNAL TABLE",
                         "EXTRACT",
                         "FALSE",
-                        "FARM_FINGERPRINT",
+                        "FARM_FINGErich.print",
                         "FETCH",
                         "FIRST_VALUE",
                         "FLOAT64",

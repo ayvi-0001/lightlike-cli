@@ -2,18 +2,20 @@ import sys
 import typing as t
 from dataclasses import dataclass
 from functools import partial
-from pathlib import Path
 
 import rtoml
 from rich import get_console
 from rich import reconfigure as rich_reconfigure
-from rich.highlighter import RegexHighlighter, _combine_regex
+from rich.highlighter import RegexHighlighter, _combine_regex  # ruff: ignore[import-private-name]
 from rich.style import Style
 from rich.theme import Theme
 
 from lightlike import _fasteners
 from lightlike.__about__ import __appdir__, __config__
 from lightlike.internal import appdir, constant
+
+if t.TYPE_CHECKING:
+    from pathlib import Path
 
 __all__: t.Sequence[str] = (
     "CONSOLE_CONFIG",
@@ -29,25 +31,26 @@ QUIET_START: bool = False
 
 @_fasteners.interprocess_locked(__appdir__ / "config.lock")
 def _set_quiet_start(config_path: Path) -> None:
-    try:
+    try:  # ruff: ignore[too-many-statements-in-try-clause]
         if config_path.exists():
             config = rtoml.load(config_path)
             quiet_start: bool = t.cast("bool", config["settings"].get("quiet-start"))
 
-            global QUIET_START
+            global QUIET_START  # ruff: ignore[global-statement]
             if len(sys.argv) > 1:
                 QUIET_START = True
             elif quiet_start is not None:
                 QUIET_START = bool(quiet_start)
-    except Exception as error:
-        appdir.log().error(f"Failed to configure quiet start: {error}")
+    except Exception:
+        logger = appdir.log()
+        logger.exception("Failed to configure quiet start")
 
 
 _set_quiet_start(__config__)
 
 
 def if_not_quiet_start(fn: t.Callable[..., None]) -> t.Callable[..., None]:
-    return fn if not QUIET_START else lambda *a, **kw: None
+    return fn if not QUIET_START else lambda *_a, **_kw: None
 
 
 @dataclass()
@@ -122,7 +125,7 @@ GROUP_COMMANDS = r"(?P<command>((%s)))" % "|".join(  # ruff: ignore[printf-strin
 
 
 class Highlighter(RegexHighlighter):
-    highlights = [
+    highlights = [  # ruff: ignore[mutable-class-default]
         r"(^|[^\w\-])(?P<switch>-([^\W0-9][\w\-]*\w|[^\W0-9]))",
         r"(^|[^\w\-])(?P<option>--([^\W0-9][\w\-]*\w|[^\W0-9]))",
         r"(?P<metavar><[^>]+>)",
@@ -150,7 +153,7 @@ class Highlighter(RegexHighlighter):
     ]
 
 
-def reconfigure(**kwargs: t.Any) -> None:
+def reconfigure(*_args: t.Any, **kwargs: t.Any) -> None:
     rich_reconfigure(
         style=CONSOLE_CONFIG.style,
         theme=CONSOLE_CONFIG.theme,
@@ -159,7 +162,10 @@ def reconfigure(**kwargs: t.Any) -> None:
         **kwargs,
     )
 
-    get_console()._log_render.omit_repeated_times = False
+    get_console()._log_render.omit_repeated_times = False  # ruff: ignore[private-member-access]
 
-    spinner = "simpleDotsScrolling"
-    get_console().status = partial(get_console().status, spinner=spinner)
+    setattr(  # ruff: ignore[set-attr-with-constant]
+        get_console(),
+        "status",
+        partial(get_console().status, spinner="simpleDotsScrolling"),
+    )

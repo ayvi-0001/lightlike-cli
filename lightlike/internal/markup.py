@@ -1,4 +1,5 @@
 # ruff: file-ignore[lambda-assignment]
+
 import typing as t
 
 from rich import get_console
@@ -7,8 +8,8 @@ from rich.style import Style
 from rich.text import Text
 
 
-def __getattr__(_name: t.Any) -> t.Callable[..., t.Any]:
-    def inner(text: Text | str, style: str) -> t.Any:
+def __getattr__(_name: str) -> t.Callable[[Text | str], Text]:
+    def inner(text: Text | str, style: str) -> Text:
         if isinstance(text, Text):
             existing_style = text.style
             parsed_attr = style.replace("_", ".")
@@ -18,7 +19,7 @@ def __getattr__(_name: t.Any) -> t.Callable[..., t.Any]:
 
             elif isinstance(existing_style, str):
                 existing_style = existing_style.replace("_", ".")
-                theme_stack = get_console()._theme_stack
+                theme_stack = get_console()._theme_stack  # ruff: ignore[private-member-access]
 
                 if theme_stack.get(existing_style) is not None:
                     new_style = Style.combine(
@@ -53,7 +54,7 @@ dimmed: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="#888888")
 code: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="bold #f08375")
 command: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="bold #3465a4")
 failure: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="failure")
-link: t.Callable[..., Text] = lambda t, l: Text(text=f"{t!s}", style=Style(link=l, underline=True, color="bright_blue", italic=False, bold=False))  # ruff: ignore[ambiguous-variable-name]
+link: t.Callable[..., Text] = lambda t, l: Text(text=f"{t!s}", style=Style(link=l, underline=True, color="bright_blue", italic=False, bold=False))  # ruff: ignore[ambiguous-variable-name, line-too-long]
 log_error: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="log.error")
 pygments_keyword: t.Callable[..., Text] = lambda t: Text(text=f"{t!s}", style="#6b90f7")
 repr_attrib_equal: t.Callable[..., Text] = lambda: Text(text="=", style="repr_attrib_equal")
