@@ -8,6 +8,8 @@
 
 A time-tracking REPL, using [Google BigQuery](https://cloud.google.com/bigquery?hl=en) as a backend.
 
+Support for a local only version is planned long-term.
+
 - [Features](#features)
 - [Installation & Setup](#installation--setup)
 - [Command Guide](https://github.com/ayvi-0001/lightlike-cli/blob/main/docs/command_guide.md)
@@ -18,13 +20,13 @@ A time-tracking REPL, using [Google BigQuery](https://cloud.google.com/bigquery?
 
 ## Features
 
-<ins>*Addtional feature videos to be added*</ins>
+<ins>_Additional feature videos to be added_</ins>
 
 - **Aliased commands & Auto Completion.**
 
   The primary goal of this tool is to make logging hours as fast as possible.
   All commands are aliased - as long as it is unique, you can type the shortest prefix down to a single character to call that command.
-  All options have a short flag and relevant autocompletions if applicable.
+  All options have a short flag and relevant auto completions if applicable.
   Previously entered notes autocomplete if their respective projects are selected as an option.
 
   ```bash
@@ -38,15 +40,15 @@ A time-tracking REPL, using [Google BigQuery](https://cloud.google.com/bigquery?
 
 - **Concurrent timers.**
 
-  You can have multiple time entries running at once, pausing and resuming as needed.
+  You can have multiple time entries running at once, pausing/resuming as needed.
 
 - **Export timesheet summaries.**
 
-  Export a timesheet summary as an `svg`/`csv`/`json`.
+  Export a timesheet summary as an svg/csv/json.
 
 - **BigQuery Shell.**
 
-  Write directly to BigQuery <span style="color:grey">(***Note**: This is a very minimal feature shell, as it's not main focus of this tool*)</span>.
+  Write directly to BigQuery <span style="color:grey">(**\*Note**: This is a very minimal feature shell, as it's not main focus of this tool\*)</span>.
 
 - **Backup/restore snapshots.**
 
@@ -69,38 +71,38 @@ A time-tracking REPL, using [Google BigQuery](https://cloud.google.com/bigquery?
 
 ## Installation & Setup
 
-- This package is not currently hosted on PyPI. It may be uploaded in the future.
-- Support for a local only version is planned long-term.
-
-<br />
+The recommended installation method is by using [`uv`][uv].
 
 ```bash
-# Run the following command to install the latest release:
-pip install "lightlike @ git+https://github.com/ayvi-0001/lightlike-cli@$TAG" # substitute TAG, e.g. TAG=v0.0.0
-
-# Run the following command to install the latest commit:
-pip install "lightlike @ git+https://github.com/ayvi-0001/lightlike-cli@main"
+uv tool install git+https://github.com/ayvi-0001/lightlike-cli.git
 ```
 
-<br />
+To use the summary json/csv commands, The libraries `pandas`/`db-types` are required. Install with the extra `[pandas]`.
 
-There is a short initial setup the first time the CLI runs to configure the default timezone, settings/authorization for BigQuery, and running scripts to build the required procedures/tables.
+```bash
+uv tool install --python 3.14 -- git+http://ayvi:3000/ayvi/lightlike-cli.git[pandas]
+```
 
-Once it's installed, start the REPL by running the command `$ lightlike`
+There is a short initial setup the first time the CLI runs. This setup handles:
 
-<br />
+- configuring the default timezone
+- settings/authorization for BigQuery
+- scripts to build the required procedures/tables in BigQuery.
+
+Once installed, start the REPL by running the command `lightlike`
+
+---
 
 > [!NOTE]
 > This tool depends on the library [`rtoml`](https://github.com/samuelcolvin/rtoml) which is implemented in [rust](https://www.rust-lang.org/).
-> When installing from your package manager , it will attempt to find the appropriate binary for your system configuration from [this list](https://pypi.org/project/rtoml/#files).
-> If it's it's unable to determine this, you'll need [rust stable](https://releases.rs/) installed to compile it.
+> When installing from your package manager, it will attempt to find the appropriate binary for your system configuration from [this list](https://pypi.org/project/rtoml/#files).
+> If it's unable to determine this, you'll need [rust stable](https://releases.rs/) installed to compile it.
 >
 > If your package manager was unable to determine your system configuration but you see an appropriate binary available, you can try to install it manually:
 >
 > ```bash
 > pip install https://files.pythonhosted.org/packages/4c/6d/48ce15a3919a5c07a19ae3c80b9fadbe1e13a5e475198143965d3de6e60b/rtoml-0.11.0-cp311-none-win_amd64.whl
 > ```
->
 
 <br />
 
@@ -145,11 +147,11 @@ Once it's installed, start the REPL by running the command `$ lightlike`
 
 ## Issues
 
-This tool is still not 100% complete. It's recommended to keep frequent backups of your time entries. Please feel free to open an issue if you encounter bugs. If any uncaught exceptions raise, a traceback will save in the app directory and you'll see a message similar to the one below:
+This tool is incomplete. It's recommended to keep frequent backups of your time entries. Please feel free to open an issue if you encounter any bugs. If any uncaught exceptions raise, a traceback will save in the app directory and you'll see a message similar to the one below:
 
 ![error_logs](/docs/assets/png/error_logs.png)
 
-If there is any loss of data without having created a recent snapshot, and you are *within the fail-safe period of the last 7 days*, there are methods to recover it.
+If there is any loss of data without having created a recent snapshot, and you are _within the fail-safe period of the last 7 days_, there are methods to recover it.
 
 If the table has not been dropped, you can query historical data by using the `FOR SYSTEM_TIME AS OF` clause.
 
@@ -170,3 +172,5 @@ bq cp lightlike_cli.timesheet@1723306791 lightlike_cli.timesheet
 ```
 
 If you have `gcloud` installed but you run into the error `bq: command not found`, try running `gcloud components install bq`.
+
+[uv]: https://docs.astral.sh/uv/
