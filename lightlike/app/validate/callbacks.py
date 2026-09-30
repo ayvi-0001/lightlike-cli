@@ -202,8 +202,7 @@ def current_time_period_flags(
 def timer_list_cache_idx(
     ctx: click.Context,
     _param: click.Parameter,
-    *,
-    value: t.Sequence[int] | bool,
+    value: t.Sequence[int] | bool,  # ruff: ignore[boolean-type-hint-positional-argument]
 ) -> list[str] | None:
     if not value and not ctx.resilient_parsing:
         return None
