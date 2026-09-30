@@ -28,7 +28,7 @@ dependencies = [
     "prompt-toolkit~=3.0.47",
     "pywin32-ctypes>=0.2.2; sys_platform == 'win32'",
     "pywin32>=306; sys_platform == 'win32'",
-    "questionary @ git+https://github.com/tmbo/questionary@caad2e5ce3694d53d1a0666751339262799bed9f",
+    "questionary>=2.1.1",
     "rich~=13.7.1",
     "rsa>=4.9",
     "rtoml>=0.13.0",
