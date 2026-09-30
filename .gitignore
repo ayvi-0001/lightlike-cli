@@ -109,11 +109,3 @@ isort.cfg
 *.stackdump
 # Folder config file
 [Dd]esktop.ini
-
-# helix
-.helix
-
-# A copy of notes for the next commit saved in the root dir.
-# Same name as the file in .git/ so text editors recognizing the file
-# will add the lines at 50/72 chars for commit message length
-/COMMIT_EDITMSG
