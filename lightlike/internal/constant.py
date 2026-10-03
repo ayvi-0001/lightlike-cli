@@ -8,11 +8,11 @@ from lightlike.__about__ import __appname_sc__, __version__
 __all__: t.Sequence[str] = (
     "BQ_UPDATES_CONFIG",
     "CONSOLE",
+    "CONSOLE_SVG_FORMAT",
     "DEFAULT_CONFIG",
     "DEFAULT_SCHEDULER_TOML",
     "LICENSE",
     "PROMPT_STYLE",
-    "_CONSOLE_SVG_FORMAT",
 )
 
 
@@ -317,7 +317,7 @@ BQ_UPDATES_CONFIG: str = """\
 """
 
 
-_CONSOLE_SVG_FORMAT = """\
+CONSOLE_SVG_FORMAT = """\
 <svg class="rich-terminal" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">
     <style>
 

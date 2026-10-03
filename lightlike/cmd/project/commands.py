@@ -94,6 +94,7 @@ def archive(
     appdata: TimeEntryAppData,
     cache: TimeEntryCache,
     projects: t.Sequence[str],
+    *,
     yes: bool,
 ) -> None:
     """
@@ -108,12 +109,14 @@ def archive(
     ctx, parent = ctx_group
     debug: bool = parent.params.get("debug", False)
 
-    if not yes:
-        if not _questionary.confirm(
-            message="This will hide all related time entries from timer:list and summary commands. Continue? ",
-            auto_enter=True,
-        ):
-            return
+    if not yes and not _questionary.confirm(
+        message=(
+            "This will hide all related time entries from timer:list "
+            "and summary commands. Continue? "
+        ),
+        auto_enter=True,
+    ):
+        return
 
     with console.status(markup.status_message("Getting project info")) as status:
         all_count_entries = []
@@ -179,7 +182,7 @@ def archive(
 
         $ project create --name lightlike-cli --description "time-tracking repl" --default-billable true
         $ p c -nlightlike-cli -d"time-tracking repl" -bt # -b for default-billable flag\
-        """,
+        """,  # ruff: ignore[line-too-long]
         lexer="fishshell",
         dedent=True,
         line_numbers=True,
@@ -239,6 +242,7 @@ def create(
     appdata: TimeEntryAppData,
     name: str,
     description: str,
+    *,
     default_billable: bool,
 ) -> None:
     r"""
@@ -263,7 +267,7 @@ def create(
             auto_enter=True,
             default=False,
         ):
-            description = PromptFactory._prompt("(description)")
+            description = PromptFactory[str]._prompt("(description)")  # ruff: ignore[private-member-access]
 
         if default_billable is False and _questionary.confirm(
             message="Default billable?",
@@ -351,6 +355,7 @@ def delete(
     appdata: TimeEntryAppData,
     cache: TimeEntryCache,
     projects: t.Sequence[str],
+    *,
     yes: bool,
 ) -> None:
     """
@@ -507,12 +512,13 @@ def delete(
 def list_(
     console: Console,
     routine: CliQueryRoutines,
-    all_: bool,
     exclude: t.Sequence[str],
     include: t.Sequence[str],
     modifiers: str,
     order_by: str,
-    regex_engine: str,
+    regex_engine: t.Literal["ECMAScript", "re2"] | None,
+    *,
+    all_: bool,
 ) -> None:
     """
     List projects.
@@ -541,7 +547,7 @@ def list_(
         to run a case-insensitive regex match in re2, use the inline modifier [repr.str]"(?i)"[/repr.str],
         for ECMAScript, use the --modifiers / -M option with [repr.str]"i"[/repr.str]
 
-    """
+    """  # ruff: ignore[line-too-long]
     fields: list[str] = [
         "name",
         "description",
@@ -556,11 +562,9 @@ def list_(
     if not all_:
         where.append("archived is null")
 
-    fmt_exclude_expression: str = ""
     if exclude:
         exclude_expressions: list[str] = []
-        for pattern in exclude:
-            exclude_expressions.append(pattern)
+        exclude_expressions.extend(exclude)
 
         exclude_expression: str = "|".join(exclude_expressions)
         fmt_exclude_expression = routine.format_regular_expression(
@@ -573,11 +577,9 @@ def list_(
 
         where.append(fmt_exclude_expression)
 
-    fmt_include_expression: str = ""
     if include:
         include_expressions: list[str] = []
-        for pattern in include:
-            include_expressions.append(pattern)
+        include_expressions.extend(include)
 
         include_expression: str = "|".join(include_expressions)
         fmt_include_expression = routine.format_regular_expression(
@@ -790,7 +792,7 @@ def set_project_description(
 
     default: str = current_desc or ""
 
-    new_desc = desc or PromptFactory._prompt(
+    new_desc = desc or PromptFactory._prompt(  # ruff: ignore[private-member-access]
         message="(description)",
         default=default,
         auto_suggest=threaded_autosuggest([default]),
@@ -859,6 +861,7 @@ def set_project_default_billable(
     routine: CliQueryRoutines,
     appdata: TimeEntryAppData,
     project: str,
+    *,
     billable: bool,
 ) -> None:
     """Update a project's default billable setting."""

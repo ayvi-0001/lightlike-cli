@@ -582,12 +582,12 @@ def summary_table(  # ruff: ignore[complex-structure, too-many-branches]
             uri: str
             path: str
             if output is not None:
-                from lightlike.internal.constant import _CONSOLE_SVG_FORMAT
+                from lightlike.internal.constant import CONSOLE_SVG_FORMAT
 
                 resolved: Path = output.resolve()
                 uri = resolved.as_uri()
                 path = resolved.as_posix()
-                console.save_svg(path, code_format=_CONSOLE_SVG_FORMAT)
+                console.save_svg(path, code_format=CONSOLE_SVG_FORMAT)
                 console.print("Saved to", markup.link(path, uri))
 
 
@@ -777,7 +777,7 @@ def summary_csv(
     ctx, _parent = ctx_group
 
     try:
-        import pandas as pd
+        import pandas as pd  # ty: ignore[unresolved-import]
     except Exception as exc:
         msg = (
             f"[b][red] {exc}: Must have pandas installed to use this command, "
@@ -1086,7 +1086,7 @@ def summary_json(
     ctx, _parent = ctx_group
 
     try:
-        import pandas as pd
+        import pandas as pd  # ty: ignore[unresolved-import]
     except Exception as exc:
         msg = (
             f"[b][red] {exc}: Must have pandas installed to use this command, "

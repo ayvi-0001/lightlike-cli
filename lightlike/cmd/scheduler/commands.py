@@ -1,4 +1,4 @@
-import subprocess
+import subprocess  # ruff: ignore[suspicious-subprocess-import]
 import typing as t
 
 import click
@@ -24,6 +24,7 @@ from lightlike.app.dates import parse_date
 from lightlike.internal import appdir, constant, utils
 
 if t.TYPE_CHECKING:
+    from collections.abc import Callable
     from datetime import _TzInfo
 
     from apscheduler.job import Job
@@ -57,6 +58,7 @@ STATE_RUNNING = 1
 STATE_PAUSED = 2
 
 
+# ruff: ignore[unused-function-argument]
 def available_functions(
     ctx: click.Context,
     param: click.Parameter,
@@ -72,6 +74,7 @@ def available_functions(
     return completions
 
 
+# ruff: ignore[unused-function-argument]
 def available_jobstores(
     ctx: click.Context,
     param: click.Parameter,
@@ -80,12 +83,13 @@ def available_jobstores(
     completions = []
 
     scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
-    for k, v in scheduler._jobstores.items():
+    for k, v in scheduler._jobstores.items():  # ruff: ignore[private-member-access]
         completions.append(CompletionItem(value=k, help=f"{v!r}"))
 
     return completions
 
 
+# ruff: ignore[unused-function-argument]
 def available_executors(
     ctx: click.Context,
     param: click.Parameter,
@@ -94,7 +98,7 @@ def available_executors(
     completions = []
 
     scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
-    for k, v in scheduler._executors.items():
+    for k, v in scheduler._executors.items():  # ruff: ignore[private-member-access]
         completions.append(CompletionItem(value=k, help=f"{v!r}"))
 
     return completions
@@ -309,8 +313,6 @@ def add_job(
     name: str,
     args: tuple[t.Any],
     kwargs: dict[str, t.Any],
-    coalesce: bool,
-    replace_existing: bool,
     executor: str,
     misfire_grace_time: int,
     max_instances: int,
@@ -332,6 +334,9 @@ def add_job(
     second: str,
     start_date: str,
     end_date: str,
+    *,
+    coalesce: bool,
+    replace_existing: bool,
 ) -> None:
     scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     tzinfo = AppConfig().tzinfo
@@ -440,19 +445,19 @@ def print_jobs(ctx: click.Context) -> None:
     )
 
     jobstore = None
-    with scheduler._jobstores_lock:
+    with scheduler._jobstores_lock:  # ruff: ignore[private-member-access]
         if scheduler.state == STATE_STOPPED:
             jobstore_table.add_row("[b]Pending jobs")
-            if scheduler._pending_jobs:
+            if scheduler._pending_jobs:  # ruff: ignore[private-member-access]
                 for idx, (job, jobstore_alias, _replace_existing) in enumerate(
-                    scheduler._pending_jobs,
+                    scheduler._pending_jobs,  # ruff: ignore[private-member-access]
                 ):
                     if jobstore in {None, jobstore_alias}:
                         jobstore_table.add_row(rf"\[{idx + 1}] {job.id}", "", f"{job!s}")
             else:
                 jobstore_table.add_row("[dimmed]No pending jobs")
         else:
-            for alias, store in sorted(six.iteritems(scheduler._jobstores)):
+            for alias, store in sorted(six.iteritems(scheduler._jobstores)):  # ruff: ignore[private-member-access]
                 if jobstore in {None, alias}:
                     jobstore_table.add_row(f"[b]Jobstore {alias}")
                     jobs: t.Sequence[Job] = store.get_all_jobs()
@@ -488,11 +493,12 @@ def modify_job(
     name: str,
     args: tuple[t.Any],
     kwargs: dict[str, t.Any],
-    coalesce: bool,
     executor: str,
     misfire_grace_time: int,
     max_instances: int,
     next_run_time: str,
+    *,
+    coalesce: bool,
 ) -> None:
     scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
     job_modify_kwargs: dict[str, t.Any] = {}
@@ -715,7 +721,7 @@ def status(ctx: click.Context) -> None:
         rich.print("Scheduler is shutdown.")
 
 
-def _job_info(job: Job, show_jobstore: bool = False) -> Table:
+def _job_info(job: Job, *, show_jobstore: bool = False) -> Table:
     job_table = Table(
         box=box.HORIZONTALS,
         show_edge=False,
@@ -739,7 +745,7 @@ def _job_info(job: Job, show_jobstore: bool = False) -> Table:
         overflow="fold",
     )
     if show_jobstore:
-        job_table.add_row("jobstore:", f"{job._jobstore_alias}")
+        job_table.add_row("jobstore:", f"{job._jobstore_alias}")  # ruff: ignore[private-member-access]
     job_table.add_row("id:", f"{job.id}")
     job_table.add_row("name:", f"{job.name}")
     job_table.add_row("trigger:", f"{job.trigger!r}")
@@ -755,10 +761,20 @@ def _job_info(job: Job, show_jobstore: bool = False) -> Table:
     return job_table
 
 
-def run(*args: t.Any, **kwargs: t.Any) -> None:
+def copy_signature[**P, R](
+    source_func: Callable[P, R],  # ruff: ignore[unused-function-argument]
+) -> Callable[[Callable[..., t.Any]], Callable[P, R]]:
+    def decorator(target_func: Callable[..., t.Any]) -> Callable[P, R]:
+        return t.cast("Callable[P, R]", target_func)
+
+    return decorator
+
+
+@copy_signature(subprocess.run)
+def run(*args, **kwargs) -> t.Any | None:
     console = rich.get_console()
 
-    result = subprocess.run(*args, **kwargs)
+    result = subprocess.run(*args, check=False, **kwargs)  # ruff: ignore[subprocess-without-shell-equals-true]
 
     message: str = "Completed Process: `{}` | returncode={}".format(
         r"\n".join(result.args.splitlines()),
@@ -814,13 +830,10 @@ def run(*args: t.Any, **kwargs: t.Any) -> None:
 def system_command(
     ctx: click.Context,
     command: str,
-    command_multiline: bool,
     jobstore: str,
     job_id: str,
     args: tuple[t.Any],
     kwargs: dict[str, t.Any],
-    coalesce: bool,
-    replace_existing: bool,
     executor: str,
     misfire_grace_time: int,
     max_instances: int,
@@ -842,6 +855,10 @@ def system_command(
     second: str,
     start_date: str,
     end_date: str,
+    *,
+    command_multiline: bool,
+    coalesce: bool,
+    replace_existing: bool,
 ) -> None:
     scheduler: BackgroundScheduler = ctx.find_root().obj["get_scheduler"]()
 
@@ -849,21 +866,21 @@ def system_command(
 
     if command_multiline:
         style: Style = Style.from_dict(rtoml.load(constant.PROMPT_STYLE))
-        CMD = prompt(message="", multiline=True, style=style)
-        name = CMD
-        CMD = _prepend_exec_to_cmd(
-            CMD,
+        cmd = prompt(message="", multiline=True, style=style)
+        name = cmd
+        cmd = _prepend_exec_to_cmd(
+            cmd,
             lambda: AppConfig().get("system-command", "shell", default=""),
         )
     else:
-        CMD = command
+        cmd = command
         name = command
-        CMD = _prepend_exec_to_cmd(
-            CMD,
+        cmd = _prepend_exec_to_cmd(
+            cmd,
             lambda: AppConfig().get("system-command", "shell", default=""),
         )
 
-    if not CMD:
+    if not cmd:
         ctx.fail("Must specify command.")
 
     func = f"{__name__}:run"
@@ -871,7 +888,7 @@ def system_command(
     job_kwargs: dict[str, t.Any] = {}
 
     func_kwargs = {
-        "args": CMD,
+        "args": cmd,
         "capture_output": True,
         "shell": True,
         "text": True,

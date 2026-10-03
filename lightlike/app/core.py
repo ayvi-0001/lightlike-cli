@@ -11,7 +11,7 @@ from os import getenv
 
 import click
 import rich.console
-from click.types import _NumberRangeBase
+from click.types import _NumberRangeBase  # ruff: ignore[import-private-name]
 from more_itertools import first, last
 from prompt_toolkit.patch_stdout import patch_stdout
 from rich import get_console
@@ -24,7 +24,7 @@ from rich.table import Table
 from rich.text import Text
 
 from lightlike._console import CONSOLE_CONFIG, GROUP_COMMANDS
-from lightlike.internal.constant import _CONSOLE_SVG_FORMAT
+from lightlike.internal.constant import CONSOLE_SVG_FORMAT
 
 if t.TYPE_CHECKING:
     from types import ModuleType
@@ -35,6 +35,9 @@ __all__: t.Sequence[str] = (
     "LazyAliasedGroup",
     "_format_click_exception",
 )
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 @t.overload
@@ -64,9 +67,8 @@ def _get_maybe_callable[T](
     default: T | None = None,
     apply: t.Sequence[t.Callable[..., T]] | None = None,
 ) -> T | None:
-    attr_: T | None = None
     source: T | None = getattr(obj, attr, None)
-    attr_ = source() if callable(source) else source
+    attr_: T | None = source() if callable(source) else source
 
     if apply and attr_:
         for fn in apply:
@@ -86,8 +88,8 @@ class FormattedCommand(click.Command):
     def __init__(
         self,
         syntax: t.Callable[..., Syntax] | None = None,
-        allow_name_alias: bool = True,
         *args: t.Any,
+        allow_name_alias: bool = True,
         **kwargs: t.Any,
     ) -> None:
         super().__init__(*args, **kwargs)
@@ -192,26 +194,28 @@ class LazyAliasedGroup(AliasedGroup):
             if not cmd_object_is_command:
                 msg = f"Lazy loading of {import_path} failed by returning a non-command object"
                 raise ValueError(msg)
-            return cmd_object
+
         except Exception as e:
             self.lazy_subcommands.pop(cmd_name, None)
             error = f"{e}"
-            logging.exception(
-                "Failed to load subcommand: %s from %s. Error: %s",
+            LOGGER.exception(
+                "Failed to load subcommand: %s from %s",
                 cmd_name,
                 import_path,
-                error,
             )
             if "not enough values to unpack" in error:
-                logging.exception(
+                LOGGER.exception(
                     "The final part in the path must be separated by a semicolon (:). "
                     "e.g `command-name-in-cli.module-name.file-name:command-object",
                 )
 
             return None
+        else:
+            return cmd_object
 
 
 class ReplHighlighter(RegexHighlighter):
+    # ruff: ignore[mutable-class-default]
     highlights: list[str] = [
         r"(^|[^\w\-])(?P<switch>-([^\W0-9][\w\-]*\w|[^\W0-9]))",
         r"(^|[^\w\-])(?P<option>--([^\W0-9][\w\-]*\w|[^\W0-9]))",
@@ -221,10 +225,12 @@ class ReplHighlighter(RegexHighlighter):
 
 
 class UsageHighlighter(RegexHighlighter):
+    # ruff: ignore[mutable-class-default]
     highlights = [r"(?P<argument>\w+)"]
 
 
 class MetavarHighlighter(RegexHighlighter):
+    # ruff: ignore[mutable-class-default]
     highlights = [
         r"^(?P<metavar_sep>(\[|<))",
         r"(?P<metavar_sep>\|)",
@@ -261,7 +267,7 @@ def _format_click_exception(exception: click.ClickException) -> None:
 def format_help(
     obj: click.Group | click.Command,
     ctx: click.Context,
-    formatter: click.HelpFormatter,
+    formatter: click.HelpFormatter,  # ruff: ignore[unused-function-argument]
 ) -> None:
     export_help = truth(getenv("LIGHTLIKE_CLI_DEV_EXPORT_HELP"))
     console = get_console()
@@ -294,12 +300,12 @@ def format_help(
         console.save_svg(
             path=f"./{invoked_subcommand}.svg",
             title=title,
-            code_format=_CONSOLE_SVG_FORMAT,
+            code_format=CONSOLE_SVG_FORMAT,
             clear=True,
             unique_id=unique_id,
         )
 
-    console.width = None
+    console.width = None  # ty: ignore[invalid-assignment]
 
 
 @rich.console.group()
@@ -396,7 +402,7 @@ class OptionGroups(t.TypedDict):
 
 
 @rich.console.group()
-def _group_options(
+def _group_options(  # ruff: ignore[complex-structure, too-many-branches]
     obj: click.Command,
     ctx: click.Context,
 ) -> t.Iterable[rich.console.RenderableType]:
@@ -457,9 +463,9 @@ def _group_options(
             if (
                 (isinstance(param.type, _NumberRangeBase) or param.type.name.endswith("range"))
                 and isinstance(param, click.Option)
-                and not (param.count and param.type.min == 0 and param.type.max is None)
+                and not (param.count and param.type.min == 0 and param.type.max is None)  # ty: ignore[unresolved-attribute]
             ):
-                range_str = param.type._describe_range()
+                range_str = param.type._describe_range()  # ty: ignore[unresolved-attribute]  # ruff: ignore[private-member-access]
                 if range_str:
                     metavar.append(f" [{range_str}]")
 

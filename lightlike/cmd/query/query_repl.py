@@ -24,7 +24,7 @@ from lightlike.cmd.query.completers import query_repl_completer
 from lightlike.cmd.query.key_bindings import QUERY_BINDINGS
 from lightlike.cmd.query.lexer import BqSqlLexer
 from lightlike.internal import appdir, constant, markup, utils
-from lightlike.internal.constant import _CONSOLE_SVG_FORMAT
+from lightlike.internal.constant import CONSOLE_SVG_FORMAT
 
 if t.TYPE_CHECKING:
     from google.cloud.bigquery import QueryJob
@@ -284,7 +284,7 @@ def render_query(
                 svg = query_path.with_suffix(".svg").resolve()
                 console_svg = file_console.export_svg(
                     title="",
-                    code_format=_CONSOLE_SVG_FORMAT,
+                    code_format=CONSOLE_SVG_FORMAT,
                 )
                 svg.write_text(console_svg, encoding="utf-8")
                 not getenv("LIGHTLIKE_CLI_DEV") and console.log(

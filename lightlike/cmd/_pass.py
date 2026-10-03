@@ -10,7 +10,12 @@ from lightlike.app.dates import now as datetime_now
 from lightlike.client import CliQueryRoutines, get_client
 
 if t.TYPE_CHECKING:
+    from collections.abc import Callable
+    from datetime import datetime
     from types import FunctionType
+
+    from google.cloud.bigquery import Client
+    from rich.console import Console
 
 __all__: t.Sequence[str] = (
     "appdata",
@@ -26,7 +31,6 @@ __all__: t.Sequence[str] = (
 
 type AnyCallable = t.Callable[..., t.Any]
 
-P = t.ParamSpec("P")
 
 routine: AnyCallable = click.make_pass_decorator(CliQueryRoutines, ensure=True)
 config: AnyCallable = click.make_pass_decorator(AppConfig, ensure=False)
@@ -35,34 +39,34 @@ appdata: AnyCallable = click.make_pass_decorator(TimeEntryAppData, ensure=True)
 id_list: AnyCallable = click.make_pass_decorator(TimeEntryIdList, ensure=True)
 
 
-def client(fn: AnyCallable) -> AnyCallable:
+def client[**P, R](fn: Callable[t.Concatenate[Client, P], R]) -> Callable[P, R]:
     @wraps(fn)
-    def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
+    def inner(*args: P.args, **kwargs: P.kwargs) -> R:
         return fn(get_client(), *args, **kwargs)
 
     return inner
 
 
-def console(fn: AnyCallable) -> AnyCallable:
+def console[**P, R](fn: Callable[t.Concatenate[Console, P], R]) -> Callable[P, R]:
     @wraps(fn)
-    def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
+    def inner(*args: P.args, **kwargs: P.kwargs) -> R:
         return fn(get_console(), *args, **kwargs)
 
     return inner
 
 
-def now(fn: AnyCallable) -> AnyCallable:
+def now[**P, R](fn: Callable[t.Concatenate[datetime, P], R]) -> Callable[P, R]:
     @wraps(fn)
-    def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
+    def inner(*args: P.args, **kwargs: P.kwargs) -> R:
         return fn(datetime_now(AppConfig().tzinfo), *args, **kwargs)
 
     return inner
 
 
-def ctx_group(parents: int) -> t.Callable[..., AnyCallable]:
-    def decorator(fn: FunctionType) -> AnyCallable:
+def ctx_group[**P, R](parents: int) -> t.Callable[[FunctionType], Callable[P, R | None]]:
+    def decorator(fn: FunctionType) -> Callable[P, R | None]:
         @wraps(fn)
-        def inner(*args: P.args, **kwargs: P.kwargs) -> t.Any:
+        def inner(*args: P.args, **kwargs: P.kwargs) -> R | None:
             ctx = click.get_current_context()
             ctx_group = [ctx]
             count = parents
