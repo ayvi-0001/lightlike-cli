@@ -29,13 +29,14 @@ from rich.traceback import install
 
 install(suppress=[click])
 
-from lightlike import _console
+from lightlike import _console, _warnings
+
+_warnings.suppress()
 
 _console.reconfigure()
 
 import sys
 import typing as t
-import warnings
 from functools import partial
 
 import rtoml
@@ -57,7 +58,6 @@ from lightlike.internal import appdir, constant, utils
 
 __all__: t.Sequence[str] = ("main",)
 
-warnings.filterwarnings("ignore", category=SyntaxWarning)
 
 LOCK: InterProcessLock = InterProcessLock(__lock__, logger=appdir.log())
 
