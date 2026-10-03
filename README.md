@@ -74,7 +74,13 @@ Support for a local only version is planned long-term.
 The recommended installation method is by using [`uv`][uv].
 
 ```bash
-uv tool install git+https://github.com/ayvi-0001/lightlike-cli.git
+uv tool install --python 3.14 git+https://github.com/ayvi-0001/lightlike-cli.git
+```
+
+For increased performance using gRPC and `google-cloud-bigquery-storage`, install with extra `[perf]`.
+
+```bash
+uv tool install --python 3.14 git+https://github.com/ayvi-0001/lightlike-cli.git[perf]
 ```
 
 To use the summary json/csv commands, The libraries `pandas`/`db-types` are required. Install with the extra `[pandas]`.
