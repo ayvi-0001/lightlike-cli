@@ -2,6 +2,7 @@ import typing as t
 from datetime import datetime
 
 import click
+import rich
 import rtoml
 from prompt_toolkit import prompt
 from prompt_toolkit.styles import Style
@@ -42,7 +43,7 @@ EVAL_GLOBALS = {
 EVAL_LOCALS: dict[str, t.Any] = {}
 
 
-def _eval_help(ctx: click.Context, param: click.Parameter, value: str) -> None:
+def _eval_help(ctx: click.Context, _param: click.Parameter, value: str) -> None:
     if not value or ctx.resilient_parsing:
         return
 
@@ -101,14 +102,13 @@ def _eval_help(ctx: click.Context, param: click.Parameter, value: str) -> None:
 )
 @click.argument("args", nargs=-1, type=click.STRING)
 @click.option("--multiline-prompt", is_flag=True)
-def eval_(args: list[str], multiline_prompt: bool) -> None:
+def eval_(args: list[str], *, multiline_prompt: bool) -> None:
     def _execute_eval(eval_args: str) -> None:
-        global EVAL_GLOBALS, EVAL_LOCALS
         try:
-            retval = eval(eval_args, EVAL_GLOBALS, EVAL_LOCALS)
+            retval = eval(eval_args, EVAL_GLOBALS, EVAL_LOCALS)  # ruff: ignore[suspicious-eval-usage]
             rich.print(retval)
         except SyntaxError:
-            exec(eval_args, EVAL_GLOBALS, EVAL_LOCALS)
+            exec(eval_args, EVAL_GLOBALS, EVAL_LOCALS)  # ruff: ignore[exec-builtin]
         finally:
             EVAL_LOCALS.pop("eval_args", None)
 
