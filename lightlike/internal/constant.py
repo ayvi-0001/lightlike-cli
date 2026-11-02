@@ -79,14 +79,15 @@ service-account-key = []
 add-to-path = []
 
 [cli.commands]
-calendar = "lightlike.cmd.app.other:calendar"
-eval = "lightlike.cmd.app.other:eval_"
-help = "lightlike.cmd.app.default:help_"
-cd = "lightlike.cmd.app.default:cd_"
-exit = "lightlike.cmd.app.default:exit_"
 app = "lightlike.cmd.app:app"
 bq = "lightlike.cmd.bq:bq"
+calendar = "lightlike.cmd.app.other:calendar"
+cd = "lightlike.cmd.app.default:cd_"
+eval = "lightlike.cmd.app.other:eval_"
+exit = "lightlike.cmd.app.default:exit_"
+help = "lightlike.cmd.app.default:help_"
 project = "lightlike.cmd.project:project"
+scheduler = "lightlike.cmd.scheduler:scheduler"
 timer = "lightlike.cmd.timer:timer"
 
 [prompt.style]
